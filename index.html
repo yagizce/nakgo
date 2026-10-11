@@ -1848,7 +1848,9 @@ header>div:nth-child(2) { flex:1; min-width:0; }
 header p { font-family:'Trebuchet MS','Segoe UI',sans-serif; font-size:11px; font-weight:700; letter-spacing:.1px; line-height:1.3; margin-top:3px; color:var(--on-brand); }
 .logo { width:50px; height:50px; background:transparent; border-radius:16px; }
 .logo img { display:block; width:50px; height:50px; border:0; border-radius:16px; }
-.bell { width:44px; min-height:44px; border:1px solid #083e4326; background:#ffffff38; color:var(--on-brand); flex:none; }
+.bell { width:44px; min-height:44px; border:1px solid #07575f; background:#07575f; color:#fff; flex:none; }
+#bell { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+.bell:focus-visible { outline:2px solid #083e43; outline-offset:3px; }
 #thh+.bell { margin-left:0; }
 main { background:radial-gradient(ellipse at 100% 0%,var(--tag-bg),transparent 48%),var(--bg); }
 #main[data-screen=list],#main[data-screen=post] { padding-bottom:160px; scroll-padding-bottom:160px; }
