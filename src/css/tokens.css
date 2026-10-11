@@ -53,26 +53,6 @@
   --shadow:0 6px 20px rgba(0,0,0,.14);
 }
 
-:root {
-  --sea:#d6e6f2;
-  --land:#f8f5ea;
-  --land2:#e7e6de;
-}
-
-@media (prefers-color-scheme:dark) {
-  :root:not([data-theme="light"]) {
-    --sea:#14283c;
-    --land:#24374f;
-    --land2:#1a2a3d;
-  }
-}
-
-:root[data-theme="dark"] {
-  --sea:#14283c;
-  --land:#24374f;
-  --land2:#1a2a3d;
-}
-
 /* ----- Temel: sıfırlama, gövde, form alanları, odak ----- */
 
 * {
@@ -156,12 +136,12 @@ label {
 
 button:focus-visible,
 summary:focus-visible {
-  outline:2px solid var(--accent);
+  outline:2px solid var(--brand-ink);
   outline-offset:2px;
 }
 
 .fav:focus-visible {
-  outline:2px solid var(--accent);
+  outline:2px solid var(--brand-ink);
   outline-offset:2px;
   border-radius:6px;
 }

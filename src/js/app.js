@@ -186,6 +186,7 @@ try {
     if(savedPostMode === "load" || savedPostMode === "truck") postMode=savedPostMode;
 } catch(e) { }
 
+setNav();
 render();
 
 deep();
@@ -199,26 +200,5 @@ catch (e) { }
 // Ortak veritabanı varsa bağlan (yoksa uygulama yerel modda kalır).
 initCloud();
 
-// Pencere açılışında odağı içeride tut; kapanışta çağıran düğmeye geri dön.
-try {
-    const sh = $("#sheet"), body = $("#sheetBody");
-    let previousFocus = null, wasOpen = false;
-    new MutationObserver(() => {
-        const open = sh.classList.contains("open");
-        if (open && !wasOpen) {
-            previousFocus = document.activeElement;
-            body.setAttribute("aria-label", body.querySelector("h2,b,.detail-top")?.textContent || "NakGo penceresi");
-            body.setAttribute("tabindex", "-1");
-            (body.querySelector("#close,#cx,button,input") || body).focus();
-        } else if (!open && wasOpen && previousFocus?.isConnected) previousFocus.focus();
-        wasOpen = open;
-    }).observe(sh, {attributes:true,attributeFilter:["class"]});
-    document.addEventListener("keydown", e => {
-        if(e.key !== "Tab" || !sh.classList.contains("open")) return;
-        const focusables=[...body.querySelectorAll('button,input,select,textarea,a[href],summary,[tabindex="0"]')].filter(el=>el.getClientRects().length&&!el.disabled);
-        if(!focusables.length){e.preventDefault();body.focus();return;}
-        const first=focusables[0],last=focusables.at(-1);
-        if(e.shiftKey&&(document.activeElement===first||document.activeElement===body)){e.preventDefault();last.focus();}
-        else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
-    });
-} catch(e) { }
+// Ekranlar tanımlandıktan sonra ortak pencere erişilebilirliğini başlat.
+initDialogAccessibility();

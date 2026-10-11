@@ -3,16 +3,15 @@
      lint                      kaynak denetimi: dosya adları, başlıklar, ad çakışmaları, yasaklı ifadeler, sözdizimi
      map [--write]             dosya ve işlev haritasını yazdırır (--write: docs/CODEMAP.md, git dışında tutulur)
      www                       web dosyalarını mobil kabuk için www/ klasörüne kopyalar (NAKGO_WWW ile değiştirilir)
-   npm kısayolları package.json içindedir (npm run lint, map, new, mobile:prepare). */
+   npm kısayolları package.json içindedir (npm run lint, map, mobile:prepare). */
 const fs = require("fs"), path = require("path"), vm = require("vm");
 const {root, js:jsFiles, css:cssFiles} = require("./project.js");
 const read = f => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const list = e => e === ".js" ? jsFiles : cssFiles;
 
 // ---------- lint ----------
-const RUNNING = new Set(["src/js/state.js", "src/js/core.js", "src/js/app.js"]);   // üst düzeyde çalışan kod yazılabilen modüller
 function lint() {
-    const errors = [], warns = [];
+  const errors = [], warns = [];
   const RUNNING = new Set(["src/js/state.js", "src/js/core.js", "src/js/app.js"]);   // üst düzeyde çalışan kod yazılabilen modüller
 
   const js = list(".js"), css = list(".css");
@@ -73,7 +72,6 @@ function map() {
   else process.stdout.write(out);
 }
 
-// ---------- new ----------
 // ---------- www ----------
 function www() {
   const out = process.env.NAKGO_WWW || path.join(root, "www");

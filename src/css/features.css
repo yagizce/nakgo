@@ -50,13 +50,6 @@
   opacity:.8;
 }
 
-#sg {
-  font-size:13px;
-  color:var(--mute);
-  margin-top:12px;
-  line-height:2;
-}
-
 .th {
   width:48px;
   height:48px;

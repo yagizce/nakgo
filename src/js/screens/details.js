@@ -39,7 +39,7 @@ function openLoad(id) {
     $("#sheetBody").scrollTop = 0;
     syncDetailViewport();
     $("#sheet").classList.add("open");
-    roadMapBind($("#sheetBody"));
+    roadMapBind($("#sheetBody"),()=>openLoad(id));
     $("#close").onclick = closeSheet;
     $("#sh").onclick = () => shareLoad(l);
     $("#call").onclick = () => {
@@ -66,7 +66,7 @@ function openTruck(id) {
     $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${t.cap} ton boş kapasite</span><span class="tag">${t.date}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", (t.who || nm(t.uid)) + (lvT(t) === 2 ? " ✓ Onaylı" : vok(t) ? " ✓ Belgeli" : "") + " · " + starTxt(t)], ["Araç", t.veh + " · " + t.body], ["Boş kapasite", t.cap + " ton"], ["Müsait", t.date]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div></section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML()}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
-    roadMapBind($("#sheetBody"));
+    roadMapBind($("#sheetBody"),()=>openTruck(id));
     $("#close").onclick = closeSheet;
     $("#mg").onclick = () => openChat("t" + id, t.who || nm(t.uid));
     $("#call").onclick = () => callTo(phoneOf(t));
@@ -78,5 +78,5 @@ function openTruck(id) {
 
 function contactDockHTML() {
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
-    return `<div class="contact-dock dual-contact"><button class="btn contact-call" id="call"><span>☎ Ara</span>${badge}</button><button class="btn alt" id="mg"><span>Mesaj gönder</span>${badge}</button></div>`;
+    return `<div class="contact-dock dual-contact"><button class="btn contact-call" id="call"><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg"><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
 }
