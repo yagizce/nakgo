@@ -4,7 +4,7 @@ Yeni JS/CSS dosyasını `tools/project.js` sırasına ekleyin. Betikler ortak ka
 
 `tests/run.js` sahte DOM ile davranışı ve yayın çıktısını denetler. Yeni testler tests/unit/ altında *.test.js olur. Yerleşim ve klavye gerçek tarayıcıda doğrulanmalıdır.
 
-Tarayıcı testi için Python 3, `python -m pip install playwright` ve `python -m playwright install chromium` gerekir. Kurulu Chrome için NAKGO_BROWSER_CHANNEL=chrome kullanılabilir. NAKGO_E2E_URL testin yerel sunucu yerine önizlemeyi açmasını sağlar; korunan Vercel önizlemesi geçerli paylaşım bağlantısı gerektirir. Testler demo verisi oluşturur, gerçek ödeme veya taşıma yapmaz.
+Tarayıcı testi için Python 3, `python -m pip install -r tests/requirements.txt` ve `python -m playwright install chromium` gerekir. Kurulu Chrome için NAKGO_BROWSER_CHANNEL=chrome kullanılabilir. NAKGO_E2E_URL testin yerel sunucu yerine önizlemeyi açmasını sağlar; korunan Vercel önizlemesi geçerli paylaşım bağlantısı gerektirir. Testler demo verisi oluşturur, gerçek ödeme veya taşıma yapmaz.
 
 Tekrarlanan harita yakınlaştırma/şehir seçimi testlerinde döşemeler test verisiyle karşılanır; kamusal harita sunucusuna otomatik tarama yapılmaz. Gerçek sağlayıcı ve kaynak görünürlüğü önizlemede ayrıca kontrol edilir. Fiziksel iki parmak hareketi, dokunmatik kaydırma ve telefon klavyesi gerçek cihazda da denenmelidir.
 
@@ -15,3 +15,9 @@ Uygulama her görünüm alanında en fazla 430 px genişliğinde, tek sütunlu t
 Özgün logo `assets/brand/logo.png` içinde değiştirilmeden saklanır; arka planı temizlenen sürüm `assets/brand/logo-transparent.png` içindedir. `assets/brand/layout.json` görüntü çerçevelerini ve sloganı belirler. `npm run logo` yerleşik Node modülleriyle 8 bit RGB/RGBA, interlace kapalı PNG'yi boyutlandırır ve alfa kanalını korur. Başlık/açılış görselleri şeffaftır; Apple ve maskable simgelerin zemini turkuazdır. Maskable simgede tır güvenli merkez alanında kalır. `npm run bundle` sloganı aynı kaynaktan iki yere yerleştirir. Marka değişikliğinde önce logo, sonra bundle komutunu çalıştırın. Servis çalışanı görselleri çevrimdışı kullanım için saklar.
 
 Vercel statik yayın kullanır. Kaynaklar/araçlar/belgeler .vercelignore ile dışlanır; index.html, manifest, SW ve icons/ yayınlanır. Yeni önizleme onaylanmadan üretim dalı birleştirilmez veya üretim yayını yapılmaz.
+
+GitHub Actions `checks.yml`, her PR ve main güncellemesinde bundle/lint/birim testlerini, Chromium akışlarını ve mobil web çıktısını doğrular. İş akışı yalnızca okuma izni kullanır, deploy yapmaz ve uygulama sırlarına ihtiyaç duymaz. Action sürümleri commit SHA ile, Playwright test sürümü tests/requirements.txt içinde sabittir. Test kurulumu [Playwright’ın CI belgesini](https://playwright.dev/python/docs/ci-intro) izler.
+
+`tests/reliability.py` gerçek formdan güvenli metin, depo dolması, bozuk kayıt, belge fotoğrafı, tarih, filtre, iletişim durumu ve iki temada kontrast senaryolarını kapsar; ana E2E komutu tarafından çağrılır. Geçici rapor ve ekran görüntüleri tests/shots altında tutulur.
+
+Bundle satır sonlarını LF olarak sabitler; aynı kaynaklar Windows ve Linux’ta aynı index.html üretir. Yerel HTTP sunucusu tools/serve.js içindedir, dış ağa açılmaz; PORT ortam değişkeni ile port değiştirilebilir.

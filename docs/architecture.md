@@ -1,10 +1,10 @@
 # Mimari
 
-NakGo bağımlılıksız HTML/CSS/JavaScript uygulamasıdır; React Native değildir. Betikler klasik tek kapsamda çalışır. `tools/project.js` yükleme sırasının tek kaynağıdır: yapılandırma, durum, çekirdek, özellikler, UI, ekranlar, başlatma.
+NakGo bağımlılıksız HTML/CSS/JavaScript uygulamasıdır; React Native değildir. Betikler klasik tek kapsamda çalışır. `tools/project.js` yükleme sırasının tek kaynağıdır: yapılandırma, durum, veri kuralları, yardımcılar, cihaz kaydı, eski host bağlantısı, özellikler, UI, ekranlar, başlatma.
 
 `src/js/features/` ilan/filtre/karşılaştırma, taşıma talebi/mesaj/yükleme onayı, hesap/belge ve Premium kurallarını içerir. `src/js/screens/` ilanlar, oluşturma, işler, profil, mesaj geçmişi, yol haritası ve detayları içerir; main.js yönlendirir. Profil işaretlemesi kimlik, günlük araçlar ve iletişim gruplarına ayrılır. `src/js/ui/` tema/paylaşma/mazot hesabı, ortak SVG simgeleri ve pencere/gezintiyi yönetir. Pencere odağı ve arka plan etkileşimleri dialog.js tarafından yönetilir; pencere açıkken ana içerik ve menü `inert` olur. `src/css/profile.css` profil stillerinin tek kaynağıdır.
 
-`yy2` mevcut ilan, teklif, sohbet, belge, favori ve üyelik durumunu saklar. `yy-role`, `yy-onb`, `yy-theme`, `yy-seen` korunmuştur. Yeni `ng-post-drafts` ilan formunu ayrı saklar; yayınlanınca ilgili taslak temizlenir. `ng-post-mode` son form türünü korur. `ng-splash` oturum içindir. Mevcut veriyi sıfırlayan şema geçişi yoktur.
+`yy2` mevcut ilan, teklif, sohbet, belge, favori ve üyelik durumunu saklar. `yy-role`, `yy-onb`, `yy-theme`, `yy-seen` korunmuştur. Yeni `ng-post-drafts` ilan formunu ayrı saklar; yayınlanınca ilgili taslak temizlenir. `ng-post-mode` son form türünü korur. `ng-splash` oturum içindir. `storage.js` v3 kayıt şemasını alan bazında doğrular; geçerli eski veriyi korur. Eksik/bozuk kayıt `yy2-recovery-<zaman>` anahtarına kopyalanır; yedekleme başarısızsa eski kaydın üzerine yazılmaz. Başarısız kayıt işleminde son kalıcı durum geri yüklenir, form taslağı temizlenmez ve hata gösterilir. `cdocs` belge görselleri de cihaz kaydına dahildir. Değişmeyen durum tekrar yazılmaz. Tarayıcı verileri temizlenirse bu yerel kayıtlar kaybolur; cihazlar arası yedek değildir.
 
 Host ortamında `window.claude.use("db")` ve `use("user")` varsa mevcut ortak veri akışı kullanılır. Koleksiyonlar: loads, trucks, offers, msgs, carriers, approvals, ratings, reports. Normal Vercel/PWA bu servisleri sağlamaz; yerel demo çalışır. Ön yüzdeki kurallar sunucu güvenliği yerine geçmez.
 
@@ -15,3 +15,7 @@ Harita sorumlulukları dört dosyaya ayrılır: `features/road-map-data.js` sağ
 Doğrulanmış lastikçi, tamirci ve dinlenme tesisleri `ROAD_STOPS` koleksiyonuna ad, kategori, koordinat, kaynak ve doğrulama tarihiyle eklenir. Eksik veya geçersiz noktalar gösterilmez; ilk sürümde bu liste boştur. `ROAD_MAP.tiles` harita sağlayıcısını değiştirmek için tek yapılandırma noktasıdır. [OSM döşeme politikası](https://operations.osmfoundation.org/policies/tiles/) gereği toplu indirme/çevrimdışı harita yoktur; tarayıcı HTTP önbelleğine uyulur ve kaynak haritada görünür.
 
 Arama ve sohbet açma/gönderme Premium kontrolüne tabidir. Gönderirken süresi dolan üyelik tekrar denetlenir. Mevcut host entegrasyonu dışında üyelik hâlâ demo verisidir; gerçek sunucuda aynı yetkiler sunucu tarafında uygulanmalıdır.
+
+`data.js` tarih, mesafe ve kayıt normalizasyonunu DOM’dan ayrı tutar. Kullanıcı ilanları oluşturma zamanı `ts`, yerel takvim günü `date` (YYYY-MM-DD) ve haftalık müsaitlikte `dateEnd` taşır. Göreli etiketler çizimde hesaplanır. Örnek ilanların tarihleri demo olarak göreli kalır. Liste, sayaç ve bildirim aynı uygunluk kuralını kullanır; yeni iletişim işlem anında yeniden kontrol edilir.
+
+Metinler depoda ham tutulur. HTML üreten bileşenler metin ve öznitelik değerlerini `esc()` ile kaçışlar; görsel verileri yalnızca doğrulanmış JPEG data URL olabilir. Eski kaçışlanmış ad/telefon alanları v3 geçişinde bir kez çözülür. Eski host bağlantısı `cloud.js` içindedir; Supabase veya yeni arka uç eklenmemiştir. İş kaydı ilan özetini taşır; ilan silinince mevcut iş geçmişi kaybolmaz.

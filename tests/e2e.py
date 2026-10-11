@@ -127,7 +127,7 @@ with sync_playwright() as p:
     nav("me"); pg.wait_for_timeout(200)
     pg.click("#pm1"); pg.wait_for_selector("#buy"); pg.click("#buy"); pg.wait_for_timeout(300)
     check("test modunda üyelik açılır", "Aktif" in pg.inner_text("#main"))
-    nav("list"); pg.locator(".load[data-id]").first.click(); pg.wait_for_selector("#sheet.open"); pg.click("#call"); pg.wait_for_timeout(250)
+    nav("list"); pg.locator('.load[data-id="1"]').click(); pg.wait_for_selector("#sheet.open"); pg.click("#call"); pg.wait_for_timeout(250)
     check("örnek telefon gerçek arama sunmaz", "Örnek telefon" in pg.inner_text("#sheetBody")); pg.evaluate('callTo("0555 123 45 67")'); check("Premium gerçek numara için tel bağlantısı verir", pg.locator('#sheetBody a[href^="tel:"]').count()==1)
     pg.keyboard.press("Escape")
 
@@ -253,6 +253,10 @@ with sync_playwright() as p:
                 check(prefix+"detay penceresi telefon genişliğini aşmaz",page.locator('#sheetBody').bounding_box()['width']<=430)
             matrix.close()
     check("matris sayfa hatası yok",not errors)
+    from reliability import run_reliability
+    os.makedirs(os.path.join(ROOT,"tests","shots"),exist_ok=True)
+    run_reliability(b,URL,check,errors,ROOT)
+    check("regresyon sayfa hatası yok",not errors)
     b.close()
 
 srv.shutdown()

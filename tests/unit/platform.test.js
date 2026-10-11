@@ -3,7 +3,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
   // ===== shell =====
   run("Güvenlik yardımcıları", (r, ok) => {
     ok(r("return esc('<img src=x onerror=1>\"')").indexOf("<") < 0, "esc");
-    ok(r("return clean({a:'<b>'}).a") === "&lt;b&gt;", "clean");
+    ok(r("return clean({a:'<b>'}).a") === "<b>", "veri ham korunur; kaçışlama çizimde yapılır");
     ok(r("return imgOk('data:image/jpeg;base64,AAAA')") === true && r("return imgOk('data:image/jpeg;base64,AA\"onerror=\"x')") === false, "imgOk");
   });
 

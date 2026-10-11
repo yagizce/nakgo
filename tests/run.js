@@ -12,11 +12,11 @@ const ROOT = path.resolve(__dirname,"..");
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 const script = /<script>([\s\S]*?)<\/script>/.exec(html)[1];
 
-function boot({ win, hash = "", onboarded = true } = {}) {
+function boot({ win, hash = "", onboarded = true, initialStore = {} } = {}) {
   const els = {};
   const mk = () => ({ dataset: {}, style: {}, classList: { add() {}, remove() {}, toggle() {} }, value: "", innerHTML: "", textContent: "", className: "", scrollTop: 0, children: [], querySelectorAll() { return []; }, querySelector() { return mk(); }, focus() {}, appendChild() {}, setSelectionRange() {} });
   const document = { querySelector: s => els[s] || (els[s] = mk()), querySelectorAll: () => [], documentElement: { dataset: {} }, createElement: () => mk() };
-  const store = onboarded ? { "yy-onb": "1" } : {};
+  const store = { ...(onboarded ? { "yy-onb": "1" } : {}), ...initialStore };
   const localStorage = { getItem: k => (k in store ? store[k] : null), setItem(k, v) { store[k] = String(v); } };
   let bg = ""; const timers = [];
   const ctx = {

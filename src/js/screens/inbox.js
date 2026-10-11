@@ -33,7 +33,7 @@ function openInbox() {
     body.innerHTML=`<div class="load-detail">
         <div class="detail-top"><b>Mesajlar</b><button class="chip detail-close" id="close">Kapat ×</button></div>
         <div class="detail-scroll">${entries.map((entry,index)=>`<button class="conversation" data-conv="${index}">
-            <b>${entry.who}</b><span>${entry.route}</span>
+            <b>${esc(entry.who)}</b><span>${esc(entry.route)}</span>
             <small>${esc((chats[entry.k]||[]).slice(-1)[0]?.t||'Görüşmeyi aç')}</small>
         </button>`).join('')||'<div class="empty">Henüz görüşmen yok. İlan detayındaki Mesaj gönder düğmesinden başlayabilirsin.</div>'}</div>
     </div>`;

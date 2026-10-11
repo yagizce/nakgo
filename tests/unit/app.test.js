@@ -112,7 +112,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     const d = r("return statsOf(loads[0])"); ok(d.demo === true && d.views > 0, "yerel modda örnek veri");
     r("cloud=true;me='ME';events=[{t:'v',loadId:700,uid:'a',ts:Date.now()},{t:'v',loadId:700,uid:'b',ts:Date.now()-864e5},{t:'v',loadId:700,uid:'ME',ts:Date.now()},{t:'s',loadId:700,uid:'a',ts:1},{t:'c',loadId:700,uid:'b',ts:1}];allO=[{loadId:700,bidder:'a',offer:8000,status:'wait'},{loadId:700,bidder:'b',offer:9000,status:'wait'}]");
     const s = r("return statsOf(loads[0])");
-    ok(s.views === 2 && s.saves === 1 && s.calls === 1 && s.offers === 2 && s.best === 9000 && s.avg === 8500, "bulutta gerçek sayılar, kendi görüntülemem sayılmaz");
+    ok(s.views === 2 && s.saves === 1 && s.calls === 1 && s.offers === 2, "bulutta gerçek sayılar, kendi görüntülemem sayılmaz");
     ok(s.daily[6] === 1 && s.daily[5] === 1, "günlük dağılım");
     r("openStats(700)"); const h = r("return sheet()"); ok(h.includes("İlan performansı") && h.includes("Talep oranı") && h.includes("%100"), "istatistik penceresi");
     ok(!/En yüksek teklif|İlan ücreti/.test(h), "ilan performansında taşıma ücretleri yok");

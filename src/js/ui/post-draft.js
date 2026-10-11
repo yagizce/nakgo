@@ -4,7 +4,7 @@
  */
 let postStep = 0;
 function getPostDrafts() {
-    try { return JSON.parse(localStorage.getItem("ng-post-drafts") || "{}"); } catch (e) { return {}; }
+    try { const d=JSON.parse(localStorage.getItem("ng-post-drafts") || "{}"); return isRecord(d)?d:{}; } catch (e) { return {}; }
 }
 function capturePostDraft() {
     if (tab !== "post" || !document.querySelectorAll) return;
@@ -21,12 +21,12 @@ function clearPostDraft() {
 function initPostWizard(m) {
     // Sahte DOM testi yerine gerçek DOM'da uygulanır.
     if (!m.insertAdjacentHTML) return;
-    const draft=getPostDrafts()[postMode];
+    const savedDraft=getPostDrafts()[postMode], draft=isRecord(savedDraft)?savedDraft:null;
     postStep=draft ? Math.max(0,Math.min(2,+draft.step||0)) : 0;
     if (draft) {
-        for(const [id,value] of Object.entries(draft.fields||{})) { const e=m.querySelector('#'+id); if(e)e.value=value; }
+        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string')e.value=value; }
         if(postMode==='load') {
-            for(const item of (draft.items||[]).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=item.n; e.querySelector('[data-iq]').value=item.q; e.querySelector('[data-iu]').value=item.u; }
+            for(const item of (Array.isArray(draft.items)?draft.items:[]).filter(isRecord).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=item.n; e.querySelector('[data-iq]').value=item.q; e.querySelector('[data-iu]').value=item.u; }
             if(imgOk(draft.image)){postImg=draft.image;$('#phs').innerHTML=`<img class="th" src="${postImg}" alt="Taslak yük fotoğrafı">`;}
         }
     }

@@ -29,7 +29,7 @@ function match(x, isT) {
         return 0;
     if (F.tonMax !== "" && t > +F.tonMax)
         return 0;
-    if (F.date.length && !F.date.includes(dk(x.date)))
+    if (F.date.length && !F.date.includes(dateBucket(x)))
         return 0;
     const rr = x.uid && ratingOf(x.uid) ? ratingOf(x.uid).avg : x.rate;
     if (F.rate && !(rr >= F.rate))
@@ -74,23 +74,23 @@ function rmF(k, v) {
     render();
 }
 
-const routeTitle = x => `<div class="route route-title"><span>${x.from}</span><i aria-hidden="true"></i><span>${x.to}</span></div>`;
+const routeTitle = x => `<div class="route route-title"><span>${esc(x.from)}</span><i aria-hidden="true"></i><span>${esc(x.to)}</span></div>`;
 
-const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${x.from}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${x.to}</b></div></div>`;
+const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${esc(x.from)}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${esc(x.to)}</b></div></div>`;
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
-const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.from} → ${l.to}, ${l.ton} ton yük, ilanı aç">
+const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
     ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>Doğrudan görüş</span><b>Ara veya mesajlaş</b></div></div>
-    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${l.cargo}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${l.ton}</b> ton</span></div>
-    <div class="listing-spec"><span>${l.veh} · ${l.body || "Kasa belirtilmedi"}</span><span class="load-date">Yükleme: <b>${l.date}</b></span></div>
-    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${favs.includes(String(l.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(l.id))}" class="fav ${favs.includes(String(l.id)) ? "on" : ""}" data-fav="${l.id}">${favs.includes(String(l.id)) ? "♥" : "♡"}</button></div>
+    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
+    <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
+    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${favs.includes(String(l.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(l.id))}" class="fav ${favs.includes(String(l.id)) ? "on" : ""}" data-fav="${esc(l.id)}">${favs.includes(String(l.id)) ? "♥" : "♡"}</button></div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${t.id}" role="button" tabindex="0" aria-label="${t.from} → ${t.to}, ${t.cap} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${t.cap}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${t.who || nm(t.uid)}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${t.veh} · ${t.body}</span><span>Müsait: <b>${t.date}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${favs.includes(String(t.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(t.id))}" class="fav ${favs.includes(String(t.id)) ? "on" : ""}" data-fav="${t.id}">${favs.includes(String(t.id)) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${favs.includes(String(t.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(t.id))}" class="fav ${favs.includes(String(t.id)) ? "on" : ""}" data-fav="${esc(t.id)}">${favs.includes(String(t.id)) ? "♥" : "♡"}</button></div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
-    const cnt = () => (isT ? trucks : loads).filter(x => match(x, isT)).length;
+    const cnt = () => (isT ? trucks : loads).filter(x => visibleListing(x, isT)).length;
     const grp = (k, t, o) => `<label>${t}</label><div class="chips wrap">${o.map(v => `<button class="chip ${F[k].includes(v) ? "on" : ""}" data-g="${k}" data-v="${v}">${v}</button>`).join("")}</div>`;
     const sel = (k, t, o) => `<div><label>${t}</label><select data-s="${k}"><option value="">Hepsi</option>${o.map(c => `<option ${F[k] === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>`;
     B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Filtrele</b><button class="chip" id="fr">Sıfırla</button></div>`
@@ -195,23 +195,24 @@ function openCompare() {
     const B = $("#sheetBody");
     B.dataset.k = "";
     const km = l => l.km || dist(l.from, l.to);
-    const rows = [["Yük", l => l.cargo, null], ["Ağırlık", l => l.ton + " ton", null], ["Araç", l => l.veh + " · " + (l.body || "—"), null], ["Mesafe", l => km(l) ? km(l) + " km" : "—", l => -km(l)], ["Yükleme", l => l.date, null], ["Puan", l => starTxt(l), rv]];
+    const rows = [["Yük", l => esc(l.cargo), null], ["Ağırlık", l => esc(l.ton) + " ton", null], ["Araç", l => esc(l.veh + " · " + (l.body || "—")), null], ["Mesafe", l => km(l) ? km(l) + " km" : "—", l => -km(l)], ["Yükleme", l => esc(dateLabel(l)), null], ["Puan", l => starTxt(l), rv]];
     const cell = (i, rw) => {
         const g = rw[1], sc = rw[2], win = sc && sc(L[0]) !== sc(L[1]) && sc(L[i]) === Math.max(sc(L[0]), sc(L[1]));
         return `<div class="${win ? "win" : ""}">${g(L[i])}</div>`;
     };
-    B.innerHTML = `<b style="font-size:19px">İlanları karşılaştır</b><div class="cmp"><div></div>${L.map(l => `<div class="ch">${l.from}<br>→ ${l.to}</div>`).join("")}${rows.map(rw => `<div class="rl">${rw[0]}</div>${cell(0, rw)}${cell(1, rw)}`).join("")}</div><div class="row" style="margin-top:14px">${L.map(l => `<button class="chip" data-gl="${l.id}">İlana git</button>`).join("")}</div><button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlanları karşılaştır</b><div class="cmp"><div></div>${L.map(l => `<div class="ch">${esc(l.from)}<br>→ ${esc(l.to)}</div>`).join("")}${rows.map(rw => `<div class="rl">${rw[0]}</div>${cell(0, rw)}${cell(1, rw)}`).join("")}</div><div class="row" style="margin-top:14px">${L.map(l => `<button class="chip" data-gl="${esc(l.id)}">İlana git</button>`).join("")}</div><button class="btn alt" id="close">Kapat</button>`;
     B.querySelectorAll("[data-gl]").forEach(b => b.onclick = () => openLoad(+b.dataset.gl));
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
 }
 
-const sortL = a => sort === "km" ? [...a].sort((x, y) => (x.km || 9e9) - (y.km || 9e9)) : sort === "rate" ? [...a].sort((x, y) => rv(y) - rv(x)) : a;
+const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 9e9) - (listingDistance(y) || 9e9)) : sort === "rate" ? [...a].sort((x, y) => rv(y) - rv(x)) : a;
 
 // ===== İlanlarım =====
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
 
 function postTruck(t) {
+    Object.assign(t, dateFields(t.date), {ts:Date.now()});
     if (myCar.phone)
         t.phone = myCar.phone;
     if (cloud) {
@@ -223,6 +224,7 @@ function postTruck(t) {
     if (!cloud)
         t.mine = true;
     trucks.unshift(t);
+    return save();
 }
 
 const mineL = () => loads.filter(l => cloud ? l.uid === me : l.mine);
@@ -236,25 +238,33 @@ function patchIt(k, id, patch) {
     if (!it)
         return;
     Object.assign(it, patch);
+    if (!save()) return false;
     if (cloud)
         dbw(db.doc((k === "l" ? "loads/" : "trucks/") + id).update(patch));
     render();
+    return true;
 }
 
-function openEdit(k, id) {
+function openEdit(k, id, reopen=false) {
     const it = findIt(k, id);
     if (!it)
         return;
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${it.from}<i></i>${it.to}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${it.cap}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${d}</option>`).join("")}</select>${L ? `<label>Not</label><input id="en" maxlength="200" value="${String(it.note || "").replace(/"/g, "&quot;")}">` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#es").onclick = () => {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !(v > 0))
             return toast("Geçerli bir değer gir");
-        const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 200) } : { cap: v, date: $("#ed").value };
+        const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 1000) } : { cap: v, date: $("#ed").value };
+        const selectedDate=$("#ed").value;
+        if (selectedDate !== it.date) Object.assign(patch,dateFields(selectedDate));
+        if (reopen) {
+            if ((patch.dateEnd||patch.date)<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
+            Object.assign(patch,{closed:false,ts:Date.now()});
+        }
+        if (!patchIt(k, id, patch)) return;
         closeSheet();
-        patchIt(k, id, patch);
         toast("İlan güncellendi");
     };
     $("#close").onclick = closeSheet;
@@ -267,7 +277,7 @@ function askDel(k, id) {
         return;
     const B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${it.from}<i></i>${it.to}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">Bu işlem geri alınamaz.</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">Bu işlem geri alınamaz.</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#yes").onclick = () => {
         if (cloud)
             dbw(db.doc((k === "l" ? "loads/" : "trucks/") + id).delete());
@@ -275,6 +285,7 @@ function askDel(k, id) {
             loads = loads.filter(x => String(x.id) !== String(id));
         else
             trucks = trucks.filter(x => String(x.id) !== String(id));
+        if (!save()) return;
         closeSheet();
         render();
         toast("İlan silindi");
@@ -285,7 +296,7 @@ function askDel(k, id) {
 
 const myListHTML = () => {
     const a = [...mineL().map(l => ({ k: "l", id: l.id, r: l.from + " → " + l.to, v: l.ton + " ton", c: l.closed || expired(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: t.from + " → " + t.to, v: t.cap + " ton", c: t.closed || expired(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))];
-    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${x.r}</b><span>${x.v}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${x.id}">Düzenle</button>${x.k === "l" ? `<button class="chip" data-st2="${x.id}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${x.id}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${x.id}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${x.id}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
+    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${esc(x.id)}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
 };
 
 const itemsTxt = l => (Array.isArray(l.items) ? l.items : []).slice(0, 6).map(i => esc(i.n) + " " + (+i.q || 0) + " " + esc(i.u)).join(", ");
@@ -312,7 +323,15 @@ function itemsUI() {
     }, 200, 22000);
 }
 
-const expired = (x, k) => !!(x.ts && Date.now() - x.ts > TTL[k] * 864e5);
+const expired = (x, k) => !!(x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
+const availableListing = (x,isT=false) => !!x && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
+const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||x.who||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
+function contactAllowed(x,isT=false,allowOwn=false) {
+    const current=x&&findIt(isT?"t":"l",x.id);
+    if(!availableListing(current,isT)) { toast("Bu ilan artık açık değil. Yeni iletişim başlatılamaz."); return false; }
+    if(!allowOwn && ((cloud && current.uid===me)||(!cloud&&current.mine))) { toast("Kendi ilanına mesaj gönderemezsin"); return false; }
+    return true;
+}
 
 const ago = x => {
     if (!x.ts)

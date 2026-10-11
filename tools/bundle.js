@@ -2,7 +2,7 @@
 /* tools/project.js sırasındaki kaynakları src/index.template.html ile birleştirir. */
 const fs = require("fs"), path = require("path");
 const {root, js:jsFiles, css:cssFiles} = require("./project.js");
-const read = f => fs.readFileSync(path.join(root, f), "utf8");
+const read = f => fs.readFileSync(path.join(root, f), "utf8").replace(/\r\n/g, "\n");
 const list = ext => ext === ".js" ? jsFiles : cssFiles;
 
 function build() {

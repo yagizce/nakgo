@@ -3,7 +3,10 @@ const path=require("path");
 module.exports={root:path.resolve(__dirname,".."),js:[
   "src/js/config.js",
   "src/js/state.js",
+  "src/js/data.js",
   "src/js/core.js",
+  "src/js/storage.js",
+  "src/js/cloud.js",
   "src/js/features/listings.js",
   "src/js/features/offers.js",
   "src/js/features/account.js",

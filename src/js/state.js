@@ -34,7 +34,6 @@ let appr = {};
 let cdocs = {};
 let names = {};
 let seen = new Set();
-let pods = {};
 let reports = [];
 
 // --- Kullanıcı tercihleri ---

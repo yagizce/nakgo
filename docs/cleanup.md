@@ -46,3 +46,7 @@ Aktif HTML, manifest, SW ve Capacitor yapılandırmasının referansları kontro
 - `YükYol – Yük ve Araç Eşleştirme.md`
 
 README kopyaları ve eski ARCHITECTURE.md, HANDOFF.md, MOBIL-VE-MARKA.md konsolidasyon sonrasında kaldırıldı. Ürün kuralları canlı kodla karşılaştırılarak docs/product.md'de korundu. Geçmiş içerik Git geçmişinde erişilebilir.
+
+## Yerel güvenilirlik düzenlemesi
+
+Çekirdekteki veri kuralları data.js, cihaz kaydı storage.js, eski host bağlantısı cloud.js olarak ayrıldı. Referansı bulunmayan FUEL_ICON, pods ve featSumCard ile görünmeyen teklif fiyatı istatistiği hesapları kaldırıldı; saklanan eski ücret ve iş kayıtları silinmedi. Tek README düzeni korundu; kaldırılmış HANDOFF.md referansı ürün belgesine taşındı. Çalıştırma için değişken npx serve indirmesi yerine yerleşik Node sunucusu kullanılır. Üretilen www ve test görüntüleri Git dışında kalır.

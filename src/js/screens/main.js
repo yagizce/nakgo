@@ -10,4 +10,5 @@ function render() {
  else if(tab === "post") renderPost(m);
  else if(tab === "mine") renderOffers(m);
  else if(tab === "me") renderProfile(m);
+ if(storageNotice && m.insertAdjacentHTML) m.insertAdjacentHTML("afterbegin",`<p class="demo-note" role="status">${esc(storageNotice)}</p>`);
 }

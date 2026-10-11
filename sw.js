@@ -1,13 +1,16 @@
-/* NakGo servis çalışanı: önce ağdan dener, ağ yoksa son kaydedilen kopyayı verir.
-   Böylece uygulama internet olmadan da açılır ve eski sürümde takılı kalmaz. */
-const V = "nakgo-v10-header-actions";
+/* NakGo: yalnızca uygulama kabuğu önbelleğe alınır; kişisel veri/harita istekleri alınmaz. */
+const V = "nakgo-v11-local-reliability";
 const ASSETS = ["./", "index.html", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/brand-logo.png"];
-self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
-self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(k => Promise.all(k.filter(x => x !== V).map(x => caches.delete(x)))).then(() => self.clients.claim())); });
+self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())); });
+self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("nakgo-")&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
 self.addEventListener("fetch", e => {
-  const r = e.request;
-  if (r.method !== "GET") return;
-  const u = new URL(r.url);
-  if (u.origin !== location.origin) return;
-  e.respondWith(fetch(r).then(res => { const cp = res.clone(); caches.open(V).then(c => c.put(r, cp)); return res; }).catch(() => caches.match(r).then(m => m || caches.match("index.html"))));
+    const r=e.request, u=new URL(r.url);
+    if(r.method!=="GET"||u.origin!==location.origin) return;
+    const asset=ASSETS.map(p=>new URL(p,self.registration.scope).pathname).includes(u.pathname);
+    if(!asset) return;
+    const key=new URL(u.pathname,u.origin).href;
+    e.respondWith(fetch(r).then(res=>{
+        if(res.ok && !res.redirected) { const copy=res.clone(); e.waitUntil(caches.open(V).then(c=>c.put(key,copy)).catch(()=>{})); }
+        return res;
+    }).catch(async()=> (await caches.match(key)) || (r.mode==="navigate" ? await caches.match("index.html") : null) || Response.error()));
 });

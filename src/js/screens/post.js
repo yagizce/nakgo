@@ -19,7 +19,7 @@ function renderPost(m) {
                     return toast("Çıkış ve varış şehri farklı olmalı");
                 if (!(+$("#w").value > 0))
                     return toast("Boş kapasiteyi gir");
-                postTruck({ id: "t" + Date.now(), who: esc(myCar.displayName || "") || myName || "Ben", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" });
+                if (!postTruck({ id: "t" + Date.now(), who: (myCar.displayName || "") || myName || "Ben", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" })) return;
                 clearPostDraft();
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
@@ -33,7 +33,7 @@ function renderPost(m) {
         }
         m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>
     <label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>
-    <label>Yük cinsi</label><input id="c" placeholder="Örn. Paletli gıda">
+    <label>Yük cinsi</label><input id="c" maxlength="120" placeholder="Örn. Paletli gıda">
     <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="1" value="10"></div>
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
@@ -44,7 +44,7 @@ function renderPost(m) {
         pb();
         itemsUI();
         $("#go").onclick = () => {
-            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim(), ton: +$("#w").value, veh: $("#v").value, date: $("#d").value, body: $("#b").value, note: $("#n").value.trim(), owner: esc(myCar.displayName || "") || myName || "Ben" };
+            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim().slice(0,120), ton: +$("#w").value, veh: $("#v").value, date: $("#d").value, body: $("#b").value, note: $("#n").value.trim().slice(0,1000), owner: (myCar.displayName || "") || myName || "Ben" };
             if (l.from === l.to)
                 return toast("Çıkış ve varış şehri farklı olmalı");
             if (!l.cargo || !(l.ton > 0))
@@ -56,7 +56,7 @@ function renderPost(m) {
             const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value || 0, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
             if (its.length)
                 l.items = its;
-            postImg = "";
+            Object.assign(l,dateFields(l.date),{ts:Date.now()});
             if (cloud) {
                 l.uid = me;
                 l.ts = Date.now();
@@ -66,8 +66,11 @@ function renderPost(m) {
             if (!cloud)
                 l.mine = true;
             loads.unshift(l);
+            if (!save()) return;
+            postImg = "";
             clearPostDraft();
             F = F0(); q = ""; nearOn = false;
+            mode = "load";
             tab = "list";
             setNav();
             render();

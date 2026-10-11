@@ -8,7 +8,7 @@ Node 18+ ile proje kökünde:
 
 ```sh
 npm run bundle         # kaynaklardan index.html üret
-npm start              # HTTP sunucusu; ilk kullanımda serve indirilir
+npm start              # http://127.0.0.1:3000; ek paket indirmez
 npm test               # çıktı tutarlılığı, lint, davranış testleri
 npm run test:e2e        # gerçek Chromium; kurulum docs/development.md
 npm run test:shots      # tests/shots/ görüntüleri
@@ -23,7 +23,7 @@ npm run mobile:prepare # www/ çıktısı; native derleme değildir
 | src/index.template.html, src/js/, src/css/ | Düzenlenebilir uygulama kaynakları |
 | assets/brand/logo.png, logo-transparent.png, layout.json | Özgün/şeffaf logo kaynakları, görüntü çerçeveleri ve slogan |
 | tools/ | Kaynak sırası, bundle, lint, harita, simge üretimi |
-| tests/run.js, tests/unit/, tests/e2e.py | Testler |
+| tests/run.js, tests/unit/, tests/e2e.py, tests/reliability.py | Testler |
 | docs/ | Ayrıntılı belgeler |
 | index.html | **Üretilen yayın çıktısı**, doğrudan düzenlemeyin |
 | icons/ | **Üretilen** logo ve web/PWA simgeleri |

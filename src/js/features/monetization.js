@@ -18,7 +18,7 @@ function openPaywall(why) {
     let pl = "y";
     const pr = id => PLANS.find(x => x.id === id), save12 = Math.round((1 - pr("y").price / (pr("m").price * 12)) * 100);
     const draw = () => {
-        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>İlan sahipleriyle uygulama içinden mesajlaş</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${x.id}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
+        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>İlan sahipleriyle uygulama içinden mesajlaş</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${esc(x.id)}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
         B.querySelectorAll("[data-pl]").forEach(b => b.onclick = () => {
             pl = b.dataset.pl;
             draw();
@@ -26,7 +26,7 @@ function openPaywall(why) {
         $("#close").onclick = closeSheet;
         $("#buy").onclick = () => {
             prem = { until: Date.now() + pr(pl).days * 864e5, plan: pl };
-            save();
+            if (!save()) return;
             if (cloud)
                 dbw(db.doc("premium/" + me).set(prem));
             closeSheet();
@@ -81,7 +81,7 @@ function openFeature(kind, id) {
     let dur = 6;
     const draw = () => {
         const price = featPrice(kind, dur);
-        B.innerHTML = `<b style="font-size:19px">${L ? "İlanını" : "Boş araç ilanını"} öne çıkar</b><div class="route" style="margin-top:10px">${it.from}<i></i>${it.to}</div>
+        B.innerHTML = `<b style="font-size:19px">${L ? "İlanını" : "Boş araç ilanını"} öne çıkar</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>
   <p style="font-size:13px;color:var(--mute);margin:8px 0 12px">Öne çıkan ${L ? "ilanlar" : "boş araç ilanları"} listenin en üstünde "Öne çıkan" etiketiyle gösterilir.${active ? ` Şu an ${left} saat daha öne çıkıyor, yeni süre bitince başlar.` : ""}</p>
   <div class="fopts">${FDUR.map(([h, t]) => {
             const p = featPrice(kind, h);
@@ -96,7 +96,7 @@ function openFeature(kind, id) {
         $("#close").onclick = closeSheet;
         $("#fbuy").onclick = () => {
             const p = featPrice(kind, dur);
-            patchIt(kind, id, { featFrom: active ? (it.featFrom || Date.now()) : st, featUntil: st + dur * 36e5, featPaid: (+it.featPaid || 0) + p, featWin: [...featWins(it), [st, st + dur * 36e5]].slice(-10) });
+            if (!patchIt(kind, id, { featFrom: active ? (it.featFrom || Date.now()) : st, featUntil: st + dur * 36e5, featPaid: (+it.featPaid || 0) + p, featWin: [...featWins(it), [st, st + dur * 36e5]].slice(-10) })) return;
             closeSheet();
             toast(active ? "Öne çıkarma süresi uzatıldı" : "İlanın öne çıkarıldı");
         };
@@ -135,14 +135,6 @@ const fxBox = fx => {
     return `<div class="fxbox"><b>Öne çıkarmanın etkisi</b>${fx.lift !== null ? `<p>Öne çıkarıldığı ${Math.max(1, Math.round(fx.hF))} saatte saatlik <b>${f1(fx.rF)}</b> görüntülenme, diğer saatlerde <b>${f1(fx.rO)}</b>. Yaklaşık <b>%${Math.abs(fx.lift)}</b> ${fx.lift >= 0 ? "fazla" : "az"} ilgi.</p>` : `<p>Henüz yeterli veri yok. Anlamlı karşılaştırma için en az 3 saat öne çıkarılmış, 3 saat normal geçmiş ve 8 görüntülenme gerekir.</p>`}<p class="fxn">${fx.oF} teklif öne çıkarma sırasında geldi. ${fx.demo ? "Örnek veri. " : ""}Bu bir karşılaştırmadır, tek başına kesin neden göstermez.</p></div>`;
 };
 
-const featSumCard = () => {
-    const P = [...mineL(), ...mineT()].filter(x => +x.featPaid > 0);
-    if (!P.length)
-        return "";
-    const tot = P.reduce((a, x) => a + (+x.featPaid || 0), 0), L = mineL().map(l => fxOf(l)).filter(f => f && f.lift !== null), avg = L.length ? Math.round(L.reduce((a, f) => a + f.lift, 0) / L.length) : null;
-    return `<div class="load" style="cursor:default"><b>Öne çıkarma özeti</b><div class="stat flat" style="margin:10px 0 4px"><div><b>${fmt(tot)}</b><span>Toplam harcama</span></div><div><b>${P.length}</b><span>Öne çıkan ilan</span></div><div><b>${avg === null ? "—" : "%" + avg}</b><span>Ort. ilgi artışı</span></div></div><p style="font-size:12px;color:var(--mute)">${cloud ? "" : "Yerel modda örnek veri. "}İlgi artışı, öne çıkarılan saatlerle diğer saatlerin görüntülenme farkıdır.</p></div>`;
-};
-
 // ===== İlan istatistikleri =====
 // Görüntülenme, kayıt, paylaşım, arama isteği sayımı ve istatistik ekranı.
 
@@ -152,15 +144,15 @@ function statsOf0(l) {
     if (!cloud) {
         const h = ((l.id * 7919) % 1000) / 1000, v = Math.round(18 + h * 60);
         daily = daily.map((_, i) => Math.round(v / 7 * (.5 + ((l.id + i * 37) % 10) / 10)));
-        return { demo: true, views: v, saves: Math.round(v * .12), shares: Math.round(v * .05), calls: Math.round(v * .08), offers: Math.round(v * .06), best: Math.round(l.price * (.9 + h * .1)), avg: Math.round(l.price * (.85 + h * .1)), daily, age: l.ts ? Math.floor((now - l.ts) / 864e5) : 0 };
+        return { demo: true, views: v, saves: Math.round(v * .12), shares: Math.round(v * .05), calls: Math.round(v * .08), offers: Math.round(v * .06), daily, age: l.ts ? Math.floor((now - l.ts) / 864e5) : 0 };
     }
-    const E = events.filter(e => e.loadId === l.id && e.uid !== l.uid), O = allO.filter(o => o.loadId === l.id), offs = O.map(o => +o.offer || 0).filter(x => x > 0);
+    const E = events.filter(e => e.loadId === l.id && e.uid !== l.uid), O = allO.filter(o => o.loadId === l.id);
     E.filter(e => e.t === "v").forEach(e => {
         const d = Math.floor((now - e.ts) / 864e5);
         if (d >= 0 && d < 7)
             daily[6 - d]++;
     });
-    return { demo: false, views: E.filter(e => e.t === "v").length, saves: E.filter(e => e.t === "s").length, shares: E.filter(e => e.t === "sh").length, calls: E.filter(e => e.t === "c").length, offers: O.length, best: offs.length ? Math.max(...offs) : 0, avg: offs.length ? Math.round(offs.reduce((a, b) => a + b, 0) / offs.length) : 0, daily, age: l.ts ? Math.floor((now - l.ts) / 864e5) : 0 };
+    return { demo: false, views: E.filter(e => e.t === "v").length, saves: E.filter(e => e.t === "s").length, shares: E.filter(e => e.t === "sh").length, calls: E.filter(e => e.t === "c").length, offers: O.length, daily, age: l.ts ? Math.floor((now - l.ts) / 864e5) : 0 };
 }
 
 const statLine = l => {
@@ -195,7 +187,7 @@ function openStats(id) {
         return `<div title="${v}"><i style="height:${v ? Math.max(6, Math.round(v / mx * 60)) : 3}px;${v ? "" : "background:var(--line)"}"></i><span>${d.toLocaleDateString("tr-TR", { weekday: "short" })}</span></div>`;
     }).join("");
     const tile = (n, t) => `<div><b>${n}</b><span>${t}</span></div>`;
-    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${l.from}<i></i>${l.to}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${esc(l.from)}<i></i>${esc(l.to)}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
 }

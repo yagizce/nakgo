@@ -3,6 +3,8 @@
  * Olay bağlama, açılış ekranı, tema ve kısayollar. Her şey tanımlandıktan sonra en sonda çalışır.
  */
 
+restoreState();
+
 try {
     const hm = /^#l=(\d+)$/.exec(location.hash || "");
     deepId = hm ? +hm[1] : 0;
