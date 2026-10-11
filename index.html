@@ -1799,16 +1799,55 @@ header p { opacity:1; }
 .owner-avatar { display:grid; place-items:center; width:42px; height:42px; flex:none; border-radius:12px; background:var(--tag-bg); color:var(--brand-ink); font-weight:800; }
 .detail-actions { display:flex; gap:8px; flex-wrap:wrap; }
 .detail-actions .chip { white-space:normal; max-width:100%; min-height:44px; }
-.offer-dock { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:end; gap:10px; padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px)); background:var(--card); border-top:1px solid var(--line); flex:none; }
-.offer-dock>div { min-width:0; }
-.offer-dock label { margin:0 0 6px; font-size:12px; color:var(--ink); }
-.offer-input { position:relative; }
-.offer-input input { padding:13px 28px 13px 12px; border-color:var(--brand-ink); min-width:0; height:48px; }
-.offer-input>span { position:absolute; right:12px; top:14px; color:var(--mute); pointer-events:none; }
-.offer-dock .btn { margin:0; min-height:48px; padding:12px 8px; font-size:15px; box-shadow:none; }
 
 @media (min-width:768px) { #app { box-shadow:0 0 0 1px var(--line),0 16px 60px rgba(0,0,0,.08); } }
 @media (max-width:375px) { .route-title { font-size:17px; } .route-search h2 { font-size:23px; } .detail-summary .route { font-size:21px; } .listing-search .chip { padding:10px; } }
+
+/* Gider planlaması ve doğrudan iletişim */
+.fuel-shortcut { display:flex; align-items:center; gap:12px; width:100%; padding:13px 15px; margin:0 0 14px; border:1px solid var(--line); border-radius:17px; background:var(--card); color:var(--brand-ink); text-align:left; cursor:pointer; }
+.fuel-shortcut>span:first-child { display:grid; place-items:center; flex:none; width:38px; height:38px; border-radius:12px; background:var(--tag-bg); font-size:21px; }
+.fuel-shortcut>span:nth-child(2) { flex:1; min-width:0; }
+.fuel-shortcut b { display:block; font-size:14px; }
+.fuel-shortcut small { display:block; color:var(--mute); margin-top:3px; font-size:11px; }
+.detail-group .fuel-shortcut { margin:14px 0 0; background:var(--bg); }
+.dual-contact { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:10px; }
+.dual-contact .btn { padding:13px 8px; min-height:50px; font-size:14px; }
+.dual-contact .btn.alt { background:var(--tag-bg); color:var(--brand-ink); box-shadow:none; }
+.fuel-result { background:var(--app-gradient); color:#fff; border-radius:22px; padding:22px 18px; margin-bottom:16px; }
+.fuel-result>span { font-size:12px; color:#e0fffc; }
+.fuel-result>strong { display:block; font-size:33px; color:#ffe075; margin:8px 0 18px; overflow-wrap:anywhere; }
+.fuel-metrics { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; padding-top:14px; border-top:1px solid #ffffff40; }
+.fuel-metrics b,.fuel-metrics span { display:block; overflow-wrap:anywhere; }
+.fuel-metrics b { font-size:20px; }
+.fuel-metrics span,.fuel-result p { font-size:11px; color:#e0fffc; margin-top:5px; line-height:1.6; }
+.fuel-result p { margin-top:14px; }
+.fuel-detail>.fuel-result { flex:none; margin:12px 16px 0; padding:14px 16px; border-radius:18px; }
+.fuel-detail>.fuel-result>strong { font-size:28px; margin:4px 0 8px; }
+.fuel-detail .fuel-metrics { padding-top:8px; gap:8px; }
+.fuel-detail .fuel-metrics b { font-size:16px; }
+.fuel-detail .fuel-metrics span { font-size:10px; margin-top:2px; }
+.fuel-detail>.fuel-result p { margin-top:8px; }
+@media (max-height:500px) { .fuel-detail .fuel-metrics,.fuel-detail>.fuel-result p { display:none; } .fuel-detail>.fuel-result { padding:8px 12px; } .fuel-detail>.fuel-result>strong { font-size:24px; margin:2px 0 0; } }
+.fuel-detail .unit input { padding-right:70px; }
+.fuel-detail .unit em { font-size:10px; }
+.job-card { cursor:default; }
+.job-card .meta { gap:8px; flex-wrap:wrap; margin-top:14px; }
+.job-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.job-steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.jobs-heading { font-size:15px; margin:18px 0 12px; }
+.profile-shortcuts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:22px; }
+.profile-tool { display:flex; flex-direction:column; align-items:flex-start; gap:4px; text-align:left; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:18px; padding:15px; cursor:pointer; min-width:0; }
+.profile-tool>span { color:var(--brand-ink); font-size:24px; margin-bottom:4px; }
+.profile-tool b { font-size:14px; }
+.profile-tool small { color:var(--mute); font-size:11px; }
+.profile-cover>div { min-width:0; overflow-wrap:anywhere; }
+.profile-cover b { font-size:20px; }
+.profile-info { cursor:default; }
+.profile-info label:first-child { margin-top:0; }
+.profile-info #profile-save { margin-top:12px; }
+.conversation { display:flex; flex-direction:column; gap:5px; width:100%; padding:17px; margin-bottom:10px; border:1px solid var(--line); border-radius:17px; background:var(--card); color:var(--ink); text-align:left; cursor:pointer; }
+.conversation span { color:var(--brand-ink); font-size:12px; }
+.conversation small { color:var(--mute); overflow-wrap:anywhere; }
 
 /* Ortak tasarım sistemi ve telefon düzeni */
 
@@ -1932,6 +1971,10 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .card-main .listing-price>span:first-child { color:var(--mute); font-size:10px; }
 .card-main .price { font-size:24px; line-height:1.2; letter-spacing:-.8px; }
 .card-main .price small { font-size:14px; letter-spacing:0; }
+.card-main.contact-card { grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); }
+.card-contact { display:flex; flex-direction:column; justify-content:center; gap:6px; background:var(--tag-bg); color:var(--brand-ink); border-radius:14px; padding:12px; min-width:0; }
+.card-contact span { font-size:10px; color:var(--mute); }
+.card-contact b { font-size:14px; line-height:1.4; }
 .wide-price { grid-template-columns:minmax(0,1fr); }
 .wide-price .listing-price { flex-direction:row; justify-content:space-between; align-items:center; flex-wrap:wrap; }
 .wide-price .price { font-size:27px; }
@@ -1960,10 +2003,10 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .detail-summary .tag { background:#00454d88; color:#fff; padding:6px 10px; }
 .detail-summary .tag.ft { background:var(--accent); color:var(--on-accent); }
 .detail-group { border-radius:20px; }
-.offer-dock,.contact-dock { box-shadow:0 -6px 20px #003e4510; border-radius:22px 22px 0 0; }
+.contact-dock { box-shadow:0 -6px 20px #003e4510; border-radius:22px 22px 0 0; }
 .contact-dock { padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px)); background:var(--card); flex:none; }
 .contact-dock .btn { margin:0; }
-.offer-dock .btn,.form-dock .btn,.contact-dock .btn { background:linear-gradient(140deg,#ffe68b,#ffd34e); border-radius:14px; }
+.form-dock .btn,.contact-dock .btn { background:linear-gradient(140deg,#ffe68b,#ffd34e); border-radius:14px; }
 .screen-heading { padding:20px; background:linear-gradient(115deg,#00565f,#007f83); color:#fff; border-radius:24px; margin-bottom:18px; }
 .screen-heading h2 { margin:0 0 6px; }
 .screen-heading p { color:#e0fffc; font-size:12px; }
@@ -2074,7 +2117,7 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
   <nav id="nav" aria-label="Ana menü">
     <button data-t="list" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>İlanlar</span></button>
     <button data-t="post"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>İlan ver</span></button>
-    <button data-t="mine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>Tekliflerim</span></button>
+    <button data-t="mine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span>İşlerim</span></button>
     <button data-t="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>Profil</span></button>
   </nav>
   <div class="sheet" id="sheet"><div id="sheetBody" role="dialog" aria-modal="true"></div></div>
@@ -2101,7 +2144,7 @@ const bodies = ["Tenteli", "Kapalı kasa", "Açık kasa", "Frigorifik", "Damperl
 
 const CONS = { Tır: 32, Kırkayak: 30, Kamyon: 22, Kamyonet: 9, Panelvan: 8, Tanker: 35, Lowbed: 42, Konteyner: 34 };
 
-const STT = { wait: "Yanıt bekleniyor", ok: "Kabul edildi", counter: "Karşı teklif", no: "Reddedildi" };
+const STT = { wait: "Yanıt bekleniyor", ok: "Kabul edildi", counter: "Görüşme bekleniyor", no: "Reddedildi" };
 
 const FI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>';
 
@@ -2131,14 +2174,16 @@ const TTL = { load: 14, truck: 7, offer: 3 };
 
 const SUPPORT_MAIL = "destek@example.com";
 
-const FAQ = [["Premium üyelik nedir?", "Premium üyeler ilan sahiplerini ve taşıyıcıları doğrudan telefonla arayabilir."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Teslim nasıl onaylanır?", "Taşıyıcı yükü teslim edince fotoğraf ekler, yük sahibi fotoğrafa bakıp teslimi onaylar."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
+const FAQ = [["Premium üyelik nedir?", "Premium üyeler ilan sahiplerini ve taşıyıcıları doğrudan telefonla arayabilir."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Yükleme nasıl onaylanır?", "Taşıyıcı İşlerim bölümünde Yükledim der; yük sahibi yüklemeyi onaylar. Teslim fotoğrafı adımı yoktur."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
 
 /* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ayrıntı HANDOFF.md bölüm 14. */
 const FEAT = { prices: { l: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 }, t: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 } } };
 
 const FDUR = [[3, "3 saat"], [6, "6 saat"], [12, "12 saat"], [24, "24 saat"], [72, "3 gün"]];
 
-const STG = ["Kabul", "Yüklendi", "Teslim", "Onay"];
+
+
+const FUEL_ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V4a1 1 0 011-1h8a1 1 0 011 1v17M2 21h14M4 10h10M7 6h4M14 12h2a2 2 0 012 2v4a1.5 1.5 0 003 0V8l-3-3M19 6v3h2"/></svg>';
 
 const VB = '<span class="vb">✓ Belgeli</span>';
 
@@ -2241,7 +2286,7 @@ let reports = [];
 let favs = [];
 let alerts = [];
 let blocked = [];
-let calc = { km: 450, cons: 32, fuel: 95, toll: 1200, other: 500, fare: 28500, back: false };
+let calc = { km: 450, cons: 32, fuel: 95, toll: 1200, other: 500, back: false };
 let role = "";
 
 // --- Filtre, yakınımda ve karşılaştırma ---
@@ -2362,7 +2407,7 @@ const weekStart = t => {
 
 const f1 = n => n.toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-const perKm = l => l.km ? Math.round(l.price / l.km) + " ₺/km" : "—";
+
 
 const $ = s => document.querySelector(s);
 
@@ -2497,11 +2542,6 @@ if (calc.fuel === 45)
         }
 }
 
-[[6, 52000], [10, 48000], [12, 13500]].forEach(([id, p]) => {
-    const l = loads.find(x => x.id === id);
-    if (l && l.price < p)
-        l.price = p;
-});
 
 // ===== Bulut katmanı =====
 // Ortak veritabanı: yazma yardımcıları, okunan verinin duruma çevrilmesi, olay izleme, bulut başlatma.
@@ -2601,7 +2641,7 @@ async function initCloud() {
             carriers = {};
             sn.docs.forEach(x => {
                 const v = x.data();
-                carriers[x.id] = { phone: esc(String(v.phone || "").slice(0, 20)), ok: v.ok === true, lic: esc(v.lic || ""), src: !!v.src, kb: !!v.kb, ruh: !!v.ruh, docs: { src: !!(v.docs && v.docs.src), kb: !!(v.docs && v.docs.kb), ruh: !!(v.docs && v.docs.ruh) } };
+                carriers[x.id] = { displayName: String(v.displayName || "").slice(0,60), city: String(v.city || "").slice(0,40), about: String(v.about || "").slice(0,200), phone: esc(String(v.phone || "").slice(0, 20)), ok: v.ok === true, lic: esc(v.lic || ""), src: !!v.src, kb: !!v.kb, ruh: !!v.ruh, docs: { src: !!(v.docs && v.docs.src), kb: !!(v.docs && v.docs.kb), ruh: !!(v.docs && v.docs.ruh) } };
             });
             if (first) {
                 if (carriers[me])
@@ -2663,14 +2703,14 @@ async function initCloud() {
 
 /**
  * İlan listesi ve ilanlarım
- * Liste kartları, filtre, sıralama, yakınımda, karşılaştırma, piyasa fiyatı; kendi ilanlarını düzenleme, kapatma ve silme.
+ * Liste kartları, filtre, sıralama, yakınımda, karşılaştırma, ilan yönetimi; kendi ilanlarını düzenleme, kapatma ve silme.
  */
 
 // ===== İlan listesi =====
 // Liste kartları, filtre, sıralama, yakınımda, iki ilanı karşılaştırma, piyasa fiyatı.
 
 function F0() {
-    return { veh: [], body: [], pay: [], date: [], from: "", to: "", tonMin: "", tonMax: "", priceMin: "", rate: 0, fav: false, ok: false };
+    return { veh: [], body: [], date: [], from: "", to: "", tonMin: "", tonMax: "", rate: 0, fav: false, ok: false };
 }
 
 function routeSearch() {
@@ -2701,30 +2741,22 @@ function match(x, isT) {
         return 0;
     if (F.ok && isT && !vok(x))
         return 0;
-    if (!isT) {
-        if (F.pay.length && !F.pay.includes(x.pay))
-            return 0;
-        if (F.priceMin !== "" && x.price < +F.priceMin)
-            return 0;
-    }
-    return 1;
+return 1;
 }
 
 function fcount() {
-    return ["veh", "body", "pay", "date"].filter(k => F[k].length).length + (F.from ? 1 : 0) + (F.to ? 1 : 0) + ((F.tonMin !== "" || F.tonMax !== "") ? 1 : 0) + (F.priceMin !== "" ? 1 : 0) + (F.rate ? 1 : 0) + (F.fav ? 1 : 0) + (F.ok ? 1 : 0);
+    return ["veh", "body", "date"].filter(k => F[k].length).length + (F.from ? 1 : 0) + (F.to ? 1 : 0) + ((F.tonMin !== "" || F.tonMax !== "") ? 1 : 0) + (F.rate ? 1 : 0) + (F.fav ? 1 : 0) + (F.ok ? 1 : 0);
 }
 
 function activeChips() {
     const a = [];
-    ["veh", "body", "pay", "date"].forEach(k => F[k].forEach(v => a.push([k, v, v])));
+    ["veh", "body", "date"].forEach(k => F[k].forEach(v => a.push([k, v, v])));
     if (F.from)
         a.push(["from", "", "Çıkış: " + F.from]);
     if (F.to)
         a.push(["to", "", "Varış: " + F.to]);
     if (F.tonMin !== "" || F.tonMax !== "")
         a.push(["ton", "", (F.tonMin || 0) + "–" + (F.tonMax || "∞") + " ton"]);
-    if (F.priceMin !== "")
-        a.push(["priceMin", "", "en az " + fmt(+F.priceMin)]);
     if (F.rate)
         a.push(["rate", "", "★ " + F.rate + "+"]);
     if (F.fav)
@@ -2750,8 +2782,8 @@ const routeTitle = x => `<div class="route route-title"><span>${x.from}</span><i
 const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${x.from}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${x.to}</b></div></div>`;
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
-const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.from} → ${l.to}, ${fmt(l.price)}, ilanı aç">
-    ${isF(l) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main ${l.price >= 1000000 ? "wide-price" : ""}">${cardRoute(l)}<div class="listing-price"><span>Taşıma ücreti</span><strong class="price">${fmt(l.price)}</strong></div></div>
+const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.from} → ${l.to}, ${l.ton} ton yük, ilanı aç">
+    ${isF(l) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>Doğrudan görüş</span><b>Ara veya mesajlaş</b></div></div>
     <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${l.cargo}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${l.ton}</b> ton</span></div>
     <div class="listing-spec"><span>${l.veh} · ${l.body || "Kasa belirtilmedi"}</span><span class="load-date">Yükleme: <b>${l.date}</b></span></div>
     <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${favs.includes(String(l.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(l.id))}" class="fav ${favs.includes(String(l.id)) ? "on" : ""}" data-fav="${l.id}">${favs.includes(String(l.id)) ? "♥" : "♡"}</button></div>
@@ -2768,7 +2800,6 @@ function openFilter() {
         + grp("veh", "Araç tipi", vehicles) + grp("body", "Kasa tipi", bodies)
         + `<div class="row">${sel("from", "Nereden", cities)}${sel("to", "Nereye", cities)}</div>`
         + `<div class="row"><div><label>${isT ? "Boş kapasite" : "Yük"}: en az (ton)</label><input data-n="tonMin" type="number" inputmode="decimal" value="${F.tonMin}"></div><div><label>En çok (ton)</label><input data-n="tonMax" type="number" inputmode="decimal" value="${F.tonMax}"></div></div>`
-        + (isT ? "" : `<label>Ücret: en az (₺)</label><input data-n="priceMin" type="number" inputmode="numeric" value="${F.priceMin}">` + grp("pay", "Ödeme şekli", ["Peşin", "Teslimde nakit", "7 gün vade", "15 gün vade", "30 gün vade"]))
         + grp("date", "Yükleme günü", ["Bugün", "Yarın", "İleri tarih"])
         + `<label>Kayıtlılar</label><div class="chips"><button class="chip ${F.fav ? "on" : ""}" id="ff">♥ Sadece kayıtlı olanlar</button>${isT ? `<button class="chip ${F.ok ? "on" : ""}" id="fo">✓ Sadece belgeli taşıyıcılar</button>` : ""}</div><label>Puan</label><div class="chips">${[[0, "Hepsi"], [4.5, "★ 4.5+"], [4.8, "★ 4.8+"]].map(([v, t]) => `<button class="chip ${F.rate === v ? "on" : ""}" data-r="${v}">${t}</button>`).join("")}</div><button class="btn" id="fs" style="position:sticky;bottom:0"></button>`;
     const upd = () => {
@@ -2813,39 +2844,6 @@ function openFilter() {
     };
     upd();
     $("#sheet").classList.add("open");
-}
-
-function mkt(a, b, veh, ex) {
-    const rt = x => x.km && x.price > 0 ? x.price / x.km : 0, L = loads.filter(x => x.id !== ex && rt(x)), same = L.filter(x => (x.from === a && x.to === b) || (x.from === b && x.to === a)), sv = L.filter(x => x.veh === veh), pool = same.length ? same : sv.length > 1 ? sv : L;
-    return { rate: pool.length ? pool.reduce((t, x) => t + rt(x), 0) / pool.length : 45, n: pool.length };
-}
-
-const mk = l => {
-    const km = l.km || dist(l.from, l.to);
-    if (!km)
-        return "—";
-    const m = mkt(l.from, l.to, l.veh, l.id), d = Math.round((l.price / km / m.rate - 1) * 100);
-    return (Math.abs(d) < 3 ? "Piyasa seviyesinde" : "%" + Math.abs(d) + (d > 0 ? " üstünde" : " altında")) + " · ort. " + Math.round(m.rate) + " ₺/km";
-};
-
-function sugg() {
-    const f = $("#f"), t = $("#t"), v = $("#v"), g = $("#sg");
-    if (!g)
-        return;
-    const up = () => {
-        const km = dist(f.value, t.value);
-        if (!km) {
-            g.innerHTML = "";
-            return;
-        }
-        const m = mkt(f.value, t.value, v.value, 0), pr = Math.round(km * m.rate / 100) * 100;
-        g.innerHTML = `Önerilen ücret <b>${fmt(pr)}</b> · ${km} km · piyasa ${Math.round(m.rate)} ₺/km <button class="chip" id="sa" style="margin-left:6px">Uygula</button>`;
-        $("#sa").onclick = () => {
-            $("#p").value = pr;
-        };
-    };
-    [f, t, v].forEach(e => e.onchange = up);
-    up();
 }
 
 const dKm = x => myPos && LL[x.from] ? hav(myPos, LL[x.from]) : 9e9;
@@ -2899,8 +2897,8 @@ function openCompare() {
         return toast("İki ilan seç");
     const B = $("#sheetBody");
     B.dataset.k = "";
-    const km = l => l.km || dist(l.from, l.to), pk = l => km(l) ? Math.round(l.price / km(l)) : 0, net = l => km(l) ? Math.round(l.price - km(l) * (CONS[l.veh] || 22) / 100 * calc.fuel) : 0;
-    const rows = [["Yük", l => l.cargo, null], ["Ağırlık", l => l.ton + " ton", null], ["Araç", l => l.veh + " · " + (l.body || "—"), null], ["Mesafe", l => km(l) ? km(l) + " km" : "—", l => -km(l)], ["Ücret", l => fmt(l.price), l => l.price], ["Km başı", l => pk(l) ? pk(l) + " ₺/km" : "—", pk], ["Tahmini net", l => km(l) ? fmt(net(l)) : "—", net], ["Ödeme", l => l.pay || "—", null], ["Yükleme", l => l.date, null], ["Puan", l => starTxt(l), rv]];
+    const km = l => l.km || dist(l.from, l.to);
+    const rows = [["Yük", l => l.cargo, null], ["Ağırlık", l => l.ton + " ton", null], ["Araç", l => l.veh + " · " + (l.body || "—"), null], ["Mesafe", l => km(l) ? km(l) + " km" : "—", l => -km(l)], ["Yükleme", l => l.date, null], ["Puan", l => starTxt(l), rv]];
     const cell = (i, rw) => {
         const g = rw[1], sc = rw[2], win = sc && sc(L[0]) !== sc(L[1]) && sc(L[i]) === Math.max(sc(L[0]), sc(L[1]));
         return `<div class="${win ? "win" : ""}">${g(L[i])}</div>`;
@@ -2911,7 +2909,7 @@ function openCompare() {
     $("#sheet").classList.add("open");
 }
 
-const sortL = a => sort === "price" ? [...a].sort((x, y) => y.price - x.price) : sort === "km" ? [...a].sort((x, y) => (x.km || 9e9) - (y.km || 9e9)) : sort === "rate" ? [...a].sort((x, y) => rv(y) - rv(x)) : a;
+const sortL = a => sort === "km" ? [...a].sort((x, y) => (x.km || 9e9) - (y.km || 9e9)) : sort === "rate" ? [...a].sort((x, y) => rv(y) - rv(x)) : a;
 
 // ===== İlanlarım =====
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
@@ -2952,12 +2950,12 @@ function openEdit(k, id) {
         return;
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${it.from}<i></i>${it.to}</div>${L ? `<label>Ücret (₺)</label><input id="ep" type="number" inputmode="numeric" value="${it.price}">` : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${it.cap}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${d}</option>`).join("")}</select>${L ? `<label>Not</label><input id="en" maxlength="200" value="${String(it.note || "").replace(/"/g, "&quot;")}">` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${it.from}<i></i>${it.to}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${it.cap}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${d}</option>`).join("")}</select>${L ? `<label>Not</label><input id="en" maxlength="200" value="${String(it.note || "").replace(/"/g, "&quot;")}">` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#es").onclick = () => {
-        const v = +$("#ep").value;
-        if (!(v > 0))
+        const v = L ? 0 : +$("#ep").value;
+        if (!L && !(v > 0))
             return toast("Geçerli bir değer gir");
-        const patch = L ? { price: v, date: $("#ed").value, note: $("#en").value.trim().slice(0, 200) } : { cap: v, date: $("#ed").value };
+        const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 200) } : { cap: v, date: $("#ed").value };
         closeSheet();
         patchIt(k, id, patch);
         toast("İlan güncellendi");
@@ -2989,7 +2987,7 @@ function askDel(k, id) {
 }
 
 const myListHTML = () => {
-    const a = [...mineL().map(l => ({ k: "l", id: l.id, r: l.from + " → " + l.to, v: fmt(l.price), c: l.closed || expired(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: t.from + " → " + t.to, v: t.cap + " ton", c: t.closed || expired(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))];
+    const a = [...mineL().map(l => ({ k: "l", id: l.id, r: l.from + " → " + l.to, v: l.ton + " ton", c: l.closed || expired(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: t.from + " → " + t.to, v: t.cap + " ton", c: t.closed || expired(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))];
     return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${x.r}</b><span>${x.v}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${x.id}">Düzenle</button>${x.k === "l" ? `<button class="chip" data-st2="${x.id}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${x.id}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${x.id}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${x.id}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
 };
 
@@ -3027,129 +3025,45 @@ const ago = x => {
 };
 
 /**
- * Teklifler, bildirimler ve mesajlaşma
- * Teklif ve karşı teklif, teslim aşamaları, bildirimler ve rota alarmı, teklif sohbeti.
+ * Taşıma talepleri
+ * İki aşamalı iş takibi, bildirimler ve mesajlaşma.
  */
-
-// ===== Teklifler =====
-// Teklif, karşı teklif, simüle yanıt, teslim aşamaları ve teslim fotoğrafı, dönüş yükü önerisi.
-
 const opath = o => "offers/" + o.loadId + "_" + o.bidder;
-
-function oup(o, patch) {
-    Object.assign(o, patch);
-    if (cloud)
-        dbw(db.doc(opath(o)).update(patch));
-    render();
+function oup(o,patch){Object.assign(o,patch);if(cloud)dbw(db.doc(opath(o)).update(patch));render();}
+// Eski stage 2 yüklenmiş, stage 3 onaylanmış kayıt olarak gösterilir; kayıtlar silinmez.
+const jobStage = o => (o.stage || 0) >= 3 ? 3 : (o.stage || 0) >= 1 ? 1 : 0;
+const offerExp = o => o.status === "wait" && !!o.ots && Date.now()-o.ots>TTL.offer*864e5;
+const stepper = o => `<div class="steps job-steps"><span class="${jobStage(o)>=1?'on':''}"><i></i>Yükledim</span><span class="${jobStage(o)===3?'on':''}"><i></i>Onaylandı</span></div>`;
+function requestLoad(l){
+    if(cloud&&l.uid===me){toast("Kendi ilanına talep gönderemezsin");return false;}
+    if(offers.some(o=>o.id===l.id&&o.status!=="no"&&!offerExp(o))){toast("Bu ilan İşlerim bölümünde kayıtlı");return false;}
+    const o={...l,offer:0,status:"wait",loadId:l.id,bidder:me,ownerUid:l.uid||"",ots:Date.now(),stage:0};
+    offers=offers.filter(x=>x.id!==l.id);offers.unshift(o);
+    if(cloud)dbw(db.doc(opath(o)).set({loadId:l.id,bidder:me,ownerUid:l.uid||"",offer:0,status:"wait",stage:0,ts:o.ots}));
+    save();if(!l.uid)simulate(l.id);return true;
 }
-
-const retHTML = o => {
-    const c = loads.filter(l => l.from === o.to && l.id !== o.id && !(l.uid && l.uid === me)).map(l => ({ l, sc: (l.to === o.from ? 2 : 0) + (l.veh === o.veh ? 1 : 0) })).sort((a, b) => b.sc - a.sc || b.l.price - a.l.price).slice(0, 2);
-    return `<div class="ret"><b>Dönüşte boş kalma${c.length ? " · gidiş + dönüş " + fmt(o.offer + c[0].l.price) : ""}</b>` + (c.length ? c.map(({ l }) => `<button class="retc" data-rl="${l.id}"><span>${o.to} → ${l.to}${l.to === o.from ? " (eve dönüş)" : ""}</span><span>${l.veh} · ${fmt(l.price)}</span></button>`).join("") : `<span class="hint">${o.to} çıkışlı yük şu an yok. Boş araç ilanı verebilirsin.</span>`) + `</div>`;
+function setStage(o,n){
+    if(!o||o.status!=="ok")return;
+    const old=jobStage(o);
+    if((n===1&&old!==0)||(n===3&&old!==1)||![1,3].includes(n))return;
+    const isOwner=cloud&&o.ownerUid===me;
+    if(cloud&&((n===1&&o.bidder!==me)||(n===3&&!isOwner)))return toast("Bu adımı diğer taraf onaylamalı");
+    o.stage=n;if(n===3)o.doneAt=Date.now();
+    if(cloud)dbw(db.doc(opath(o)).update(n===3?{stage:n,doneAt:o.doneAt}:{stage:n}));
+    save();if(tab==="mine"||tab==="me")render();
+    if(n===1&&!(o.ownerUid||o.uid))setTimeout(()=>{
+        if(jobStage(o)!==1)return;
+        // Demo yük sahibi onayı. Gerçek kullanıcı kayıtlarına otomatik onay verilmez.
+        o.stage=3;o.doneAt=Date.now();save();if(tab==="mine"||tab==="me")render();toast("Demo: yükleme onaylandı");
+    },3000);
+}
+const stageUI=o=>`<div class="ret">${stepper(o)}<div class="job-actions">${jobStage(o)===0?`<button class="chip on" data-sg="${o.id}|1">Yükledim</button>`:jobStage(o)===1?'<span class="hint">Yük sahibinin onayı bekleniyor</span>':'<span class="st ok">✓ Onaylandı</span>'}${jobStage(o)===3?(rates.some(x=>x.k===rkey(o,"c"))?'<span class="hint">Değerlendirmen kaydedildi</span>':`<button class="chip" data-rt="${o.id}">Yük sahibini puanla</button>`):''}</div></div>`;
+const retHTML=o=>{
+    const c=loads.filter(l=>!l.closed&&!expired(l,"load")&&l.from===o.to&&l.id!==o.id&&!(l.uid&&l.uid===me)&&!(l.uid&&blocked.includes(l.uid))).sort((a,b)=>(b.to===o.from)-(a.to===o.from)).slice(0,2);
+    return c.length?`<div class="ret"><b>Dönüş güzergâhındaki yükler</b>${c.map(l=>`<button class="retc" data-rl="${l.id}"><span>${l.from} → ${l.to}</span><span>${l.veh} · ${l.ton} ton</span></button>`).join('')}</div>`:'';
 };
-
-function openCounter(o) {
-    if (!o)
-        return;
-    const B = $("#sheetBody");
-    B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">Karşı teklif</b><div class="route" style="margin-top:10px">${o.from}<i></i>${o.to}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">Gelen teklif: ${fmt(o.offer)}</p><label>Senin teklifin (₺)</label><input id="ct" type="number" inputmode="numeric" value="${o.price}"><button class="btn" id="cs">Gönder</button><button class="btn alt" id="close">Vazgeç</button>`;
-    $("#cs").onclick = () => {
-        const v = +$("#ct").value;
-        if (!(v > 0))
-            return toast("Tutarı gir");
-        oup(o, { status: "counter", counter: v });
-        closeSheet();
-        toast("Karşı teklif gönderildi");
-    };
-    $("#close").onclick = closeSheet;
-    $("#sheet").classList.add("open");
-}
-
-const offerExp = o => o.status === "wait" && !!o.ots && Date.now() - o.ots > TTL.offer * 864e5;
-
-const stepper = o => `<div class="steps">${STG.map((t, i) => `<span class="${i <= (o.stage || 0) ? "on" : ""}"><i></i>${t}</span>`).join("")}</div>`;
-
-const podKey = o => o.loadId + "_" + o.bidder;
-
-function setStage(o, n) {
-    if (!o)
-        return;
-    o.stage = n;
-    if (n === 3)
-        o.doneAt = Date.now();
-    if (cloud)
-        dbw(db.doc(opath(o)).update(n === 3 ? { stage: n, doneAt: o.doneAt } : { stage: n }));
-    if (tab === "mine")
-        render();
-    if (n === 2 && !o.ownerUid)
-        setTimeout(() => {
-            if ((o.stage || 0) === 2) {
-                o.stage = 3;
-                o.doneAt = Date.now();
-                if (cloud)
-                    dbw(db.doc(opath(o)).update({ stage: 3, doneAt: o.doneAt }));
-                if (tab === "mine")
-                    render();
-                toast("Yük sahibi teslimi onayladı");
-            }
-        }, 3000);
-}
-
-function sendPod(o) {
-    if (!o)
-        return;
-    pickImg(u => {
-        pods[podKey(o)] = u;
-        if (cloud)
-            dbw(db.doc("pods/" + podKey(o)).set({ img: u }));
-        setStage(o, 2);
-        toast("Teslim fotoğrafı gönderildi");
-    });
-}
-
-async function showPod(o) {
-    if (!o)
-        return;
-    let u = pods[podKey(o)];
-    if (!u && cloud) {
-        try {
-            const d = await db.doc("pods/" + podKey(o)).get();
-            u = d.exists ? d.data().img : "";
-        }
-        catch (e) { }
-    }
-    showImg(u, "Teslim fotoğrafı");
-}
-
-const stageUI = o => {
-    const n = o.stage || 0;
-    return `<div class="ret">${stepper(o)}<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${n === 0 ? `<button class="chip on" data-sg="${o.id}|1">Yükledim</button>` : n === 1 ? `<button class="chip on" data-sp="${o.id}">Teslim ettim · fotoğraf ekle</button>` : n === 2 ? `<span class="hint">Yük sahibinin onayı bekleniyor</span>` : `<span class="st ok">✓ Teslim onaylandı</span>`}${n === 3 ? (rates.some(x => x.k === rkey(o, "c")) ? `<span class="hint">Puanın verildi ✓</span>` : `<button class="chip on" data-rt="${o.id}">Yük sahibini puanla</button>`) : ""}${n >= 2 ? `<button class="chip" data-sv="${o.id}">Fotoğrafı gör</button>` : ""}</div></div>`;
-};
-
-const incHTML = () => incoming.length ? `<b style="font-size:16px">Gelen teklifler</b>` + incoming.map((o, i) => `<div class="load" style="cursor:default;margin:10px 0 12px"><div class="route">${o.from}<i></i>${o.to}</div><div class="meta"><span class="st ${o.status === "ok" ? "ok" : o.status === "no" ? "no" : ""}">${nm(o.bidder)}${vbadge(lvU(o.bidder))} · ${offerExp(o) ? "Süresi doldu" : STT[o.status]}${o.status === "counter" ? ": " + fmt(o.counter) : ""}</span><span class="price">${fmt(o.offer)}</span></div>${o.status === "ok" ? stepper(o) : ""}<div style="display:flex;gap:8px;margin-top:10px">${o.status === "wait" && !offerExp(o) ? `<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ik="${i}">Karşı teklif</button><button class="chip" data-ir="${i}">Reddet</button>` : ""}${o.status === "ok" && (o.stage || 0) === 2 ? `<button class="chip on" data-ic="${i}">Teslimi onayla</button>` : ""}${o.status === "ok" && (o.stage || 0) >= 2 ? `<button class="chip" data-iv="${i}">Fotoğraf</button>` : ""}${o.status === "ok" && (o.stage || 0) === 3 && !rates.some(x => x.k === rkey(o, "o")) ? `<button class="chip on" data-ir2="${i}">Taşıyıcıyı puanla</button>` : ""}<button class="chip" data-chat="o${o.loadId}_${esc(o.bidder)}" data-who="${nm(o.bidder)}">Mesaj</button>${callChip('data-cli="' + i + '"')}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></div>`).join("") + `<b style="font-size:16px;display:block;margin-top:8px">Verdiğim teklifler</b>` : "";
-
-function simulate(id) {
-    setTimeout(() => {
-        const o = offers.find(x => x.id === id);
-        if (!o || o.status !== "wait")
-            return;
-        const r = o.offer / o.price;
-        let p;
-        if (r >= .92)
-            p = { status: "ok" };
-        else if (r >= .8)
-            p = { status: "counter", counter: Math.round(o.price * .95 / 100) * 100 };
-        else
-            p = { status: "no" };
-        Object.assign(o, p);
-        if (cloud)
-            dbw(db.doc(opath(o)).update(p));
-        if (tab === "mine" || tab === "me")
-            render();
-        toast("Teklifine yanıt geldi");
-    }, 3000);
-}
+const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${nm(o.bidder)}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'o'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
+function simulate(id){setTimeout(()=>{const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});save();if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
 
 // ===== Bildirim ve alarm =====
 // Uygulama içi bildirimler, zil, rota alarmı.
@@ -3159,22 +3073,22 @@ function notifs() {
     incoming.forEach(o => {
         const k = "i" + o.loadId + "_" + o.bidder;
         if (o.status === "wait" && !offerExp(o))
-            a.push({ k: k + "w", t: nm(o.bidder) + " " + fmt(o.offer) + " teklif verdi", s: rt(o) });
-        if (o.status === "ok" && (o.stage || 0) === 2)
-            a.push({ k: k + "s2", t: "Teslim edildi, onayını bekliyor", s: rt(o) });
+            a.push({ k: k + "w", t: nm(o.bidder) + " taşıma talebi gönderdi", s: rt(o) });
+        if (o.status === "ok" && jobStage(o) === 1)
+            a.push({ k: k + "s2", t: "Yükleme onayını bekliyor", s: rt(o) });
     });
     offers.forEach(o => {
         const k = "o" + o.id;
         if (o.status === "ok")
-            a.push({ k: k + "ok", t: "Teklifin kabul edildi", s: rt(o) });
+            a.push({ k: k + "ok", t: "Taşıma talebin kabul edildi", s: rt(o) });
         if (o.status === "no")
-            a.push({ k: k + "no", t: "Teklifin reddedildi", s: rt(o) });
+            a.push({ k: k + "no", t: "Taşıma talebin reddedildi", s: rt(o) });
         if (o.status === "counter")
-            a.push({ k: k + "c" + o.counter, t: "Karşı teklif geldi: " + fmt(o.counter), s: rt(o) });
+            a.push({ k: k + "c" + o.counter, t: "Taşıma talebine yanıt bekleniyor", s: rt(o) });
         if (o.status === "ok" && (o.stage || 0) === 3)
-            a.push({ k: k + "s3", t: "Teslim onaylandı", s: rt(o) });
+            a.push({ k: k + "s3", t: "Yükleme onaylandı", s: rt(o) });
     });
-    alerts.forEach(al => loads.filter(l => !l.closed && (!al.from || l.from === al.from) && (!al.to || l.to === al.to) && (!al.veh || l.veh === al.veh) && !(l.uid && l.uid === me)).forEach(l => a.push({ k: "a" + al.id + "_" + l.id, t: "Alarm: " + (al.from || "Her yer") + " → " + (al.to || "Her yer") + " yeni yük", s: l.cargo + " · " + fmt(l.price), tab: "list" })));
+    alerts.forEach(al => loads.filter(l => !l.closed && (!al.from || l.from === al.from) && (!al.to || l.to === al.to) && (!al.veh || l.veh === al.veh) && !(l.uid && l.uid === me)).forEach(l => a.push({ k: "a" + al.id + "_" + l.id, t: "Alarm: " + (al.from || "Her yer") + " → " + (al.to || "Her yer") + " yeni yük", s: l.cargo + " · " + l.ton + " ton", tab: "list" })));
     return a;
 }
 
@@ -3190,7 +3104,7 @@ function bell() {
 function openBell() {
     const a = notifs(), B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Bildirimler</b><button class="chip" id="close">Kapat</button></div>` + (a.length ? a.map(x => `<button class="nt ${seen.has(x.k) ? "" : "new"}" data-nt="${x.tab || "mine"}"><b>${x.t}</b><span>${x.s}</span></button>`).join("") : `<div class="empty">Henüz bildirim yok.<br>Teklif geldiğinde veya yanıt aldığında burada görünür.</div>`);
+    B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Bildirimler</b><button class="chip" id="close">Kapat</button></div>` + (a.length ? a.map(x => `<button class="nt ${seen.has(x.k) ? "" : "new"}" data-nt="${x.tab || "mine"}"><b>${x.t}</b><span>${x.s}</span></button>`).join("") : `<div class="empty">Henüz bildirim yok.<br>Taşıma talebi geldiğinde veya yanıt aldığında burada görünür.</div>`);
     seen = new Set([...seen, ...a.map(x => x.k)]);
     try {
         localStorage.setItem("yy-seen", JSON.stringify([...seen]));
@@ -3231,7 +3145,7 @@ const alertsCard = () => `<div class="load" style="cursor:default"><b>Rota alarm
 // ===== Mesajlaşma =====
 // Teklif sohbeti (gerçek kullanıcılar arasında canlı, örnek ilanlarda hazır cevaplı).
 
-function openChat(key, who) {
+function openChat(key, who, onFirstSend) {
     const live = cloud && /^o\d+_./.test(key), B = $("#sheetBody");
     B.dataset.k = key;
     let msgs = live ? [] : (chats[key] = chats[key] || [{ me: 0, t: "Merhaba, nasıl yardımcı olabilirim?" }]);
@@ -3259,6 +3173,7 @@ function openChat(key, who) {
         const t = $("#mi").value.trim().slice(0, 500);
         if (!t)
             return;
+        if (onFirstSend) { onFirstSend(); onFirstSend = null; }
         $("#mi").value = "";
         if (live) {
             dbw(db.collection("msgs").add({ k: key, uid: me, t, ts: Date.now() }));
@@ -3282,11 +3197,11 @@ function openChat(key, who) {
 
 /**
  * Profil, doğrulama ve güven
- * Herkese açık profil, puan, rol ve tanıtım, kazanç; belge rozetleri ve telefon; şikayet, engelleme ve yardım.
+ * Herkese açık profil, puan, rol ve tanıtım, profil bilgileri; belge rozetleri ve telefon; şikayet, engelleme ve yardım.
  */
 
 // ===== Profil ve kazanç =====
-// Herkese açık profil, puan ve yorum, rol ve tanıtım, kazanç özeti ve haftalık grafik, ana ekrana ekleme, profil sekmesi olayları.
+// Herkese açık profil, puan ve yorum, rol ve tanıtım, iletişim bilgileri, ana ekrana ekleme, profil sekmesi olayları.
 
 function listBind() {
     const M = $("#main");
@@ -3405,7 +3320,7 @@ function myRate() {
     return R ? " · ★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "";
 }
 
-const roleCard = () => `<div class="load" style="cursor:default"><b>Rolüm</b><div class="seg" style="margin:10px 0 8px"><button data-ro="carrier" class="${role === "carrier" ? "on" : ""}">Taşıyıcıyım</button><button data-ro="owner" class="${role === "owner" ? "on" : ""}">Yük sahibiyim</button></div><button class="chip" id="onb2">Tanıtımı tekrar göster</button></div>`;
+const roleCard = () => `<div class="load" style="cursor:default"><b>Rolüm</b><div class="seg" style="margin:10px 0 8px"><button data-ro="carrier" class="${role === "carrier" ? "on" : ""}">Taşıyıcıyım</button><button data-ro="owner" class="${role === "owner" ? "on" : ""}">Yük sahibiyim</button></div></div>`;
 
 function setRole(r, go) {
     role = r;
@@ -3474,40 +3389,16 @@ function openProfile(o) {
     const B = $("#sheetBody");
     B.dataset.k = "";
     const R = o.uid ? rates.filter(x => x.to === o.uid) : [], avg = R.length ? R.reduce((t, x) => t + x.stars, 0) / R.length : (+o.rate || 0);
+    const info = o.uid ? carriers[o.uid] || {} : {};
     const act = o.uid ? loads.filter(l => l.uid === o.uid && !l.closed && !expired(l, "load")).length + trucks.filter(t => t.uid === o.uid && !t.closed && !expired(t, "truck")).length : 0;
     const done = o.uid ? allO.filter(x => (x.bidder === o.uid || x.ownerUid === o.uid) && (+x.stage || 0) >= 3).length : 0, n2 = o.name || "Kullanıcı";
-    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${(String(n2).replace(/&[^;]+;/g, "?")[0] || "?").toUpperCase()}</div><div><b style="font-size:18px">${n2}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Teslim</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${cloud ? x.text : esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${(String(n2).replace(/&[^;]+;/g, "?")[0] || "?").toUpperCase()}</div><div><b style="font-size:18px">${n2}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${cloud ? x.text : esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
     if ($("#pr"))
         $("#pr").onclick = () => openReport("u", o.uid);
     if ($("#pb2"))
         $("#pb2").onclick = () => blockUser(o.uid);
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
-}
-
-const earnCard = () => {
-    const Dn = offers.filter(o => o.status === "ok" && (o.stage || 0) >= 3), P = offers.filter(o => o.status === "ok" && (o.stage || 0) < 3);
-    if (!Dn.length && !P.length)
-        return "";
-    const tot = Dn.reduce((t, o) => t + o.offer, 0), kms = Dn.reduce((t, o) => t + (o.km || dist(o.from, o.to)), 0), pend = P.reduce((t, o) => t + o.offer, 0);
-    return `<div class="load" style="cursor:default"><b>Kazancım</b><div class="stat flat" style="margin:10px 0 4px"><div><b>${Dn.length}</b><span>Tamamlanan</span></div><div><b>${fmt(tot)}</b><span>Toplam</span></div><div><b>${kms ? Math.round(tot / kms) : 0}</b><span>₺/km</span></div></div>${Dn.length ? weekChart() : ""}${P.length ? `<p style="font-size:13px;color:var(--mute)">Devam eden ${P.length} iş · ${fmt(pend)}</p>` : ""}</div>`;
-};
-
-function weekly() {
-    const n = new Date(weekStart(Date.now())), W = [];
-    for (let i = 7; i >= 0; i--)
-        W.push({ t: new Date(n.getFullYear(), n.getMonth(), n.getDate() - 7 * i).getTime(), v: 0 });
-    offers.filter(o => o.status === "ok" && (o.stage || 0) >= 3).forEach(o => {
-        const k = weekStart(o.doneAt || o.ots || Date.now()), w = W.find(x => x.t === k);
-        if (w)
-            w.v += o.offer;
-    });
-    return W;
-}
-
-function weekChart() {
-    const W = weekly(), mx = Math.max(1, ...W.map(w => w.v)), best = Math.max(...W.map(w => w.v));
-    return `<div class="wk" role="img" aria-label="Son 8 haftalık kazanç">${W.map(w => `<div title="${fmt(w.v)}"><i style="height:${w.v ? Math.max(6, Math.round(w.v / mx * 60)) : 3}px;${w.v ? "" : "background:var(--line)"}"></i><span>${new Date(w.t).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</span></div>`).join("")}</div><p style="font-size:12.5px;color:var(--mute);margin-top:6px">Bu hafta ${fmt(W[W.length - 1].v)} · En iyi hafta ${fmt(best)}</p>`;
 }
 
 const isNative = () => {
@@ -3600,7 +3491,7 @@ const adminCard = () => {
 
 function setCar(patch) {
     Object.assign(myCar, patch);
-    const d = { phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
+    const d = { displayName: myCar.displayName || "", city: myCar.city || "", about: myCar.about || "", phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
     d.ok = cOk(d);
     carriers[me || "local"] = d;
     if (cloud)
@@ -3834,15 +3725,13 @@ function statsOf0(l) {
 
 const statLine = l => {
     const s = statsOf(l);
-    return s.views + " görüntülenme · " + s.offers + " teklif · " + s.saves + " kayıt" + (s.demo ? " (örnek)" : "");
+    return s.views + " görüntülenme · " + s.offers + " talep · " + s.saves + " kayıt" + (s.demo ? " (örnek)" : "");
 };
 
 function statTips(l, s) {
     const t = [];
     if (s.views >= 10 && s.offers === 0)
-        t.push("Görüntülenme var ama teklif yok. Ücreti veya açıklamayı gözden geçir.");
-    if (s.offers > 0 && s.avg && s.avg < l.price * .9)
-        t.push("Gelen tekliflerin ortalaması ilan ücretinin %" + Math.round((1 - s.avg / l.price) * 100) + " altında.");
+        t.push("Görüntülenme var ama taşıma talebi yok. Yük bilgilerini ve açıklamayı gözden geçir.");
     if (s.views < 5 && s.age >= 2)
         t.push(!l.img ? "Az kişi gördü. Fotoğraf eklemek ilgiyi artırır." : "Az kişi gördü. Yükleme gününü ve kasa tipini kontrol et.");
     if (s.calls > 0)
@@ -3866,7 +3755,7 @@ function openStats(id) {
         return `<div title="${v}"><i style="height:${v ? Math.max(6, Math.round(v / mx * 60)) : 3}px;${v ? "" : "background:var(--line)"}"></i><span>${d.toLocaleDateString("tr-TR", { weekday: "short" })}</span></div>`;
     }).join("");
     const tile = (n, t) => `<div><b>${n}</b><span>${t}</span></div>`;
-    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${l.from}<i></i>${l.to}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Teklif")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Teklif oranı")}</div>${fxBox(s.fx)}${s.offers ? `<p style="font-size:13.5px;margin-top:12px">En yüksek teklif <b>${fmt(s.best)}</b> · Ortalama <b>${fmt(s.avg)}</b> · İlan ücreti <b>${fmt(l.price)}</b></p>` : ""}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${l.from}<i></i>${l.to}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
 }
@@ -3946,45 +3835,15 @@ function toggleTheme() {
 }
 
 function openCalc() {
-    const m = $("#sheetBody");
-    m.dataset.k = "";
-    const num = (k, t, u) => `<div><label>${t}</label><div class="unit"><input data-k="${k}" type="number" inputmode="decimal" value="${calc[k]}"><em>${u}</em></div></div>`;
-    const cur = vehicles.find(v => CONS[v] === calc.cons) || "";
-    m.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:19px">Yakıt hesabı</b><button class="chip" id="cx">Kapat</button></div><div class="res" id="res"></div>
-    <label>Araç tipi</label><select id="cv"><option value="" hidden>Özel</option>${vehicles.map(v => `<option ${v === cur ? "selected" : ""}>${v}</option>`).join("")}</select>
-    <div class="row">${num("km", "Mesafe", "km")}${num("fare", "Navlun", "₺")}</div>
-    <details class="more"><summary>Diğer ayarlar</summary>
-      <p style="font-size:12px;color:var(--mute);margin-top:12px">Mazot fiyatı hesaplama varsayımıdır; güncel pompa fiyatına göre değiştir.</p><div class="row">${num("fuel", "Mazot", "₺/L")}${num("cons", "Tüketim", "L/100km")}</div>
-      <div class="row">${num("toll", "Otoyol", "₺")}${num("other", "Diğer", "₺")}</div>
-      <label class="chk"><input type="checkbox" id="bk" ${calc.back ? "checked" : ""}>Dönüşte boş döneceğim</label>
-    </details>`;
-    const out = () => {
-        const d = calc.km * (calc.back ? 2 : 1), fc = Math.round(d * calc.cons / 100 * calc.fuel), cost = fc + calc.toll + calc.other, net = Math.round(calc.fare - cost), pc = x => Math.round(x / Math.max(cost, 1) * 100);
-        $("#res").innerHTML = `<span>Net kazanç</span><div class="big ${net < 0 ? "bad" : ""}">${fmt(net)}</div><div class="sub">Masraf ${fmt(Math.round(cost))} · ${d ? Math.round(net / d) + " ₺/km" : "—"}</div>
-      <div class="bar"><i style="width:${pc(fc)}%;background:var(--accent)"></i><i style="width:${pc(calc.toll)}%;background:#fff"></i><i style="width:${pc(calc.other)}%;background:rgba(255,255,255,.4)"></i></div>
-      <div class="leg"><span><b style="background:var(--accent)"></b>Yakıt ${fmt(fc)}</span><span><b style="background:#fff"></b>Otoyol ${fmt(calc.toll)}</span><span><b style="background:rgba(255,255,255,.4)"></b>Diğer ${fmt(calc.other)}</span></div>`;
-    };
-    m.querySelectorAll("[data-k]").forEach(i => i.oninput = () => {
-        calc[i.dataset.k] = +i.value || 0;
-        if (i.dataset.k === "cons")
-            $("#cv").value = vehicles.find(v => CONS[v] === calc.cons) || "";
-        out();
-        save();
-    });
-    $("#cv").onchange = e => {
-        calc.cons = CONS[e.target.value];
-        m.querySelector('[data-k="cons"]').value = calc.cons;
-        out();
-        save();
-    };
-    $("#bk").onchange = e => {
-        calc.back = e.target.checked;
-        out();
-        save();
-    };
-    out();
-    $("#cx").onclick = closeSheet;
-    $("#sheet").classList.add("open");
+    const m = $("#sheetBody"); m.dataset.k = "";
+    const num = (k,t,u) => `<div><label for="calc-${k}">${t}</label><div class="unit"><input id="calc-${k}" data-k="${k}" type="number" min="0" inputmode="decimal" value="${calc[k]}"><em>${u}</em></div></div>`;
+    const cur = vehicles.find(v=>CONS[v]===calc.cons) || "";
+    m.innerHTML = `<div class="load-detail fuel-detail"><div class="detail-top"><b>Mazot hesabı</b><button class="chip detail-close" id="cx">Kapat ×</button></div><div class="fuel-result" id="res" role="status" aria-live="polite"></div><div class="detail-scroll"><section class="detail-group"><h2>Yol ve araç</h2><label for="cv">Araç tipi</label><select id="cv"><option value="" hidden>Özel tüketim</option>${vehicles.map(v=>`<option ${v===cur?"selected":""}>${v}</option>`).join("")}</select>${num("km","Tek yön mesafe","km")}<label class="chk"><input type="checkbox" id="bk" ${calc.back?"checked":""}> Boş dönüşü de hesapla</label></section><section class="detail-group"><h2>Mazot ve tüketim</h2><div class="row">${num("fuel","Litre fiyatı","₺/L")}${num("cons","Tüketim","L/100 km")}</div><p class="estimate-note">Litre fiyatı hesaplama varsayımıdır. Güncel pompa fiyatını kendin gir.</p></section><details class="profile-panel"><summary>Otoyol ve diğer giderler</summary><div class="row">${num("toll","Otoyol / köprü","₺")}${num("other","Diğer giderler","₺")}</div></details><p class="estimate-note">Sonuç yaklaşık giderdir; trafik, yük ve sürüş koşullarına göre değişir. Boş dönüş seçimi mesafeyi iki katına çıkarır. Girdilerin cihazında saklanır.</p></div></div>`;
+    const out=()=>{const d=calc.km*(calc.back?2:1),litres=d*calc.cons/100,fuel=litres*calc.fuel,total=fuel+calc.toll+calc.other;$("#res").innerHTML=`<span>Tahmini toplam gider</span><strong>${fmt(Math.round(total))}</strong><div class="fuel-metrics"><div><b>${f1(litres)} L</b><span>Mazot</span></div><div><b>${d.toLocaleString("tr-TR")} km</b><span>Toplam yol</span></div></div><p>Mazot ${fmt(Math.round(fuel))} · Diğer giderler ${fmt(Math.round(calc.toll+calc.other))}</p>`;};
+    m.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>{calc[i.dataset.k]=Number.isFinite(+i.value)?Math.max(0,+i.value):0;if(i.dataset.k==="cons")$("#cv").value=vehicles.find(v=>CONS[v]===calc.cons)||"";out();save();});
+    $("#cv").onchange=e=>{calc.cons=CONS[e.target.value]||calc.cons;m.querySelector('[data-k="cons"]').value=calc.cons;out();save();};
+    $("#bk").onchange=e=>{calc.back=e.target.checked;out();save();};
+    out();syncDetailViewport();$("#cx").onclick=closeSheet;$("#sheet").classList.add("open");
 }
 
 const netUI = () => {
@@ -4035,7 +3894,6 @@ function initPostWizard(m) {
         if(postMode==='load') {
             for(const item of (draft.items||[]).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=item.n; e.querySelector('[data-iq]').value=item.q; e.querySelector('[data-iu]').value=item.u; }
             if(imgOk(draft.image)){postImg=draft.image;$('#phs').innerHTML=`<img class="th" src="${postImg}" alt="Taslak yük fotoğrafı">`;}
-            sugg();
         }
     }
     const start1=postMode==='load'?$('#c').previousElementSibling:$('#v').closest('.row');
@@ -4043,7 +3901,7 @@ function initPostWizard(m) {
     const nodes=[...m.children].filter(e=>!e.classList.contains('seg'));
     const groups=[0,1,2].map(i=>{const s=document.createElement('section');s.className='form-section';s.dataset.step=i; m.appendChild(s);return s;});
     let step=0;for(const e of nodes){if(e===start1)step=1;if(e===start2)step=2;groups[step].appendChild(e);}
-    m.insertAdjacentHTML('afterbegin',screenHeading('İlan oluştur',draft?'Kaydedilmiş taslağına devam ediyorsun.':'Güzergâhı seç, bilgileri ekle ve yayınla.')+demoNotice()+`<ol class="form-steps"><li>1 · Güzergâh</li><li>2 · ${postMode==='load'?'Yük ve taşıma':'Araç'}</li><li>3 · ${postMode==='load'?'Ücret ve ekler':'Müsaitlik'}</li></ol>`);
+    m.insertAdjacentHTML('afterbegin',screenHeading('İlan oluştur',draft?'Kaydedilmiş taslağına devam ediyorsun.':'Güzergâhı seç, bilgileri ekle ve yayınla.')+demoNotice()+`<ol class="form-steps"><li>1 · Güzergâh</li><li>2 · ${postMode==='load'?'Yük ve taşıma':'Araç'}</li><li>3 · ${postMode==='load'?'Not ve ekler':'Müsaitlik'}</li></ol>`);
     m.insertAdjacentHTML('beforeend','<div class="form-dock"><button class="chip" id="post-prev">Geri</button><span class="draft-state" role="status">Taslak cihazında korunur</span><button class="btn" id="post-next">Devam →</button></div>');
     m.querySelector('.form-dock').appendChild($('#go'));
     const show=()=>{groups.forEach((e,i)=>e.hidden=i!==postStep);m.querySelectorAll('.form-steps li').forEach((e,i)=>e.setAttribute('aria-current',i===postStep?'step':'false'));$('#post-prev').hidden=postStep===0;$('#post-next').hidden=postStep===2;$('#go').hidden=postStep!==2;m.scrollTop=0;capturePostDraft();};
@@ -4102,13 +3960,12 @@ function renderListings(m) {
                 shown = 20;
             }
         }
-        const kl = loads.filter(x => x.km), avg = kl.length ? Math.round(kl.reduce((a, x) => a + x.price / x.km, 0) / kl.length) : 0;
-        const st = isT ? [[trucks.length, "boş araç"], [trucks.filter(x => x.date === "Bugün").length, "bugün müsait"], [Math.round(trucks.reduce((a, x) => a + x.cap, 0)), "ton kapasite"]] : [[loads.filter(x => !x.closed).length, "açık ilan"], [loads.filter(x => x.date === "Bugün").length, "bugün yükleme"], [avg, "ort. ₺/km"]];
+        const st = isT ? [[trucks.length, "boş araç"], [trucks.filter(x => x.date === "Bugün").length, "bugün müsait"], [Math.round(trucks.reduce((a, x) => a + x.cap, 0)), "ton kapasite"]] : [[loads.filter(x => !x.closed).length, "açık ilan"], [loads.filter(x => x.date === "Bugün").length, "bugün yükleme"], [new Set(loads.filter(x=>!x.closed).map(x=>x.from)).size, "çıkış şehri"]];
         const hero = `<div class="hero">${st.map(([a, b]) => `<div><b>${a}</b><span>${b}</span></div>`).join("")}</div>`;
-        m.innerHTML = routeSearch() + SEG + (!cloud ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve teklifler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${q}" style="margin:0"></div>
+        m.innerHTML = routeSearch() + SEG + (!cloud ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<button class="fuel-shortcut" id="fuel-home"><span aria-hidden="true">${FUEL_ICON}</span><span><b>Mazot hesabı</b><small>Yola çıkmadan giderini hesapla</small></span><span aria-hidden="true">→</span></button><div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${q}" style="margin:0"></div>
     ${nearRow()}${ac.length ? `<div class="chips active-filters wrap">${ac.map(c => `<button class="chip on" data-x="${c[0]}" data-v="${c[1]}">${c[2]} ×</button>`).join("")}</div>` : ""}
     <div class="meta listing-count" style="margin:0 2px 10px"><span>${items.length} ${isT ? "boş araç" : "ilan"}${!isT && (F.from || F.to) ? ` <button class="chip" id="al" style="margin-left:6px;padding:4px 10px;font-size:12px">Alarm kur</button>` : ""}</span><span>Yola çıkmaya hazır</span></div>
-    <div class="listing-grid">${!loaded ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div><section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section><div class="list-actions" aria-label="İlan araçları">${cmpBar()}<div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni</option><option value="price" ${sort === "price" ? "selected" : ""}>Ücret ↓</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option><option value="rate" ${sort === "rate" ? "selected" : ""}>Puan ↓</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
+    <div class="listing-grid">${!loaded ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div><section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section><div class="list-actions" aria-label="İlan araçları">${cmpBar()}<div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option><option value="rate" ${sort === "rate" ? "selected" : ""}>Puan ↓</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
         segBind();
         m.querySelectorAll("[data-fav]").forEach(b => b.onclick = e => {
             e.stopPropagation();
@@ -4127,6 +3984,7 @@ function renderListings(m) {
             i.setSelectionRange(p, p);
         };
         $("#fb").onclick = openFilter;
+        $("#fuel-home").onclick = () => openCalc();
         m.querySelectorAll("[data-route]").forEach(e => e.onchange = () => {
             F[e.dataset.route] = e.value;
             render();
@@ -4205,7 +4063,7 @@ function renderPost(m) {
                     return toast("Çıkış ve varış şehri farklı olmalı");
                 if (!(+$("#w").value > 0))
                     return toast("Boş kapasiteyi gir");
-                postTruck({ id: "t" + Date.now(), who: "Ben (Yağız)", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" });
+                postTruck({ id: "t" + Date.now(), who: esc(myCar.displayName || "") || myName || "Ben", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" });
                 clearPostDraft();
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
@@ -4223,20 +4081,18 @@ function renderPost(m) {
     <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="1" value="10"></div>
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
-    <div><label>Ödeme</label><select id="y">${opt(["Peşin", "Teslimde nakit", "15 gün vade", "30 gün vade"])}</select></div></div>
+    </div>
     <label>Yükleme günü</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
-    <label>Teklif edilen ücret (₺)</label><input id="p" type="number" min="0" placeholder="15000">
-    <div id="sg"></div><label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
+    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
         pb();
-        sugg();
         itemsUI();
         $("#go").onclick = () => {
-            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim(), ton: +$("#w").value, veh: $("#v").value, price: +$("#p").value, date: $("#d").value, body: $("#b").value, pay: $("#y").value, note: $("#n").value.trim(), owner: "Ben (Yağız)" };
+            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim(), ton: +$("#w").value, veh: $("#v").value, date: $("#d").value, body: $("#b").value, note: $("#n").value.trim(), owner: esc(myCar.displayName || "") || myName || "Ben" };
             if (l.from === l.to)
                 return toast("Çıkış ve varış şehri farklı olmalı");
-            if (!l.cargo || !(l.price > 0) || !(l.ton > 0))
-                return toast("Yük cinsi, ağırlık ve ücreti gir");
+            if (!l.cargo || !(l.ton > 0))
+                return toast("Yük cinsi ve ağırlığı gir");
             if (myCar.phone)
                 l.phone = myCar.phone;
             if (postImg)
@@ -4265,76 +4121,47 @@ function renderPost(m) {
 }
 
 /**
- * Teklifler ve işler ekranı
- * Klasik uygulama kapsamında yüklenir; sıra tools/project.js içinde tanımlıdır.
+ * İşlerim
+ * Tutar içermeyen talepler ve iki aşamalı yükleme takibi.
  */
-
-function renderOffers(m) {
-        m.innerHTML = screenHeading("Teklifler ve işler", "Yanıtları takip et, taşımanı ve teslim belgelerini yönet.") + demoNotice() + incHTML() + (offers.length ? offers.map(o => `<div class="load" style="cursor:default">${routeTitle(o)}
-    <div class="meta"><span class="st ${o.status === "ok" ? "ok" : o.status === "no" ? "no" : ""}">${offerExp(o) ? "Süresi doldu" : STT[o.status]}${o.status === "counter" ? ": " + fmt(o.counter) : ""}</span><span class="price">${fmt(o.offer)}</span></div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">${o.status === "counter" ? `<button class="chip on" data-ca="${o.id}">Karşı teklifi kabul et</button>` : ""}${o.status === "wait" || o.status === "counter" ? `<button class="chip" data-c="${o.id}">Geri çek</button>` : ""}<button class="chip" data-chat="o${o.id}_${o.bidder || ""}" data-who="${o.owner || (o.uid ? nm(o.uid) : "Yük sahibi")}">Mesaj</button>${callChip('data-cl="' + o.id + '"')}</div>${o.status === "ok" ? stageUI(o) + retHTML(o) : ""}</div>`).join("") : `<div class="empty">Henüz teklif vermedin. İlanlar sekmesinden bir yük seç.</div>`);
-        m.querySelectorAll("[data-c]").forEach(b => b.onclick = () => {
-            const o0 = offers.find(o => o.id === +b.dataset.c);
-            offers = offers.filter(o => o.id !== +b.dataset.c);
-            if (cloud && o0)
-                dbw(db.doc(opath(o0)).delete());
-            render();
-            toast("Teklif geri çekildi");
-        });
-        m.querySelectorAll("[data-ca]").forEach(b => b.onclick = () => {
-            const o = offers.find(x => x.id === +b.dataset.ca);
-            oup(o, { status: "ok", offer: o.counter });
-            toast("Anlaşma sağlandı");
-        });
-        m.querySelectorAll("[data-chat]").forEach(b => b.onclick = () => openChat(b.dataset.chat, b.dataset.who));
-        m.querySelectorAll("[data-ia]").forEach(b => b.onclick = () => {
-            oup(incoming[+b.dataset.ia], { status: "ok" });
-            toast("Teklif kabul edildi");
-        });
-        m.querySelectorAll("[data-ir]").forEach(b => b.onclick = () => {
-            oup(incoming[+b.dataset.ir], { status: "no" });
-            toast("Teklif reddedildi");
-        });
-        m.querySelectorAll("[data-ik]").forEach(b => b.onclick = () => openCounter(incoming[+b.dataset.ik]));
-        m.querySelectorAll("[data-rl]").forEach(b => b.onclick = () => openLoad(+b.dataset.rl));
-        m.querySelectorAll("[data-sg]").forEach(b => {
-            const [id, n] = b.dataset.sg.split("|");
-            b.onclick = () => setStage(offers.find(o => o.id === +id), +n);
-        });
-        m.querySelectorAll("[data-sp]").forEach(b => b.onclick = () => sendPod(offers.find(o => o.id === +b.dataset.sp)));
-        m.querySelectorAll("[data-sv]").forEach(b => b.onclick = () => showPod(offers.find(o => o.id === +b.dataset.sv)));
-        m.querySelectorAll("[data-ic]").forEach(b => b.onclick = () => setStage(incoming[+b.dataset.ic], 3));
-        m.querySelectorAll("[data-iv]").forEach(b => b.onclick = () => showPod(incoming[+b.dataset.iv]));
-        m.querySelectorAll("[data-cl]").forEach(b => b.onclick = () => {
-            const o = offers.find(x => x.id === +b.dataset.cl);
-            callTo(o && phoneOf(o));
-        });
-        m.querySelectorAll("[data-cli]").forEach(b => b.onclick = () => {
-            const o = incoming[+b.dataset.cli];
-            callTo(o && carrierPhone(o.bidder));
-        });
-        m.querySelectorAll("[data-bp]").forEach(b => b.onclick = () => {
-            const o = incoming[+b.dataset.bp];
-            if (o)
-                openProfile({ uid: o.bidder, name: nm(o.bidder), lv: lvU(o.bidder) });
-        });
-        m.querySelectorAll("[data-bu]").forEach(b => b.onclick = () => blockUser((incoming[+b.dataset.bu] || {}).bidder));
-        m.querySelectorAll("[data-rt]").forEach(b => b.onclick = () => openRate(offers.find(o => o.id === +b.dataset.rt), "carrier"));
-        m.querySelectorAll("[data-ir2]").forEach(b => b.onclick = () => openRate(incoming[+b.dataset.ir2], "owner"));
+function renderOffers(m){
+    m.innerHTML=screenHeading("İşlerim","Taşıma taleplerini takip et. Yüklediğini bildir, onayı burada gör.")+demoNotice()+incHTML()+(offers.length?offers.map(o=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${o.cargo} · ${o.ton} ton</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div><div class="job-actions">${o.status==='counter'?`<button class="chip on" data-ca="${o.id}">Talebi sürdür</button>`:''}${['wait','counter'].includes(o.status)?`<button class="chip" data-c="${o.id}">Geri çek</button>`:''}</div>${o.status==='ok'?stageUI(o)+retHTML(o):''}</article>`).join(''):'<div class="empty">Henüz taşıma talebin yok. İlan detayından yük sahibiyle görüşebilir ve talep gönderebilirsin.</div>');
+    m.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{const o=offers.find(x=>x.id===+b.dataset.c);offers=offers.filter(x=>x!==o);if(cloud&&o)dbw(db.doc(opath(o)).delete());render();toast('Taşıma talebi geri çekildi');});
+    m.querySelectorAll('[data-ca]').forEach(b=>b.onclick=()=>oup(offers.find(x=>x.id===+b.dataset.ca),{status:'wait'}));
+    m.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{oup(incoming[+b.dataset.ia],{status:'ok'});toast('Taşıma talebi kabul edildi');});
+    m.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>oup(incoming[+b.dataset.ir],{status:'no'}));
+    m.querySelectorAll('[data-rl]').forEach(b=>b.onclick=()=>openLoad(+b.dataset.rl));
+    m.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>setStage(offers.find(o=>o.id===+b.dataset.sg.split('|')[0]),1));
+    m.querySelectorAll('[data-ic]').forEach(b=>b.onclick=()=>setStage(incoming[+b.dataset.ic],3));
+    m.querySelectorAll('[data-bp]').forEach(b=>b.onclick=()=>{const o=incoming[+b.dataset.bp];openProfile({uid:o.bidder,name:nm(o.bidder),lv:lvU(o.bidder)});});
+    m.querySelectorAll('[data-bu]').forEach(b=>b.onclick=()=>blockUser(incoming[+b.dataset.bu].bidder));
+    m.querySelectorAll('[data-rt]').forEach(b=>b.onclick=()=>openRate(offers.find(o=>o.id===+b.dataset.rt),'carrier'));
+    m.querySelectorAll('[data-ir2]').forEach(b=>b.onclick=()=>openRate(incoming[+b.dataset.ir2],'owner'));
 }
 
 /**
- * Profil ekranı
- * Klasik uygulama kapsamında yüklenir; sıra tools/project.js içinde tanımlıdır.
+ * Profil
+ * İletişim, ilanlar, güven bilgileri ve günlük araçlar.
  */
-
-function renderProfile(m) {
-
-        m.innerHTML = `<div class="profile-cover"><div class="avatar">${(myName || "Y")[0].toUpperCase()}</div><div><b style="font-size:18px">${myName || "Yağız"}${vbadge(appr[me || "local"] === true ? 2 : cOk(myCar) ? 1 : 0)}</b><div class="profile-caption">Taşıyıcı ve yük sahibi${myRate()}</div></div></div>
-    <div class="stat"><div><b>${loads.length}</b><span>Açık ilan</span></div><div><b>${offers.length}</b><span>Verdiğim teklif</span></div></div>
-    ${demoNotice()}<div class="profile-grid"><section class="profile-group"><h2>İlanlarım ve hareketlerim</h2>${myListHTML()}${featSumCard()}${alertsCard()}${earnCard()}</section><section class="profile-group"><h2>Üyelik</h2>${premCard()}<details class="profile-panel"><summary>İletişim ve tercihler</summary>${phoneCard()}${roleCard()}</details><details class="profile-panel"><summary>Araç ve belgeler</summary>${carCard()}</details><details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details></section></div>`;
-        carBind();
-        listBind();
-
+function renderProfile(m){
+    const own=[...mineL(),...mineT()].filter(l=>!l.closed&&!expired(l,typeof l.id==='string'?'truck':'load'));
+    const jobs=[...offers,...incoming];
+    const done=jobs.filter(o=>o.status==='ok'&&jobStage(o)===3).length,active=jobs.filter(o=>o.status==='ok'&&jobStage(o)!==3).length;
+    const name=myCar.displayName||myName||'Profilim',r=ratingOf(me||'local');
+    m.innerHTML=`<div class="profile-cover"><div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div><div><b>${esc(myCar.displayName)||myName||'Profilim'}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b><div class="profile-caption">${role==='owner'?'Yük sahibi':'Taşıyıcı'}${myCar.city?' · '+esc(myCar.city):''}</div><div class="profile-caption">${r?'★ '+r.avg.toFixed(1)+' · '+r.n+' değerlendirme':'Henüz değerlendirme yok'}</div></div></div><div class="stat profile-stats"><div><b>${own.length}</b><span>Aktif ilanım</span></div><div><b>${active}</b><span>Devam eden iş</span></div><div><b>${done}</b><span>Onaylanan iş</span></div></div>${demoNotice()}<div class="profile-shortcuts"><button class="profile-tool" id="profile-messages"><span aria-hidden="true">✉</span><b>Mesajlar</b><small>Görüşmelerine devam et</small></button><button class="profile-tool" id="profile-favorites"><span aria-hidden="true">♡</span><b>Kaydettiklerim</b><small>${favs.length} kayıtlı ilan</small></button><button class="profile-tool" id="profile-fuel"><span aria-hidden="true">${FUEL_ICON}</span><b>Mazot hesabı</b><small>Yol giderini planla</small></button><button class="profile-tool" id="profile-jobs"><span aria-hidden="true">✓</span><b>İşlerim</b><small>Yükleme ve onay</small></button></div><div class="profile-grid"><section class="profile-group"><h2>Profil ve iletişim</h2><div class="load profile-info"><label for="profile-name">Görünen ad / firma</label><input id="profile-name" maxlength="60" placeholder="Adın veya firma adın" value="${esc(myCar.displayName||'')}"><label for="profile-city">Bulunduğun şehir</label><select id="profile-city"><option value="">Şehir seç</option>${opt2(cities,myCar.city)}</select><label for="profile-about">Kısa tanıtım</label><textarea id="profile-about" maxlength="200" rows="2" placeholder="Çalıştığın güzergâhlar, taşıma deneyimin">${esc(myCar.about||'')}</textarea><button class="chip on" id="profile-save">Profili kaydet</button></div>${phoneCard()}${roleCard()}</section><section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}<details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>${r?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}</section><section class="profile-group"><h2>Üyelik ve destek</h2>${premCard()}<details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details></section></div>`;
+    carBind();listBind();
+    $('#profile-save').onclick=()=>{setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)});toast('Profilin kaydedildi');};
+    $('#profile-messages').onclick=openInbox;$('#profile-fuel').onclick=()=>openCalc();
+    $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();};
+    $('#profile-jobs').onclick=()=>{tab='mine';setNav();render();};
+    if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:esc(myCar.displayName)||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
+}
+function openInbox(){
+    const entries=new Map();
+    [...offers,...incoming].forEach(o=>{const mine=o.bidder===me||(!cloud&&offers.includes(o)),who=mine?(o.owner||nm(o.ownerUid)):nm(o.bidder),uid=mine?o.ownerUid:o.bidder;if(uid&&blocked.includes(uid))return;const k='o'+o.loadId+'_'+o.bidder;entries.set(k,{k,who,route:o.from+' → '+o.to});});
+    Object.keys(chats).forEach(k=>{if(entries.has(k)||!chats[k].some(x=>x.me))return;const truck=trucks.find(t=>'t'+t.id===k),load=loads.find(l=>k==='o'+l.id+'_'+me||k==='o'+l.id+'_');if(truck&&truck.uid&&blocked.includes(truck.uid)||load&&load.uid&&blocked.includes(load.uid))return;entries.set(k,{k,who:truck?(truck.who||nm(truck.uid)):load?(load.owner||nm(load.uid)):'Görüşme',route:truck?truck.from+' → '+truck.to:load?load.from+' → '+load.to:'Kaydedilmiş sohbet'});});
+    const B=$('#sheetBody');B.dataset.k='';B.innerHTML=`<div class="load-detail"><div class="detail-top"><b>Mesajlar</b><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll">${[...entries.values()].map((e,i)=>`<button class="conversation" data-conv="${i}"><b>${e.who}</b><span>${e.route}</span><small>${esc((chats[e.k]||[]).slice(-1)[0]?.t||'Görüşmeyi aç')}</small></button>`).join('')||'<div class="empty">Henüz görüşmen yok. İlan detayındaki Mesaj gönder düğmesinden başlayabilirsin.</div>'}</div></div>`;
+    B.querySelectorAll('[data-conv]').forEach(b=>b.onclick=()=>{const e=[...entries.values()][+b.dataset.conv];openChat(e.k,e.who);});$('#close').onclick=closeSheet;syncDetailViewport();$('#sheet').classList.add('open');
 }
 
 /**
@@ -4357,21 +4184,21 @@ function openLoad(id) {
     if (!l)
         return toast("İlan bulunamadı");
     track("v", id);
-    const km = l.km || dist(l.from, l.to), fuelNet = km ? Math.round(l.price - km * (CONS[l.veh] || 22) / 100 * calc.fuel) : null;
+    const km = l.km || dist(l.from, l.to);
     const kv = rows => rows.map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("");
     $("#sheetBody").innerHTML = `<div class="load-detail">
       <div class="detail-top"><span>Yük ilanı <span class="detail-id">#${l.id}</span></span><button class="chip detail-close" id="close" aria-label="İlan detayını kapat">Kapat <span aria-hidden="true">×</span></button></div>
       <div class="detail-scroll" tabindex="0" aria-label="İlan bilgileri">
-        <section class="detail-summary">${routeTitle(l)}<div class="listing-price"><strong class="price">${fmt(l.price)}</strong><span>Taşıma ücreti</span></div><div class="summary-tags"><span class="tag">Yükleme: ${l.date}</span>${isF(l) ? '<span class="tag ft">Öne çıkan</span>' : ""}</div></section>
-        ${!cloud ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve teklifler deneme amaçlıdır.</p>' : ""}
+        <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${l.date}</span>${isF(l) ? '<span class="tag ft">Öne çıkan</span>' : ""}</div></section>
+        ${!cloud ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
         ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
         <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", l.cargo], ["Tonaj", l.ton + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", l.date]])}${l.note ? `<p class="detail-note">${l.note}</p>` : ""}</section>
-        <section class="detail-group"><h2>Taşıma ve ödeme</h2>${kv([["Araç / kasa", l.veh + " · " + (l.body || "Belirtilmedi")], ["Ödeme şekli", l.pay || "Belirtilmedi"], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"], ["Km başına ücret", km ? Math.round(l.price / km) + " ₺/km" : "—"], ["Yakıt sonrası tahmini kazanç", fuelNet !== null ? fmt(fuelNet) : "—"]])}<p class="estimate-note">Mesafe yaklaşık; kazanç yalnızca yakıt düşülerek hesaplanır (${calc.fuel} ₺/L). Otoyol ve diğer giderler dahil değildir.</p><button class="chip detail-calc" id="cc">Kâr hesapla</button></section>
+        <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", l.veh + " · " + (l.body || "Belirtilmedi")], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p><button class="fuel-shortcut" id="cc"><span aria-hidden="true">${FUEL_ICON}</span><span><b>Mazot hesabı</b><small>Bu güzergâhın tahmini gideri</small></span><span aria-hidden="true">→</span></button></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${mapSVG(l.from, l.to)}</section>
-        <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${l.owner || (l.uid ? nm(l.uid) : "Bireysel")}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button><button class="chip" id="call">Yük sahibini ara${isPrem() ? "" : '<b class="pm">Premium</b>'}</button></div></section>
+        <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${l.owner || (l.uid ? nm(l.uid) : "Bireysel")}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button><button class="chip" id="send">Taşıma talebi gönder</button></div></section>
         <div class="detail-actions"><button class="chip" id="sh">Paylaş</button><button class="chip" id="cp2">${cmp.includes(l.id) ? "Karşılaştırmadan çıkar" : "Karşılaştır"}</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
       </div>
-      <div class="offer-dock"><div><label for="o">Teklif tutarın</label><div class="offer-input"><input id="o" type="number" inputmode="numeric" min="1" step="1" value="${l.price}"><span aria-hidden="true">₺</span></div></div><button class="btn" id="send">Teklif ver <span aria-hidden="true">→</span></button></div>
+      <div class="contact-dock dual-contact"><button class="btn alt" id="call">Ara${isPrem() ? "" : '<b class="pm">Premium</b>'}</button><button class="btn" id="mg">Mesaj gönder →</button></div>
     </div>`;
     $("#sheetBody").scrollTop = 0;
     syncDetailViewport();
@@ -4387,26 +4214,12 @@ function openLoad(id) {
     $("#rp").onclick = () => openReport("l", l.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
-    $("#cc").onclick = () => {
-        calc = { ...calc, km: l.km || dist(l.from, l.to) || calc.km, cons: CONS[l.veh], fare: +$("#o").value || l.price };
-        openCalc();
+    $("#cc").onclick = () => { calc = { ...calc, km: km || calc.km, cons: CONS[l.veh] || calc.cons }; openCalc(); };
+    $("#mg").onclick = () => {
+        if (cloud && l.uid === me) return toast("Kendi ilanına mesaj gönderemezsin");
+        openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => requestLoad(l));
     };
-    $("#send").onclick = () => {
-        const v = +$("#o").value;
-        if (!(v > 0))
-            return toast("Teklif tutarını gir");
-        if (cloud && l.uid === me)
-            return toast("Kendi ilanına teklif veremezsin");
-        offers = offers.filter(x => x.id !== l.id);
-        const o = { ...l, offer: v, status: "wait", loadId: l.id, bidder: me, ownerUid: l.uid || "", ots: Date.now() };
-        offers.unshift(o);
-        if (cloud)
-            dbw(db.doc(opath(o)).set({ loadId: l.id, bidder: me, ownerUid: l.uid || "", offer: v, status: "wait", ts: Date.now() }));
-        closeSheet();
-        toast("Teklif gönderildi");
-        if (!l.uid)
-            simulate(l.id);
-    };
+    $("#send").onclick = () => { if(requestLoad(l)){ closeSheet(); toast("Taşıma talebi gönderildi"); } };
 }
 
 function openTruck(id) {

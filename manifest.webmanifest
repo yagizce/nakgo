@@ -54,8 +54,8 @@
       ]
     },
     {
-      "name": "Tekliflerim",
-      "short_name": "Teklifler",
+      "name": "İşlerim",
+      "short_name": "İşler",
       "url": "./?go=mine",
       "icons": [
         {

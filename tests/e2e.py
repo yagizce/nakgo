@@ -40,6 +40,7 @@ def check(name, cond):
     results.append(bool(cond)); print(("✓ " if cond else "✗ ") + name)
 
 with sync_playwright() as p:
+    print("Tarayıcı kontrolü başlıyor", flush=True)
     b = p.chromium.launch(channel=os.environ.get("NAKGO_BROWSER_CHANNEL") or None)
     ctx = b.new_context(viewport={"width": 390, "height": 844}, locale="tr-TR", permissions=["geolocation"], geolocation={"latitude": 39.93, "longitude": 32.86})
     pg = ctx.new_page()
@@ -53,7 +54,8 @@ with sync_playwright() as p:
     cards = lambda: pg.locator(".load[data-id]").count()
 
     # 1) Açılış, tanıtım ve rol
-    pg.goto(URL, wait_until="domcontentloaded")
+    print("İlk ekran yükleniyor", URL, flush=True)
+    pg.goto(URL, wait_until="domcontentloaded", timeout=45000)
     check("açılış ekranı görünür", pg.is_visible("#splash") or pg.evaluate("window.__splashSeen"))
     pg.wait_for_timeout(2300)
     check("açılış ekranı kapanır", not pg.is_visible("#splash"))
@@ -64,7 +66,7 @@ with sync_playwright() as p:
     # 2) Detay, paylaşma ve klavye
     pg.click(".load[data-id]"); pg.wait_for_selector("#sheet.open")
     body = pg.inner_text("#sheetBody")
-    check("ilan detayında harita, ücret ve düğmeler var", "Paylaş" in body and "Kâr hesapla" in body and pg.locator("#sheetBody .map").count() == 1)
+    check("ilan detayında harita ve iletişim düğmeleri var", "Paylaş" in body and "Mazot hesabı" in body and pg.locator("#sheetBody .map").count() == 1)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     check("Escape ile alt pencere kapanır", pg.locator("#sheet.open").count() == 0)
 
@@ -87,16 +89,16 @@ with sync_playwright() as p:
     check("karşılaştırma tablosu açılır", "İlanları karşılaştır" in pg.inner_text("#sheetBody") and pg.locator("#sheetBody .win").count() > 0)
     pg.keyboard.press("Escape"); pg.click("#cmpx"); pg.wait_for_timeout(200)
 
-    # 6) Teklif ve simüle yanıt
+    # 6) Taşıma talebi ve simüle yanıt
     pg.locator(".load[data-id]").first.click(); pg.wait_for_selector("#sheet.open"); pg.click("#send")
-    check("teklif gönderilir", "Teklif gönderildi" in toast())
+    check("taşıma talebi gönderilir", "Taşıma talebi gönderildi" in toast())
     nav("mine"); pg.wait_for_timeout(300)
-    check("teklif 'bekleniyor' görünür", "Yanıt bekleniyor" in pg.inner_text("#main"))
+    check("taşıma talebi bekleniyor görünür", "Yanıt bekleniyor" in pg.inner_text("#main"))
     pg.wait_for_timeout(3600)
     check("simüle yanıt gelir", "Yanıt bekleniyor" not in pg.inner_text("#main"))
 
     # 7) İlan verme ve istatistik
-    nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.fill("#p", "12000"); pg.click("#go"); pg.wait_for_timeout(300)
+    nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.click("#go"); pg.wait_for_timeout(300)
     check("ilan yayınlanır", "İlan yayınlandı" in toast())
     nav("me"); pg.wait_for_timeout(300)
     check("İlanlarım'da yeni ilan ve istatistik satırı var", "görüntülenme" in pg.inner_text("#main") and pg.locator("[data-st2]").count() >= 1)
@@ -112,7 +114,7 @@ with sync_playwright() as p:
     nav("me"); pg.wait_for_timeout(300); pg.locator("[data-st2]").first.click(); pg.wait_for_selector("#sheet.open")
     check("istatistikte öne çıkarmanın etkisi görünür", "Öne çıkarmanın etkisi" in pg.inner_text("#sheetBody"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
-    check("profilde öne çıkarma özeti var", "Öne çıkarma özeti" in pg.inner_text("#main"))
+    check("profilde ilan yönetimi var", "İlanlarım" in pg.inner_text("#main"))
     nav("list"); pg.wait_for_timeout(300)
     check("öne çıkan ilan listenin başında ve etiketli", pg.locator(".load.feat").count() >= 1 and "Test yükü" in pg.locator(".load[data-id]").first.inner_text())
     pg.click('.seg [data-md="truck"]'); pg.wait_for_timeout(300)
@@ -179,13 +181,13 @@ with sync_playwright() as p:
             page.evaluate('cmp=[];render()');page.locator('#main').evaluate('e=>e.scrollTop=0')
             page.select_option('#route-from','İstanbul');page.select_option('#route-to','Ankara')
             check(prefix+"güzergâh filtresi",page.locator('.load[data-id]').count()==1)
-            page.locator('[data-id]').first.click();page.fill('#o','27000');page.click('#send')
-            page.click('nav [data-t=mine]');page.locator('[data-chat]').first.click()
+            page.locator('[data-id]').first.click();page.click('#mg')
+
             page.fill('#mi','Test mesajı');page.click('#ms')
             check(prefix+"mesaj yazılır ve demo açıklaması görünür","Test mesajı" in page.inner_text('#msgs') and 'Demo sohbet' in page.inner_text('#sheetBody'))
             page.keyboard.press('Escape');page.click('nav [data-t=post]');page.click('[data-pm=load]')
             page.click('#post-next');page.fill('#c','Uzun şehir adlarıyla hassas test yükü');page.fill('#w','18');page.click('#post-next')
-            page.fill('#p','123456789');page.fill('#n','Uzun not. '*40)
+            page.fill('#n','Uzun not. '*40)
             page.click('#addit');page.fill('[data-in]','Palet');page.fill('[data-iq]','12')
             if width==390:
                 with page.expect_file_chooser() as chooser: page.click('#ph')
@@ -193,7 +195,7 @@ with sync_playwright() as p:
             page.click('#post-prev');page.click('#post-next')
             check(prefix+"adımlarda not ve kalem korunur",page.input_value('#n').startswith('Uzun not.') and page.input_value('[data-in]')=='Palet')
             page.reload();page.click('nav [data-t=post]')
-            check(prefix+"taslak ve ücret yenilemede korunur",page.input_value('#p')=='123456789' and page.input_value('[data-in]')=='Palet')
+            check(prefix+"taslak yenilemede korunur",page.input_value('[data-in]')=='Palet')
             if width==390: check(prefix+"fotoğraf taslağı korunur",page.locator('#phs img').count()==1)
             publish=page.locator('#go').bounding_box();form_nav=page.locator('#nav').bounding_box()
             check(prefix+"yayınla işlemi altta sabit",page.locator('.form-dock #go').count()==1 and publish['y']+publish['height']<=form_nav['y']+1)
@@ -204,9 +206,9 @@ with sync_playwright() as p:
                 publish=page.locator('#go').bounding_box();check(prefix+"küçük klavye alanında yayınla görünür",publish['y']>=0 and publish['y']+publish['height']<=430)
                 page.set_viewport_size({'width':390,'height':844})
             page.click('#go');check(prefix+"yayın sonrası taslak temizlenir",page.evaluate("!JSON.parse(localStorage.getItem('ng-post-drafts')).load"))
-            page.click('nav [data-t=me]');page.locator('summary',has_text='İletişim ve tercihler').click();page.fill('#myph','0555 123 45 67');page.click('#phs2')
+            page.click('nav [data-t=me]');page.fill('#myph','0555 123 45 67');page.click('#phs2')
             check(prefix+"profil telefonu kaydedilir",page.evaluate("myCar.phone==='0555 123 45 67'"))
-            page.locator('summary',has_text='Araç ve belgeler').click()
+            page.locator('summary',has_text='Taşıyıcı belgeleri ve güven').click()
             check(prefix+"belge formu erişilir",page.is_visible('#lic'))
             page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.click('#go')
             check(prefix+"boş araç yayınlanır ve filtre arkasında kalmaz",page.evaluate("trucks.some(t=>t.mine&&t.from==='Afyonkarahisar'&&t.to==='Kahramanmaraş'&&t.cap===20)&&document.querySelectorAll('.load[data-tid]').length===trucks.length"))

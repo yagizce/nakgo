@@ -1,6 +1,6 @@
 # NakGo
 
-Telefon düzeninde yük ve boş araç pazarı; turkuaz/sarı marka, açık/koyu tema ve altta ana işlemler. Büyük ekranlarda da tek sütunlu mobil görünüm korunur. Bağımlılıksız HTML/CSS/JavaScript + PWA kullanır. Normal web yayınında **yerel demo** çalışır: örnek ilanlar ve otomatik yanıtlar gerçek taşıma talebi değildir; test üyelikleri ödeme almaz.
+Telefon düzeninde yük ve boş araç pazarı; turkuaz/sarı marka, açık/koyu tema ve altta ana işlemler. Büyük ekranlarda da tek sütunlu mobil görünüm korunur. Bağımlılıksız HTML/CSS/JavaScript + PWA kullanır. Ücret alanı bulunmaz; taraflar telefon veya mesajla görüşür. İşlerim iki aşamalı yükleme takibidir; profilden mesajlar, kayıtlılar ve mazot hesabı açılır. Normal web yayınında **yerel demo** çalışır: örnek ilanlar ve otomatik yanıtlar gerçek taşıma talebi değildir; test üyelikleri ödeme almaz.
 
 ## Çalıştırma
 

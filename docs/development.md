@@ -8,7 +8,7 @@ Tarayıcı testi için Python 3, `python -m pip install playwright` ve `python -
 
 Çalışan komutlar README'dedir. Kontrollerde 360/390/430 px ve masaüstünde iki tema, uzun metin/fiyat, boş sonuç ve görsel klavye alanı incelenmelidir. Fiziksel cihaz klavyesi ayrıca doğrulanmalıdır.
 
-Uygulama her görünüm alanında en fazla 430 px genişliğinde, tek sütunlu telefon düzenini korur. Detay penceresi de aynı genişliği kullanır. Ana menü alttadır. İlan araçları ve form adımları `--nav-height` üzerinden menünün üstüne yerleşir; ana içerik bu alanlar için kaydırma payı bırakır. Teklif, araç iletişimi ve sohbet alanları detayın kaydırılan içeriğinden ayrıdır. Tarayıcı matrisi bu işlemlerin kaydırmada görünür kaldığını, karşılaştırmayla çakışmadığını ve geniş ekranda telefon düzeninin korunduğunu denetler.
+Uygulama her görünüm alanında en fazla 430 px genişliğinde, tek sütunlu telefon düzenini korur. Detay penceresi de aynı genişliği kullanır. Ana menü alttadır. İlan araçları ve form adımları `--nav-height` üzerinden menünün üstüne yerleşir; ana içerik bu alanlar için kaydırma payı bırakır. Yük/araç iletişimi ve sohbet alanları detayın kaydırılan içeriğinden ayrıdır. Tarayıcı matrisi bu işlemlerin kaydırmada görünür kaldığını, karşılaştırmayla çakışmadığını ve geniş ekranda telefon düzeninin korunduğunu denetler.
 
 Tır simgesinin kaynağı `assets/brand/mark.svg` dosyasıdır. `npm run logo` doğrusal geçiş, rect, circle ve polygon şekillerini ek paket olmadan PNG'ye dönüştürür; desteklenmeyen şekiller hata verir. Maskable sürüm merkezde güvenli alan bırakır. `npm run bundle` başlık ve açılış simgelerinin geçiş kimliklerini ayrı üretir.
 

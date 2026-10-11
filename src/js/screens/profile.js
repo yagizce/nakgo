@@ -1,14 +1,24 @@
 /**
- * Profil ekranı
- * Klasik uygulama kapsamında yüklenir; sıra tools/project.js içinde tanımlıdır.
+ * Profil
+ * İletişim, ilanlar, güven bilgileri ve günlük araçlar.
  */
-
-function renderProfile(m) {
-
-        m.innerHTML = `<div class="profile-cover"><div class="avatar">${(myName || "Y")[0].toUpperCase()}</div><div><b style="font-size:18px">${myName || "Yağız"}${vbadge(appr[me || "local"] === true ? 2 : cOk(myCar) ? 1 : 0)}</b><div class="profile-caption">Taşıyıcı ve yük sahibi${myRate()}</div></div></div>
-    <div class="stat"><div><b>${loads.length}</b><span>Açık ilan</span></div><div><b>${offers.length}</b><span>Verdiğim teklif</span></div></div>
-    ${demoNotice()}<div class="profile-grid"><section class="profile-group"><h2>İlanlarım ve hareketlerim</h2>${myListHTML()}${featSumCard()}${alertsCard()}${earnCard()}</section><section class="profile-group"><h2>Üyelik</h2>${premCard()}<details class="profile-panel"><summary>İletişim ve tercihler</summary>${phoneCard()}${roleCard()}</details><details class="profile-panel"><summary>Araç ve belgeler</summary>${carCard()}</details><details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details></section></div>`;
-        carBind();
-        listBind();
-
+function renderProfile(m){
+    const own=[...mineL(),...mineT()].filter(l=>!l.closed&&!expired(l,typeof l.id==='string'?'truck':'load'));
+    const jobs=[...offers,...incoming];
+    const done=jobs.filter(o=>o.status==='ok'&&jobStage(o)===3).length,active=jobs.filter(o=>o.status==='ok'&&jobStage(o)!==3).length;
+    const name=myCar.displayName||myName||'Profilim',r=ratingOf(me||'local');
+    m.innerHTML=`<div class="profile-cover"><div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div><div><b>${esc(myCar.displayName)||myName||'Profilim'}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b><div class="profile-caption">${role==='owner'?'Yük sahibi':'Taşıyıcı'}${myCar.city?' · '+esc(myCar.city):''}</div><div class="profile-caption">${r?'★ '+r.avg.toFixed(1)+' · '+r.n+' değerlendirme':'Henüz değerlendirme yok'}</div></div></div><div class="stat profile-stats"><div><b>${own.length}</b><span>Aktif ilanım</span></div><div><b>${active}</b><span>Devam eden iş</span></div><div><b>${done}</b><span>Onaylanan iş</span></div></div>${demoNotice()}<div class="profile-shortcuts"><button class="profile-tool" id="profile-messages"><span aria-hidden="true">✉</span><b>Mesajlar</b><small>Görüşmelerine devam et</small></button><button class="profile-tool" id="profile-favorites"><span aria-hidden="true">♡</span><b>Kaydettiklerim</b><small>${favs.length} kayıtlı ilan</small></button><button class="profile-tool" id="profile-fuel"><span aria-hidden="true">${FUEL_ICON}</span><b>Mazot hesabı</b><small>Yol giderini planla</small></button><button class="profile-tool" id="profile-jobs"><span aria-hidden="true">✓</span><b>İşlerim</b><small>Yükleme ve onay</small></button></div><div class="profile-grid"><section class="profile-group"><h2>Profil ve iletişim</h2><div class="load profile-info"><label for="profile-name">Görünen ad / firma</label><input id="profile-name" maxlength="60" placeholder="Adın veya firma adın" value="${esc(myCar.displayName||'')}"><label for="profile-city">Bulunduğun şehir</label><select id="profile-city"><option value="">Şehir seç</option>${opt2(cities,myCar.city)}</select><label for="profile-about">Kısa tanıtım</label><textarea id="profile-about" maxlength="200" rows="2" placeholder="Çalıştığın güzergâhlar, taşıma deneyimin">${esc(myCar.about||'')}</textarea><button class="chip on" id="profile-save">Profili kaydet</button></div>${phoneCard()}${roleCard()}</section><section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}<details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>${r?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}</section><section class="profile-group"><h2>Üyelik ve destek</h2>${premCard()}<details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details></section></div>`;
+    carBind();listBind();
+    $('#profile-save').onclick=()=>{setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)});toast('Profilin kaydedildi');};
+    $('#profile-messages').onclick=openInbox;$('#profile-fuel').onclick=()=>openCalc();
+    $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();};
+    $('#profile-jobs').onclick=()=>{tab='mine';setNav();render();};
+    if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:esc(myCar.displayName)||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
+}
+function openInbox(){
+    const entries=new Map();
+    [...offers,...incoming].forEach(o=>{const mine=o.bidder===me||(!cloud&&offers.includes(o)),who=mine?(o.owner||nm(o.ownerUid)):nm(o.bidder),uid=mine?o.ownerUid:o.bidder;if(uid&&blocked.includes(uid))return;const k='o'+o.loadId+'_'+o.bidder;entries.set(k,{k,who,route:o.from+' → '+o.to});});
+    Object.keys(chats).forEach(k=>{if(entries.has(k)||!chats[k].some(x=>x.me))return;const truck=trucks.find(t=>'t'+t.id===k),load=loads.find(l=>k==='o'+l.id+'_'+me||k==='o'+l.id+'_');if(truck&&truck.uid&&blocked.includes(truck.uid)||load&&load.uid&&blocked.includes(load.uid))return;entries.set(k,{k,who:truck?(truck.who||nm(truck.uid)):load?(load.owner||nm(load.uid)):'Görüşme',route:truck?truck.from+' → '+truck.to:load?load.from+' → '+load.to:'Kaydedilmiş sohbet'});});
+    const B=$('#sheetBody');B.dataset.k='';B.innerHTML=`<div class="load-detail"><div class="detail-top"><b>Mesajlar</b><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll">${[...entries.values()].map((e,i)=>`<button class="conversation" data-conv="${i}"><b>${e.who}</b><span>${e.route}</span><small>${esc((chats[e.k]||[]).slice(-1)[0]?.t||'Görüşmeyi aç')}</small></button>`).join('')||'<div class="empty">Henüz görüşmen yok. İlan detayındaki Mesaj gönder düğmesinden başlayabilirsin.</div>'}</div></div>`;
+    B.querySelectorAll('[data-conv]').forEach(b=>b.onclick=()=>{const e=[...entries.values()][+b.dataset.conv];openChat(e.k,e.who);});$('#close').onclick=closeSheet;syncDetailViewport();$('#sheet').classList.add('open');
 }

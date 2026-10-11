@@ -19,7 +19,7 @@ function renderPost(m) {
                     return toast("Çıkış ve varış şehri farklı olmalı");
                 if (!(+$("#w").value > 0))
                     return toast("Boş kapasiteyi gir");
-                postTruck({ id: "t" + Date.now(), who: "Ben (Yağız)", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" });
+                postTruck({ id: "t" + Date.now(), who: esc(myCar.displayName || "") || myName || "Ben", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" });
                 clearPostDraft();
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
@@ -37,20 +37,18 @@ function renderPost(m) {
     <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="1" value="10"></div>
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
-    <div><label>Ödeme</label><select id="y">${opt(["Peşin", "Teslimde nakit", "15 gün vade", "30 gün vade"])}</select></div></div>
+    </div>
     <label>Yükleme günü</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
-    <label>Teklif edilen ücret (₺)</label><input id="p" type="number" min="0" placeholder="15000">
-    <div id="sg"></div><label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
+    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
         pb();
-        sugg();
         itemsUI();
         $("#go").onclick = () => {
-            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim(), ton: +$("#w").value, veh: $("#v").value, price: +$("#p").value, date: $("#d").value, body: $("#b").value, pay: $("#y").value, note: $("#n").value.trim(), owner: "Ben (Yağız)" };
+            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim(), ton: +$("#w").value, veh: $("#v").value, date: $("#d").value, body: $("#b").value, note: $("#n").value.trim(), owner: esc(myCar.displayName || "") || myName || "Ben" };
             if (l.from === l.to)
                 return toast("Çıkış ve varış şehri farklı olmalı");
-            if (!l.cargo || !(l.price > 0) || !(l.ton > 0))
-                return toast("Yük cinsi, ağırlık ve ücreti gir");
+            if (!l.cargo || !(l.ton > 0))
+                return toast("Yük cinsi ve ağırlığı gir");
             if (myCar.phone)
                 l.phone = myCar.phone;
             if (postImg)
