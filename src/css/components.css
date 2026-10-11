@@ -315,7 +315,7 @@ header p {
   color:var(--mute);
 }
 
-.price {
+.capacity-value {
   font-weight:800;
   font-size:18px;
   color:var(--ink);

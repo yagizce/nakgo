@@ -8,7 +8,10 @@ module.exports={root:path.resolve(__dirname,".."),js:[
   "src/js/features/offers.js",
   "src/js/features/account.js",
   "src/js/features/monetization.js",
+  "src/js/features/road-map-data.js",
   "src/js/ui/helpers.js",
+  "src/js/ui/icons.js",
+  "src/js/ui/map-controller.js",
   "src/js/ui/road-map.js",
   "src/js/ui/post-draft.js",
   "src/js/ui/dialog.js",
@@ -16,6 +19,8 @@ module.exports={root:path.resolve(__dirname,".."),js:[
   "src/js/screens/post.js",
   "src/js/screens/offers.js",
   "src/js/screens/profile.js",
+  "src/js/screens/inbox.js",
+  "src/js/screens/road-map.js",
   "src/js/screens/details.js",
   "src/js/screens/main.js",
   "src/js/app.js"
@@ -26,5 +31,6 @@ module.exports={root:path.resolve(__dirname,".."),js:[
   "src/css/motion.css",
   "src/css/listings.css",
   "src/css/system.css",
+  "src/css/profile.css",
   "src/css/road-map.css"
 ]};

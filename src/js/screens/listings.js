@@ -5,7 +5,7 @@
 
 function renderListings(m) {
     m.dataset.comparing = cmp.length ? "true" : "false";
-    const SEG = `<div class="seg"><button data-md="load" class="${mode === "load" ? "on" : ""}">Yükler</button><button data-md="truck" class="${mode === "truck" ? "on" : ""}">Boş araçlar</button></div>`;
+    const SEG = `<div class="seg"><button data-md="load" aria-pressed="${mode === "load"}" class="${mode === "load" ? "on" : ""}">Yükler</button><button data-md="truck" aria-pressed="${mode === "truck"}" class="${mode === "truck" ? "on" : ""}">Boş araçlar</button></div>`;
     const segBind = () => m.querySelectorAll("[data-md]").forEach(b => b.onclick = () => {
         mode = b.dataset.md;
         render();

@@ -242,7 +242,6 @@ async function initCloud() {
         loaded = false;
         myName = esc((await u.me()).name || "");
         names[me] = myName || "Ben";
-        $("#sub").textContent = "Canlı: ortak ilan havuzu";
         const ts = (a, b) => (b.ts || 0) - (a.ts || 0) || String(a.id).localeCompare(String(b.id), "tr", { numeric: true });
         const who = async (list) => {
             const ids = [...new Set(list.filter(Boolean))].filter(i => !names[i]);

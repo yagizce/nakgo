@@ -72,26 +72,6 @@
   --shadow:0 6px 20px rgba(0,0,0,.14);
 }
 
-:root {
-  --sea:#d6e6f2;
-  --land:#f8f5ea;
-  --land2:#e7e6de;
-}
-
-@media (prefers-color-scheme:dark) {
-  :root:not([data-theme="light"]) {
-    --sea:#14283c;
-    --land:#24374f;
-    --land2:#1a2a3d;
-  }
-}
-
-:root[data-theme="dark"] {
-  --sea:#14283c;
-  --land:#24374f;
-  --land2:#1a2a3d;
-}
-
 /* ----- Temel: sıfırlama, gövde, form alanları, odak ----- */
 
 * {
@@ -175,12 +155,12 @@ label {
 
 button:focus-visible,
 summary:focus-visible {
-  outline:2px solid var(--accent);
+  outline:2px solid var(--brand-ink);
   outline-offset:2px;
 }
 
 .fav:focus-visible {
-  outline:2px solid var(--accent);
+  outline:2px solid var(--brand-ink);
   outline-offset:2px;
   border-radius:6px;
 }
@@ -515,7 +495,7 @@ header p {
   color:var(--mute);
 }
 
-.price {
+.capacity-value {
   font-weight:800;
   font-size:18px;
   color:var(--ink);
@@ -716,13 +696,6 @@ header p {
 .hero span {
   font-size:11.5px;
   opacity:.8;
-}
-
-#sg {
-  font-size:13px;
-  color:var(--mute);
-  margin-top:12px;
-  line-height:2;
 }
 
 .th {
@@ -1555,19 +1528,21 @@ header p {
 }
 
 .splash .tile {
-  width:112px;
-  height:112px;
-  border-radius:30px;
-  background:var(--accent);
+  width:min(260px,calc(100vw - 64px));
+  height:auto;
+  border-radius:24px;
+  background:#fff;
+  box-shadow:0 16px 48px #003e4540;
   display:grid;
   place-items:center;
   overflow:hidden;
   animation:pop .55s cubic-bezier(.2,.9,.3,1.25) both;
 }
 
-.splash .tile svg {
-  width:100px;
-  height:100px;
+.splash .tile img {
+  display:block;
+  width:100%;
+  height:auto;
 }
 
 .splash .tk {
@@ -1575,14 +1550,11 @@ header p {
 }
 
 .splash p {
+  margin-top:24px;
   color:#fff;
-  opacity:.8;
+  opacity:1;
   font-size:14px;
   animation:rise .55s .5s both;
-}
-
-.splash .tile {
-  background:linear-gradient(135deg,#ffd24f,#f0a30a);
 }
 
 /* Animasyonlar, hareket azaltma ve dar ekran düzeltmeleri (en sonda, diğer kuralları ezer) */
@@ -1667,7 +1639,7 @@ header p {
   .route {
     font-size:16px;
   }
-  .price {
+  .capacity-value {
     font-size:16px;
   }
   .hero b {
@@ -1718,9 +1690,9 @@ header p {
 .route-title>span:last-child { text-align:right; }
 .route-title i { flex:0 0 28px; margin:0 5px; }
 .listing-label { margin-bottom:10px; }
-.listing-price { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; margin:13px 0; }
-.listing-price .price { color:var(--brand-ink); font-size:25px; line-height:1.1; overflow-wrap:anywhere; }
-.listing-price>span:last-child { color:var(--mute); font-size:11px; font-weight:500; }
+.capacity-summary { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; margin:13px 0; }
+.capacity-summary .capacity-value { color:var(--brand-ink); font-size:25px; line-height:1.1; overflow-wrap:anywhere; }
+.capacity-summary>span:last-child { color:var(--mute); font-size:11px; font-weight:500; }
 .cargo-line { display:flex; gap:10px; align-items:center; font-size:14px; line-height:1.5; }
 .cargo-line>span { min-width:0; overflow-wrap:anywhere; }
 .cargo-line b { font-weight:600; }
@@ -1754,7 +1726,6 @@ header p { opacity:1; }
 .detail-scroll { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; padding:18px 16px 20px; scroll-padding:16px; }
 .detail-summary { margin-bottom:18px; }
 .detail-summary .route { font-size:24px; }
-.detail-summary .listing-price .price { font-size:32px; }
 .summary-tags { display:flex; gap:8px; flex-wrap:wrap; }
 .detail-group { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:14px; }
 .detail-group h2 { font-size:15px; color:var(--brand-ink); margin-bottom:7px; }
@@ -1807,27 +1778,20 @@ header p { opacity:1; }
 .job-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
 .job-steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
 .jobs-heading { font-size:15px; margin:18px 0 12px; }
-.profile-shortcuts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:22px; }
-.profile-tool { display:flex; flex-direction:column; align-items:flex-start; gap:4px; text-align:left; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:18px; padding:15px; cursor:pointer; min-width:0; }
-.profile-tool>span { color:var(--brand-ink); font-size:24px; margin-bottom:4px; }
-.profile-tool b { font-size:14px; }
-.profile-tool small { color:var(--mute); font-size:11px; }
-.profile-cover>div { min-width:0; overflow-wrap:anywhere; }
-.profile-cover b { font-size:20px; }
-.profile-info { cursor:default; }
-.profile-info label:first-child { margin-top:0; }
-.profile-info #profile-save { margin-top:12px; }
 .conversation { display:flex; flex-direction:column; gap:5px; width:100%; padding:17px; margin-bottom:10px; border:1px solid var(--line); border-radius:17px; background:var(--card); color:var(--ink); text-align:left; cursor:pointer; }
 .conversation span { color:var(--brand-ink); font-size:12px; }
 .conversation small { color:var(--mute); overflow-wrap:anywhere; }
 
 .dual-contact .btn { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:4px; }
 .dual-contact .contact-call { font-size:17px; }
+.dual-contact .btn>span { display:flex; align-items:center; justify-content:center; gap:6px; }
+.dual-contact .btn.alt .ui-icon { width:17px; height:17px; }
 .dual-contact .pm { margin:0; font-size:9px; line-height:1.2; }
 
 /* Ortak tasarım sistemi ve telefon düzeni */
 
 :root { --space:16px; --radius:16px; }
+.ui-icon { display:inline-block; width:22px; height:22px; vertical-align:middle; flex:none; }
 body { line-height:1.45; }
 main { min-height:0; scroll-padding-bottom:100px; }
 input,select,textarea { min-height:48px; }
@@ -1836,14 +1800,10 @@ textarea:focus { outline:2px solid var(--brand-ink); outline-offset:2px; }
 .row>* { min-width:0; }
 .chip, .bell { min-height:44px; }
 .chip { overflow-wrap:anywhere; }
-.route, .price, .kv, .detail-top b { overflow-wrap:anywhere; }
+.route, .capacity-value, .kv, .detail-top b { overflow-wrap:anywhere; }
 .meta { flex-wrap:wrap; gap:8px; }
 .off { background:var(--card); color:var(--ink); border-bottom:2px solid var(--bad); }
 .logo { background:transparent; }
-.logo svg { width:44px; height:44px; border:1px solid rgba(255,255,255,.3); border-radius:12px; }
-.splash .tile svg { width:84px; height:84px; }
-.splash .tile { background:transparent; box-shadow:none; }
-.wordmark { font-size:38px; letter-spacing:-1.5px; color:#fff; margin-top:16px; }
 .screen-heading { margin:0 0 22px; }
 .screen-heading h2 { font-size:26px; line-height:1.25; letter-spacing:-.8px; margin:6px 0; }
 .screen-heading p { font-size:14px; color:var(--mute); }
@@ -1855,7 +1815,6 @@ textarea:focus { outline:2px solid var(--brand-ink); outline-offset:2px; }
 .form-dock { display:flex; align-items:center; gap:8px; position:absolute; left:0; right:0; bottom:var(--nav-height); background:var(--card); border-top:1px solid var(--line); padding:12px 16px; z-index:2; }
 .form-dock .btn { margin:0; width:auto; min-width:110px; }
 .draft-state { flex:1; font-size:11px; color:var(--mute); }
-.profile-group h2 { font-size:17px; margin:12px 0; }
 .profile-panel { background:var(--card); border:1px solid var(--line); padding:14px; border-radius:var(--radius); margin-bottom:12px; }
 .profile-panel summary { cursor:pointer; color:var(--brand-ink); font-weight:700; min-height:28px; }
 .profile-panel[open] summary { margin-bottom:16px; }
@@ -1879,14 +1838,14 @@ textarea:focus { outline:2px solid var(--brand-ink); outline-offset:2px; }
 .off { flex:none; }
 
 /* Mobil uygulama kabuğu: menü ve birincil işlemler başparmak hizasında. */
-:root { --nav-height:calc(78px + env(safe-area-inset-bottom,0px)); --app-gradient:linear-gradient(115deg,#00565f 0%,#008c91 74%,#10b9aa 100%); }
+:root { --nav-height:calc(78px + env(safe-area-inset-bottom,0px)); --app-gradient:linear-gradient(115deg,#00565f 0%,#007b80 74%,#007d78 100%); }
 #app { max-width:430px; background:var(--bg); overflow:hidden; }
 header { background:var(--app-gradient); padding-top:calc(12px + env(safe-area-inset-top,0px)); padding-bottom:12px; gap:10px; flex:none; }
 header h1 { font-size:24px; letter-spacing:-1px; }
 header p { font-size:10px; color:#e0ffff; }
 .logo { width:50px; height:50px; background:transparent; border-radius:16px; }
-.logo svg { width:50px; height:50px; border:0; border-radius:16px; }
-.bell { width:40px; min-height:40px; border:1px solid #ffffff30; background:#004f5866; }
+.logo img { display:block; width:50px; height:50px; border:0; border-radius:16px; }
+.bell { width:44px; min-height:44px; border:1px solid #ffffff30; background:#004f5866; }
 #thh+.bell { margin-left:0; }
 main { background:radial-gradient(ellipse at 100% 0%,var(--tag-bg),transparent 48%),var(--bg); }
 #main[data-screen=list],#main[data-screen=post] { padding-bottom:160px; scroll-padding-bottom:160px; }
@@ -1898,7 +1857,7 @@ nav button.on { background:var(--tag-bg); color:var(--brand-ink); }
 nav button.on::before { display:none; }
 nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); color:var(--on-accent); box-shadow:0 4px 14px #c9901630; transform:translateY(-4px); font-weight:800; }
 .list-actions { position:absolute; left:0; right:0; bottom:var(--nav-height); z-index:2; padding:10px 16px; background:var(--card); border-top:1px solid var(--line); box-shadow:0 -8px 24px #003e4508; }
-.list-controls { display:flex; gap:10px; align-items:center; max-width:720px; margin:auto; }
+.list-controls { display:flex; gap:10px; align-items:center; margin:auto; }
 .list-controls>* { flex:1; min-width:0; }
 .list-controls .chip { display:flex; align-items:center; justify-content:center; gap:8px; border-radius:14px; background:var(--tag-bg); color:var(--brand-ink); border-color:transparent; }
 .list-controls .chip.on { background:var(--brand); color:var(--on-brand); }
@@ -1928,8 +1887,8 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .listing-count>span:last-child { font-size:10px; }
 .load { border-radius:22px; padding:18px; border-color:var(--line); box-shadow:var(--shadow); }
 .load.feat { border:1px solid var(--line); border-left:4px solid var(--accent); padding-left:15px; }
-.listing-price { padding:10px 12px; background:var(--tag-bg); border-radius:14px; margin:14px 0 12px; }
-.listing-price .price { font-size:27px; }
+.capacity-summary { padding:10px 12px; background:var(--tag-bg); border-radius:14px; margin:14px 0 12px; }
+.capacity-summary .capacity-value { font-size:27px; }
 .listing-label .tag { background:var(--accent); color:var(--on-accent); }
 .listing-spec { gap:6px; }
 .listing-spec>span { padding:4px 8px; border-radius:8px; background:var(--bg); }
@@ -1943,17 +1902,14 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .card-route>div::before { content:""; position:absolute; top:20px; left:0; width:10px; height:10px; border-radius:50%; border:2px solid var(--brand-ink); background:var(--card); }
 .card-route>div:last-child::before { border-color:var(--accent); background:var(--accent); }
 .card-route i { position:absolute; left:4px; top:31px; bottom:18px; border-left:2px dashed var(--line); }
-.card-main .listing-price { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:5px; margin:0; padding:12px 10px; min-width:0; }
-.card-main .listing-price>span:first-child { color:var(--mute); font-size:10px; }
-.card-main .price { font-size:24px; line-height:1.2; letter-spacing:-.8px; }
-.card-main .price small { font-size:14px; letter-spacing:0; }
+.card-main .capacity-summary { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:5px; margin:0; padding:12px 10px; min-width:0; }
+.card-main .capacity-summary>span:first-child { color:var(--mute); font-size:10px; }
+.card-main .capacity-value { font-size:24px; line-height:1.2; letter-spacing:-.8px; }
+.card-main .capacity-value small { font-size:14px; letter-spacing:0; }
 .card-main.contact-card { grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); }
 .card-contact { display:flex; flex-direction:column; justify-content:center; gap:6px; background:var(--tag-bg); color:var(--brand-ink); border-radius:14px; padding:12px; min-width:0; }
 .card-contact span { font-size:10px; color:var(--mute); }
 .card-contact b { font-size:14px; line-height:1.4; }
-.wide-price { grid-template-columns:minmax(0,1fr); }
-.wide-price .listing-price { flex-direction:row; justify-content:space-between; align-items:center; flex-wrap:wrap; }
-.wide-price .price { font-size:27px; }
 .cargo-line { font-size:13px; gap:9px; }
 .cargo-line>span:not(.cargo-icon):not(.cargo-ton) { flex:1; }
 .cargo-icon { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; background:var(--tag-bg); color:var(--brand-ink); flex:none; }
@@ -1961,9 +1917,6 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .cargo-ton { color:var(--brand-ink); font-size:11px; flex:none; white-space:nowrap; }
 .cargo-ton b { font-weight:800; font-size:20px; }
 .cargo-line .th { width:34px; height:34px; flex:none; border-radius:11px; }
-.profile-cover { background:linear-gradient(115deg,#00565f,#007f83); border-radius:24px; padding:22px 18px; display:flex; gap:14px; align-items:center; color:#fff; }
-.profile-cover .avatar { background:var(--accent); color:var(--on-accent); box-shadow:0 4px 14px #00262d30; }
-.profile-cover .profile-caption { color:#e0fffc; font-size:12px; }
 .route i { border-color:var(--brand-ink); opacity:.9; }
 .detail-scroll { background:var(--bg); }
 .detail-top { background:var(--app-gradient); color:#fff; border:0; }
@@ -1973,9 +1926,6 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .detail-summary .route { font-size:23px; }
 .detail-summary .route i { border-color:#bcf7f1; }
 .detail-summary .route i::before { background:#006970; border-color:#c5faf5; }
-.detail-summary .listing-price { background:#00454d66; padding:12px; margin:18px 0 12px; }
-.detail-summary .listing-price .price { color:#ffe075; font-size:32px; }
-.detail-summary .listing-price>span:last-child { color:#e0fffc; }
 .detail-summary .tag { background:#00454d88; color:#fff; padding:6px 10px; }
 .detail-summary .tag.ft { background:var(--accent); color:var(--on-accent); }
 .detail-group { border-radius:20px; }
@@ -1992,12 +1942,37 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .draft-state { max-width:110px; }
 .form-section { border-radius:22px; }
 .splash { background:var(--app-gradient); }
-.splash .tile svg { width:108px; height:108px; }
-.splash .tile { width:108px; height:108px; }
 .toast { bottom:calc(var(--nav-height) + 80px); }
 #app[data-keyboard=true] { --nav-height:0px; }
 #app[data-keyboard=true] nav { display:none; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+
+/* Profil kimliği, günlük araçlar ve iletişim */
+.profile-cover { display:flex; gap:14px; align-items:center; padding:20px 18px; border-radius:22px; background:var(--app-gradient); color:#fff; }
+.profile-cover>div { min-width:0; overflow-wrap:anywhere; }
+.profile-cover .avatar { background:var(--accent); color:var(--on-accent); box-shadow:0 4px 14px #00262d30; }
+.profile-cover b { display:block; font-size:20px; line-height:1.4; }
+.profile-eyebrow { display:block; color:#d4fffb; font-size:9px; letter-spacing:1.2px; margin-bottom:4px; }
+.profile-caption { color:#e0fffc; font-size:11px; margin-top:3px; }
+.profile-stats { gap:0; margin:12px 0; border:1px solid var(--line); border-radius:16px; background:var(--card); box-shadow:none; }
+.profile-stats>div { border:0; border-radius:0; padding:12px 8px; text-align:center; background:transparent; box-shadow:none; }
+.profile-stats>div+div { border-left:1px solid var(--line); }
+.profile-stats b { font-size:22px; }
+.profile-stats span { font-size:10px; }
+.profile-shortcuts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:24px; }
+.profile-tool { display:flex; flex-direction:column; align-items:flex-start; gap:5px; min-width:0; padding:13px 10px; border:1px solid var(--line); border-radius:16px; background:var(--card); color:var(--ink); text-align:left; cursor:pointer; }
+.profile-tool-icon { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; background:var(--tag-bg); color:var(--brand-ink); margin-bottom:3px; }
+.profile-tool b { font-size:12px; overflow-wrap:anywhere; }
+.profile-tool small { font-size:10px; color:var(--mute); }
+.profile-tool.road-tool { grid-column:1/-1; flex-direction:row; align-items:center; gap:12px; padding:16px; background:var(--app-gradient); color:#fff; border-color:transparent; }
+.road-tool .profile-tool-icon { background:#ffffff18; color:#ffe075; width:44px; height:44px; margin:0; }
+.road-tool .profile-tool-copy { flex:1; min-width:0; }
+.road-tool b { display:block; font-size:16px; }
+.road-tool small { display:block; color:#ddfffa; margin-top:3px; font-size:11px; }
+.profile-group h2 { font-size:16px; margin:22px 2px 12px; }
+.profile-info { cursor:default; padding:16px; }
+.profile-info label:first-child { margin-top:0; }
+.profile-info #profile-save { margin-top:14px; width:100%; min-height:48px; }
 
 /* Gerçek Türkiye haritası ve mobil yol noktaları */
 .road-map { position:relative; height:255px; min-height:180px; overflow:hidden; border:1px solid var(--line); border-radius:17px; background:#d5e8e6; isolation:isolate; }
@@ -2006,14 +1981,17 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .road-viewport:focus-visible { outline:3px solid var(--brand-ink); outline-offset:-3px; }
 .road-pane,.road-tiles,.road-pins { position:absolute; inset:0; pointer-events:none; }
 .road-tiles img { position:absolute; left:0; top:0; width:256px; height:256px; max-width:none; }
-.road-controls { position:absolute; right:10px; top:10px; display:flex; flex-direction:column; gap:5px; }
-.road-controls button { display:grid; place-items:center; width:44px; height:44px; border:1px solid #b8d3d0; border-radius:12px; color:#123b3a; background:#fff; box-shadow:0 2px 9px #123b3a25; font-size:24px; cursor:pointer; }
-.road-controls button:disabled { opacity:.55; cursor:default; }
+.road-controls { position:absolute; right:12px; bottom:32px; display:flex; flex-direction:column; overflow:hidden; border:1px solid #b8d3d0; border-radius:16px; background:#fff; box-shadow:0 4px 18px #123b3a30; }
+.road-controls button { display:grid; place-items:center; width:48px; height:48px; border:0; color:#123b3a; background:#fff; cursor:pointer; }
+.road-controls button+button { border-top:1px solid #d9e9e5; }
+.road-controls button:active { background:#dff4ef; }
+.road-controls button:focus-visible { outline-offset:-4px; outline-color:#00616b; }
+.road-controls button:disabled { color:#6d8482; cursor:default; }
 .road-attribution { position:absolute; bottom:0; right:0; max-width:100%; padding:4px 7px; background:#fffffff0; color:#263e3c; font-size:9px; line-height:1.4; }
 .road-attribution a { color:#00685e; text-decoration:underline; }
-.road-status { position:absolute; bottom:32px; left:10px; right:10px; border-radius:10px; background:var(--card); color:var(--ink); font-size:11px; line-height:1.5; padding:8px 10px; box-shadow:0 2px 10px #163a3920; }
+.road-status { position:absolute; bottom:32px; left:12px; right:74px; border-radius:12px; background:var(--card); color:var(--ink); font-size:11px; line-height:1.5; padding:10px; box-shadow:0 2px 10px #163a3920; }
 .road-status:has(span:empty) { display:none; }
-.road-status .chip { margin-top:5px; min-height:36px; }
+.road-status .chip { margin-top:6px; min-height:44px; }
 .road-status button[hidden] { display:none; }
 .road-pin { position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; max-width:130px; }
 .road-pin i { order:2; width:14px; height:14px; background:#007d70; border:3px solid #fff; border-radius:50%; box-shadow:0 1px 6px #123b3a70; }
@@ -2024,108 +2002,33 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .road-caption>span { min-width:0; overflow-wrap:anywhere; }
 .road-caption .chip { flex:none; font-size:11px; min-height:44px; }
 .road-detail .road-map { flex:1; min-height:180px; border-radius:0; border-left:0; border-right:0; }
-.road-heading { flex:none; padding:14px 16px 12px; }
-.road-heading h2 { color:var(--ink); margin:5px 0; font-size:21px; overflow-wrap:anywhere; }
-.road-heading p { font-size:11px; color:var(--mute); line-height:1.5; margin-bottom:10px; }
-.road-heading select { margin:0; padding-top:10px; padding-bottom:10px; }
+.road-heading { flex:none; padding:12px 16px; background:var(--card); }
+.road-heading h2 { color:var(--ink); margin:3px 0 10px; font-size:19px; line-height:1.3; overflow-wrap:anywhere; }
+.road-city-field { display:flex; gap:10px; align-items:center; padding-left:12px; background:var(--bg); border:1px solid var(--line); border-radius:14px; color:var(--brand-ink); }
+.road-city-field select { margin:0; flex:1; min-width:0; border:0; background-color:transparent; padding-top:10px; padding-bottom:10px; font-size:14px; }
+.road-back { display:flex; gap:4px; align-items:center; background:transparent; border-color:#ffffff40; color:#fff; }
 .road-footer { flex:none; padding:12px 12px calc(14px + env(safe-area-inset-bottom)); background:var(--card); }
 .road-categories { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
 .road-categories .chip { flex:none; min-height:44px; font-size:11px; padding:9px 10px; }
 .road-footer p { color:var(--mute); font-size:11px; line-height:1.5; margin:6px 4px 0; }
-.profile-tool.road-tool { background:var(--app-gradient); color:#fff; border-color:transparent; }
-.profile-tool.road-tool small { color:#ddfffa; }
-.profile-tool.road-tool>span { color:#ffe075; }
-@media (max-height:580px) { .road-heading { padding:8px 12px; } .road-heading .eyebrow,.road-heading p { display:none; } .road-heading h2 { font-size:16px; } .road-footer { padding:6px 10px calc(6px + env(safe-area-inset-bottom)); } .road-detail .road-map { min-height:100px; } }
+.road-hint { display:block; color:var(--mute); font-size:10px; margin:8px 4px 0; }
+@media (max-height:580px) {
+    .road-heading { padding:8px 12px; }
+    .road-heading .eyebrow,.road-hint { display:none; }
+    .road-heading h2 { font-size:16px; margin-bottom:6px; }
+    .road-footer { padding:6px 10px calc(6px + env(safe-area-inset-bottom)); }
+    .road-detail .road-map { min-height:100px; }
+    .road-controls { flex-direction:row; bottom:30px; }
+    .road-controls button+button { border-top:0; border-left:1px solid #d9e9e5; }
+    .road-status { bottom:auto; top:8px; left:8px; right:172px; padding:8px; font-size:10px; }
+    .road-status .chip { padding:8px; font-size:10px; width:100%; }
+}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="splash" class="splash" aria-hidden="true"><div class="tile"><svg class="tk" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
-  <defs>
-    <linearGradient id="mark1-sea" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#006d74"/><stop offset="1" stop-color="#20c9bd"/></linearGradient>
-    <linearGradient id="mark1-metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fcffff"/><stop offset="0.5" stop-color="#c9dfe0"/><stop offset="1" stop-color="#719da1"/></linearGradient>
-    <linearGradient id="mark1-cab" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3a0"/><stop offset="0.45" stop-color="#ffd34e"/><stop offset="1" stop-color="#df9a0a"/></linearGradient>
-    <linearGradient id="mark1-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#78bfc5"/><stop offset="0.45" stop-color="#264b56"/><stop offset="1" stop-color="#0d2935"/></linearGradient>
-  </defs>
-  <rect x="0" y="0" width="100" height="100" rx="24" fill="url(#mark1-sea)"/>
-  <circle cx="78" cy="22" r="18" fill="#ffffff" opacity="0.08"/>
-  <polygon points="10,83 76,69 93,76 32,93" fill="#004a51" opacity="0.28"/>
-  <polygon points="12,29 55,17 70,26 27,39" fill="#eff8f8"/>
-  <polygon points="12,29 27,39 27,70 12,60" fill="#8bafb3"/>
-  <polygon points="27,39 70,26 70,57 27,70" fill="url(#mark1-metal)"/>
-  <polygon points="31,42 68,31 68,33 31,44" fill="#ffffff" opacity="0.7"/>
-  <polygon points="31,49 68,38 68,40 31,51" fill="#ffffff" opacity="0.55"/>
-  <polygon points="31,56 68,45 68,47 31,58" fill="#ffffff" opacity="0.45"/>
-  <polygon points="27,67 70,54 70,58 27,71" fill="#007f83"/>
-  <polygon points="15,61 72,45 78,58 26,79 15,73" fill="#173c44"/>
-  <circle cx="25" cy="73" r="7" fill="#112b34"/>
-  <circle cx="25" cy="73" r="3.5" fill="url(#mark1-metal)"/>
-  <circle cx="38" cy="69" r="7" fill="#112b34"/>
-  <circle cx="38" cy="69" r="3.5" fill="url(#mark1-metal)"/>
-  <polygon points="51,36 72,30 88,41 67,49" fill="#fff1a0"/>
-  <polygon points="51,36 67,49 69,78 50,64" fill="#dfb02c"/>
-  <polygon points="67,49 88,41 92,70 72,82 69,78" fill="url(#mark1-cab)"/>
-  <polygon points="68,48 87,42 88,54 69,61" fill="url(#mark1-glass)"/>
-  <polygon points="70,49 84,45 76,55 70,57" fill="#bcf1ee" opacity="0.45"/>
-  <polygon points="54,41 63,48 64,59 54,52" fill="url(#mark1-glass)"/>
-  <polygon points="54,41 57,43 57,50 54,48" fill="#b6e2e2" opacity="0.6"/>
-  <polygon points="50,54 54,56 54,64 50,61" fill="#ffdd5b"/>
-  <polygon points="62,44 67,47 67,53 64,51" fill="#123c45"/>
-  <polygon points="89,47 93,46 94,52 90,53" fill="#123c45"/>
-  <polygon points="70,65 89,59 90,67 71,74" fill="#173943"/>
-  <polygon points="72,67 88,62 88,63 72,69" fill="#87a8ac"/>
-  <polygon points="72,71 88,66 88,67 72,73" fill="#87a8ac"/>
-  <polygon points="69,63 73,62 73,65 70,66" fill="#fffdec"/>
-  <polygon points="86,57 90,56 90,59 86,60" fill="#fffdec"/>
-  <polygon points="71,76 92,68 92,73 72,83" fill="url(#mark1-metal)"/>
-  <polygon points="77,76 85,72 85,74 77,78" fill="#ffffff"/>
-  <circle cx="57" cy="73" r="8" fill="#102c35"/>
-  <circle cx="57" cy="73" r="4" fill="url(#mark1-metal)"/>
-  <circle cx="57" cy="73" r="1.5" fill="#4d7076"/>
-</svg></div><strong class="wordmark">NakGo</strong><p>Yükünü bul, aracını doldur.</p></div>
-  <header><div class="logo"><svg class="tk" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
-  <defs>
-    <linearGradient id="mark2-sea" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#006d74"/><stop offset="1" stop-color="#20c9bd"/></linearGradient>
-    <linearGradient id="mark2-metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fcffff"/><stop offset="0.5" stop-color="#c9dfe0"/><stop offset="1" stop-color="#719da1"/></linearGradient>
-    <linearGradient id="mark2-cab" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3a0"/><stop offset="0.45" stop-color="#ffd34e"/><stop offset="1" stop-color="#df9a0a"/></linearGradient>
-    <linearGradient id="mark2-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#78bfc5"/><stop offset="0.45" stop-color="#264b56"/><stop offset="1" stop-color="#0d2935"/></linearGradient>
-  </defs>
-  <rect x="0" y="0" width="100" height="100" rx="24" fill="url(#mark2-sea)"/>
-  <circle cx="78" cy="22" r="18" fill="#ffffff" opacity="0.08"/>
-  <polygon points="10,83 76,69 93,76 32,93" fill="#004a51" opacity="0.28"/>
-  <polygon points="12,29 55,17 70,26 27,39" fill="#eff8f8"/>
-  <polygon points="12,29 27,39 27,70 12,60" fill="#8bafb3"/>
-  <polygon points="27,39 70,26 70,57 27,70" fill="url(#mark2-metal)"/>
-  <polygon points="31,42 68,31 68,33 31,44" fill="#ffffff" opacity="0.7"/>
-  <polygon points="31,49 68,38 68,40 31,51" fill="#ffffff" opacity="0.55"/>
-  <polygon points="31,56 68,45 68,47 31,58" fill="#ffffff" opacity="0.45"/>
-  <polygon points="27,67 70,54 70,58 27,71" fill="#007f83"/>
-  <polygon points="15,61 72,45 78,58 26,79 15,73" fill="#173c44"/>
-  <circle cx="25" cy="73" r="7" fill="#112b34"/>
-  <circle cx="25" cy="73" r="3.5" fill="url(#mark2-metal)"/>
-  <circle cx="38" cy="69" r="7" fill="#112b34"/>
-  <circle cx="38" cy="69" r="3.5" fill="url(#mark2-metal)"/>
-  <polygon points="51,36 72,30 88,41 67,49" fill="#fff1a0"/>
-  <polygon points="51,36 67,49 69,78 50,64" fill="#dfb02c"/>
-  <polygon points="67,49 88,41 92,70 72,82 69,78" fill="url(#mark2-cab)"/>
-  <polygon points="68,48 87,42 88,54 69,61" fill="url(#mark2-glass)"/>
-  <polygon points="70,49 84,45 76,55 70,57" fill="#bcf1ee" opacity="0.45"/>
-  <polygon points="54,41 63,48 64,59 54,52" fill="url(#mark2-glass)"/>
-  <polygon points="54,41 57,43 57,50 54,48" fill="#b6e2e2" opacity="0.6"/>
-  <polygon points="50,54 54,56 54,64 50,61" fill="#ffdd5b"/>
-  <polygon points="62,44 67,47 67,53 64,51" fill="#123c45"/>
-  <polygon points="89,47 93,46 94,52 90,53" fill="#123c45"/>
-  <polygon points="70,65 89,59 90,67 71,74" fill="#173943"/>
-  <polygon points="72,67 88,62 88,63 72,69" fill="#87a8ac"/>
-  <polygon points="72,71 88,66 88,67 72,73" fill="#87a8ac"/>
-  <polygon points="69,63 73,62 73,65 70,66" fill="#fffdec"/>
-  <polygon points="86,57 90,56 90,59 86,60" fill="#fffdec"/>
-  <polygon points="71,76 92,68 92,73 72,83" fill="url(#mark2-metal)"/>
-  <polygon points="77,76 85,72 85,74 77,78" fill="#ffffff"/>
-  <circle cx="57" cy="73" r="8" fill="#102c35"/>
-  <circle cx="57" cy="73" r="4" fill="url(#mark2-metal)"/>
-  <circle cx="57" cy="73" r="1.5" fill="#4d7076"/>
-</svg></div><div><h1>NakGo</h1><p id="sub">Yükünü bul, aracını doldur.</p></div><button class="bell" id="thh" aria-label="Temayı değiştir" title="Temayı değiştir"></button><button class="bell" id="bell" aria-label="Bildirimler"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><b id="bc"></b></button></header>
+  <div id="splash" class="splash" aria-hidden="true"><div class="tile"><img class="tk" src="icons/brand-logo.png" width="576" height="538" alt="NakGo" fetchpriority="high"></div><p>Biz bu işin NakGosuyuz</p></div>
+  <header><div class="logo"><img class="tk" src="icons/icon-192.png" width="50" height="50" alt="" decoding="async"></div><div><h1>NakGo</h1><p id="sub">Biz bu işin NakGosuyuz</p></div><button class="bell" id="thh" aria-label="Temayı değiştir" title="Temayı değiştir"></button><button class="bell" id="bell" aria-label="Bildirimler"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><b id="bc"></b></button></header>
   <div id="off" class="off" role="status">İnternet bağlantısı yok. Yerel demo cihazında kullanılabilir; ortak veriler için bağlantı gerekir.</div>
   <main id="main"></main>
   <nav id="nav" aria-label="Ana menü">
@@ -2579,7 +2482,6 @@ async function initCloud() {
         loaded = false;
         myName = esc((await u.me()).name || "");
         names[me] = myName || "Ben";
-        $("#sub").textContent = "Canlı: ortak ilan havuzu";
         const ts = (a, b) => (b.ts || 0) - (a.ts || 0) || String(a.id).localeCompare(String(b.id), "tr", { numeric: true });
         const who = async (list) => {
             const ids = [...new Set(list.filter(Boolean))].filter(i => !names[i]);
@@ -2768,7 +2670,7 @@ const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${l.i
     <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${favs.includes(String(l.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(l.id))}" class="fav ${favs.includes(String(l.id)) ? "on" : ""}" data-fav="${l.id}">${favs.includes(String(l.id)) ? "♥" : "♡"}</button></div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${t.id}" role="button" tabindex="0" aria-label="${t.from} → ${t.to}, ${t.cap} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="listing-price"><span>Boş kapasite</span><strong class="price">${t.cap}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${t.who || nm(t.uid)}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${t.veh} · ${t.body}</span><span>Müsait: <b>${t.date}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${favs.includes(String(t.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(t.id))}" class="fav ${favs.includes(String(t.id)) ? "on" : ""}" data-fav="${t.id}">${favs.includes(String(t.id)) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${t.id}" role="button" tabindex="0" aria-label="${t.from} → ${t.to}, ${t.cap} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${t.cap}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${t.who || nm(t.uid)}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${t.veh} · ${t.body}</span><span>Müsait: <b>${t.date}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${favs.includes(String(t.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(t.id))}" class="fav ${favs.includes(String(t.id)) ? "on" : ""}" data-fav="${t.id}">${favs.includes(String(t.id)) ? "♥" : "♡"}</button></div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
@@ -3749,6 +3651,51 @@ function statsOf(l) {
 }
 
 /**
+ * Harita verisi ve geometri
+ * Sağlayıcı, doğrulanmış yol noktaları ve DOM'dan bağımsız Web Mercator hesapları.
+ */
+
+const ROAD_MAP = {tiles:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",minZoom:4,maxZoom:17};
+// Biçim: {id,name,kind:'tire'|'repair'|'rest',coordinates:[boylam,enlem],source,verifiedAt}.
+// Genel OSM işletmeleri NakGo doğrulaması anlamına gelmez; henüz doğrulanmış nokta yok.
+const ROAD_STOPS = [];
+const ROAD_KINDS = {tire:"Lastikçi",repair:"Tamirci",rest:"Dinlenme tesisi"};
+
+function roadProject([lon,lat],z) {
+    const size=256*2**z;
+    const sin=Math.sin(Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/180);
+    return [(lon+180)/360*size,(.5-Math.log((1+sin)/(1-sin))/(4*Math.PI))*size];
+}
+
+function roadUnproject([x,y],z) {
+    const size=256*2**z;
+    return [x/size*360-180,Math.atan(Math.sinh(Math.PI*(1-2*y/size)))*180/Math.PI];
+}
+
+function roadStopValid(stop) {
+    return !!(stop&&ROAD_KINDS[stop.kind]&&stop.name&&stop.source&&stop.verifiedAt
+        &&Array.isArray(stop.coordinates)&&stop.coordinates.length===2
+        &&stop.coordinates.every(Number.isFinite)
+        &&stop.coordinates[0]>=25&&stop.coordinates[0]<=45
+        &&stop.coordinates[1]>=35&&stop.coordinates[1]<=43);
+}
+
+function roadStopsFor(kind="") {
+    return ROAD_STOPS.filter(stop=>roadStopValid(stop)&&(!kind||stop.kind===kind));
+}
+
+function roadFitViewport(points,width,height) {
+    const projected=points.map(point=>roadProject(point,0));
+    const dx=Math.abs(projected[0][0]-projected[1][0]);
+    const dy=Math.abs(projected[0][1]-projected[1][1]);
+    const scale=Math.min(Math.max(1,width-90)/Math.max(dx,.5),Math.max(1,height-90)/Math.max(dy,.5));
+    return {
+        zoom:Math.max(ROAD_MAP.minZoom,Math.min(12,Math.floor(Math.log2(scale)))),
+        center:roadUnproject([(projected[0][0]+projected[1][0])/2,(projected[0][1]+projected[1][1])/2],0)
+    };
+}
+
+/**
  * Ekranlar ve araçlar
  * Ana çizim işlevi, ilan ve boş araç detayı, alt pencere, gezinti; yakıt hesabı, tema, paylaşma.
  */
@@ -3847,114 +3794,247 @@ const demoNotice = () => !cloud ? `<p class="demo-note"><b>Demo modu</b> · Veri
 const screenHeading = (title, note) => `<div class="screen-heading"><h2>${title}</h2><p>${note}</p></div>`;
 
 /**
- * Gerçek yol haritası
- * Web Mercator harita, dokunmatik gezinme ve doğrulanmış yol noktaları; yalnızca görünen döşemeler yüklenir.
+ * Ortak arayüz simgeleri
+ * Sabit SVG çizimleri; metin etiketleri düğmelerin erişilebilir adını sağlar.
  */
 
-const ROAD_MAP = {tiles:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",minZoom:4,maxZoom:17};
-// Doğrulanmış işletmeler burada tutulacak. OSM üzerindeki genel POI'ler NakGo onayı anlamına gelmez.
-// Biçim: {id,name,kind:'tire'|'repair'|'rest',coordinates:[boylam,enlem],source,verifiedAt}.
-const ROAD_STOPS = [];
-const ROAD_KINDS = {tire:"Lastikçi",repair:"Tamirci",rest:"Dinlenme tesisi"};
+function uiIcon(name) {
+    const paths={
+        plus:'<path d="M12 5v14M5 12h14"/>',
+        minus:'<path d="M5 12h14"/>',
+        fit:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><circle cx="12" cy="12" r="3"/>',
+        back:'<path d="m14 6-6 6 6 6"/>',
+        arrow:'<path d="m10 6 6 6-6 6"/>',
+        map:'<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/>',
+        message:'<path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a9 9 0 0 1 18 0Z"/><path d="M8 9h8m-8 4h5"/>',
+        heart:'<path d="M20 5a5 5 0 0 0-8 1 5 5 0 0 0-8-1C0 9 5 15 12 21c7-6 12-12 8-16Z"/>',
+        fuel:'<path d="M4 21V4h10v17M2 21h14M6 7h6v5H6V7Zm8 7h2v4a2 2 0 0 0 4 0V8l-3-3m1 1-2 2 3 3"/>',
+        phone:'<path d="m5 3 4 1 1 5-3 2a15 15 0 0 0 6 6l2-3 5 1 1 4c-2 6-10 1-14-3S0 5 5 3Z"/>'
+    };
+    return `<svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]||paths.map}</svg>`;
+}
+
+/**
+ * Harita hareketleri ve yaşam döngüsü
+ * Görünen döşemeler, dokunma, klavye, boyutlandırma ve kaynakların serbest bırakılması.
+ */
+
 const roadMaps = new Set();
 
-function roadProject([lon,lat],z) {
-    const size=256*2**z,s=Math.sin(Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/180);
-    return [(lon+180)/360*size,(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*size];
+function createRoadMapController(el,onViewChange=()=>{}) {
+    const viewport=el.querySelector('.road-viewport'),pane=el.querySelector('.road-pane');
+    const tiles=el.querySelector('.road-tiles'),pins=el.querySelector('.road-pins');
+    const status=el.querySelector('.road-status span'),retry=el.querySelector('[data-map-action=retry]');
+    const from=el.dataset.from,to=el.dataset.to,route=LL[from]&&LL[to];
+    const points=route?[LL[from],LL[to]]:[[25.6,35.7],[44.9,42.3]];
+    let zoomLevel=ROAD_MAP.minZoom,center=[35.25,39],width=0,height=0;
+    let active=false,disposed=false,category='',serial=0,resizeObserver,intersectionObserver,frame;
+    const fingers=new Map();
+    let gesture=null;
+
+    function clampCenter() {
+        center=[Math.max(24,Math.min(46,center[0])),Math.max(34,Math.min(44,center[1]))];
+    }
+    function fit() {
+        const view=roadFitViewport(points,width,height);
+        zoomLevel=view.zoom;center=view.center;clampCenter();
+    }
+    function drawTiles(left,top) {
+        const count=2**zoomLevel,keep=new Set(),ticket=++serial;
+        let pending=0,failed=0;
+        function settle() {
+            if(ticket!==serial||disposed)return;
+            status.textContent=failed?'Harita yüklenemedi.':pending?'Harita yükleniyor…':'';
+            retry.hidden=!failed;
+        }
+        for(let x=Math.floor(left/256);x<=Math.floor((left+width)/256);x++) {
+            for(let y=Math.floor(top/256);y<=Math.floor((top+height)/256);y++) {
+                if(x<0||y<0||x>=count||y>=count)continue;
+                const key=zoomLevel+'-'+x+'-'+y;keep.add(key);
+                let img=tiles.querySelector(`[data-tile="${key}"]`);
+                if(!img) {
+                    img=document.createElement('img');img.dataset.tile=key;img.alt='';img.draggable=false;
+                    img.referrerPolicy='strict-origin-when-cross-origin';tiles.appendChild(img);
+                    img.src=ROAD_MAP.tiles.replace('{z}',zoomLevel).replace('{x}',x).replace('{y}',y);
+                }
+                img.style.transform=`translate(${Math.round(x*256-left)}px,${Math.round(y*256-top)}px)`;
+                if(img.complete) {if(!img.naturalWidth)failed++;}
+                else {pending++;img.onload=()=>{pending--;settle();};img.onerror=()=>{pending--;failed++;settle();};}
+            }
+        }
+        tiles.querySelectorAll('img').forEach(img=>{
+            if(!keep.has(img.dataset.tile)) {img.onload=img.onerror=null;img.remove();}
+        });
+        settle();
+    }
+    function drawPins(left,top) {
+        const markers=route?[
+            {name:from,coordinates:LL[from],label:'Çıkış',className:'start'},
+            {name:to,coordinates:LL[to],label:'Varış',className:'finish'}
+        ]:[];
+        markers.push(...roadStopsFor(category).map(stop=>({...stop,label:ROAD_KINDS[stop.kind],className:'stop'})));
+        pins.innerHTML=markers.map(marker=>{
+            const point=roadProject(marker.coordinates,zoomLevel),x=point[0]-left,y=point[1]-top;
+            if(x<0||y<0||x>width||y>height)return '';
+            return `<div class="road-pin ${marker.className}" style="left:${x}px;top:${y}px"><i></i><span><small>${esc(marker.label)}</small>${esc(marker.name)}</span></div>`;
+        }).join('');
+    }
+    function draw() {
+        if(!active||disposed||width<1)return;
+        pane.style.transform='';pane.style.transformOrigin='';
+        el.dataset.zoom=zoomLevel;el.dataset.center=center.map(value=>value.toFixed(5)).join(',');
+        const projected=roadProject(center,zoomLevel),left=projected[0]-width/2,top=projected[1]-height/2;
+        drawTiles(left,top);drawPins(left,top);
+        el.querySelector('[data-map-action=in]').disabled=zoomLevel>=ROAD_MAP.maxZoom;
+        el.querySelector('[data-map-action=out]').disabled=zoomLevel<=ROAD_MAP.minZoom;
+    }
+    function zoom(delta,anchor=[width/2,height/2]) {
+        const next=Math.max(ROAD_MAP.minZoom,Math.min(ROAD_MAP.maxZoom,zoomLevel+delta));
+        if(next===zoomLevel)return;
+        const projected=roadProject(center,zoomLevel);
+        const geo=roadUnproject([projected[0]+anchor[0]-width/2,projected[1]+anchor[1]-height/2],zoomLevel);
+        zoomLevel=next;
+        const point=roadProject(geo,zoomLevel);
+        center=roadUnproject([point[0]-anchor[0]+width/2,point[1]-anchor[1]+height/2],zoomLevel);
+        clampCenter();draw();
+    }
+    function resetView() {fit();draw();onViewChange('');}
+    el.querySelectorAll('[data-map-action]').forEach(button=>button.onclick=()=>{
+        const action=button.dataset.mapAction;
+        if(action==='in'||action==='out')zoom(action==='in'?1:-1);
+        if(action==='fit')resetView();
+        if(action==='retry') {
+            tiles.querySelectorAll('img').forEach(img=>{if(img.complete&&!img.naturalWidth)img.remove();});draw();
+        }
+    });
+    function position(event) {
+        const rect=viewport.getBoundingClientRect();return [event.clientX-rect.left,event.clientY-rect.top];
+    }
+    function midpoint(points) {
+        return points.length>1?[(points[0][0]+points[1][0])/2,(points[0][1]+points[1][1])/2]:points[0];
+    }
+    function distance(points) {
+        return points.length>1?Math.hypot(points[1][0]-points[0][0],points[1][1]-points[0][1]):0;
+    }
+    function beginGesture() {
+        const points=[...fingers.values()];
+        gesture={mid:midpoint(points),center:roadProject(center,zoomLevel),distance:distance(points)};
+    }
+    viewport.onpointerdown=event=>{
+        if(event.button&&event.button!==0)return;
+        viewport.setPointerCapture(event.pointerId);fingers.set(event.pointerId,position(event));beginGesture();
+    };
+    viewport.onpointermove=event=>{
+        if(!fingers.has(event.pointerId)||!gesture)return;
+        fingers.set(event.pointerId,position(event));
+        const points=[...fingers.values()],mid=midpoint(points);
+        const ratio=points.length>1&&gesture.distance?Math.max(.25,Math.min(4,distance(points)/gesture.distance)):1;
+        pane.style.transformOrigin=gesture.mid[0]+'px '+gesture.mid[1]+'px';
+        pane.style.transform=`translate(${mid[0]-gesture.mid[0]}px,${mid[1]-gesture.mid[1]}px) scale(${ratio})`;
+    };
+    viewport.onpointerup=event=>{
+        if(!fingers.has(event.pointerId)||!gesture)return;
+        const points=[...fingers.values()],mid=midpoint(points);
+        center=roadUnproject([gesture.center[0]-mid[0]+gesture.mid[0],gesture.center[1]-mid[1]+gesture.mid[1]],zoomLevel);
+        clampCenter();
+        if(points.length>1&&gesture.distance)zoom(Math.round(Math.log2(Math.max(.25,distance(points)/gesture.distance))),mid);
+        fingers.delete(event.pointerId);gesture=null;
+        if(fingers.size)beginGesture();
+        draw();onViewChange('');
+    };
+    viewport.onpointercancel=()=>{fingers.clear();gesture=null;pane.style.transform='';pane.style.transformOrigin='';};
+    viewport.onkeydown=event=>{
+        const actions={'+':()=>zoom(1),'=':()=>zoom(1),'-':()=>zoom(-1),'0':resetView};
+        if(actions[event.key]) {event.preventDefault();actions[event.key]();return;}
+        if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
+        event.preventDefault();
+        const point=roadProject(center,zoomLevel);
+        point[0]+=event.key==='ArrowLeft'?-80:event.key==='ArrowRight'?80:0;
+        point[1]+=event.key==='ArrowUp'?-80:event.key==='ArrowDown'?80:0;
+        center=roadUnproject(point,zoomLevel);clampCenter();draw();onViewChange('');
+    };
+    viewport.onwheel=event=>{
+        if(!event.ctrlKey)return;
+        event.preventDefault();zoom(event.deltaY<0?1:-1,position(event));
+    };
+    function size() {
+        const rect=viewport.getBoundingClientRect();
+        if(rect.width<1||rect.height<1)return;
+        const initial=!width;width=rect.width;height=rect.height;
+        if(initial)fit();draw();
+    }
+    function activate() {
+        if(active||disposed)return;
+        active=true;size();
+        if(typeof ResizeObserver!=='undefined') {resizeObserver=new ResizeObserver(size);resizeObserver.observe(viewport);}
+    }
+    if(typeof IntersectionObserver!=='undefined') {
+        intersectionObserver=new IntersectionObserver(entries=>{
+            if(entries.some(entry=>entry.isIntersecting)) {activate();intersectionObserver.disconnect();}
+        },{rootMargin:'30px'});
+        intersectionObserver.observe(el);
+    } else frame=requestAnimationFrame(activate);
+
+    return {
+        el,
+        category(value) {category=value;draw();},
+        focus(city) {
+            if(LL[city]) {center=LL[city].slice();zoomLevel=11;draw();}
+            else resetView();
+        },
+        dispose() {
+            disposed=true;intersectionObserver?.disconnect();resizeObserver?.disconnect();
+            if(frame)cancelAnimationFrame(frame);
+            tiles.querySelectorAll('img').forEach(img=>img.onload=img.onerror=null);
+            el.querySelectorAll('[data-map-action]').forEach(button=>button.onclick=null);
+            viewport.onpointerdown=viewport.onpointermove=viewport.onpointerup=viewport.onpointercancel=null;
+            viewport.onkeydown=viewport.onwheel=null;
+            fingers.clear();delete el.dataset.bound;
+        }
+    };
 }
-function roadUnproject([x,y],z) {
-    const size=256*2**z;
-    return [x/size*360-180,Math.atan(Math.sinh(Math.PI*(1-2*y/size)))*180/Math.PI];
-}
-function roadStopValid(s) {
-    return !!(s&&ROAD_KINDS[s.kind]&&s.name&&s.source&&s.verifiedAt&&Array.isArray(s.coordinates)&&s.coordinates.length===2&&s.coordinates.every(Number.isFinite)&&s.coordinates[0]>=25&&s.coordinates[0]<=45&&s.coordinates[1]>=35&&s.coordinates[1]<=43);
-}
-function roadMapHTML(a="",b="") {
-    return `<div class="road-map" data-from="${esc(a)}" data-to="${esc(b)}"><div class="road-viewport" tabindex="0" role="region" aria-label="Türkiye yol haritası. Ok tuşlarıyla kaydır; artı ve eksiyle yakınlaştır."><div class="road-pane"><div class="road-tiles"></div><div class="road-pins"></div></div></div><div class="road-controls"><button type="button" data-map-action="in" aria-label="Haritayı yakınlaştır">+</button><button type="button" data-map-action="out" aria-label="Haritayı uzaklaştır">−</button><button type="button" data-map-action="fit" aria-label="${a?'Çıkış ve varışı göster':'Türkiye genelini göster'}">⌖</button></div><div class="road-status" role="status"><span>Harita yükleniyor…</span><button class="chip" data-map-action="retry" hidden>Yeniden dene</button></div><div class="road-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> katkıda bulunanlar</div></div>`;
+
+/**
+ * Harita bileşeni
+ * Ortak harita işaretlemesi, detaydan büyütme ve etkin kontrolcülerin temizliği.
+ */
+
+function roadMapHTML(from="",to="") {
+    const fitLabel=from?'Çıkış ve varışı göster':'Türkiye genelini göster';
+    return `<div class="road-map" data-from="${esc(from)}" data-to="${esc(to)}">
+        <div class="road-viewport" tabindex="0" role="region" aria-label="Türkiye yol haritası. Ok tuşlarıyla kaydır; artı ve eksiyle yakınlaştır.">
+            <div class="road-pane"><div class="road-tiles"></div><div class="road-pins"></div></div>
+        </div>
+        <div class="road-controls" role="group" aria-label="Harita kontrolleri">
+            <button type="button" data-map-action="fit" aria-label="${fitLabel}" title="${fitLabel}">${uiIcon('fit')}</button>
+            <button type="button" data-map-action="in" aria-label="Haritayı yakınlaştır" title="Yakınlaştır">${uiIcon('plus')}</button>
+            <button type="button" data-map-action="out" aria-label="Haritayı uzaklaştır" title="Uzaklaştır">${uiIcon('minus')}</button>
+        </div>
+        <div class="road-status" role="status"><span>Harita yükleniyor…</span><button class="chip" data-map-action="retry" hidden>Yeniden dene</button></div>
+        <div class="road-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> katkıda bulunanlar</div>
+    </div>`;
 }
 function routeMapHTML(a,b) {
     if(!LL[a]||!LL[b])return "";
     return `${roadMapHTML(a,b)}<div class="road-caption"><span>● Çıkış: ${esc(a)}<br>● Varış: ${esc(b)}</span><button class="chip" data-map-expand>Haritayı büyüt ↗</button></div><p class="estimate-note">Şehir merkezleri gösterilir. Mesafe tahminidir; tıra uygun navigasyon rotası değildir.</p>`;
 }
 function roadMapDispose(all=false) {
-    roadMaps.forEach(c=>{if(all||!c.el.isConnected){c.dispose();roadMaps.delete(c);}});
+    roadMaps.forEach(controller=>{
+        if(all||!controller.el.isConnected) {controller.dispose();roadMaps.delete(controller);}
+    });
 }
-function roadMapBind(root) {
+
+function roadMapBind(root,returnToDetail=null,onViewChange=()=>{}) {
     roadMapDispose();
     root.querySelectorAll('.road-map').forEach(el=>{
         if(el.dataset.bound)return;
         el.dataset.bound='1';
-        const viewport=el.querySelector('.road-viewport'),pane=el.querySelector('.road-pane'),tiles=el.querySelector('.road-tiles'),pins=el.querySelector('.road-pins'),status=el.querySelector('.road-status span'),retry=el.querySelector('[data-map-action=retry]');
-        const a=el.dataset.from,b=el.dataset.to,route=LL[a]&&LL[b],points=route?[LL[a],LL[b]]:[[25.6,35.7],[44.9,42.3]];
-        let z=4,center=[35.25,39],width=0,height=0,active=false,disposed=false,category="",serial=0;
-        let ro,io,frame;const fingers=new Map();let gesture=null;
-        const clamp=()=>{center=[Math.max(24,Math.min(46,center[0])),Math.max(34,Math.min(44,center[1]))];};
-        const fit=()=>{
-            const p=points.map(x=>roadProject(x,0)),dx=Math.abs(p[0][0]-p[1][0]),dy=Math.abs(p[0][1]-p[1][1]);
-            z=Math.max(ROAD_MAP.minZoom,Math.min(12,Math.floor(Math.log2(Math.min((width-90)/Math.max(dx,.5),(height-90)/Math.max(dy,.5))))));
-            center=roadUnproject([(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2],0);clamp();
-        };
-        const draw=()=>{
-            if(!active||disposed||width<1)return;
-            pane.style.transform='';pane.style.transformOrigin='';el.dataset.zoom=z;el.dataset.center=center.map(x=>x.toFixed(5)).join(',');
-            const [cx,cy]=roadProject(center,z),left=cx-width/2,top=cy-height/2,n=2**z,keep=new Set();
-            const ticket=++serial;let pending=0,failed=0;
-            const settle=()=>{if(ticket!==serial||disposed)return;status.textContent=failed?'Bazı harita parçaları yüklenemedi. İnternet bağlantını kontrol et.':pending?'Harita yükleniyor…':'';retry.hidden=!failed;};
-            for(let x=Math.floor(left/256);x<=Math.floor((left+width)/256);x++)for(let y=Math.floor(top/256);y<=Math.floor((top+height)/256);y++){
-                if(x<0||y<0||x>=n||y>=n)continue;
-                const key=z+'-'+x+'-'+y;keep.add(key);
-                let img=tiles.querySelector(`[data-tile="${key}"]`);
-                if(!img){img=document.createElement('img');img.dataset.tile=key;img.alt='';img.draggable=false;img.referrerPolicy='strict-origin-when-cross-origin';tiles.appendChild(img);img.src=ROAD_MAP.tiles.replace('{z}',z).replace('{x}',x).replace('{y}',y);}
-                img.style.transform=`translate(${Math.round(x*256-left)}px,${Math.round(y*256-top)}px)`;
-                if(img.complete){if(!img.naturalWidth)failed++;}else{pending++;img.onload=()=>{pending--;settle();};img.onerror=()=>{pending--;failed++;settle();};}
-            }
-            tiles.querySelectorAll('img').forEach(img=>{if(!keep.has(img.dataset.tile)){img.onload=img.onerror=null;img.remove();}});
-            const markers=route?[{name:a,coordinates:LL[a],label:'Çıkış',className:'start'},{name:b,coordinates:LL[b],label:'Varış',className:'finish'}]:[];
-            markers.push(...ROAD_STOPS.filter(s=>roadStopValid(s)&&(!category||category===s.kind)).map(s=>({...s,label:ROAD_KINDS[s.kind],className:'stop'})));
-            pins.innerHTML=markers.map(s=>{const [x,y]=roadProject(s.coordinates,z),sx=x-left,sy=y-top;if(sx<0||sy<0||sx>width||sy>height)return '';return `<div class="road-pin ${s.className}" style="left:${sx}px;top:${sy}px"><i></i><span><small>${esc(s.label)}</small>${esc(s.name)}</span></div>`;}).join('');
-            el.querySelector('[data-map-action=in]').disabled=z>=ROAD_MAP.maxZoom;el.querySelector('[data-map-action=out]').disabled=z<=ROAD_MAP.minZoom;settle();
-        };
-        const zoom=(delta,anchor=[width/2,height/2])=>{
-            const next=Math.max(ROAD_MAP.minZoom,Math.min(ROAD_MAP.maxZoom,z+delta));if(next===z)return;
-            const c=roadProject(center,z),geo=roadUnproject([c[0]+anchor[0]-width/2,c[1]+anchor[1]-height/2],z);z=next;
-            const p=roadProject(geo,z);center=roadUnproject([p[0]-anchor[0]+width/2,p[1]-anchor[1]+height/2],z);clamp();draw();
-        };
-        el.querySelectorAll('[data-map-action]').forEach(btn=>btn.onclick=()=>{
-            const act=btn.dataset.mapAction;
-            if(act==='in'||act==='out')zoom(act==='in'?1:-1);
-            if(act==='fit'){fit();draw();}
-            if(act==='retry'){tiles.querySelectorAll('img').forEach(img=>{if(img.complete&&!img.naturalWidth)img.remove();});draw();}
-        });
-        const position=e=>{const rect=viewport.getBoundingClientRect();return [e.clientX-rect.left,e.clientY-rect.top];};
-        const begin=()=>{const p=[...fingers.values()],mid=p.length>1?[(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2]:p[0];gesture={mid,center:roadProject(center,z),distance:p.length>1?Math.hypot(p[1][0]-p[0][0],p[1][1]-p[0][1]):0};};
-        viewport.onpointerdown=e=>{if(e.button&&e.button!==0)return;viewport.setPointerCapture(e.pointerId);fingers.set(e.pointerId,position(e));begin();};
-        viewport.onpointermove=e=>{if(!fingers.has(e.pointerId)||!gesture)return;fingers.set(e.pointerId,position(e));const p=[...fingers.values()],mid=p.length>1?[(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2]:p[0];const ratio=p.length>1&&gesture.distance?Math.max(.25,Math.min(4,Math.hypot(p[1][0]-p[0][0],p[1][1]-p[0][1])/gesture.distance)):1;pane.style.transformOrigin=gesture.mid[0]+'px '+gesture.mid[1]+'px';pane.style.transform=`translate(${mid[0]-gesture.mid[0]}px,${mid[1]-gesture.mid[1]}px) scale(${ratio})`;};
-        const end=e=>{
-            if(!fingers.has(e.pointerId)||!gesture)return;
-            const p=[...fingers.values()],mid=p.length>1?[(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2]:p[0];
-            center=roadUnproject([gesture.center[0]-mid[0]+gesture.mid[0],gesture.center[1]-mid[1]+gesture.mid[1]],z);clamp();
-            if(p.length>1&&gesture.distance){const ratio=Math.hypot(p[1][0]-p[0][0],p[1][1]-p[0][1])/gesture.distance;zoom(Math.round(Math.log2(Math.max(.25,ratio))),mid);}
-            fingers.delete(e.pointerId);gesture=null;if(fingers.size)begin();draw();
-        };
-        viewport.onpointerup=end;viewport.onpointercancel=()=>{fingers.clear();gesture=null;pane.style.transform='';};
-        viewport.onkeydown=e=>{const actions={'+':()=>zoom(1),'=':()=>zoom(1),'-':()=>zoom(-1),'0':()=>{fit();draw();}};if(actions[e.key]){e.preventDefault();actions[e.key]();}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const p=roadProject(center,z);p[0]+=e.key==='ArrowLeft'?-80:e.key==='ArrowRight'?80:0;p[1]+=e.key==='ArrowUp'?-80:e.key==='ArrowDown'?80:0;center=roadUnproject(p,z);clamp();draw();}};
-        viewport.onwheel=e=>{if(!e.ctrlKey)return;e.preventDefault();zoom(e.deltaY<0?1:-1,position(e));};
-        const size=()=>{const rect=viewport.getBoundingClientRect();if(rect.width<1||rect.height<1)return;const initial=!width;width=rect.width;height=rect.height;if(initial)fit();draw();};
-        const activate=()=>{if(active||disposed)return;active=true;size();if(typeof ResizeObserver!=='undefined'){ro=new ResizeObserver(size);ro.observe(viewport);}};
-        if(typeof IntersectionObserver!=='undefined'){io=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){activate();io.disconnect();}},{rootMargin:'30px'});io.observe(el);}else frame=requestAnimationFrame(activate);
-        const controller={el,category:value=>{category=value;draw();},focus:city=>{if(LL[city]){center=LL[city].slice();z=11;draw();}else{fit();draw();}},dispose:()=>{disposed=true;io?.disconnect();ro?.disconnect();if(frame)cancelAnimationFrame(frame);tiles.querySelectorAll('img').forEach(img=>img.onload=img.onerror=null);fingers.clear();}};
-        roadMaps.add(controller);
+        roadMaps.add(createRoadMapController(el,onViewChange));
     });
-    root.querySelectorAll('[data-map-expand]').forEach(btn=>btn.onclick=()=>{const map=btn.closest('.detail-group').querySelector('.road-map');openRoadMap(map.dataset.from,map.dataset.to);});
-}
-function openRoadMap(a="",b="") {
-    roadMapDispose(true);
-    const B=$('#sheetBody');B.dataset.k='';
-    B.innerHTML=`<div class="load-detail road-detail"><div class="detail-top"><b>Yol haritası</b><button class="chip detail-close" id="close">Kapat ×</button></div><div class="road-heading"><span class="eyebrow">TÜRKİYE · YOLDA YANINDA</span><h2>${a?esc(a)+' → '+esc(b):'Yolunu keşfet'}</h2><p>${a?'Çıkış ve varış şehir merkezleri.':'Şehirleri ve yolları keşfet; iki parmakla yakınlaştır.'}</p><label class="sr-only" for="map-city">Haritada şehir bul</label><select id="map-city"><option value="">Türkiye geneli</option>${opt2(cities,'')}</select></div>${roadMapHTML(a,b)}<div class="road-footer"><div class="road-categories"><button class="chip on" data-map-kind="">Tümü</button>${Object.entries(ROAD_KINDS).map(([k,v])=>`<button class="chip" data-map-kind="${k}">${v}</button>`).join('')}</div><p id="map-poi-note" role="status"></p></div></div>`;
-    syncDetailViewport();$('#sheet').classList.add('open');$('#close').onclick=closeSheet;roadMapBind(B);
-    const note=k=>{const count=ROAD_STOPS.filter(s=>roadStopValid(s)&&(!k||s.kind===k)).length;$('#map-poi-note').textContent=count?count+' doğrulanmış yol noktası gösteriliyor.':'Henüz '+(k?ROAD_KINDS[k].toLocaleLowerCase('tr-TR'):'yol noktası')+' eklenmedi. Doğruladığımız işletmeler burada yer alacak.';};note('');
-    B.querySelectorAll('[data-map-kind]').forEach(btn=>btn.onclick=()=>{B.querySelectorAll('[data-map-kind]').forEach(x=>x.classList.toggle('on',x===btn));roadMaps.forEach(c=>c.category(btn.dataset.mapKind));note(btn.dataset.mapKind);});
-    $('#map-city').onchange=e=>roadMaps.forEach(c=>c.focus(e.target.value));
+    root.querySelectorAll('[data-map-expand]').forEach(button=>button.onclick=()=>{
+        const map=button.closest('.detail-group').querySelector('.road-map');
+        openRoadMap(map.dataset.from,map.dataset.to,returnToDetail);
+    });
 }
 
 /**
@@ -4025,7 +4105,48 @@ function closeSheet() {
 }
 
 function setNav() {
-    document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.t === tab));
+    document.querySelectorAll("nav button").forEach(button => {
+        const selected=button.dataset.t===tab;
+        button.classList.toggle("on",selected);
+        if(selected)button.setAttribute("aria-current","page");
+        else button.removeAttribute("aria-current");
+    });
+}
+
+function initDialogAccessibility() {
+    try {
+        const sheet=$("#sheet"),body=$("#sheetBody");
+        const background=[$('#main'),$('#nav'),document.querySelector('header')];
+        let previousFocus=null,wasOpen=false;
+        const syncFocus=()=>{
+            const open=sheet.classList.contains('open');
+            if(open&&!wasOpen)previousFocus=document.activeElement;
+            background.forEach(element=>{if(element)element.inert=open;});
+            if(open) {
+                body.setAttribute('aria-label',body.querySelector('.detail-top>b,.detail-top>span,h2')?.textContent||'NakGo penceresi');
+                body.setAttribute('tabindex','-1');
+                // İçerik değiştirilince eski odak DOM'dan çıkar; mobil klavyeyi açmadan güvenli düğmeye dön.
+                if(!body.contains(document.activeElement)) (body.querySelector('#map-back,#close,#cx,button')||body).focus();
+            } else if(wasOpen) {
+                const target=previousFocus?.isConnected?previousFocus:
+                    previousFocus?.id?document.getElementById(previousFocus.id):null;
+                target?.focus({preventScroll:true});
+            }
+            wasOpen=open;
+        };
+        new MutationObserver(syncFocus).observe(sheet,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
+        syncFocus();
+        document.addEventListener('keydown',event=>{
+            if(event.key!=='Tab'||!sheet.classList.contains('open'))return;
+            const items=[...body.querySelectorAll('button,input,select,textarea,a[href],summary,[tabindex="0"]')]
+                .filter(element=>element.getClientRects().length&&!element.disabled);
+            if(!items.length) {event.preventDefault();body.focus();return;}
+            const first=items[0],last=items.at(-1);
+            if(event.shiftKey&&(document.activeElement===first||document.activeElement===body)) {
+                event.preventDefault();last.focus();
+            } else if(!event.shiftKey&&document.activeElement===last) {event.preventDefault();first.focus();}
+        });
+    } catch(e) { }
 }
 
 /**
@@ -4035,7 +4156,7 @@ function setNav() {
 
 function renderListings(m) {
     m.dataset.comparing = cmp.length ? "true" : "false";
-    const SEG = `<div class="seg"><button data-md="load" class="${mode === "load" ? "on" : ""}">Yükler</button><button data-md="truck" class="${mode === "truck" ? "on" : ""}">Boş araçlar</button></div>`;
+    const SEG = `<div class="seg"><button data-md="load" aria-pressed="${mode === "load"}" class="${mode === "load" ? "on" : ""}">Yükler</button><button data-md="truck" aria-pressed="${mode === "truck"}" class="${mode === "truck" ? "on" : ""}">Boş araçlar</button></div>`;
     const segBind = () => m.querySelectorAll("[data-md]").forEach(b => b.onclick = () => {
         mode = b.dataset.md;
         render();
@@ -4235,27 +4356,178 @@ function renderOffers(m){
 
 /**
  * Profil
- * İletişim, ilanlar, güven bilgileri ve günlük araçlar.
+ * Kimlik, günlük araçlar ve iletişim grupları; kayıt davranışı hesap özelliğinde kalır.
  */
-function renderProfile(m){
-    const own=[...mineL(),...mineT()].filter(l=>!l.closed&&!expired(l,typeof l.id==='string'?'truck':'load'));
+
+function profileIdentityHTML(own,active,done,name,rating) {
+    return `<div class="profile-cover">
+        <div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div>
+        <div><span class="profile-eyebrow">NAKGO HESABIM</span>
+            <b>${esc(myCar.displayName||'')||myName||'Profilim'}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
+            <div class="profile-caption">${role==='owner'?'Yük sahibi':'Taşıyıcı'}${myCar.city?' · '+esc(myCar.city):''}</div>
+            <div class="profile-caption">${rating?'★ '+rating.avg.toFixed(1)+' · '+rating.n+' değerlendirme':'Henüz değerlendirme yok'}</div>
+        </div>
+    </div>
+    <div class="stat profile-stats">
+        <div><b>${own}</b><span>Aktif ilanım</span></div>
+        <div><b>${active}</b><span>Devam eden iş</span></div>
+        <div><b>${done}</b><span>Onaylanan iş</span></div>
+    </div>`;
+}
+
+function profileToolsHTML() {
+    const tools=[
+        ['messages','message','Mesajlar','Görüşmelerin'],
+        ['favorites','heart','Kaydettiklerim',favs.length+' kayıtlı ilan'],
+        ['fuel','fuel','Mazot hesabı','Yol giderini planla']
+    ];
+    return `<div class="profile-shortcuts">
+        <button class="profile-tool road-tool" id="profile-map">
+            <span class="profile-tool-icon">${uiIcon('map')}</span>
+            <span class="profile-tool-copy"><b>Yol haritası</b><small>Türkiye'nin yollarını keşfet</small></span>
+            ${uiIcon('arrow')}
+        </button>
+        ${tools.map(([id,icon,title,caption])=>`<button class="profile-tool" id="profile-${id}">
+            <span class="profile-tool-icon">${uiIcon(icon)}</span><b>${title}</b><small>${caption}</small>
+        </button>`).join('')}
+    </div>`;
+}
+
+function profileInfoHTML() {
+    return `<div class="load profile-info">
+        <label for="profile-name">Görünen ad / firma</label>
+        <input id="profile-name" maxlength="60" autocomplete="organization" placeholder="Adın veya firma adın" value="${esc(myCar.displayName||'')}">
+        <label for="profile-city">Bulunduğun şehir</label>
+        <select id="profile-city"><option value="">Şehir seç</option>${opt2(cities,myCar.city)}</select>
+        <label for="profile-about">Kısa tanıtım</label>
+        <textarea id="profile-about" maxlength="200" rows="2" placeholder="Çalıştığın güzergâhlar, taşıma deneyimin">${esc(myCar.about||'')}</textarea>
+        <button class="chip on" id="profile-save">Profili kaydet</button>
+    </div>${phoneCard()}`;
+}
+
+function renderProfile(main) {
+    const own=[...mineL(),...mineT()].filter(item=>!item.closed&&!expired(item,typeof item.id==='string'?'truck':'load'));
     const jobs=[...offers,...incoming];
-    const done=jobs.filter(o=>o.status==='ok'&&jobStage(o)===3).length,active=jobs.filter(o=>o.status==='ok'&&jobStage(o)!==3).length;
-    const name=myCar.displayName||myName||'Profilim',r=ratingOf(me||'local');
-    m.innerHTML=`<div class="profile-cover"><div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div><div><b>${esc(myCar.displayName)||myName||'Profilim'}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b><div class="profile-caption">${role==='owner'?'Yük sahibi':'Taşıyıcı'}${myCar.city?' · '+esc(myCar.city):''}</div><div class="profile-caption">${r?'★ '+r.avg.toFixed(1)+' · '+r.n+' değerlendirme':'Henüz değerlendirme yok'}</div></div></div><div class="stat profile-stats"><div><b>${own.length}</b><span>Aktif ilanım</span></div><div><b>${active}</b><span>Devam eden iş</span></div><div><b>${done}</b><span>Onaylanan iş</span></div></div>${demoNotice()}<div class="profile-shortcuts"><button class="profile-tool" id="profile-messages"><span aria-hidden="true">✉</span><b>Mesajlar</b><small>Görüşmelerine devam et</small></button><button class="profile-tool" id="profile-favorites"><span aria-hidden="true">♡</span><b>Kaydettiklerim</b><small>${favs.length} kayıtlı ilan</small></button><button class="profile-tool" id="profile-fuel"><span aria-hidden="true">${FUEL_ICON}</span><b>Mazot hesabı</b><small>Yol giderini planla</small></button><button class="profile-tool road-tool" id="profile-map"><span aria-hidden="true">⌖</span><b>Yol haritası</b><small>Yollar ve mola noktaları</small></button></div><div class="profile-grid"><section class="profile-group"><h2>Profil ve iletişim</h2><div class="load profile-info"><label for="profile-name">Görünen ad / firma</label><input id="profile-name" maxlength="60" placeholder="Adın veya firma adın" value="${esc(myCar.displayName||'')}"><label for="profile-city">Bulunduğun şehir</label><select id="profile-city"><option value="">Şehir seç</option>${opt2(cities,myCar.city)}</select><label for="profile-about">Kısa tanıtım</label><textarea id="profile-about" maxlength="200" rows="2" placeholder="Çalıştığın güzergâhlar, taşıma deneyimin">${esc(myCar.about||'')}</textarea><button class="chip on" id="profile-save">Profili kaydet</button></div>${phoneCard()}</section><section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}<details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>${r?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}</section><section class="profile-group"><h2>Üyelik ve destek</h2>${premCard()}<details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details></section></div>`;
+    const done=jobs.filter(job=>job.status==='ok'&&jobStage(job)===3).length;
+    const active=jobs.filter(job=>job.status==='ok'&&jobStage(job)!==3).length;
+    const name=myCar.displayName||myName||'Profilim',rating=ratingOf(me||'local');
+    main.innerHTML=`${profileIdentityHTML(own.length,active,done,name,rating)}${demoNotice()}${profileToolsHTML()}
+        <div class="profile-grid">
+            <section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
+            <section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}
+                <details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>
+                ${rating?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}
+            </section>
+            <section class="profile-group"><h2>Üyelik ve destek</h2>${premCard()}
+                <details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details>
+            </section>
+        </div>`;
     carBind();listBind();
-    $('#profile-save').onclick=()=>{setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)});toast('Profilin kaydedildi');};
-    $('#profile-messages').onclick=openInbox;$('#profile-fuel').onclick=()=>openCalc();
+    $('#profile-save').onclick=()=>{
+        setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)});
+        toast('Profilin kaydedildi');
+    };
+    $('#profile-messages').onclick=openInbox;
+    $('#profile-fuel').onclick=()=>openCalc();
     $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();};
     $('#profile-map').onclick=()=>openRoadMap();
-    if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:esc(myCar.displayName)||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
+    if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:esc(myCar.displayName||'')||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
 }
-function openInbox(){
+
+/**
+ * Mesaj geçmişi ekranı
+ * Görüşme seçimi; sohbet erişimi mevcut Premium kuralını kullanır.
+ */
+
+function inboxEntries() {
     const entries=new Map();
-    [...offers,...incoming].forEach(o=>{const mine=o.bidder===me||(!cloud&&offers.includes(o)),who=mine?(o.owner||nm(o.ownerUid)):nm(o.bidder),uid=mine?o.ownerUid:o.bidder;if(uid&&blocked.includes(uid))return;const k='o'+o.loadId+'_'+o.bidder;entries.set(k,{k,who,route:o.from+' → '+o.to});});
-    Object.keys(chats).forEach(k=>{if(entries.has(k)||!chats[k].some(x=>x.me))return;const truck=trucks.find(t=>'t'+t.id===k),load=loads.find(l=>k==='o'+l.id+'_'+me||k==='o'+l.id+'_');if(truck&&truck.uid&&blocked.includes(truck.uid)||load&&load.uid&&blocked.includes(load.uid))return;entries.set(k,{k,who:truck?(truck.who||nm(truck.uid)):load?(load.owner||nm(load.uid)):'Görüşme',route:truck?truck.from+' → '+truck.to:load?load.from+' → '+load.to:'Kaydedilmiş sohbet'});});
-    const B=$('#sheetBody');B.dataset.k='';B.innerHTML=`<div class="load-detail"><div class="detail-top"><b>Mesajlar</b><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll">${[...entries.values()].map((e,i)=>`<button class="conversation" data-conv="${i}"><b>${e.who}</b><span>${e.route}</span><small>${esc((chats[e.k]||[]).slice(-1)[0]?.t||'Görüşmeyi aç')}</small></button>`).join('')||'<div class="empty">Henüz görüşmen yok. İlan detayındaki Mesaj gönder düğmesinden başlayabilirsin.</div>'}</div></div>`;
-    B.querySelectorAll('[data-conv]').forEach(b=>b.onclick=()=>{const e=[...entries.values()][+b.dataset.conv];openChat(e.k,e.who);});$('#close').onclick=closeSheet;syncDetailViewport();$('#sheet').classList.add('open');
+    [...offers,...incoming].forEach(offer=>{
+        const mine=offer.bidder===me||(!cloud&&offers.includes(offer));
+        const who=mine?(offer.owner||nm(offer.ownerUid)):nm(offer.bidder);
+        const uid=mine?offer.ownerUid:offer.bidder;
+        if(uid&&blocked.includes(uid))return;
+        const key='o'+offer.loadId+'_'+offer.bidder;
+        entries.set(key,{k:key,who,route:offer.from+' → '+offer.to});
+    });
+    Object.keys(chats).forEach(key=>{
+        if(entries.has(key)||!chats[key].some(message=>message.me))return;
+        const truck=trucks.find(item=>'t'+item.id===key);
+        const load=loads.find(item=>key==='o'+item.id+'_'+me||key==='o'+item.id+'_');
+        if((truck?.uid&&blocked.includes(truck.uid))||(load?.uid&&blocked.includes(load.uid)))return;
+        entries.set(key,{
+            k:key,
+            who:truck?(truck.who||nm(truck.uid)):load?(load.owner||nm(load.uid)):'Görüşme',
+            route:truck?truck.from+' → '+truck.to:load?load.from+' → '+load.to:'Kaydedilmiş sohbet'
+        });
+    });
+    return [...entries.values()];
+}
+
+function openInbox() {
+    const entries=inboxEntries(),body=$('#sheetBody');
+    body.dataset.k='';
+    body.innerHTML=`<div class="load-detail">
+        <div class="detail-top"><b>Mesajlar</b><button class="chip detail-close" id="close">Kapat ×</button></div>
+        <div class="detail-scroll">${entries.map((entry,index)=>`<button class="conversation" data-conv="${index}">
+            <b>${entry.who}</b><span>${entry.route}</span>
+            <small>${esc((chats[entry.k]||[]).slice(-1)[0]?.t||'Görüşmeyi aç')}</small>
+        </button>`).join('')||'<div class="empty">Henüz görüşmen yok. İlan detayındaki Mesaj gönder düğmesinden başlayabilirsin.</div>'}</div>
+    </div>`;
+    body.querySelectorAll('[data-conv]').forEach(button=>button.onclick=()=>{
+        const entry=entries[+button.dataset.conv];
+        openChat(entry.k,entry.who);
+    });
+    $('#close').onclick=closeSheet;
+    syncDetailViewport();$('#sheet').classList.add('open');
+}
+
+/**
+ * Yol haritası ekranı
+ * Şehir seçimi, kategori durumu ve açıldığı ilana geri dönüş.
+ */
+
+function openRoadMap(from="",to="",returnToDetail=null) {
+    roadMapDispose(true);
+    const body=$('#sheetBody');body.dataset.k='';
+    body.innerHTML=`<div class="load-detail road-detail">
+        <div class="detail-top">
+            ${returnToDetail?`<button class="chip road-back" id="map-back">${uiIcon('back')} İlana dön</button>`:'<b>Yol haritası</b>'}
+            <button class="chip detail-close" id="close">Kapat ×</button>
+        </div>
+        <div class="road-heading">
+            <span class="eyebrow">TÜRKİYE · YOLDA YANINDA</span>
+            <h2>${from?esc(from)+' → '+esc(to):'Yolunu keşfet'}</h2>
+            <div class="road-city-field">${uiIcon('map')}<label class="sr-only" for="map-city">Haritada şehir bul</label>
+                <select id="map-city"><option value="">${from?'Güzergâhın tamamı':'Türkiye geneli'}</option>${opt2(cities,'')}</select>
+            </div>
+        </div>
+        ${roadMapHTML(from,to)}
+        <div class="road-footer">
+            <div class="road-categories" role="group" aria-label="Yol noktası türü">
+                <button class="chip on" data-map-kind="" aria-pressed="true">Tümü</button>
+                ${Object.entries(ROAD_KINDS).map(([kind,label])=>`<button class="chip" data-map-kind="${kind}" aria-pressed="false">${label}</button>`).join('')}
+            </div>
+            <p id="map-poi-note" role="status"></p>
+            <small class="road-hint">Kaydırarak gezin · İki parmakla yakınlaştır</small>
+        </div>
+    </div>`;
+    syncDetailViewport();$('#sheet').classList.add('open');$('#close').onclick=closeSheet;
+    if(returnToDetail)$('#map-back').onclick=returnToDetail;
+    roadMapBind(body,null,()=>{$('#map-city').value='';});
+
+    function updateNote(kind) {
+        const count=roadStopsFor(kind).length;
+        $('#map-poi-note').textContent=count?count+' doğrulanmış yol noktası gösteriliyor.':
+            'Henüz '+(kind?ROAD_KINDS[kind].toLocaleLowerCase('tr-TR'):'yol noktası')+' eklenmedi. Doğruladığımız işletmeler burada yer alacak.';
+    }
+    updateNote('');
+    body.querySelectorAll('[data-map-kind]').forEach(button=>button.onclick=()=>{
+        body.querySelectorAll('[data-map-kind]').forEach(item=>{
+            item.classList.toggle('on',item===button);item.setAttribute('aria-pressed',String(item===button));
+        });
+        roadMaps.forEach(controller=>controller.category(button.dataset.mapKind));updateNote(button.dataset.mapKind);
+    });
+    $('#map-city').onchange=event=>roadMaps.forEach(controller=>controller.focus(event.target.value));
 }
 
 /**
@@ -4299,7 +4571,7 @@ function openLoad(id) {
     $("#sheetBody").scrollTop = 0;
     syncDetailViewport();
     $("#sheet").classList.add("open");
-    roadMapBind($("#sheetBody"));
+    roadMapBind($("#sheetBody"),()=>openLoad(id));
     $("#close").onclick = closeSheet;
     $("#sh").onclick = () => shareLoad(l);
     $("#call").onclick = () => {
@@ -4326,7 +4598,7 @@ function openTruck(id) {
     $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${t.cap} ton boş kapasite</span><span class="tag">${t.date}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", (t.who || nm(t.uid)) + (lvT(t) === 2 ? " ✓ Onaylı" : vok(t) ? " ✓ Belgeli" : "") + " · " + starTxt(t)], ["Araç", t.veh + " · " + t.body], ["Boş kapasite", t.cap + " ton"], ["Müsait", t.date]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div></section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML()}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
-    roadMapBind($("#sheetBody"));
+    roadMapBind($("#sheetBody"),()=>openTruck(id));
     $("#close").onclick = closeSheet;
     $("#mg").onclick = () => openChat("t" + id, t.who || nm(t.uid));
     $("#call").onclick = () => callTo(phoneOf(t));
@@ -4338,7 +4610,7 @@ function openTruck(id) {
 
 function contactDockHTML() {
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
-    return `<div class="contact-dock dual-contact"><button class="btn contact-call" id="call"><span>☎ Ara</span>${badge}</button><button class="btn alt" id="mg"><span>Mesaj gönder</span>${badge}</button></div>`;
+    return `<div class="contact-dock dual-contact"><button class="btn contact-call" id="call"><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg"><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
 }
 
 /**
@@ -4543,6 +4815,7 @@ try {
     if(savedPostMode === "load" || savedPostMode === "truck") postMode=savedPostMode;
 } catch(e) { }
 
+setNav();
 render();
 
 deep();
@@ -4556,29 +4829,8 @@ catch (e) { }
 // Ortak veritabanı varsa bağlan (yoksa uygulama yerel modda kalır).
 initCloud();
 
-// Pencere açılışında odağı içeride tut; kapanışta çağıran düğmeye geri dön.
-try {
-    const sh = $("#sheet"), body = $("#sheetBody");
-    let previousFocus = null, wasOpen = false;
-    new MutationObserver(() => {
-        const open = sh.classList.contains("open");
-        if (open && !wasOpen) {
-            previousFocus = document.activeElement;
-            body.setAttribute("aria-label", body.querySelector("h2,b,.detail-top")?.textContent || "NakGo penceresi");
-            body.setAttribute("tabindex", "-1");
-            (body.querySelector("#close,#cx,button,input") || body).focus();
-        } else if (!open && wasOpen && previousFocus?.isConnected) previousFocus.focus();
-        wasOpen = open;
-    }).observe(sh, {attributes:true,attributeFilter:["class"]});
-    document.addEventListener("keydown", e => {
-        if(e.key !== "Tab" || !sh.classList.contains("open")) return;
-        const focusables=[...body.querySelectorAll('button,input,select,textarea,a[href],summary,[tabindex="0"]')].filter(el=>el.getClientRects().length&&!el.disabled);
-        if(!focusables.length){e.preventDefault();body.focus();return;}
-        const first=focusables[0],last=focusables.at(-1);
-        if(e.shiftKey&&(document.activeElement===first||document.activeElement===body)){e.preventDefault();last.focus();}
-        else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
-    });
-} catch(e) { }
+// Ekranlar tanımlandıktan sonra ortak pencere erişilebilirliğini başlat.
+initDialogAccessibility();
 </script>
 </body>
 </html>
