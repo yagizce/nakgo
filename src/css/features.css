@@ -50,33 +50,6 @@
   opacity:.8;
 }
 
-.map {
-  position:relative;
-  margin:12px 0 4px;
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:6px;
-}
-
-.map svg {
-  width:100%;
-  display:block;
-}
-
-.map span {
-  position:absolute;
-  right:10px;
-  bottom:8px;
-  font-size:12px;
-  font-weight:700;
-  color:var(--mute);
-}
-
-.rt {
-  animation:dash 1.6s linear infinite;
-}
-
 #sg {
   font-size:13px;
   color:var(--mute);

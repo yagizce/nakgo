@@ -26,7 +26,7 @@ function deep() {
 
 function shareLoad(l) {
     track("sh", l.id);
-    const url = APPURL + "#l=" + l.id, text = dec(l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton · " + fmt(l.price));
+    const url = APPURL + "#l=" + l.id, text = dec(l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton");
     const copy = () => {
         if (navigator.clipboard)
             navigator.clipboard.writeText(text + " " + url).then(() => toast("Bağlantı kopyalandı")).catch(() => toast("Kopyalanamadı"));

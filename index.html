@@ -718,33 +718,6 @@ header p {
   opacity:.8;
 }
 
-.map {
-  position:relative;
-  margin:12px 0 4px;
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:6px;
-}
-
-.map svg {
-  width:100%;
-  display:block;
-}
-
-.map span {
-  position:absolute;
-  right:10px;
-  bottom:8px;
-  font-size:12px;
-  font-weight:700;
-  color:var(--mute);
-}
-
-.rt {
-  animation:dash 1.6s linear infinite;
-}
-
 #sg {
   font-size:13px;
   color:var(--mute);
@@ -1792,7 +1765,6 @@ header p { opacity:1; }
 .detail-group .kv:last-child { border-bottom:0; }
 .detail-note,.estimate-note { font-size:12px; line-height:1.6; color:var(--mute); margin-top:12px; overflow-wrap:anywhere; }
 .detail-calc { margin-top:12px; min-height:44px; }
-.detail-route .map { margin:10px 0 0; }
 .owner-summary { display:flex; gap:10px; align-items:center; margin:12px 0; }
 .owner-summary>div { min-width:0; font-size:14px; overflow-wrap:anywhere; }
 .owner-summary p { color:var(--mute); font-size:12px; margin-top:5px; }
@@ -1810,7 +1782,7 @@ header p { opacity:1; }
 .fuel-shortcut b { display:block; font-size:14px; }
 .fuel-shortcut small { display:block; color:var(--mute); margin-top:3px; font-size:11px; }
 .detail-group .fuel-shortcut { margin:14px 0 0; background:var(--bg); }
-.dual-contact { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:10px; }
+.dual-contact { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:10px; }
 .dual-contact .btn { padding:13px 8px; min-height:50px; font-size:14px; }
 .dual-contact .btn.alt { background:var(--tag-bg); color:var(--brand-ink); box-shadow:none; }
 .fuel-result { background:var(--app-gradient); color:#fff; border-radius:22px; padding:22px 18px; margin-bottom:16px; }
@@ -1848,6 +1820,10 @@ header p { opacity:1; }
 .conversation { display:flex; flex-direction:column; gap:5px; width:100%; padding:17px; margin-bottom:10px; border:1px solid var(--line); border-radius:17px; background:var(--card); color:var(--ink); text-align:left; cursor:pointer; }
 .conversation span { color:var(--brand-ink); font-size:12px; }
 .conversation small { color:var(--mute); overflow-wrap:anywhere; }
+
+.dual-contact .btn { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:4px; }
+.dual-contact .contact-call { font-size:17px; }
+.dual-contact .pm { margin:0; font-size:9px; line-height:1.2; }
 
 /* Ortak tasarım sistemi ve telefon düzeni */
 
@@ -2022,6 +1998,44 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 #app[data-keyboard=true] { --nav-height:0px; }
 #app[data-keyboard=true] nav { display:none; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+
+/* Gerçek Türkiye haritası ve mobil yol noktaları */
+.road-map { position:relative; height:255px; min-height:180px; overflow:hidden; border:1px solid var(--line); border-radius:17px; background:#d5e8e6; isolation:isolate; }
+.road-viewport { position:absolute; inset:0; overflow:hidden; touch-action:none; cursor:grab; }
+.road-viewport:active { cursor:grabbing; }
+.road-viewport:focus-visible { outline:3px solid var(--brand-ink); outline-offset:-3px; }
+.road-pane,.road-tiles,.road-pins { position:absolute; inset:0; pointer-events:none; }
+.road-tiles img { position:absolute; left:0; top:0; width:256px; height:256px; max-width:none; }
+.road-controls { position:absolute; right:10px; top:10px; display:flex; flex-direction:column; gap:5px; }
+.road-controls button { display:grid; place-items:center; width:44px; height:44px; border:1px solid #b8d3d0; border-radius:12px; color:#123b3a; background:#fff; box-shadow:0 2px 9px #123b3a25; font-size:24px; cursor:pointer; }
+.road-controls button:disabled { opacity:.55; cursor:default; }
+.road-attribution { position:absolute; bottom:0; right:0; max-width:100%; padding:4px 7px; background:#fffffff0; color:#263e3c; font-size:9px; line-height:1.4; }
+.road-attribution a { color:#00685e; text-decoration:underline; }
+.road-status { position:absolute; bottom:32px; left:10px; right:10px; border-radius:10px; background:var(--card); color:var(--ink); font-size:11px; line-height:1.5; padding:8px 10px; box-shadow:0 2px 10px #163a3920; }
+.road-status:has(span:empty) { display:none; }
+.road-status .chip { margin-top:5px; min-height:36px; }
+.road-status button[hidden] { display:none; }
+.road-pin { position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; max-width:130px; }
+.road-pin i { order:2; width:14px; height:14px; background:#007d70; border:3px solid #fff; border-radius:50%; box-shadow:0 1px 6px #123b3a70; }
+.road-pin.finish i { background:#e6af00; }
+.road-pin span { padding:5px 8px; border-radius:8px; background:#fff; color:#113d37; box-shadow:0 2px 10px #123b3a35; font-size:11px; font-weight:800; text-align:center; overflow-wrap:anywhere; margin-bottom:4px; }
+.road-pin small { display:block; font-size:9px; font-weight:500; }
+.road-caption { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; font-size:11px; line-height:1.8; color:var(--brand-ink); }
+.road-caption>span { min-width:0; overflow-wrap:anywhere; }
+.road-caption .chip { flex:none; font-size:11px; min-height:44px; }
+.road-detail .road-map { flex:1; min-height:180px; border-radius:0; border-left:0; border-right:0; }
+.road-heading { flex:none; padding:14px 16px 12px; }
+.road-heading h2 { color:var(--ink); margin:5px 0; font-size:21px; overflow-wrap:anywhere; }
+.road-heading p { font-size:11px; color:var(--mute); line-height:1.5; margin-bottom:10px; }
+.road-heading select { margin:0; padding-top:10px; padding-bottom:10px; }
+.road-footer { flex:none; padding:12px 12px calc(14px + env(safe-area-inset-bottom)); background:var(--card); }
+.road-categories { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
+.road-categories .chip { flex:none; min-height:44px; font-size:11px; padding:9px 10px; }
+.road-footer p { color:var(--mute); font-size:11px; line-height:1.5; margin:6px 4px 0; }
+.profile-tool.road-tool { background:var(--app-gradient); color:#fff; border-color:transparent; }
+.profile-tool.road-tool small { color:#ddfffa; }
+.profile-tool.road-tool>span { color:#ffe075; }
+@media (max-height:580px) { .road-heading { padding:8px 12px; } .road-heading .eyebrow,.road-heading p { display:none; } .road-heading h2 { font-size:16px; } .road-footer { padding:6px 10px calc(6px + env(safe-area-inset-bottom)); } .road-detail .road-map { min-height:100px; } }
 </style>
 </head>
 <body>
@@ -2125,12 +2139,12 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 </div>
 <script>
 /**
- * Sabitler, tablolar ve harita
- * Şehirler, araç tipleri, fiyat ve süre sabitleri, harita çokgenleri, mesafe ve rota haritası çizimi. Çalışma anında değişen durum yoktur.
+ * Sabitler ve mesafeler
+ * Şehir merkezleri, araç tipleri, üyelik sabitleri ve tahmini mesafe. Çalışma anında değişen durum yoktur.
  */
 
 // ===== Sabitler ve tablolar =====
-// Şehirler, araç tipleri, fiyat ve süre sabitleri, harita çokgenleri. Burada çalışma anında değişen durum yoktur.
+// Şehirler, araç tipleri, fiyat ve süre sabitleri, mesafe tabloları. Burada çalışma anında değişen durum yoktur.
 
 const B12 = ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya", "Konya", "Adana", "Gaziantep", "Kayseri", "Samsun", "Trabzon", "Mersin"];
 
@@ -2150,23 +2164,7 @@ const FI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="
 
 const D = [[450, 480, 155, 700, 660, 940, 1130, 790, 740, 1100, 950], [580, 380, 540, 260, 490, 680, 320, 410, 780, 480], [330, 470, 580, 920, 1100, 830, 980, 1350, 850], [620, 520, 850, 1050, 700, 700, 1050, 800], [320, 550, 850, 640, 850, 1250, 480], [340, 640, 330, 700, 1050, 330], [330, 350, 760, 1100, 70], [460, 850, 1000, 340], [500, 720, 420], [340, 810], [1130]];
 
-const GEO = LL;
-
-const BS = [[28, 41.97], [28.55, 41.5], [28.95, 41.3], [29.1, 41.22], [29.6, 41.17], [30.2, 41.15], [30.7, 41.1], [31.15, 41.1], [31.4, 41.28], [31.8, 41.45], [32.4, 41.75], [33, 41.85], [33.7, 41.97], [35, 42.1], [35.2, 41.95], [35.95, 41.7], [36.3, 41.3], [37.3, 41.15], [37.9, 41], [38.4, 40.93], [39.7, 41], [40.5, 41.05], [41.4, 41.4], [41.55, 41.5]];
-
-const EAST = [[42.3, 41.45], [42.7, 41.55], [43.4, 41.1], [43.7, 40.5], [43.7, 40.15], [44.3, 40], [44.8, 39.65], [44.4, 39.4], [44.5, 38.4], [44.2, 37.8], [44.7, 37.2], [44, 37.15], [43, 37.35], [42.4, 37.1], [41.2, 37.1], [40, 36.9], [39, 36.7], [38, 36.85], [37.1, 36.65], [36.6, 36.25]];
-
-const SC = [[35.95, 35.95], [35.9, 36.5], [35.5, 36.55], [35, 36.75], [34.6, 36.75], [34.2, 36.5], [33.8, 36.2], [33, 36.1], [32.6, 36.05], [32, 36.5], [31.3, 36.7], [30.7, 36.85], [30.4, 36.3], [29.9, 36.15], [29.5, 36.3], [29.1, 36.65], [28.5, 36.7], [28, 36.7], [27.5, 36.75], [27.45, 37], [27.2, 37.35], [27.3, 37.8], [26.85, 38], [26.3, 38.25], [26.5, 38.65], [26.85, 38.9], [26.7, 39.35], [26.95, 39.6], [26.15, 39.9], [26.3, 40.1], [26.25, 40.35], [26.6, 40.5], [26.2, 40.75], [26.1, 40.85]];
-
-const TR = [[26.35, 41.72], [26.6, 41.95], [27, 42.05], [27.55, 42], ...BS, ...EAST, ...SC, [26.2, 41.1], [26.3, 41.45]];
-
-const MARM = [[26.9, 40.38], [27.4, 40.33], [28, 40.37], [28.6, 40.38], [29, 40.4], [29.4, 40.7], [29.95, 40.75], [29.3, 40.95], [28.9, 41], [28.2, 40.97], [27.5, 40.95], [27, 40.75]];
-
-const STR = [[26.9, 40.38], [26.7, 40.3], [26.35, 40.05], [26.25, 40.1], [26.55, 40.4], [26.85, 40.5]];
-
-const BOS = [[28.95, 41.05], [29.2, 41.25], [29.08, 41.28], [28.88, 41.08]];
-
-const SL = [["M1 6h13v10H1zM14 10h4l3 3v3h-7", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar teklif verir. Aracın boş kalmasın, yükün beklemesin."], ["M3 17l6-6 4 4 8-8M15 7h6v6", "Rotanı gör, kârını bil", "İlan detayında haritada rotayı, piyasa fiyatını ve yakıt sonrası net kazancını gör."], ["M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3zM9 12l2 2 4-4", "Önce güven", "Belgeli ve onaylı taşıyıcı rozetleri, teslim fotoğrafı ve karşılıklı puanlama."]];
+const SL = [["M1 6h13v10H1zM14 10h4l3 3v3h-7", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar doğrudan görüşür. Aracın boş kalmasın, yükün beklemesin."], ["M3 17l6-6 4 4 8-8M15 7h6v6", "Yolunu gör, giderini planla", "Gerçek yol haritasında çıkış ve varışı gör, mazot giderini hesapla."], ["M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3zM9 12l2 2 4-4", "Önce güven", "Belgeli ve onaylı taşıyıcı rozetleri, yükleme onayı ve karşılıklı puanlama."]];
 
 const PLANS = [{ id: "m", name: "Aylık", price: 299, days: 30 }, { id: "y", name: "Yıllık", price: 3099, days: 365 }];
 
@@ -2174,7 +2172,7 @@ const TTL = { load: 14, truck: 7, offer: 3 };
 
 const SUPPORT_MAIL = "destek@example.com";
 
-const FAQ = [["Premium üyelik nedir?", "Premium üyeler ilan sahiplerini ve taşıyıcıları doğrudan telefonla arayabilir."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Yükleme nasıl onaylanır?", "Taşıyıcı İşlerim bölümünde Yükledim der; yük sahibi yüklemeyi onaylar. Teslim fotoğrafı adımı yoktur."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
+const FAQ = [["Premium üyelik nedir?", "Premium üyeler ilan sahiplerini ve taşıyıcıları arayabilir ve uygulama içinden mesajlaşabilir."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Yükleme nasıl onaylanır?", "Taşıyıcı İşlerim bölümünde Yükledim der; yük sahibi yüklemeyi onaylar. Teslim fotoğrafı adımı yoktur."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
 
 /* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ayrıntı HANDOFF.md bölüm 14. */
 const FEAT = { prices: { l: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 }, t: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 } } };
@@ -2190,7 +2188,7 @@ const VB = '<span class="vb">✓ Belgeli</span>';
 const VA = '<span class="vb va">✓ Onaylı</span>';
 
 // ===== Mesafe ve harita =====
-// Kuş uçuşu ve tablo mesafesi, en yakın il, rota haritasının SVG çizimi.
+// Kuş uçuşu ve tablo mesafesi, en yakın il, tahmini şehir mesafeleri.
 
 function dist(a, b) {
     if (a === b)
@@ -2205,25 +2203,6 @@ function dist(a, b) {
         return 0;
     const R = 6371, rd = Math.PI / 180, h = Math.sin((q[1] - p[1]) * rd / 2) ** 2 + Math.cos(p[1] * rd) * Math.cos(q[1] * rd) * Math.sin((q[0] - p[0]) * rd / 2) ** 2;
     return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 1.3 / 5) * 5;
-}
-
-const px = ([o, t]) => [(o - 25.8) * 15.46, (42.8 - t) * 20];
-
-const PP = a => a.map((p, i) => (i ? "L" : "M") + px(p).map(v => v.toFixed(1)).join(" ")).join("") + "Z";
-
-const BASE = `<rect width="300" height="140" fill="var(--land2)"/><path d="${PP([...SC, [25, 40.85], [25, 35], [36, 35]])}" fill="var(--sea)"/><path d="${PP([[28, 43.5], ...BS, [41.9, 42], [42, 43.5]])}" fill="var(--sea)"/><path d="${PP(TR)}" fill="var(--land)" stroke="var(--line)" stroke-width=".8" stroke-linejoin="round"/><path d="${PP(MARM)}${PP(STR)}${PP(BOS)}" fill="var(--sea)"/><g font-size="6.5" font-style="italic" fill="var(--mute)" opacity=".8"><text x="165" y="8" text-anchor="middle">Karadeniz</text><text x="88" y="134" text-anchor="middle">Akdeniz</text><text x="4" y="105">Ege</text></g>`;
-
-function mapSVG(a, b) {
-    const A = GEO[a], B = GEO[b];
-    if (!A || !B)
-        return "";
-    const [x1, y1] = px(A).map(v => +v.toFixed(1)), [x2, y2] = px(B).map(v => +v.toFixed(1)), cx = (x1 + x2) / 2, cy = Math.min(y1, y2) - Math.hypot(x2 - x1, y2 - y1) * .25 - 6, km = dist(a, b), d = `M${x1} ${y1}Q${cx} ${cy} ${x2} ${y2}`;
-    const dots = Object.entries(GEO).filter(([c]) => c !== a && c !== b).map(([c, g]) => {
-        const [x, y] = px(g);
-        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${B12.includes(c) ? 1.8 : 1.1}" fill="var(--ink)" opacity="${B12.includes(c) ? .45 : .3}"/>${B12.includes(c) ? `<text x="${(x + 3).toFixed(1)}" y="${(y + 2).toFixed(1)}" font-size="6" fill="var(--ink)" opacity=".55">${c}</text>` : ""}`;
-    }).join("");
-    const lab = (x, y, t) => `<text x="${x}" y="${y}" text-anchor="middle" font-size="9" font-weight="800" fill="var(--ink)" stroke="var(--land)" stroke-width="2.4" paint-order="stroke">${t}</text>`;
-    return `<div class="map"><svg viewBox="0 0 300 140" role="img" aria-label="${a} - ${b} rotası">${BASE}${dots}<path class="rt" d="${d}" fill="none" stroke="var(--brand-ink)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="5 5"/><circle cx="${x1}" cy="${y1}" r="4.5" fill="var(--card)" stroke="var(--brand-ink)" stroke-width="2.2"/><circle cx="${x2}" cy="${y2}" r="4.5" fill="var(--accent)"/><circle r="2.8" fill="var(--accent)" stroke="var(--brand-ink)" stroke-width="1.2"><animateMotion dur="4s" repeatCount="indefinite" path="${d}"/></circle>${lab(x1, y1 - 9, a)}${lab(x2, y2 + 16, b)}</svg>${km ? `<span>≈ ${km} km</span>` : ""}</div>`;
 }
 
 const hav = (p, q) => {
@@ -3146,6 +3125,7 @@ const alertsCard = () => `<div class="load" style="cursor:default"><b>Rota alarm
 // Teklif sohbeti (gerçek kullanıcılar arasında canlı, örnek ilanlarda hazır cevaplı).
 
 function openChat(key, who, onFirstSend) {
+    if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
     const live = cloud && /^o\d+_./.test(key), B = $("#sheetBody");
     B.dataset.k = key;
     let msgs = live ? [] : (chats[key] = chats[key] || [{ me: 0, t: "Merhaba, nasıl yardımcı olabilirim?" }]);
@@ -3170,6 +3150,7 @@ function openChat(key, who, onFirstSend) {
     $("#sheet").classList.add("open");
     $("#close").onclick = closeSheet;
     const send = () => {
+        if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
         const t = $("#mi").value.trim().slice(0, 500);
         if (!t)
             return;
@@ -3320,7 +3301,6 @@ function myRate() {
     return R ? " · ★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "";
 }
 
-const roleCard = () => `<div class="load" style="cursor:default"><b>Rolüm</b><div class="seg" style="margin:10px 0 8px"><button data-ro="carrier" class="${role === "carrier" ? "on" : ""}">Taşıyıcıyım</button><button data-ro="owner" class="${role === "owner" ? "on" : ""}">Yük sahibiyim</button></div></div>`;
 
 function setRole(r, go) {
     role = r;
@@ -3574,12 +3554,14 @@ const isPrem = () => prem.until > Date.now();
 const callChip = a => `<button class="chip" ${a}>Ara${isPrem() ? "" : '<b class="pm">Premium</b>'}</button>`;
 
 function openPaywall(why) {
+    roadMapDispose(true);
+    if (unChat) { unChat(); unChat=null; }
     const B = $("#sheetBody");
     B.dataset.k = "";
     let pl = "y";
     const pr = id => PLANS.find(x => x.id === id), save12 = Math.round((1 - pr("y").price / (pr("m").price * 12)) * 100);
     const draw = () => {
-        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${x.id}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
+        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>İlan sahipleriyle uygulama içinden mesajlaş</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${x.id}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
         B.querySelectorAll("[data-pl]").forEach(b => b.onclick = () => {
             pl = b.dataset.pl;
             draw();
@@ -3600,10 +3582,10 @@ function openPaywall(why) {
 }
 
 function callTo(phone) {
-    if (!phone)
-        return toast("Bu kullanıcı henüz numara eklememiş");
     if (!isPrem())
         return openPaywall("Doğrudan arama");
+    if (!phone)
+        return toast("Bu kullanıcı henüz numara eklememiş");
     const B = $("#sheetBody");
     B.dataset.k = "";
     if (/^0000/.test(phone)) {
@@ -3622,7 +3604,7 @@ function callTo(phone) {
     $("#sheet").classList.add("open");
 }
 
-const premCard = () => `<div class="load" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center"><b>Premium üyelik</b>${isPrem() ? '<span class="vb" style="margin:0">Aktif</span>' : '<span class="tag">Üye değil</span>'}</div><p style="font-size:13px;color:var(--mute);margin:8px 0">${isPrem() ? "Bitiş: " + new Date(prem.until).toLocaleDateString("tr-TR") : "Doğrudan arama özelliği Premium üyelere açık."}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip on" id="pm1">${isPrem() ? "Planı uzat" : "Premium'a geç"}</button>${isPrem() ? '<button class="chip" id="pm2">Üyeliği sıfırla (test)</button>' : ""}</div></div>`;
+const premCard = () => `<div class="load" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center"><b>Premium üyelik</b>${isPrem() ? '<span class="vb" style="margin:0">Aktif</span>' : '<span class="tag">Üye değil</span>'}</div><p style="font-size:13px;color:var(--mute);margin:8px 0">${isPrem() ? "Bitiş: " + new Date(prem.until).toLocaleDateString("tr-TR") : "Arama ve mesajlaşma Premium üyelere açık."}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip on" id="pm1">${isPrem() ? "Planı uzat" : "Premium'a geç"}</button>${isPrem() ? '<button class="chip" id="pm2">Üyeliği sıfırla (test)</button>' : ""}</div></div>`;
 
 // ===== Öne çıkan ilan =====
 // Öne çıkarma fiyatı, satın alma ekranı, etkinin ölçülmesi ve özeti.
@@ -3794,7 +3776,7 @@ function deep() {
 
 function shareLoad(l) {
     track("sh", l.id);
-    const url = APPURL + "#l=" + l.id, text = dec(l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton · " + fmt(l.price));
+    const url = APPURL + "#l=" + l.id, text = dec(l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton");
     const copy = () => {
         if (navigator.clipboard)
             navigator.clipboard.writeText(text + " " + url).then(() => toast("Bağlantı kopyalandı")).catch(() => toast("Kopyalanamadı"));
@@ -3865,6 +3847,117 @@ const demoNotice = () => !cloud ? `<p class="demo-note"><b>Demo modu</b> · Veri
 const screenHeading = (title, note) => `<div class="screen-heading"><h2>${title}</h2><p>${note}</p></div>`;
 
 /**
+ * Gerçek yol haritası
+ * Web Mercator harita, dokunmatik gezinme ve doğrulanmış yol noktaları; yalnızca görünen döşemeler yüklenir.
+ */
+
+const ROAD_MAP = {tiles:"https://tile.openstreetmap.org/{z}/{x}/{y}.png",minZoom:4,maxZoom:17};
+// Doğrulanmış işletmeler burada tutulacak. OSM üzerindeki genel POI'ler NakGo onayı anlamına gelmez.
+// Biçim: {id,name,kind:'tire'|'repair'|'rest',coordinates:[boylam,enlem],source,verifiedAt}.
+const ROAD_STOPS = [];
+const ROAD_KINDS = {tire:"Lastikçi",repair:"Tamirci",rest:"Dinlenme tesisi"};
+const roadMaps = new Set();
+
+function roadProject([lon,lat],z) {
+    const size=256*2**z,s=Math.sin(Math.max(-85.0511,Math.min(85.0511,lat))*Math.PI/180);
+    return [(lon+180)/360*size,(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*size];
+}
+function roadUnproject([x,y],z) {
+    const size=256*2**z;
+    return [x/size*360-180,Math.atan(Math.sinh(Math.PI*(1-2*y/size)))*180/Math.PI];
+}
+function roadStopValid(s) {
+    return !!(s&&ROAD_KINDS[s.kind]&&s.name&&s.source&&s.verifiedAt&&Array.isArray(s.coordinates)&&s.coordinates.length===2&&s.coordinates.every(Number.isFinite)&&s.coordinates[0]>=25&&s.coordinates[0]<=45&&s.coordinates[1]>=35&&s.coordinates[1]<=43);
+}
+function roadMapHTML(a="",b="") {
+    return `<div class="road-map" data-from="${esc(a)}" data-to="${esc(b)}"><div class="road-viewport" tabindex="0" role="region" aria-label="Türkiye yol haritası. Ok tuşlarıyla kaydır; artı ve eksiyle yakınlaştır."><div class="road-pane"><div class="road-tiles"></div><div class="road-pins"></div></div></div><div class="road-controls"><button type="button" data-map-action="in" aria-label="Haritayı yakınlaştır">+</button><button type="button" data-map-action="out" aria-label="Haritayı uzaklaştır">−</button><button type="button" data-map-action="fit" aria-label="${a?'Çıkış ve varışı göster':'Türkiye genelini göster'}">⌖</button></div><div class="road-status" role="status"><span>Harita yükleniyor…</span><button class="chip" data-map-action="retry" hidden>Yeniden dene</button></div><div class="road-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> katkıda bulunanlar</div></div>`;
+}
+function routeMapHTML(a,b) {
+    if(!LL[a]||!LL[b])return "";
+    return `${roadMapHTML(a,b)}<div class="road-caption"><span>● Çıkış: ${esc(a)}<br>● Varış: ${esc(b)}</span><button class="chip" data-map-expand>Haritayı büyüt ↗</button></div><p class="estimate-note">Şehir merkezleri gösterilir. Mesafe tahminidir; tıra uygun navigasyon rotası değildir.</p>`;
+}
+function roadMapDispose(all=false) {
+    roadMaps.forEach(c=>{if(all||!c.el.isConnected){c.dispose();roadMaps.delete(c);}});
+}
+function roadMapBind(root) {
+    roadMapDispose();
+    root.querySelectorAll('.road-map').forEach(el=>{
+        if(el.dataset.bound)return;
+        el.dataset.bound='1';
+        const viewport=el.querySelector('.road-viewport'),pane=el.querySelector('.road-pane'),tiles=el.querySelector('.road-tiles'),pins=el.querySelector('.road-pins'),status=el.querySelector('.road-status span'),retry=el.querySelector('[data-map-action=retry]');
+        const a=el.dataset.from,b=el.dataset.to,route=LL[a]&&LL[b],points=route?[LL[a],LL[b]]:[[25.6,35.7],[44.9,42.3]];
+        let z=4,center=[35.25,39],width=0,height=0,active=false,disposed=false,category="",serial=0;
+        let ro,io,frame;const fingers=new Map();let gesture=null;
+        const clamp=()=>{center=[Math.max(24,Math.min(46,center[0])),Math.max(34,Math.min(44,center[1]))];};
+        const fit=()=>{
+            const p=points.map(x=>roadProject(x,0)),dx=Math.abs(p[0][0]-p[1][0]),dy=Math.abs(p[0][1]-p[1][1]);
+            z=Math.max(ROAD_MAP.minZoom,Math.min(12,Math.floor(Math.log2(Math.min((width-90)/Math.max(dx,.5),(height-90)/Math.max(dy,.5))))));
+            center=roadUnproject([(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2],0);clamp();
+        };
+        const draw=()=>{
+            if(!active||disposed||width<1)return;
+            pane.style.transform='';pane.style.transformOrigin='';el.dataset.zoom=z;el.dataset.center=center.map(x=>x.toFixed(5)).join(',');
+            const [cx,cy]=roadProject(center,z),left=cx-width/2,top=cy-height/2,n=2**z,keep=new Set();
+            const ticket=++serial;let pending=0,failed=0;
+            const settle=()=>{if(ticket!==serial||disposed)return;status.textContent=failed?'Bazı harita parçaları yüklenemedi. İnternet bağlantını kontrol et.':pending?'Harita yükleniyor…':'';retry.hidden=!failed;};
+            for(let x=Math.floor(left/256);x<=Math.floor((left+width)/256);x++)for(let y=Math.floor(top/256);y<=Math.floor((top+height)/256);y++){
+                if(x<0||y<0||x>=n||y>=n)continue;
+                const key=z+'-'+x+'-'+y;keep.add(key);
+                let img=tiles.querySelector(`[data-tile="${key}"]`);
+                if(!img){img=document.createElement('img');img.dataset.tile=key;img.alt='';img.draggable=false;img.referrerPolicy='strict-origin-when-cross-origin';tiles.appendChild(img);img.src=ROAD_MAP.tiles.replace('{z}',z).replace('{x}',x).replace('{y}',y);}
+                img.style.transform=`translate(${Math.round(x*256-left)}px,${Math.round(y*256-top)}px)`;
+                if(img.complete){if(!img.naturalWidth)failed++;}else{pending++;img.onload=()=>{pending--;settle();};img.onerror=()=>{pending--;failed++;settle();};}
+            }
+            tiles.querySelectorAll('img').forEach(img=>{if(!keep.has(img.dataset.tile)){img.onload=img.onerror=null;img.remove();}});
+            const markers=route?[{name:a,coordinates:LL[a],label:'Çıkış',className:'start'},{name:b,coordinates:LL[b],label:'Varış',className:'finish'}]:[];
+            markers.push(...ROAD_STOPS.filter(s=>roadStopValid(s)&&(!category||category===s.kind)).map(s=>({...s,label:ROAD_KINDS[s.kind],className:'stop'})));
+            pins.innerHTML=markers.map(s=>{const [x,y]=roadProject(s.coordinates,z),sx=x-left,sy=y-top;if(sx<0||sy<0||sx>width||sy>height)return '';return `<div class="road-pin ${s.className}" style="left:${sx}px;top:${sy}px"><i></i><span><small>${esc(s.label)}</small>${esc(s.name)}</span></div>`;}).join('');
+            el.querySelector('[data-map-action=in]').disabled=z>=ROAD_MAP.maxZoom;el.querySelector('[data-map-action=out]').disabled=z<=ROAD_MAP.minZoom;settle();
+        };
+        const zoom=(delta,anchor=[width/2,height/2])=>{
+            const next=Math.max(ROAD_MAP.minZoom,Math.min(ROAD_MAP.maxZoom,z+delta));if(next===z)return;
+            const c=roadProject(center,z),geo=roadUnproject([c[0]+anchor[0]-width/2,c[1]+anchor[1]-height/2],z);z=next;
+            const p=roadProject(geo,z);center=roadUnproject([p[0]-anchor[0]+width/2,p[1]-anchor[1]+height/2],z);clamp();draw();
+        };
+        el.querySelectorAll('[data-map-action]').forEach(btn=>btn.onclick=()=>{
+            const act=btn.dataset.mapAction;
+            if(act==='in'||act==='out')zoom(act==='in'?1:-1);
+            if(act==='fit'){fit();draw();}
+            if(act==='retry'){tiles.querySelectorAll('img').forEach(img=>{if(img.complete&&!img.naturalWidth)img.remove();});draw();}
+        });
+        const position=e=>{const rect=viewport.getBoundingClientRect();return [e.clientX-rect.left,e.clientY-rect.top];};
+        const begin=()=>{const p=[...fingers.values()],mid=p.length>1?[(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2]:p[0];gesture={mid,center:roadProject(center,z),distance:p.length>1?Math.hypot(p[1][0]-p[0][0],p[1][1]-p[0][1]):0};};
+        viewport.onpointerdown=e=>{if(e.button&&e.button!==0)return;viewport.setPointerCapture(e.pointerId);fingers.set(e.pointerId,position(e));begin();};
+        viewport.onpointermove=e=>{if(!fingers.has(e.pointerId)||!gesture)return;fingers.set(e.pointerId,position(e));const p=[...fingers.values()],mid=p.length>1?[(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2]:p[0];const ratio=p.length>1&&gesture.distance?Math.max(.25,Math.min(4,Math.hypot(p[1][0]-p[0][0],p[1][1]-p[0][1])/gesture.distance)):1;pane.style.transformOrigin=gesture.mid[0]+'px '+gesture.mid[1]+'px';pane.style.transform=`translate(${mid[0]-gesture.mid[0]}px,${mid[1]-gesture.mid[1]}px) scale(${ratio})`;};
+        const end=e=>{
+            if(!fingers.has(e.pointerId)||!gesture)return;
+            const p=[...fingers.values()],mid=p.length>1?[(p[0][0]+p[1][0])/2,(p[0][1]+p[1][1])/2]:p[0];
+            center=roadUnproject([gesture.center[0]-mid[0]+gesture.mid[0],gesture.center[1]-mid[1]+gesture.mid[1]],z);clamp();
+            if(p.length>1&&gesture.distance){const ratio=Math.hypot(p[1][0]-p[0][0],p[1][1]-p[0][1])/gesture.distance;zoom(Math.round(Math.log2(Math.max(.25,ratio))),mid);}
+            fingers.delete(e.pointerId);gesture=null;if(fingers.size)begin();draw();
+        };
+        viewport.onpointerup=end;viewport.onpointercancel=()=>{fingers.clear();gesture=null;pane.style.transform='';};
+        viewport.onkeydown=e=>{const actions={'+':()=>zoom(1),'=':()=>zoom(1),'-':()=>zoom(-1),'0':()=>{fit();draw();}};if(actions[e.key]){e.preventDefault();actions[e.key]();}else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const p=roadProject(center,z);p[0]+=e.key==='ArrowLeft'?-80:e.key==='ArrowRight'?80:0;p[1]+=e.key==='ArrowUp'?-80:e.key==='ArrowDown'?80:0;center=roadUnproject(p,z);clamp();draw();}};
+        viewport.onwheel=e=>{if(!e.ctrlKey)return;e.preventDefault();zoom(e.deltaY<0?1:-1,position(e));};
+        const size=()=>{const rect=viewport.getBoundingClientRect();if(rect.width<1||rect.height<1)return;const initial=!width;width=rect.width;height=rect.height;if(initial)fit();draw();};
+        const activate=()=>{if(active||disposed)return;active=true;size();if(typeof ResizeObserver!=='undefined'){ro=new ResizeObserver(size);ro.observe(viewport);}};
+        if(typeof IntersectionObserver!=='undefined'){io=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting)){activate();io.disconnect();}},{rootMargin:'30px'});io.observe(el);}else frame=requestAnimationFrame(activate);
+        const controller={el,category:value=>{category=value;draw();},focus:city=>{if(LL[city]){center=LL[city].slice();z=11;draw();}else{fit();draw();}},dispose:()=>{disposed=true;io?.disconnect();ro?.disconnect();if(frame)cancelAnimationFrame(frame);tiles.querySelectorAll('img').forEach(img=>img.onload=img.onerror=null);fingers.clear();}};
+        roadMaps.add(controller);
+    });
+    root.querySelectorAll('[data-map-expand]').forEach(btn=>btn.onclick=()=>{const map=btn.closest('.detail-group').querySelector('.road-map');openRoadMap(map.dataset.from,map.dataset.to);});
+}
+function openRoadMap(a="",b="") {
+    roadMapDispose(true);
+    const B=$('#sheetBody');B.dataset.k='';
+    B.innerHTML=`<div class="load-detail road-detail"><div class="detail-top"><b>Yol haritası</b><button class="chip detail-close" id="close">Kapat ×</button></div><div class="road-heading"><span class="eyebrow">TÜRKİYE · YOLDA YANINDA</span><h2>${a?esc(a)+' → '+esc(b):'Yolunu keşfet'}</h2><p>${a?'Çıkış ve varış şehir merkezleri.':'Şehirleri ve yolları keşfet; iki parmakla yakınlaştır.'}</p><label class="sr-only" for="map-city">Haritada şehir bul</label><select id="map-city"><option value="">Türkiye geneli</option>${opt2(cities,'')}</select></div>${roadMapHTML(a,b)}<div class="road-footer"><div class="road-categories"><button class="chip on" data-map-kind="">Tümü</button>${Object.entries(ROAD_KINDS).map(([k,v])=>`<button class="chip" data-map-kind="${k}">${v}</button>`).join('')}</div><p id="map-poi-note" role="status"></p></div></div>`;
+    syncDetailViewport();$('#sheet').classList.add('open');$('#close').onclick=closeSheet;roadMapBind(B);
+    const note=k=>{const count=ROAD_STOPS.filter(s=>roadStopValid(s)&&(!k||s.kind===k)).length;$('#map-poi-note').textContent=count?count+' doğrulanmış yol noktası gösteriliyor.':'Henüz '+(k?ROAD_KINDS[k].toLocaleLowerCase('tr-TR'):'yol noktası')+' eklenmedi. Doğruladığımız işletmeler burada yer alacak.';};note('');
+    B.querySelectorAll('[data-map-kind]').forEach(btn=>btn.onclick=()=>{B.querySelectorAll('[data-map-kind]').forEach(x=>x.classList.toggle('on',x===btn));roadMaps.forEach(c=>c.category(btn.dataset.mapKind));note(btn.dataset.mapKind);});
+    $('#map-city').onchange=e=>roadMaps.forEach(c=>c.focus(e.target.value));
+}
+
+/**
  * İlan taslağı ve adımları
  * Mevcut yayınlama işlevlerini ve kimliklerini koruyarak formu gruplar.
  */
@@ -3922,6 +4015,7 @@ function initPostWizard(m) {
  */
 
 function closeSheet() {
+    roadMapDispose(true);
     if (unChat) {
         unChat();
         unChat = null;
@@ -4148,12 +4242,12 @@ function renderProfile(m){
     const jobs=[...offers,...incoming];
     const done=jobs.filter(o=>o.status==='ok'&&jobStage(o)===3).length,active=jobs.filter(o=>o.status==='ok'&&jobStage(o)!==3).length;
     const name=myCar.displayName||myName||'Profilim',r=ratingOf(me||'local');
-    m.innerHTML=`<div class="profile-cover"><div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div><div><b>${esc(myCar.displayName)||myName||'Profilim'}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b><div class="profile-caption">${role==='owner'?'Yük sahibi':'Taşıyıcı'}${myCar.city?' · '+esc(myCar.city):''}</div><div class="profile-caption">${r?'★ '+r.avg.toFixed(1)+' · '+r.n+' değerlendirme':'Henüz değerlendirme yok'}</div></div></div><div class="stat profile-stats"><div><b>${own.length}</b><span>Aktif ilanım</span></div><div><b>${active}</b><span>Devam eden iş</span></div><div><b>${done}</b><span>Onaylanan iş</span></div></div>${demoNotice()}<div class="profile-shortcuts"><button class="profile-tool" id="profile-messages"><span aria-hidden="true">✉</span><b>Mesajlar</b><small>Görüşmelerine devam et</small></button><button class="profile-tool" id="profile-favorites"><span aria-hidden="true">♡</span><b>Kaydettiklerim</b><small>${favs.length} kayıtlı ilan</small></button><button class="profile-tool" id="profile-fuel"><span aria-hidden="true">${FUEL_ICON}</span><b>Mazot hesabı</b><small>Yol giderini planla</small></button><button class="profile-tool" id="profile-jobs"><span aria-hidden="true">✓</span><b>İşlerim</b><small>Yükleme ve onay</small></button></div><div class="profile-grid"><section class="profile-group"><h2>Profil ve iletişim</h2><div class="load profile-info"><label for="profile-name">Görünen ad / firma</label><input id="profile-name" maxlength="60" placeholder="Adın veya firma adın" value="${esc(myCar.displayName||'')}"><label for="profile-city">Bulunduğun şehir</label><select id="profile-city"><option value="">Şehir seç</option>${opt2(cities,myCar.city)}</select><label for="profile-about">Kısa tanıtım</label><textarea id="profile-about" maxlength="200" rows="2" placeholder="Çalıştığın güzergâhlar, taşıma deneyimin">${esc(myCar.about||'')}</textarea><button class="chip on" id="profile-save">Profili kaydet</button></div>${phoneCard()}${roleCard()}</section><section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}<details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>${r?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}</section><section class="profile-group"><h2>Üyelik ve destek</h2>${premCard()}<details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details></section></div>`;
+    m.innerHTML=`<div class="profile-cover"><div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div><div><b>${esc(myCar.displayName)||myName||'Profilim'}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b><div class="profile-caption">${role==='owner'?'Yük sahibi':'Taşıyıcı'}${myCar.city?' · '+esc(myCar.city):''}</div><div class="profile-caption">${r?'★ '+r.avg.toFixed(1)+' · '+r.n+' değerlendirme':'Henüz değerlendirme yok'}</div></div></div><div class="stat profile-stats"><div><b>${own.length}</b><span>Aktif ilanım</span></div><div><b>${active}</b><span>Devam eden iş</span></div><div><b>${done}</b><span>Onaylanan iş</span></div></div>${demoNotice()}<div class="profile-shortcuts"><button class="profile-tool" id="profile-messages"><span aria-hidden="true">✉</span><b>Mesajlar</b><small>Görüşmelerine devam et</small></button><button class="profile-tool" id="profile-favorites"><span aria-hidden="true">♡</span><b>Kaydettiklerim</b><small>${favs.length} kayıtlı ilan</small></button><button class="profile-tool" id="profile-fuel"><span aria-hidden="true">${FUEL_ICON}</span><b>Mazot hesabı</b><small>Yol giderini planla</small></button><button class="profile-tool road-tool" id="profile-map"><span aria-hidden="true">⌖</span><b>Yol haritası</b><small>Yollar ve mola noktaları</small></button></div><div class="profile-grid"><section class="profile-group"><h2>Profil ve iletişim</h2><div class="load profile-info"><label for="profile-name">Görünen ad / firma</label><input id="profile-name" maxlength="60" placeholder="Adın veya firma adın" value="${esc(myCar.displayName||'')}"><label for="profile-city">Bulunduğun şehir</label><select id="profile-city"><option value="">Şehir seç</option>${opt2(cities,myCar.city)}</select><label for="profile-about">Kısa tanıtım</label><textarea id="profile-about" maxlength="200" rows="2" placeholder="Çalıştığın güzergâhlar, taşıma deneyimin">${esc(myCar.about||'')}</textarea><button class="chip on" id="profile-save">Profili kaydet</button></div>${phoneCard()}</section><section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}<details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>${r?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}</section><section class="profile-group"><h2>Üyelik ve destek</h2>${premCard()}<details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details></section></div>`;
     carBind();listBind();
     $('#profile-save').onclick=()=>{setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)});toast('Profilin kaydedildi');};
     $('#profile-messages').onclick=openInbox;$('#profile-fuel').onclick=()=>openCalc();
     $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();};
-    $('#profile-jobs').onclick=()=>{tab='mine';setNav();render();};
+    $('#profile-map').onclick=()=>openRoadMap();
     if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:esc(myCar.displayName)||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
 }
 function openInbox(){
@@ -4170,6 +4264,7 @@ function openInbox(){
  */
 
 function syncDetailViewport() {
+    roadMapDispose();
     if (typeof window === "undefined" || !window || !window.visualViewport)
         return;
     const v = window.visualViewport, sheet = $("#sheet");
@@ -4180,6 +4275,7 @@ function syncDetailViewport() {
 }
 
 function openLoad(id) {
+    roadMapDispose(true);
     const l = loads.find(x => x.id === id);
     if (!l)
         return toast("İlan bulunamadı");
@@ -4194,15 +4290,16 @@ function openLoad(id) {
         ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
         <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", l.cargo], ["Tonaj", l.ton + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", l.date]])}${l.note ? `<p class="detail-note">${l.note}</p>` : ""}</section>
         <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", l.veh + " · " + (l.body || "Belirtilmedi")], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p><button class="fuel-shortcut" id="cc"><span aria-hidden="true">${FUEL_ICON}</span><span><b>Mazot hesabı</b><small>Bu güzergâhın tahmini gideri</small></span><span aria-hidden="true">→</span></button></section>
-        <section class="detail-group detail-route"><h2>Güzergâh</h2>${mapSVG(l.from, l.to)}</section>
+        <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
         <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${l.owner || (l.uid ? nm(l.uid) : "Bireysel")}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button><button class="chip" id="send">Taşıma talebi gönder</button></div></section>
         <div class="detail-actions"><button class="chip" id="sh">Paylaş</button><button class="chip" id="cp2">${cmp.includes(l.id) ? "Karşılaştırmadan çıkar" : "Karşılaştır"}</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
       </div>
-      <div class="contact-dock dual-contact"><button class="btn alt" id="call">Ara${isPrem() ? "" : '<b class="pm">Premium</b>'}</button><button class="btn" id="mg">Mesaj gönder →</button></div>
+      ${contactDockHTML()}
     </div>`;
     $("#sheetBody").scrollTop = 0;
     syncDetailViewport();
     $("#sheet").classList.add("open");
+    roadMapBind($("#sheetBody"));
     $("#close").onclick = closeSheet;
     $("#sh").onclick = () => shareLoad(l);
     $("#call").onclick = () => {
@@ -4223,11 +4320,13 @@ function openLoad(id) {
 }
 
 function openTruck(id) {
+    roadMapDispose(true);
     const t = trucks.find(x => x.id === id);
     if (!t) return toast("İlan bulunamadı");
-    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${t.cap} ton boş kapasite</span><span class="tag">${t.date}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2>${mapSVG(t.from, t.to)}<div style="margin-top:10px">${[["Taşıyıcı", (t.who || nm(t.uid)) + (lvT(t) === 2 ? " ✓ Onaylı" : vok(t) ? " ✓ Belgeli" : "") + " · " + starTxt(t)], ["Araç", t.veh + " · " + t.body], ["Boş kapasite", t.cap + " ton"], ["Müsait", t.date]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div></section><button class="btn alt" id="call">Taşıyıcıyı ara${isPrem() ? "" : '<b class="pm">Premium</b>'}</button><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div><div class="contact-dock"><button class="btn" id="mg">Mesaj gönder →</button></div></div>`;
+    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${t.cap} ton boş kapasite</span><span class="tag">${t.date}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", (t.who || nm(t.uid)) + (lvT(t) === 2 ? " ✓ Onaylı" : vok(t) ? " ✓ Belgeli" : "") + " · " + starTxt(t)], ["Araç", t.veh + " · " + t.body], ["Boş kapasite", t.cap + " ton"], ["Müsait", t.date]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div></section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML()}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
+    roadMapBind($("#sheetBody"));
     $("#close").onclick = closeSheet;
     $("#mg").onclick = () => openChat("t" + id, t.who || nm(t.uid));
     $("#call").onclick = () => callTo(phoneOf(t));
@@ -4235,6 +4334,11 @@ function openTruck(id) {
     $("#rp").onclick = () => openReport("t", t.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(t.uid);
+}
+
+function contactDockHTML() {
+    const badge=isPrem()?"":'<b class="pm">Premium</b>';
+    return `<div class="contact-dock dual-contact"><button class="btn contact-call" id="call"><span>☎ Ara</span>${badge}</button><button class="btn alt" id="mg"><span>Mesaj gönder</span>${badge}</button></div>`;
 }
 
 /**

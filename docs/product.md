@@ -7,3 +7,5 @@ Taşıma ücretleri ilan, form, filtre, karşılaştırma ve iş ekranlarında g
 Premium telefon erişimi ve test üyelikleri korunur. Öne çıkarma 3/6/12/24/72 saat seçeneklerini kullanır. Fiyatların kaynağı config.js içindeki FEAT ve PLANS'tır; belgelerde fiyat listesi çoğaltılmaz. Test satın almaları tahsilat yapmaz. Belge onayı gerçek ödeme/kimlik doğrulama hizmeti değildir. Evrak tamlığı ve yönetici onayı ayrı göstergelerdir.
 
 Favori, karşılaştırma, paylaşma, alarm, ilan düzenleme/kapatma/silme, bildirim, değerlendirme, şikayet ve engelleme korunur. Üretimde kimlik doğrulama, sunucu yetkilendirmesi ve gerçek servis entegrasyonları ayrıca gerekir; demo bu hizmetlerin varlığını iddia etmez.
+
+Yük ve boş araç detaylarında sarı **Ara** ana işlem, **Mesaj gönder** ikincil işlemdir. İkisi de Premium ister. Profilde rol değiştirme ve yinelenen İşlerim kısayolu yoktur; İşlerim alt gezinmededir. Yol haritası profilden veya ilan detayından açılır; yakınlaştırma, kaydırma ve şehir seçimi desteklenir. Henüz doğrulanmış işletme eklenmediği açıkça belirtilir. Harita çevrimiçi çalışır; bağlantı hatası yeniden deneme ile gösterilir.

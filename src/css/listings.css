@@ -66,7 +66,6 @@ header p { opacity:1; }
 .detail-group .kv:last-child { border-bottom:0; }
 .detail-note,.estimate-note { font-size:12px; line-height:1.6; color:var(--mute); margin-top:12px; overflow-wrap:anywhere; }
 .detail-calc { margin-top:12px; min-height:44px; }
-.detail-route .map { margin:10px 0 0; }
 .owner-summary { display:flex; gap:10px; align-items:center; margin:12px 0; }
 .owner-summary>div { min-width:0; font-size:14px; overflow-wrap:anywhere; }
 .owner-summary p { color:var(--mute); font-size:12px; margin-top:5px; }
@@ -84,7 +83,7 @@ header p { opacity:1; }
 .fuel-shortcut b { display:block; font-size:14px; }
 .fuel-shortcut small { display:block; color:var(--mute); margin-top:3px; font-size:11px; }
 .detail-group .fuel-shortcut { margin:14px 0 0; background:var(--bg); }
-.dual-contact { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr); gap:10px; }
+.dual-contact { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:10px; }
 .dual-contact .btn { padding:13px 8px; min-height:50px; font-size:14px; }
 .dual-contact .btn.alt { background:var(--tag-bg); color:var(--brand-ink); box-shadow:none; }
 .fuel-result { background:var(--app-gradient); color:#fff; border-radius:22px; padding:22px 18px; margin-bottom:16px; }
@@ -122,3 +121,7 @@ header p { opacity:1; }
 .conversation { display:flex; flex-direction:column; gap:5px; width:100%; padding:17px; margin-bottom:10px; border:1px solid var(--line); border-radius:17px; background:var(--card); color:var(--ink); text-align:left; cursor:pointer; }
 .conversation span { color:var(--brand-ink); font-size:12px; }
 .conversation small { color:var(--mute); overflow-wrap:anywhere; }
+
+.dual-contact .btn { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:4px; }
+.dual-contact .contact-call { font-size:17px; }
+.dual-contact .pm { margin:0; font-size:9px; line-height:1.2; }

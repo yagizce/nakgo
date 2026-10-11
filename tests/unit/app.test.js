@@ -10,7 +10,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     ok(r("return cities.includes('Zonguldak')&&cities.includes('Şanlıurfa')"), "Türkçe adlar");
     ok(r("return dist('İstanbul','Ankara')") === 450, "tablo mesafesi");
     const d = r("return [dist('Adana','Zonguldak'),dist('Zonguldak','Adana')]"); ok(d[0] > 0 && d[0] === d[1], "yaklaşık mesafe simetrik " + d[0]);
-    ok(r("let a=0;for(let i=0;i<cities.length;i+=7)for(let j=0;j<cities.length;j+=5)if(i!==j&&!mapSVG(cities[i],cities[j]))a++;return a") === 0, "harita çizimi");
+    ok(r("let a=0;for(let i=0;i<cities.length;i+=7)for(let j=0;j<cities.length;j+=5)if(i!==j&&!routeMapHTML(cities[i],cities[j]))a++;return a") === 0, "harita çizimi");
   });
 
   run("İlanlarda ücret pazarlığı bulunmaz", (r,ok)=>{

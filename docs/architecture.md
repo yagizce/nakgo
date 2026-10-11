@@ -9,3 +9,9 @@ NakGo bağımlılıksız HTML/CSS/JavaScript uygulamasıdır; React Native deği
 Host ortamında `window.claude.use("db")` ve `use("user")` varsa mevcut ortak veri akışı kullanılır. Koleksiyonlar: loads, trucks, offers, msgs, carriers, approvals, ratings, reports. Normal Vercel/PWA bu servisleri sağlamaz; yerel demo çalışır. Ön yüzdeki kurallar sunucu güvenliği yerine geçmez.
 
 Üretilen çıktılar ve kaynak ayrımı kök README'deki dosya tablosunda açıklanır.
+
+Gerçek yol haritası `src/js/ui/road-map.js` içinde Web Mercator projeksiyonu ve yerel Pointer Events ile çalışır. Yeni framework veya paket yoktur. OSM yol döşemeleri yalnızca görünen harita açılınca yüklenir; servis çalışanı dış harita isteklerini önbelleklemez. Şehir merkezleri işaretlenir; yol navigasyonu veya tıra uygun rota üretilmez. Tahmini mesafe mevcut tablodan korunur.
+
+Doğrulanmış lastikçi, tamirci ve dinlenme tesisleri `ROAD_STOPS` koleksiyonuna ad, kategori, koordinat, kaynak ve doğrulama tarihiyle eklenir. Eksik veya geçersiz noktalar gösterilmez; ilk sürümde bu liste boştur. `ROAD_MAP.tiles` harita sağlayıcısını değiştirmek için tek yapılandırma noktasıdır. [OSM döşeme politikası](https://operations.osmfoundation.org/policies/tiles/) gereği toplu indirme/çevrimdışı harita yoktur; tarayıcı HTTP önbelleğine uyulur ve kaynak haritada görünür.
+
+Arama ve sohbet açma/gönderme Premium kontrolüne tabidir. Gönderirken süresi dolan üyelik tekrar denetlenir. Mevcut host entegrasyonu dışında üyelik hâlâ demo verisidir; gerçek sunucuda aynı yetkiler sunucu tarafında uygulanmalıdır.
