@@ -4063,7 +4063,7 @@ function renderPost(m) {
                     return toast("Çıkış ve varış şehri farklı olmalı");
                 if (!(+$("#w").value > 0))
                     return toast("Boş kapasiteyi gir");
-                postTruck({ id: "t" + Date.now(), who: "Ben (Yağız)", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" });
+                postTruck({ id: "t" + Date.now(), who: esc(myCar.displayName || "") || myName || "Ben", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" });
                 clearPostDraft();
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
@@ -4088,7 +4088,7 @@ function renderPost(m) {
         pb();
         itemsUI();
         $("#go").onclick = () => {
-            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim(), ton: +$("#w").value, veh: $("#v").value, date: $("#d").value, body: $("#b").value, note: $("#n").value.trim(), owner: "Ben (Yağız)" };
+            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim(), ton: +$("#w").value, veh: $("#v").value, date: $("#d").value, body: $("#b").value, note: $("#n").value.trim(), owner: esc(myCar.displayName || "") || myName || "Ben" };
             if (l.from === l.to)
                 return toast("Çıkış ve varış şehri farklı olmalı");
             if (!l.cargo || !(l.ton > 0))
