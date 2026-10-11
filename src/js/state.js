@@ -41,7 +41,7 @@ let reports = [];
 let favs = [];
 let alerts = [];
 let blocked = [];
-let calc = { km: 450, cons: 32, fuel: 95, toll: 1200, other: 500, fare: 28500, back: false };
+let calc = { km: 450, cons: 32, fuel: 95, toll: 1200, other: 500, back: false };
 let role = "";
 
 // --- Filtre, yakınımda ve karşılaştırma ---

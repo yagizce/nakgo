@@ -1,10 +1,10 @@
 /**
  * Profil, doğrulama ve güven
- * Herkese açık profil, puan, rol ve tanıtım, kazanç; belge rozetleri ve telefon; şikayet, engelleme ve yardım.
+ * Herkese açık profil, puan, rol ve tanıtım, profil bilgileri; belge rozetleri ve telefon; şikayet, engelleme ve yardım.
  */
 
 // ===== Profil ve kazanç =====
-// Herkese açık profil, puan ve yorum, rol ve tanıtım, kazanç özeti ve haftalık grafik, ana ekrana ekleme, profil sekmesi olayları.
+// Herkese açık profil, puan ve yorum, rol ve tanıtım, iletişim bilgileri, ana ekrana ekleme, profil sekmesi olayları.
 
 function listBind() {
     const M = $("#main");
@@ -123,7 +123,7 @@ function myRate() {
     return R ? " · ★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "";
 }
 
-const roleCard = () => `<div class="load" style="cursor:default"><b>Rolüm</b><div class="seg" style="margin:10px 0 8px"><button data-ro="carrier" class="${role === "carrier" ? "on" : ""}">Taşıyıcıyım</button><button data-ro="owner" class="${role === "owner" ? "on" : ""}">Yük sahibiyim</button></div><button class="chip" id="onb2">Tanıtımı tekrar göster</button></div>`;
+const roleCard = () => `<div class="load" style="cursor:default"><b>Rolüm</b><div class="seg" style="margin:10px 0 8px"><button data-ro="carrier" class="${role === "carrier" ? "on" : ""}">Taşıyıcıyım</button><button data-ro="owner" class="${role === "owner" ? "on" : ""}">Yük sahibiyim</button></div></div>`;
 
 function setRole(r, go) {
     role = r;
@@ -192,40 +192,16 @@ function openProfile(o) {
     const B = $("#sheetBody");
     B.dataset.k = "";
     const R = o.uid ? rates.filter(x => x.to === o.uid) : [], avg = R.length ? R.reduce((t, x) => t + x.stars, 0) / R.length : (+o.rate || 0);
+    const info = o.uid ? carriers[o.uid] || {} : {};
     const act = o.uid ? loads.filter(l => l.uid === o.uid && !l.closed && !expired(l, "load")).length + trucks.filter(t => t.uid === o.uid && !t.closed && !expired(t, "truck")).length : 0;
     const done = o.uid ? allO.filter(x => (x.bidder === o.uid || x.ownerUid === o.uid) && (+x.stage || 0) >= 3).length : 0, n2 = o.name || "Kullanıcı";
-    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${(String(n2).replace(/&[^;]+;/g, "?")[0] || "?").toUpperCase()}</div><div><b style="font-size:18px">${n2}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Teslim</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${cloud ? x.text : esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${(String(n2).replace(/&[^;]+;/g, "?")[0] || "?").toUpperCase()}</div><div><b style="font-size:18px">${n2}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${cloud ? x.text : esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
     if ($("#pr"))
         $("#pr").onclick = () => openReport("u", o.uid);
     if ($("#pb2"))
         $("#pb2").onclick = () => blockUser(o.uid);
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
-}
-
-const earnCard = () => {
-    const Dn = offers.filter(o => o.status === "ok" && (o.stage || 0) >= 3), P = offers.filter(o => o.status === "ok" && (o.stage || 0) < 3);
-    if (!Dn.length && !P.length)
-        return "";
-    const tot = Dn.reduce((t, o) => t + o.offer, 0), kms = Dn.reduce((t, o) => t + (o.km || dist(o.from, o.to)), 0), pend = P.reduce((t, o) => t + o.offer, 0);
-    return `<div class="load" style="cursor:default"><b>Kazancım</b><div class="stat flat" style="margin:10px 0 4px"><div><b>${Dn.length}</b><span>Tamamlanan</span></div><div><b>${fmt(tot)}</b><span>Toplam</span></div><div><b>${kms ? Math.round(tot / kms) : 0}</b><span>₺/km</span></div></div>${Dn.length ? weekChart() : ""}${P.length ? `<p style="font-size:13px;color:var(--mute)">Devam eden ${P.length} iş · ${fmt(pend)}</p>` : ""}</div>`;
-};
-
-function weekly() {
-    const n = new Date(weekStart(Date.now())), W = [];
-    for (let i = 7; i >= 0; i--)
-        W.push({ t: new Date(n.getFullYear(), n.getMonth(), n.getDate() - 7 * i).getTime(), v: 0 });
-    offers.filter(o => o.status === "ok" && (o.stage || 0) >= 3).forEach(o => {
-        const k = weekStart(o.doneAt || o.ots || Date.now()), w = W.find(x => x.t === k);
-        if (w)
-            w.v += o.offer;
-    });
-    return W;
-}
-
-function weekChart() {
-    const W = weekly(), mx = Math.max(1, ...W.map(w => w.v)), best = Math.max(...W.map(w => w.v));
-    return `<div class="wk" role="img" aria-label="Son 8 haftalık kazanç">${W.map(w => `<div title="${fmt(w.v)}"><i style="height:${w.v ? Math.max(6, Math.round(w.v / mx * 60)) : 3}px;${w.v ? "" : "background:var(--line)"}"></i><span>${new Date(w.t).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}</span></div>`).join("")}</div><p style="font-size:12.5px;color:var(--mute);margin-top:6px">Bu hafta ${fmt(W[W.length - 1].v)} · En iyi hafta ${fmt(best)}</p>`;
 }
 
 const isNative = () => {
@@ -318,7 +294,7 @@ const adminCard = () => {
 
 function setCar(patch) {
     Object.assign(myCar, patch);
-    const d = { phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
+    const d = { displayName: myCar.displayName || "", city: myCar.city || "", about: myCar.about || "", phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
     d.ok = cOk(d);
     carriers[me || "local"] = d;
     if (cloud)

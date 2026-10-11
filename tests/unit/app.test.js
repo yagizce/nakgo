@@ -13,9 +13,10 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     ok(r("let a=0;for(let i=0;i<cities.length;i+=7)for(let j=0;j<cities.length;j+=5)if(i!==j&&!mapSVG(cities[i],cities[j]))a++;return a") === 0, "harita çizimi");
   });
 
-  run("Piyasa fiyatı ve öneri", (r, ok) => {
-    ok(/ort\./.test(r("return mk(loads[0])")), "mk metni");
-    ok(r("return mkt('İstanbul','Ankara','Tır',0).rate")>0, "oran");
+  run("İlanlarda ücret pazarlığı bulunmaz", (r,ok)=>{
+    r("tab='list';render();openFilter()");
+    ok(!/Ücret|₺\/km/.test(r("return main()")), "liste taşıma ücreti göstermez");
+    ok(!r("return sheet()").includes('priceMin'), "ücret filtresi bulunmaz");
   });
 
   run("Filtre", (r, ok) => {
@@ -81,20 +82,21 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
   });
 
   // ===== profile =====
-  run("Herkese açık profil ve kazanç", (r, ok) => {
+  run("Herkese açık profil ve iş özeti", (r, ok) => {
     r("rates=[{k:'a',to:'u1',by:'x',stars:5,text:'Harika',ts:1},{k:'b',to:'u1',by:'y',stars:3,text:'<b>iyi</b>',ts:2}];openProfile({uid:'u1',name:'Ali',lv:2})");
     const h = r("return sheet()"); ok(h.includes("★ 4.0 (2 değerlendirme)") && h.includes("✓ Onaylı"), "puan ortalaması ve rozet");
     ok(h.includes("&lt;b&gt;iyi") && !h.includes("<b>iyi"), "yorum kaçışlı");
     r("openProfile({name:'Örnek',rate:4.6})"); ok(r("return sheet()").includes("★ 4.6"), "örnek profil");
     r("offers=[{...loads[0],offer:20000,status:'ok',loadId:1,bidder:'',stage:3},{...loads[1],offer:9000,status:'ok',loadId:2,bidder:'',stage:1}];tab='me';render()");
-    const m = r("return main()"); ok(m.includes("Kazancım") && m.includes("Devam eden 1 iş"), "kazanç kartı");
+    const m = r("return main()"); ok(m.includes("Devam eden iş") && m.includes("Onaylanan iş") && !m.includes("Kazancım"), "kazanç yerine iş özeti");
   });
 
-  run("Haftalık kazanç grafiği", (r, ok) => {
+  run("İki aşamalı iş onayı ve eski kayıtlar", (r,ok)=>{
     r("offers=[{...loads[0],offer:20000,status:'ok',loadId:1,bidder:'',stage:2}];setStage(offers[0],3)");
-    ok(r("return offers[0].doneAt") > 0, "teslim zamanı kaydedilir");
-    ok(r("return weekly().length") === 8 && r("const w=weekly();return w[w.length-1].v") === 20000, "bu haftanın toplamı");
-    r("tab='me';render()"); ok(r("return main()").includes('class="wk"'), "grafik profilde görünür");
+    ok(r("return offers[0].doneAt")>0, "onay zamanı kaydedilir");
+    ok(r("return jobStage({stage:2})===1&&jobStage({stage:3})===3"), "eski yüklenmiş ve onaylanmış işler korunur");
+    r("tab='mine';render()");const h=r("return main()");
+    ok(h.includes('Onaylandı')&&!/Teslim ettim|Fotoğrafı gör|data-chat|data-cl=/.test(h), "gereksiz iş adımları ve iletişim düğmeleri yok");
   });
 
   run("İlk açılış tanıtımı ve rol", (r, ok) => {
@@ -112,8 +114,8 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     const s = r("return statsOf(loads[0])");
     ok(s.views === 2 && s.saves === 1 && s.calls === 1 && s.offers === 2 && s.best === 9000 && s.avg === 8500, "bulutta gerçek sayılar, kendi görüntülemem sayılmaz");
     ok(s.daily[6] === 1 && s.daily[5] === 1, "günlük dağılım");
-    r("openStats(700)"); const h = r("return sheet()"); ok(h.includes("İlan performansı") && h.includes("Teklif oranı") && h.includes("%100"), "istatistik penceresi");
-    ok(/ortalaması ilan ücretinin %15 altında/.test(h), "öneri metni");
+    r("openStats(700)"); const h = r("return sheet()"); ok(h.includes("İlan performansı") && h.includes("Talep oranı") && h.includes("%100"), "istatistik penceresi");
+    ok(!/En yüksek teklif|İlan ücreti/.test(h), "ilan performansında taşıma ücretleri yok");
     r("tab='me';render()"); ok(r("return main()").includes('data-st2="700"'), "İlanlarım'da İstatistik düğmesi");
   });
 
@@ -153,7 +155,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     r("openStats(810)"); const h = r("return sheet()"); ok(h.includes("Öne çıkarmanın etkisi") && h.includes("saatlik") && !h.includes("Örnek veri"), "istatistik ekranında etki kutusu");
     r("events=events.slice(0,2)"); ok(r("return statsOf(loads[0]).fx.lift") === null, "az veride sonuç vermez");
     r("openStats(810)"); ok(r("return sheet()").includes("Henüz yeterli veri yok. Anlamlı"), "yetersiz veri uyarısı");
-    r("tab='me';render()"); const m = r("return main()"); ok(m.includes("Öne çıkarma özeti") && m.includes("Toplam harcama"), "profilde özet kartı");
+    r("tab='me';render()"); const m = r("return main()"); ok(m.includes('data-st2="810"') && m.includes('data-me="l|810"'), "profilde ilan yönetimi korunur");
     r("cloud=false;loads.unshift({id:811,from:'İzmir',to:'Bursa',cargo:'Demo',ton:3,veh:'Kamyon',price:10000,date:'Cuma',mine:true,featFrom:Date.now(),featUntil:Date.now()+6*36e5,featPaid:32});openStats(811)");
     ok(r("return sheet()").includes("Örnek veri"), "yerel modda örnek veri olarak işaretlenir");
     r("openFeature('l',811)");r("el('#fbuy').onclick()"); ok(r("const x=findIt('l',811);return isF(x)&&x.featUntil>Date.now()+11*36e5&&x.featWin.length===2")===true, "aktifken uzatma kesintisiz sürer, pencere kaydedilir");

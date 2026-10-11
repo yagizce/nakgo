@@ -162,15 +162,13 @@ function statsOf0(l) {
 
 const statLine = l => {
     const s = statsOf(l);
-    return s.views + " görüntülenme · " + s.offers + " teklif · " + s.saves + " kayıt" + (s.demo ? " (örnek)" : "");
+    return s.views + " görüntülenme · " + s.offers + " talep · " + s.saves + " kayıt" + (s.demo ? " (örnek)" : "");
 };
 
 function statTips(l, s) {
     const t = [];
     if (s.views >= 10 && s.offers === 0)
-        t.push("Görüntülenme var ama teklif yok. Ücreti veya açıklamayı gözden geçir.");
-    if (s.offers > 0 && s.avg && s.avg < l.price * .9)
-        t.push("Gelen tekliflerin ortalaması ilan ücretinin %" + Math.round((1 - s.avg / l.price) * 100) + " altında.");
+        t.push("Görüntülenme var ama taşıma talebi yok. Yük bilgilerini ve açıklamayı gözden geçir.");
     if (s.views < 5 && s.age >= 2)
         t.push(!l.img ? "Az kişi gördü. Fotoğraf eklemek ilgiyi artırır." : "Az kişi gördü. Yükleme gününü ve kasa tipini kontrol et.");
     if (s.calls > 0)
@@ -194,7 +192,7 @@ function openStats(id) {
         return `<div title="${v}"><i style="height:${v ? Math.max(6, Math.round(v / mx * 60)) : 3}px;${v ? "" : "background:var(--line)"}"></i><span>${d.toLocaleDateString("tr-TR", { weekday: "short" })}</span></div>`;
     }).join("");
     const tile = (n, t) => `<div><b>${n}</b><span>${t}</span></div>`;
-    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${l.from}<i></i>${l.to}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Teklif")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Teklif oranı")}</div>${fxBox(s.fx)}${s.offers ? `<p style="font-size:13.5px;margin-top:12px">En yüksek teklif <b>${fmt(s.best)}</b> · Ortalama <b>${fmt(s.avg)}</b> · İlan ücreti <b>${fmt(l.price)}</b></p>` : ""}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${l.from}<i></i>${l.to}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
 }

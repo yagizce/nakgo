@@ -49,7 +49,7 @@ const weekStart = t => {
 
 const f1 = n => n.toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
-const perKm = l => l.km ? Math.round(l.price / l.km) + " ₺/km" : "—";
+
 
 const $ = s => document.querySelector(s);
 
@@ -184,11 +184,6 @@ if (calc.fuel === 45)
         }
 }
 
-[[6, 52000], [10, 48000], [12, 13500]].forEach(([id, p]) => {
-    const l = loads.find(x => x.id === id);
-    if (l && l.price < p)
-        l.price = p;
-});
 
 // ===== Bulut katmanı =====
 // Ortak veritabanı: yazma yardımcıları, okunan verinin duruma çevrilmesi, olay izleme, bulut başlatma.
@@ -288,7 +283,7 @@ async function initCloud() {
             carriers = {};
             sn.docs.forEach(x => {
                 const v = x.data();
-                carriers[x.id] = { phone: esc(String(v.phone || "").slice(0, 20)), ok: v.ok === true, lic: esc(v.lic || ""), src: !!v.src, kb: !!v.kb, ruh: !!v.ruh, docs: { src: !!(v.docs && v.docs.src), kb: !!(v.docs && v.docs.kb), ruh: !!(v.docs && v.docs.ruh) } };
+                carriers[x.id] = { displayName: String(v.displayName || "").slice(0,60), city: String(v.city || "").slice(0,40), about: String(v.about || "").slice(0,200), phone: esc(String(v.phone || "").slice(0, 20)), ok: v.ok === true, lic: esc(v.lic || ""), src: !!v.src, kb: !!v.kb, ruh: !!v.ruh, docs: { src: !!(v.docs && v.docs.src), kb: !!(v.docs && v.docs.kb), ruh: !!(v.docs && v.docs.ruh) } };
             });
             if (first) {
                 if (carriers[me])

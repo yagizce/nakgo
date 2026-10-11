@@ -120,6 +120,10 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .card-main .listing-price>span:first-child { color:var(--mute); font-size:10px; }
 .card-main .price { font-size:24px; line-height:1.2; letter-spacing:-.8px; }
 .card-main .price small { font-size:14px; letter-spacing:0; }
+.card-main.contact-card { grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); }
+.card-contact { display:flex; flex-direction:column; justify-content:center; gap:6px; background:var(--tag-bg); color:var(--brand-ink); border-radius:14px; padding:12px; min-width:0; }
+.card-contact span { font-size:10px; color:var(--mute); }
+.card-contact b { font-size:14px; line-height:1.4; }
 .wide-price { grid-template-columns:minmax(0,1fr); }
 .wide-price .listing-price { flex-direction:row; justify-content:space-between; align-items:center; flex-wrap:wrap; }
 .wide-price .price { font-size:27px; }
@@ -148,10 +152,10 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .detail-summary .tag { background:#00454d88; color:#fff; padding:6px 10px; }
 .detail-summary .tag.ft { background:var(--accent); color:var(--on-accent); }
 .detail-group { border-radius:20px; }
-.offer-dock,.contact-dock { box-shadow:0 -6px 20px #003e4510; border-radius:22px 22px 0 0; }
+.contact-dock { box-shadow:0 -6px 20px #003e4510; border-radius:22px 22px 0 0; }
 .contact-dock { padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px)); background:var(--card); flex:none; }
 .contact-dock .btn { margin:0; }
-.offer-dock .btn,.form-dock .btn,.contact-dock .btn { background:linear-gradient(140deg,#ffe68b,#ffd34e); border-radius:14px; }
+.form-dock .btn,.contact-dock .btn { background:linear-gradient(140deg,#ffe68b,#ffd34e); border-radius:14px; }
 .screen-heading { padding:20px; background:linear-gradient(115deg,#00565f,#007f83); color:#fff; border-radius:24px; margin-bottom:18px; }
 .screen-heading h2 { margin:0 0 6px; }
 .screen-heading p { color:#e0fffc; font-size:12px; }

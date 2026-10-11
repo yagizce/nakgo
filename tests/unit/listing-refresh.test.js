@@ -16,21 +16,19 @@ module.exports = function register({ run }) {
     r("tab='list';mode='load';render()");
     const h = r("return main()"), card = r("return lCard(loads.find(x=>x.date==='Bugün'))");
     ok(h.indexOf('route-search') < h.indexOf('class="seg"') && h.indexOf('market-stats') > h.indexOf('data-id="1"'), "arama başta, istatistik ilanlardan sonra");
-    ok(!h.includes('id="fc"') && h.includes('Demo modu'), "yakıt kartı listeden kalkar, demo açıklaması görünür");
+    ok(h.includes('id="fuel-home"') && h.includes('Demo modu'), "mazot hesabı kısayolu erişilir, demo açıklaması görünür");
     ok(card.includes('Bugün') && !card.includes('Acil'), "Bugün ayrı aciliyet verisi olmadan Acil olmaz");
-    ok(card.indexOf('listing-price') < card.indexOf('cargo-line'), "ücret yük özelliklerinden önce gelir");
+    ok(!card.includes("Taşıma ücreti") && card.includes("Ara veya mesajlaş"), "fiyat yerine iletişim vurgusu gelir");
     r("cloud=true;render()");
     ok(!r("return main()").includes('Demo modu'), "bulut modunda demo açıklaması görünmez");
   });
-  run("Yük detayından teklif gönderme ve kalıcılık", (r, ok) => {
-    r("openLoad(1)");
-    const h = r("return sheet()");
-    ok(['Yük bilgileri','Taşıma ve ödeme','Yük sahibi','Tahmini mesafe','Yakıt sonrası tahmini kazanç'].every(t=>h.includes(t)), "okunabilir bilgi grupları ve tahmin açıklamaları");
-    ok(h.includes('offer-dock') && ['cc','sh','call','pf','cp2','rp','close'].every(id=>h.includes('id=\"'+id+'\"')), "teklif alanı ve ikincil işlemler korunur");
-    r("el('#o').value='0';el('#send').onclick()");
-    ok(r("return offers.length")===0, "geçersiz tutar teklif oluşturmaz");
-    r("el('#o').value='27000';el('#send').onclick();tab='mine';render()");
-    ok(r("return offers[0].offer===27000&&offers[0].loadId===1&&offers[0].status==='wait'"), "teklif doğru tutar ve ilanla kaydedilir");
-    ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].offer")===27000, "yerel saklama anahtarı ve teklif kaydı korunur");
+  run("Detaydan tutarsız taşıma talebi ve kalıcılık", (r,ok)=>{
+    r("openLoad(1)");const h=r("return sheet()");
+    ok(['Yük bilgileri','Taşıma bilgileri','Yük sahibi','Tahmini mesafe','Mazot hesabı'].every(t=>h.includes(t)), "bilgi grupları ve hesap erişimi");
+    ok(h.includes('dual-contact')&&['cc','sh','call','pf','cp2','rp','close','mg'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
+    r("el('#send').onclick();tab='mine';render()");
+    ok(r("return offers[0].offer===0&&offers[0].loadId===1&&offers[0].status==='wait'"), "talep tutarsız kaydedilir");
+    ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].loadId")===1, "yerel saklama korunur");
+    r("openLoad(1);el('#send').onclick()");ok(r("return offers.length")===1, "aynı talep yinelenmez");
   });
 };

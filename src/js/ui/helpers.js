@@ -67,45 +67,15 @@ function toggleTheme() {
 }
 
 function openCalc() {
-    const m = $("#sheetBody");
-    m.dataset.k = "";
-    const num = (k, t, u) => `<div><label>${t}</label><div class="unit"><input data-k="${k}" type="number" inputmode="decimal" value="${calc[k]}"><em>${u}</em></div></div>`;
-    const cur = vehicles.find(v => CONS[v] === calc.cons) || "";
-    m.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><b style="font-size:19px">Yakıt hesabı</b><button class="chip" id="cx">Kapat</button></div><div class="res" id="res"></div>
-    <label>Araç tipi</label><select id="cv"><option value="" hidden>Özel</option>${vehicles.map(v => `<option ${v === cur ? "selected" : ""}>${v}</option>`).join("")}</select>
-    <div class="row">${num("km", "Mesafe", "km")}${num("fare", "Navlun", "₺")}</div>
-    <details class="more"><summary>Diğer ayarlar</summary>
-      <p style="font-size:12px;color:var(--mute);margin-top:12px">Mazot fiyatı hesaplama varsayımıdır; güncel pompa fiyatına göre değiştir.</p><div class="row">${num("fuel", "Mazot", "₺/L")}${num("cons", "Tüketim", "L/100km")}</div>
-      <div class="row">${num("toll", "Otoyol", "₺")}${num("other", "Diğer", "₺")}</div>
-      <label class="chk"><input type="checkbox" id="bk" ${calc.back ? "checked" : ""}>Dönüşte boş döneceğim</label>
-    </details>`;
-    const out = () => {
-        const d = calc.km * (calc.back ? 2 : 1), fc = Math.round(d * calc.cons / 100 * calc.fuel), cost = fc + calc.toll + calc.other, net = Math.round(calc.fare - cost), pc = x => Math.round(x / Math.max(cost, 1) * 100);
-        $("#res").innerHTML = `<span>Net kazanç</span><div class="big ${net < 0 ? "bad" : ""}">${fmt(net)}</div><div class="sub">Masraf ${fmt(Math.round(cost))} · ${d ? Math.round(net / d) + " ₺/km" : "—"}</div>
-      <div class="bar"><i style="width:${pc(fc)}%;background:var(--accent)"></i><i style="width:${pc(calc.toll)}%;background:#fff"></i><i style="width:${pc(calc.other)}%;background:rgba(255,255,255,.4)"></i></div>
-      <div class="leg"><span><b style="background:var(--accent)"></b>Yakıt ${fmt(fc)}</span><span><b style="background:#fff"></b>Otoyol ${fmt(calc.toll)}</span><span><b style="background:rgba(255,255,255,.4)"></b>Diğer ${fmt(calc.other)}</span></div>`;
-    };
-    m.querySelectorAll("[data-k]").forEach(i => i.oninput = () => {
-        calc[i.dataset.k] = +i.value || 0;
-        if (i.dataset.k === "cons")
-            $("#cv").value = vehicles.find(v => CONS[v] === calc.cons) || "";
-        out();
-        save();
-    });
-    $("#cv").onchange = e => {
-        calc.cons = CONS[e.target.value];
-        m.querySelector('[data-k="cons"]').value = calc.cons;
-        out();
-        save();
-    };
-    $("#bk").onchange = e => {
-        calc.back = e.target.checked;
-        out();
-        save();
-    };
-    out();
-    $("#cx").onclick = closeSheet;
-    $("#sheet").classList.add("open");
+    const m = $("#sheetBody"); m.dataset.k = "";
+    const num = (k,t,u) => `<div><label for="calc-${k}">${t}</label><div class="unit"><input id="calc-${k}" data-k="${k}" type="number" min="0" inputmode="decimal" value="${calc[k]}"><em>${u}</em></div></div>`;
+    const cur = vehicles.find(v=>CONS[v]===calc.cons) || "";
+    m.innerHTML = `<div class="load-detail fuel-detail"><div class="detail-top"><b>Mazot hesabı</b><button class="chip detail-close" id="cx">Kapat ×</button></div><div class="fuel-result" id="res" role="status" aria-live="polite"></div><div class="detail-scroll"><section class="detail-group"><h2>Yol ve araç</h2><label for="cv">Araç tipi</label><select id="cv"><option value="" hidden>Özel tüketim</option>${vehicles.map(v=>`<option ${v===cur?"selected":""}>${v}</option>`).join("")}</select>${num("km","Tek yön mesafe","km")}<label class="chk"><input type="checkbox" id="bk" ${calc.back?"checked":""}> Boş dönüşü de hesapla</label></section><section class="detail-group"><h2>Mazot ve tüketim</h2><div class="row">${num("fuel","Litre fiyatı","₺/L")}${num("cons","Tüketim","L/100 km")}</div><p class="estimate-note">Litre fiyatı hesaplama varsayımıdır. Güncel pompa fiyatını kendin gir.</p></section><details class="profile-panel"><summary>Otoyol ve diğer giderler</summary><div class="row">${num("toll","Otoyol / köprü","₺")}${num("other","Diğer giderler","₺")}</div></details><p class="estimate-note">Sonuç yaklaşık giderdir; trafik, yük ve sürüş koşullarına göre değişir. Boş dönüş seçimi mesafeyi iki katına çıkarır. Girdilerin cihazında saklanır.</p></div></div>`;
+    const out=()=>{const d=calc.km*(calc.back?2:1),litres=d*calc.cons/100,fuel=litres*calc.fuel,total=fuel+calc.toll+calc.other;$("#res").innerHTML=`<span>Tahmini toplam gider</span><strong>${fmt(Math.round(total))}</strong><div class="fuel-metrics"><div><b>${f1(litres)} L</b><span>Mazot</span></div><div><b>${d.toLocaleString("tr-TR")} km</b><span>Toplam yol</span></div></div><p>Mazot ${fmt(Math.round(fuel))} · Diğer giderler ${fmt(Math.round(calc.toll+calc.other))}</p>`;};
+    m.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>{calc[i.dataset.k]=Number.isFinite(+i.value)?Math.max(0,+i.value):0;if(i.dataset.k==="cons")$("#cv").value=vehicles.find(v=>CONS[v]===calc.cons)||"";out();save();});
+    $("#cv").onchange=e=>{calc.cons=CONS[e.target.value]||calc.cons;m.querySelector('[data-k="cons"]').value=calc.cons;out();save();};
+    $("#bk").onchange=e=>{calc.back=e.target.checked;out();save();};
+    out();syncDetailViewport();$("#cx").onclick=closeSheet;$("#sheet").classList.add("open");
 }
 
 const netUI = () => {
