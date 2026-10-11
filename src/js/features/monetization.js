@@ -11,12 +11,14 @@ const isPrem = () => prem.until > Date.now();
 const callChip = a => `<button class="chip" ${a}>Ara${isPrem() ? "" : '<b class="pm">Premium</b>'}</button>`;
 
 function openPaywall(why) {
+    roadMapDispose(true);
+    if (unChat) { unChat(); unChat=null; }
     const B = $("#sheetBody");
     B.dataset.k = "";
     let pl = "y";
     const pr = id => PLANS.find(x => x.id === id), save12 = Math.round((1 - pr("y").price / (pr("m").price * 12)) * 100);
     const draw = () => {
-        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${x.id}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
+        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>İlan sahipleriyle uygulama içinden mesajlaş</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${x.id}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
         B.querySelectorAll("[data-pl]").forEach(b => b.onclick = () => {
             pl = b.dataset.pl;
             draw();
@@ -37,10 +39,10 @@ function openPaywall(why) {
 }
 
 function callTo(phone) {
-    if (!phone)
-        return toast("Bu kullanıcı henüz numara eklememiş");
     if (!isPrem())
         return openPaywall("Doğrudan arama");
+    if (!phone)
+        return toast("Bu kullanıcı henüz numara eklememiş");
     const B = $("#sheetBody");
     B.dataset.k = "";
     if (/^0000/.test(phone)) {
@@ -59,7 +61,7 @@ function callTo(phone) {
     $("#sheet").classList.add("open");
 }
 
-const premCard = () => `<div class="load" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center"><b>Premium üyelik</b>${isPrem() ? '<span class="vb" style="margin:0">Aktif</span>' : '<span class="tag">Üye değil</span>'}</div><p style="font-size:13px;color:var(--mute);margin:8px 0">${isPrem() ? "Bitiş: " + new Date(prem.until).toLocaleDateString("tr-TR") : "Doğrudan arama özelliği Premium üyelere açık."}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip on" id="pm1">${isPrem() ? "Planı uzat" : "Premium'a geç"}</button>${isPrem() ? '<button class="chip" id="pm2">Üyeliği sıfırla (test)</button>' : ""}</div></div>`;
+const premCard = () => `<div class="load" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center"><b>Premium üyelik</b>${isPrem() ? '<span class="vb" style="margin:0">Aktif</span>' : '<span class="tag">Üye değil</span>'}</div><p style="font-size:13px;color:var(--mute);margin:8px 0">${isPrem() ? "Bitiş: " + new Date(prem.until).toLocaleDateString("tr-TR") : "Arama ve mesajlaşma Premium üyelere açık."}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip on" id="pm1">${isPrem() ? "Planı uzat" : "Premium'a geç"}</button>${isPrem() ? '<button class="chip" id="pm2">Üyeliği sıfırla (test)</button>' : ""}</div></div>`;
 
 // ===== Öne çıkan ilan =====
 // Öne çıkarma fiyatı, satın alma ekranı, etkinin ölçülmesi ve özeti.

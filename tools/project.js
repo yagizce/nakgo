@@ -9,6 +9,7 @@ module.exports={root:path.resolve(__dirname,".."),js:[
   "src/js/features/account.js",
   "src/js/features/monetization.js",
   "src/js/ui/helpers.js",
+  "src/js/ui/road-map.js",
   "src/js/ui/post-draft.js",
   "src/js/ui/dialog.js",
   "src/js/screens/listings.js",
@@ -24,5 +25,6 @@ module.exports={root:path.resolve(__dirname,".."),js:[
   "src/css/features.css",
   "src/css/motion.css",
   "src/css/listings.css",
-  "src/css/system.css"
+  "src/css/system.css",
+  "src/css/road-map.css"
 ]};

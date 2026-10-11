@@ -43,6 +43,8 @@ with sync_playwright() as p:
     print("Tarayıcı kontrolü başlıyor", flush=True)
     b = p.chromium.launch(channel=os.environ.get("NAKGO_BROWSER_CHANNEL") or None)
     ctx = b.new_context(viewport={"width": 390, "height": 844}, locale="tr-TR", permissions=["geolocation"], geolocation={"latitude": 39.93, "longitude": 32.86})
+    # Harita etkileşimleri fixture ile; gerçek sağlayıcı ayrı önizleme görsel kontrolünde doğrulanır.
+    ctx.route("https://tile.openstreetmap.org/**", lambda r: r.fulfill(content_type="image/svg+xml",body='<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"/>'))
     pg = ctx.new_page()
     # DOMContentLoaded döndüğünde kısa açılış animasyonu bitmiş olabilir.
     # İlk boyamayı gözlemleyerek zamanlayıcı yarışını testten çıkarırız.
@@ -66,7 +68,7 @@ with sync_playwright() as p:
     # 2) Detay, paylaşma ve klavye
     pg.click(".load[data-id]"); pg.wait_for_selector("#sheet.open")
     body = pg.inner_text("#sheetBody")
-    check("ilan detayında harita ve iletişim düğmeleri var", "Paylaş" in body and "Mazot hesabı" in body and pg.locator("#sheetBody .map").count() == 1)
+    check("ilan detayında harita ve iletişim düğmeleri var", "Paylaş" in body and "Mazot hesabı" in body and pg.locator("#sheetBody .road-map").count() == 1)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     check("Escape ile alt pencere kapanır", pg.locator("#sheet.open").count() == 0)
 
@@ -167,6 +169,7 @@ with sync_playwright() as p:
     for theme in ("light", "dark"):
         for width in (360, 390, 430, 1280):
             matrix = b.new_context(viewport={"width":width,"height":844},locale="tr-TR",color_scheme=theme,reduced_motion="reduce",service_workers="block")
+            matrix.route("https://tile.openstreetmap.org/**", lambda r: r.fulfill(content_type="image/svg+xml",body='<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"/>'))
             matrix.add_init_script(f"localStorage.setItem('yy-onb','1');localStorage.setItem('yy-theme','{theme}');sessionStorage.setItem('ng-splash','1')")
             page = matrix.new_page(); page.on("pageerror",lambda e:errors.append(str(e)))
             page.goto(URL); page.wait_for_selector('.load[data-id]')
@@ -182,6 +185,8 @@ with sync_playwright() as p:
             page.select_option('#route-from','İstanbul');page.select_option('#route-to','Ankara')
             check(prefix+"güzergâh filtresi",page.locator('.load[data-id]').count()==1)
             page.locator('[data-id]').first.click();page.click('#mg')
+            check(prefix+"mesajlaşma Premium ister",'NakGo Premium' in page.inner_text('#sheetBody'))
+            page.click('#buy');page.locator('[data-id]').first.click();page.click('#mg')
 
             page.fill('#mi','Test mesajı');page.click('#ms')
             check(prefix+"mesaj yazılır ve demo açıklaması görünür","Test mesajı" in page.inner_text('#msgs') and 'Demo sohbet' in page.inner_text('#sheetBody'))
@@ -208,6 +213,15 @@ with sync_playwright() as p:
             page.click('#go');check(prefix+"yayın sonrası taslak temizlenir",page.evaluate("!JSON.parse(localStorage.getItem('ng-post-drafts')).load"))
             page.click('nav [data-t=me]');page.fill('#myph','0555 123 45 67');page.click('#phs2')
             check(prefix+"profil telefonu kaydedilir",page.evaluate("myCar.phone==='0555 123 45 67'"))
+            check(prefix+"profilde tekrar eden rol ve işler yok",page.locator('#profile-jobs,[data-ro]').count()==0 and page.is_visible('#profile-map'))
+            page.click('#profile-map');page.wait_for_function("document.querySelector('.road-map').dataset.zoom")
+            check(prefix+"büyük gerçek harita kaynağı görünür",page.locator('.road-map').bounding_box()['height']>320 and page.is_visible('.road-attribution a'))
+            zoom=int(page.locator('.road-map').get_attribute('data-zoom'));page.click('[data-map-action=in]')
+            check(prefix+"harita yakınlaştırılır",int(page.locator('.road-map').get_attribute('data-zoom'))==zoom+1)
+            page.click('[data-map-action=out]');check(prefix+"harita uzaklaştırılır",int(page.locator('.road-map').get_attribute('data-zoom'))==zoom)
+            page.select_option('#map-city','Kahramanmaraş');check(prefix+"şehir gerçek koordinatında açılır",page.locator('.road-map').get_attribute('data-center')=='36.94000,37.58000')
+            page.click('[data-map-kind=rest]');check(prefix+"doğrulanmamış tesis gösterilmez",page.locator('.road-pin.stop').count()==0 and 'Henüz' in page.inner_text('#map-poi-note'))
+            page.click('#close');check(prefix+"harita kaynakları kapatılır",page.evaluate('roadMaps.size===0'))
             page.locator('summary',has_text='Taşıyıcı belgeleri ve güven').click()
             check(prefix+"belge formu erişilir",page.is_visible('#lic'))
             page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.click('#go')

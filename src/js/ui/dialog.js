@@ -4,6 +4,7 @@
  */
 
 function closeSheet() {
+    roadMapDispose(true);
     if (unChat) {
         unChat();
         unChat = null;

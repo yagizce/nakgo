@@ -123,7 +123,6 @@ function myRate() {
     return R ? " · ★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "";
 }
 
-const roleCard = () => `<div class="load" style="cursor:default"><b>Rolüm</b><div class="seg" style="margin:10px 0 8px"><button data-ro="carrier" class="${role === "carrier" ? "on" : ""}">Taşıyıcıyım</button><button data-ro="owner" class="${role === "owner" ? "on" : ""}">Yük sahibiyim</button></div></div>`;
 
 function setRole(r, go) {
     role = r;

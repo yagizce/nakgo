@@ -41,3 +41,5 @@ www/, tests/shots/ ve docs/CODEMAP.md yerel üretilen çıktılardır, Git dış
 - [Birleştirilen ve kaldırılan dosyalar](docs/cleanup.md)
 
 [GitHub deposu](https://github.com/yagizce/yukyoll) · [Vercel projesi](https://vercel.com/yagizces-projects/yukyoll) · [Canlı site](https://yukyoll.vercel.app). Yeni değişiklikler ayrı dal ve önizleme üzerinden incelenir; canlıya geçiş kullanıcı onayından sonradır.
+
+Yol haritası ve doğrulanacak mola/bakım noktalarının veri biçimi için [mimari belgesi](docs/architecture.md) içindeki harita bölümüne bak. Arama ve uygulama içi mesajlaşma Premium üyelik gerektirir.

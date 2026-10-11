@@ -120,6 +120,7 @@ const alertsCard = () => `<div class="load" style="cursor:default"><b>Rota alarm
 // Teklif sohbeti (gerçek kullanıcılar arasında canlı, örnek ilanlarda hazır cevaplı).
 
 function openChat(key, who, onFirstSend) {
+    if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
     const live = cloud && /^o\d+_./.test(key), B = $("#sheetBody");
     B.dataset.k = key;
     let msgs = live ? [] : (chats[key] = chats[key] || [{ me: 0, t: "Merhaba, nasıl yardımcı olabilirim?" }]);
@@ -144,6 +145,7 @@ function openChat(key, who, onFirstSend) {
     $("#sheet").classList.add("open");
     $("#close").onclick = closeSheet;
     const send = () => {
+        if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
         const t = $("#mi").value.trim().slice(0, 500);
         if (!t)
             return;
