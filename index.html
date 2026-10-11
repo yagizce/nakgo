@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>NakGo – Yük ve Araç Eşleştirme</title>
 <meta name="description" content="Yük sahipleri ve taşıyıcıları buluşturan yük pazarı">
-<meta name="theme-color" content="#006970">
+<meta name="theme-color" content="#4ad9cc">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -27,9 +27,9 @@
   --ink:#14343a;
   --mute:#4f686c;
   --line:#d2e7e3;
-  --brand:#007b80;
+  --brand:#4ad9cc;
   --brand-ink:#00616b;
-  --on-brand:#fff;
+  --on-brand:#083e43;
   --accent:#ffd34e;
   --on-accent:#302600;
   --ok:#1f7a4d;
@@ -47,7 +47,7 @@
     --ink:#edf9f7;
     --mute:#abc7c7;
     --line:#295057;
-    --brand:#00767c;
+    --brand:#4ad9cc;
     --brand-ink:#7ce7da;
     --ok:#4cc38a;
     --bad:#ff7b6b;
@@ -63,7 +63,7 @@
   --ink:#edf9f7;
   --mute:#abc7c7;
   --line:#295057;
-  --brand:#00767c;
+  --brand:#4ad9cc;
   --brand-ink:#7ce7da;
   --ok:#4cc38a;
   --bad:#ff7b6b;
@@ -1447,7 +1447,7 @@ header p {
   height:96px;
   border-radius:28px;
   background:var(--brand);
-  color:var(--accent);
+  color:var(--on-brand);
   display:grid;
   place-items:center;
   margin-bottom:8px;
@@ -1531,8 +1531,7 @@ header p {
   width:min(260px,calc(100vw - 64px));
   height:auto;
   border-radius:24px;
-  background:#fff;
-  box-shadow:0 16px 48px #003e4540;
+  background:transparent;
   display:grid;
   place-items:center;
   overflow:hidden;
@@ -1551,9 +1550,12 @@ header p {
 
 .splash p {
   margin-top:24px;
-  color:#fff;
+  color:var(--on-brand);
   opacity:1;
-  font-size:14px;
+  font-family:'Trebuchet MS','Segoe UI',sans-serif;
+  font-size:17px;
+  font-weight:700;
+  letter-spacing:.2px;
   animation:rise .55s .5s both;
 }
 
@@ -1838,14 +1840,17 @@ textarea:focus { outline:2px solid var(--brand-ink); outline-offset:2px; }
 .off { flex:none; }
 
 /* Mobil uygulama kabuğu: menü ve birincil işlemler başparmak hizasında. */
-:root { --nav-height:calc(78px + env(safe-area-inset-bottom,0px)); --app-gradient:linear-gradient(115deg,#00565f 0%,#007b80 74%,#007d78 100%); }
+:root { --nav-height:calc(78px + env(safe-area-inset-bottom,0px)); --app-gradient:linear-gradient(115deg,#69e2d3 0%,#3dd5c9 74%,#72e4c9 100%); }
 #app { max-width:430px; background:var(--bg); overflow:hidden; }
 header { background:var(--app-gradient); padding-top:calc(12px + env(safe-area-inset-top,0px)); padding-bottom:12px; gap:10px; flex:none; }
 header h1 { font-size:24px; letter-spacing:-1px; }
-header p { font-size:10px; color:#e0ffff; }
+header>div:nth-child(2) { flex:1; min-width:0; }
+header p { font-family:'Trebuchet MS','Segoe UI',sans-serif; font-size:11px; font-weight:700; letter-spacing:.1px; line-height:1.3; margin-top:3px; color:var(--on-brand); }
 .logo { width:50px; height:50px; background:transparent; border-radius:16px; }
 .logo img { display:block; width:50px; height:50px; border:0; border-radius:16px; }
-.bell { width:44px; min-height:44px; border:1px solid #ffffff30; background:#004f5866; }
+.bell { width:44px; min-height:44px; border:1px solid #07575f; background:#07575f; color:#fff; flex:none; }
+#bell { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+.bell:focus-visible { outline:2px solid #083e43; outline-offset:3px; }
 #thh+.bell { margin-left:0; }
 main { background:radial-gradient(ellipse at 100% 0%,var(--tag-bg),transparent 48%),var(--bg); }
 #main[data-screen=list],#main[data-screen=post] { padding-bottom:160px; scroll-padding-bottom:160px; }
@@ -1867,20 +1872,20 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .dock-hint { font-size:12px; color:var(--mute); }
 .list-actions .cmpbar { position:static; box-shadow:none; margin:0 auto 10px; padding:0; border:0; max-width:720px; background:transparent; color:var(--ink); gap:8px; font-size:12px; }
 .list-actions .cmpbar .chip { padding:8px 12px; }
-.route-search { background:linear-gradient(0deg,#004d5666,transparent 75%),var(--app-gradient); padding:16px; border-radius:24px; color:#fff; position:relative; overflow:hidden; box-shadow:0 8px 20px #00686d20; margin-bottom:14px; }
+.route-search { background:var(--app-gradient); padding:16px; border-radius:24px; color:var(--on-brand); position:relative; overflow:hidden; box-shadow:0 8px 20px #00686d20; margin-bottom:14px; }
 .route-search::before { content:""; position:absolute; width:170px; height:170px; right:-60px; top:-55px; border:22px solid #ffffff0d; border-radius:50%; pointer-events:none; }
 .route-search-heading,.route-fields { position:relative; }
-.route-search .eyebrow { color:#d4fffb; letter-spacing:1.2px; font-size:9px; }
+.route-search .eyebrow { color:var(--on-brand); letter-spacing:1.2px; font-size:9px; }
 .route-search h2 { font-size:23px; line-height:1.2; margin:6px 0 14px; max-width:none; letter-spacing:-.7px; }
-.route-search h2 em { color:#ffe075; font-style:normal; }
+.route-search h2 em { color:var(--on-brand); font-style:normal; }
 .route-fields { grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr); gap:4px; align-items:center; }
 .route-fields>div { background:#fff; border-radius:15px; padding-top:7px; }
 .route-fields label { color:#49696b; font-size:11px; margin:0 10px; }
 .route-fields select { background-color:#fff; color:#173234; border:0; min-height:40px; padding:8px 28px 10px 10px; font-size:13px; border-radius:15px; }
-.route-swap { width:30px; height:46px; background:#ffffff1f; color:#fff; border:1px solid #ffffff30; }
+.route-swap { width:30px; height:46px; background:#ffffff38; color:var(--on-brand); border:1px solid #083e4326; }
 .seg { padding:4px; border-radius:16px; background:var(--card); border:1px solid var(--line); }
 .seg button { border-radius:12px; }
-.seg button.on { background:var(--brand); color:#fff; box-shadow:0 3px 10px #007f8320; }
+.seg button.on { background:var(--brand); color:var(--on-brand); box-shadow:0 3px 10px #007f8320; }
 .demo-note { font-size:10px; padding:8px 10px; background:var(--card); border-style:dashed; border-radius:12px; margin-bottom:12px; }
 .listing-search input { border-radius:16px; }
 .listing-count { font-size:12px; }
@@ -1919,23 +1924,23 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .cargo-line .th { width:34px; height:34px; flex:none; border-radius:11px; }
 .route i { border-color:var(--brand-ink); opacity:.9; }
 .detail-scroll { background:var(--bg); }
-.detail-top { background:var(--app-gradient); color:#fff; border:0; }
-.detail-id { color:#d4fffb; }
-.detail-close { background:#00485166; color:#fff; border-color:#ffffff40; border-radius:13px; }
-.detail-summary { padding:22px 16px 18px; background:var(--app-gradient); border-radius:22px; color:#fff; }
+.detail-top { background:var(--app-gradient); color:var(--on-brand); border:0; }
+.detail-id { color:var(--on-brand); }
+.detail-close { background:#ffffff38; color:var(--on-brand); border-color:#083e4326; border-radius:13px; }
+.detail-summary { padding:22px 16px 18px; background:var(--app-gradient); border-radius:22px; color:var(--on-brand); }
 .detail-summary .route { font-size:23px; }
-.detail-summary .route i { border-color:#bcf7f1; }
-.detail-summary .route i::before { background:#006970; border-color:#c5faf5; }
-.detail-summary .tag { background:#00454d88; color:#fff; padding:6px 10px; }
+.detail-summary .route i { border-color:var(--on-brand); }
+.detail-summary .route i::before { background:var(--on-brand); border-color:var(--on-brand); }
+.detail-summary .tag { background:#ffffff88; color:var(--on-brand); padding:6px 10px; }
 .detail-summary .tag.ft { background:var(--accent); color:var(--on-accent); }
 .detail-group { border-radius:20px; }
 .contact-dock { box-shadow:0 -6px 20px #003e4510; border-radius:22px 22px 0 0; }
 .contact-dock { padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px)); background:var(--card); flex:none; }
 .contact-dock .btn { margin:0; }
 .form-dock .btn,.contact-dock .btn { background:linear-gradient(140deg,#ffe68b,#ffd34e); border-radius:14px; }
-.screen-heading { padding:20px; background:linear-gradient(115deg,#00565f,#007f83); color:#fff; border-radius:24px; margin-bottom:18px; }
+.screen-heading { padding:20px; background:var(--app-gradient); color:var(--on-brand); border-radius:24px; margin-bottom:18px; }
 .screen-heading h2 { margin:0 0 6px; }
-.screen-heading p { color:#e0fffc; font-size:12px; }
+.screen-heading p { color:var(--on-brand); font-size:12px; }
 .form-steps li { border-radius:13px; font-size:11px; padding:10px 6px; }
 .form-dock .btn { min-width:100px; max-width:150px; flex:1; }
 .form-dock .chip { border-radius:14px; }
@@ -1948,12 +1953,12 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
 
 /* Profil kimliği, günlük araçlar ve iletişim */
-.profile-cover { display:flex; gap:14px; align-items:center; padding:20px 18px; border-radius:22px; background:var(--app-gradient); color:#fff; }
+.profile-cover { display:flex; gap:14px; align-items:center; padding:20px 18px; border-radius:22px; background:var(--app-gradient); color:var(--on-brand); }
 .profile-cover>div { min-width:0; overflow-wrap:anywhere; }
 .profile-cover .avatar { background:var(--accent); color:var(--on-accent); box-shadow:0 4px 14px #00262d30; }
 .profile-cover b { display:block; font-size:20px; line-height:1.4; }
-.profile-eyebrow { display:block; color:#d4fffb; font-size:9px; letter-spacing:1.2px; margin-bottom:4px; }
-.profile-caption { color:#e0fffc; font-size:11px; margin-top:3px; }
+.profile-eyebrow { display:block; color:var(--on-brand); font-size:9px; letter-spacing:1.2px; margin-bottom:4px; }
+.profile-caption { color:var(--on-brand); font-size:11px; margin-top:3px; }
 .profile-stats { gap:0; margin:12px 0; border:1px solid var(--line); border-radius:16px; background:var(--card); box-shadow:none; }
 .profile-stats>div { border:0; border-radius:0; padding:12px 8px; text-align:center; background:transparent; box-shadow:none; }
 .profile-stats>div+div { border-left:1px solid var(--line); }
@@ -1964,11 +1969,11 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .profile-tool-icon { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; background:var(--tag-bg); color:var(--brand-ink); margin-bottom:3px; }
 .profile-tool b { font-size:12px; overflow-wrap:anywhere; }
 .profile-tool small { font-size:10px; color:var(--mute); }
-.profile-tool.road-tool { grid-column:1/-1; flex-direction:row; align-items:center; gap:12px; padding:16px; background:var(--app-gradient); color:#fff; border-color:transparent; }
-.road-tool .profile-tool-icon { background:#ffffff18; color:#ffe075; width:44px; height:44px; margin:0; }
+.profile-tool.road-tool { grid-column:1/-1; flex-direction:row; align-items:center; gap:12px; padding:16px; background:var(--app-gradient); color:var(--on-brand); border-color:transparent; }
+.road-tool .profile-tool-icon { background:#ffffff18; color:var(--on-brand); width:44px; height:44px; margin:0; }
 .road-tool .profile-tool-copy { flex:1; min-width:0; }
 .road-tool b { display:block; font-size:16px; }
-.road-tool small { display:block; color:#ddfffa; margin-top:3px; font-size:11px; }
+.road-tool small { display:block; color:var(--on-brand); margin-top:3px; font-size:11px; }
 .profile-group h2 { font-size:16px; margin:22px 2px 12px; }
 .profile-info { cursor:default; padding:16px; }
 .profile-info label:first-child { margin-top:0; }
@@ -2415,14 +2420,6 @@ offers.filter(o => o.status === "wait").forEach(o => simulate(o.id));
 if (calc.fuel === 45)
     calc.fuel = 95;
 
-{
-    const d8 = loads.find(x => x.id === 8), t2 = trucks.find(x => x.id === "t2");
-    for (const x of [d8, t2])
-        if (x && !x.featUntil) {
-            x.featFrom = Date.now();
-            x.featUntil = Date.now() + 6 * 36e5;
-        }
-}
 
 
 // ===== Bulut katmanı =====
@@ -2664,7 +2661,7 @@ const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.from} → ${l.to}, ${l.ton} ton yük, ilanı aç">
-    ${isF(l) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>Doğrudan görüş</span><b>Ara veya mesajlaş</b></div></div>
+    ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>Doğrudan görüş</span><b>Ara veya mesajlaş</b></div></div>
     <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${l.cargo}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${l.ton}</b> ton</span></div>
     <div class="listing-spec"><span>${l.veh} · ${l.body || "Kasa belirtilmedi"}</span><span class="load-date">Yükleme: <b>${l.date}</b></span></div>
     <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${favs.includes(String(l.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(l.id))}" class="fav ${favs.includes(String(l.id)) ? "on" : ""}" data-fav="${l.id}">${favs.includes(String(l.id)) ? "♥" : "♡"}</button></div>
@@ -3513,7 +3510,8 @@ const premCard = () => `<div class="load" style="cursor:default"><div style="dis
 
 const featPrice = (kind, hrs) => (FEAT.prices[kind] || FEAT.prices.l)[hrs] || 0;
 
-const isF = x => !!x.featUntil && (x.featFrom || 0) <= Date.now() && Date.now() < x.featUntil;
+const isDemoFeature = x => !cloud && x.id === 8 && !x.uid && !x.mine;
+const isF = x => isDemoFeature(x) || !!x.featUntil && (x.featFrom || 0) <= Date.now() && Date.now() < x.featUntil;
 
 function openFeature(kind, id) {
     const it = findIt(kind, id);
@@ -3748,7 +3746,7 @@ function updTheme() {
     try {
         const m = document.querySelector('meta[name="theme-color"]');
         if (m)
-            m.content = "#006970";
+            m.content = "#4ad9cc";
     }
     catch (e) { }
 }
@@ -4177,7 +4175,7 @@ function renderListings(m) {
         }
         const st = isT ? [[trucks.length, "boş araç"], [trucks.filter(x => x.date === "Bugün").length, "bugün müsait"], [Math.round(trucks.reduce((a, x) => a + x.cap, 0)), "ton kapasite"]] : [[loads.filter(x => !x.closed).length, "açık ilan"], [loads.filter(x => x.date === "Bugün").length, "bugün yükleme"], [new Set(loads.filter(x=>!x.closed).map(x=>x.from)).size, "çıkış şehri"]];
         const hero = `<div class="hero">${st.map(([a, b]) => `<div><b>${a}</b><span>${b}</span></div>`).join("")}</div>`;
-        m.innerHTML = routeSearch() + SEG + (!cloud ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<button class="fuel-shortcut" id="fuel-home"><span aria-hidden="true">${FUEL_ICON}</span><span><b>Mazot hesabı</b><small>Yola çıkmadan giderini hesapla</small></span><span aria-hidden="true">→</span></button><div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${q}" style="margin:0"></div>
+        m.innerHTML = routeSearch() + SEG + (!cloud ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${q}" style="margin:0"></div>
     ${nearRow()}${ac.length ? `<div class="chips active-filters wrap">${ac.map(c => `<button class="chip on" data-x="${c[0]}" data-v="${c[1]}">${c[2]} ×</button>`).join("")}</div>` : ""}
     <div class="meta listing-count" style="margin:0 2px 10px"><span>${items.length} ${isT ? "boş araç" : "ilan"}${!isT && (F.from || F.to) ? ` <button class="chip" id="al" style="margin-left:6px;padding:4px 10px;font-size:12px">Alarm kur</button>` : ""}</span><span>Yola çıkmaya hazır</span></div>
     <div class="listing-grid">${!loaded ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div><section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section><div class="list-actions" aria-label="İlan araçları">${cmpBar()}<div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option><option value="rate" ${sort === "rate" ? "selected" : ""}>Puan ↓</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
@@ -4199,7 +4197,6 @@ function renderListings(m) {
             i.setSelectionRange(p, p);
         };
         $("#fb").onclick = openFilter;
-        $("#fuel-home").onclick = () => openCalc();
         m.querySelectorAll("[data-route]").forEach(e => e.onchange = () => {
             F[e.dataset.route] = e.value;
             render();
@@ -4340,7 +4337,7 @@ function renderPost(m) {
  * Tutar içermeyen talepler ve iki aşamalı yükleme takibi.
  */
 function renderOffers(m){
-    m.innerHTML=screenHeading("İşlerim","Taşıma taleplerini takip et. Yüklediğini bildir, onayı burada gör.")+demoNotice()+incHTML()+(offers.length?offers.map(o=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${o.cargo} · ${o.ton} ton</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div><div class="job-actions">${o.status==='counter'?`<button class="chip on" data-ca="${o.id}">Talebi sürdür</button>`:''}${['wait','counter'].includes(o.status)?`<button class="chip" data-c="${o.id}">Geri çek</button>`:''}</div>${o.status==='ok'?stageUI(o)+retHTML(o):''}</article>`).join(''):'<div class="empty">Henüz taşıma talebin yok. İlan detayından yük sahibiyle görüşebilir ve talep gönderebilirsin.</div>');
+    m.innerHTML=screenHeading("İşlerim","Taşıma taleplerini takip et. Yüklediğini bildir, onayı burada gör.")+demoNotice()+incHTML()+(offers.length?offers.map(o=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${o.cargo} · ${o.ton} ton</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div><div class="job-actions">${o.status==='counter'?`<button class="chip on" data-ca="${o.id}">Talebi sürdür</button>`:''}${['wait','counter'].includes(o.status)?`<button class="chip" data-c="${o.id}">Geri çek</button>`:''}</div>${o.status==='ok'?stageUI(o)+retHTML(o):''}</article>`).join(''):'<div class="empty">Henüz taşıma talebin yok. İlan detayından yük sahibiyle görüşebilirsin.</div>');
     m.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{const o=offers.find(x=>x.id===+b.dataset.c);offers=offers.filter(x=>x!==o);if(cloud&&o)dbw(db.doc(opath(o)).delete());render();toast('Taşıma talebi geri çekildi');});
     m.querySelectorAll('[data-ca]').forEach(b=>b.onclick=()=>oup(offers.find(x=>x.id===+b.dataset.ca),{status:'wait'}));
     m.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{oup(incoming[+b.dataset.ia],{status:'ok'});toast('Taşıma talebi kabul edildi');});
@@ -4557,13 +4554,13 @@ function openLoad(id) {
     $("#sheetBody").innerHTML = `<div class="load-detail">
       <div class="detail-top"><span>Yük ilanı <span class="detail-id">#${l.id}</span></span><button class="chip detail-close" id="close" aria-label="İlan detayını kapat">Kapat <span aria-hidden="true">×</span></button></div>
       <div class="detail-scroll" tabindex="0" aria-label="İlan bilgileri">
-        <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${l.date}</span>${isF(l) ? '<span class="tag ft">Öne çıkan</span>' : ""}</div></section>
+        <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${l.date}</span>${isF(l) ? `<span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span>` : ""}</div></section>
         ${!cloud ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
         ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
         <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", l.cargo], ["Tonaj", l.ton + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", l.date]])}${l.note ? `<p class="detail-note">${l.note}</p>` : ""}</section>
-        <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", l.veh + " · " + (l.body || "Belirtilmedi")], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p><button class="fuel-shortcut" id="cc"><span aria-hidden="true">${FUEL_ICON}</span><span><b>Mazot hesabı</b><small>Bu güzergâhın tahmini gideri</small></span><span aria-hidden="true">→</span></button></section>
+        <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", l.veh + " · " + (l.body || "Belirtilmedi")], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
-        <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${l.owner || (l.uid ? nm(l.uid) : "Bireysel")}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button><button class="chip" id="send">Taşıma talebi gönder</button></div></section>
+        <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${l.owner || (l.uid ? nm(l.uid) : "Bireysel")}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button></div></section>
         <div class="detail-actions"><button class="chip" id="sh">Paylaş</button><button class="chip" id="cp2">${cmp.includes(l.id) ? "Karşılaştırmadan çıkar" : "Karşılaştır"}</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
       </div>
       ${contactDockHTML()}
@@ -4583,12 +4580,10 @@ function openLoad(id) {
     $("#rp").onclick = () => openReport("l", l.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
-    $("#cc").onclick = () => { calc = { ...calc, km: km || calc.km, cons: CONS[l.veh] || calc.cons }; openCalc(); };
     $("#mg").onclick = () => {
         if (cloud && l.uid === me) return toast("Kendi ilanına mesaj gönderemezsin");
         openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => requestLoad(l));
     };
-    $("#send").onclick = () => { if(requestLoad(l)){ closeSheet(); toast("Taşıma talebi gönderildi"); } };
 }
 
 function openTruck(id) {

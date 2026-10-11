@@ -68,15 +68,15 @@ with sync_playwright() as p:
     # 2) Detay, paylaşma ve klavye
     pg.click(".load[data-id]"); pg.wait_for_selector("#sheet.open")
     body = pg.inner_text("#sheetBody")
-    check("ilan detayında harita ve iletişim düğmeleri var", "Paylaş" in body and "Mazot hesabı" in body and pg.locator("#sheetBody .road-map").count() == 1)
+    check("ilan detayında harita ve iletişim düğmeleri var", "Paylaş" in body and "Mazot hesabı" not in body and "Taşıma talebi gönder" not in body and pg.locator("#sheetBody .road-map").count() == 1)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     check("Escape ile alt pencere kapanır", pg.locator("#sheet.open").count() == 0)
 
     # 3) Yakıt hesabı
-    pg.locator(".load[data-id]").first.click(); pg.click("#cc"); pg.wait_for_selector("#res")
+    nav("me"); pg.click("#profile-fuel"); pg.wait_for_selector("#res")
     before = pg.inner_text("#res"); pg.fill('[data-k="km"]', "100"); after = pg.inner_text("#res")
     check("yakıt hesabı girdiye göre değişir", before != after and "₺" in after)
-    pg.click("#cx"); pg.wait_for_timeout(200)
+    pg.click("#cx"); nav("list"); pg.wait_for_timeout(200)
 
     # 4) Filtre
     n0 = cards(); pg.click("#fb"); pg.click('[data-g="veh"][data-v="Kamyonet"]'); pg.click("#fs"); pg.wait_for_timeout(200)
@@ -92,8 +92,8 @@ with sync_playwright() as p:
     pg.keyboard.press("Escape"); pg.click("#cmpx"); pg.wait_for_timeout(200)
 
     # 6) Taşıma talebi ve simüle yanıt
-    pg.locator(".load[data-id]").first.click(); pg.wait_for_selector("#sheet.open"); pg.click("#send")
-    check("taşıma talebi gönderilir", "Taşıma talebi gönderildi" in toast())
+    pg.locator(".load[data-id]").first.click(); pg.wait_for_selector("#sheet.open"); pg.click("#mg"); pg.click("#buy"); pg.locator(".load[data-id]").first.click(); pg.click("#mg"); pg.fill("#mi", "Yük hakkında görüşelim."); pg.click("#ms")
+    check("mesajlaşma ve mevcut iş kaydı korunur", pg.evaluate("offers.length == 1 && Object.values(chats).some(a => a.some(m => m.me))")); pg.click("#close")
     nav("mine"); pg.wait_for_timeout(300)
     check("taşıma talebi bekleniyor görünür", "Yanıt bekleniyor" in pg.inner_text("#main"))
     pg.wait_for_timeout(3600)
@@ -120,7 +120,7 @@ with sync_playwright() as p:
     nav("list"); pg.wait_for_timeout(300)
     check("öne çıkan ilan listenin başında ve etiketli", pg.locator(".load.feat").count() >= 1 and "Test yükü" in pg.locator(".load[data-id]").first.inner_text())
     pg.click('.seg [data-md="truck"]'); pg.wait_for_timeout(300)
-    check("boş araç listesinde de öne çıkan örnek var", pg.locator(".load.feat[data-tid]").count() >= 1)
+    check("boş araç listesi korunur", pg.locator(".load[data-tid]").count() >= 1 and pg.locator("#fuel-home").count() == 0)
     pg.click('.seg [data-md="load"]'); pg.wait_for_timeout(200)
 
     # 8) Premium ve arama

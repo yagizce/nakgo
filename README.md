@@ -21,7 +21,7 @@ npm run mobile:prepare # www/ çıktısı; native derleme değildir
 | Yol | Sorumluluk |
 | --- | --- |
 | src/index.template.html, src/js/, src/css/ | Düzenlenebilir uygulama kaynakları |
-| assets/brand/logo.png, assets/brand/layout.json | Özgün logo, görüntü çerçeveleri ve slogan |
+| assets/brand/logo.png, logo-transparent.png, layout.json | Özgün/şeffaf logo kaynakları, görüntü çerçeveleri ve slogan |
 | tools/ | Kaynak sırası, bundle, lint, harita, simge üretimi |
 | tests/run.js, tests/unit/, tests/e2e.py | Testler |
 | docs/ | Ayrıntılı belgeler |
