@@ -27,7 +27,7 @@ function initDialogAccessibility() {
         const sheet=$("#sheet"),body=$("#sheetBody");
         const background=[$('#main'),$('#nav'),document.querySelector('header')];
         let previousFocus=null,wasOpen=false;
-        new MutationObserver(()=>{
+        const syncFocus=()=>{
             const open=sheet.classList.contains('open');
             if(open&&!wasOpen)previousFocus=document.activeElement;
             background.forEach(element=>{if(element)element.inert=open;});
@@ -42,7 +42,9 @@ function initDialogAccessibility() {
                 target?.focus({preventScroll:true});
             }
             wasOpen=open;
-        }).observe(sheet,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
+        };
+        new MutationObserver(syncFocus).observe(sheet,{attributes:true,attributeFilter:['class'],childList:true,subtree:true});
+        syncFocus();
         document.addEventListener('keydown',event=>{
             if(event.key!=='Tab'||!sheet.classList.contains('open'))return;
             const items=[...body.querySelectorAll('button,input,select,textarea,a[href],summary,[tabindex="0"]')]

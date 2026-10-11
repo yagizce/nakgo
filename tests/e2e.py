@@ -62,6 +62,7 @@ with sync_playwright() as p:
     pg.wait_for_timeout(2300)
     check("açılış ekranı kapanır", not pg.is_visible("#splash"))
     check("ilk açılışta tanıtım gelir", pg.is_visible("#onb"))
+    check("ilk tanıtımda odak içeride ve arka plan kapalı", pg.evaluate("document.querySelector('#main').inert&&document.querySelector('#sheetBody').contains(document.activeElement)"))
     pg.click("#ob-skip"); pg.click("#r-c"); pg.wait_for_timeout(300)
     check("rol seçilince tanıtım kapanır ve liste açılır", not pg.is_visible("#onb") and cards() > 5)
 
