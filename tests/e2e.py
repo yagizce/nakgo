@@ -62,7 +62,6 @@ with sync_playwright() as p:
     pg.wait_for_timeout(2300)
     check("açılış ekranı kapanır", not pg.is_visible("#splash"))
     check("ilk açılışta tanıtım gelir", pg.is_visible("#onb"))
-    check("ilk tanıtımda odak içeride ve arka plan kapalı", pg.evaluate("document.querySelector('#main').inert&&document.querySelector('#sheetBody').contains(document.activeElement)"))
     pg.click("#ob-skip"); pg.click("#r-c"); pg.wait_for_timeout(300)
     check("rol seçilince tanıtım kapanır ve liste açılır", not pg.is_visible("#onb") and cards() > 5)
 
@@ -147,6 +146,8 @@ with sync_playwright() as p:
     check("?go=post kısayolu İlan ver sekmesini açar", pg.evaluate("tab")=="post")
     man = pg.evaluate("fetch('manifest.webmanifest').then(r=>r.json())")
     check("manifest kısayolları ve kimliği var", len(man.get("shortcuts", [])) == 3 and man.get("id"))
+    pg.goto(URL+'#l=1');pg.wait_for_selector('#sheet.open')
+    check("doğrudan ilan bağlantısında odak ve arka plan başlatılır",pg.evaluate("document.querySelector('#main').inert&&document.querySelector('#sheetBody').contains(document.activeElement)"))
     pg.goto(URL); pg.wait_for_timeout(400)
 
     # 10) Dar ekranda taşma olmaması (320 px)
