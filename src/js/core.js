@@ -175,14 +175,6 @@ offers.filter(o => o.status === "wait").forEach(o => simulate(o.id));
 if (calc.fuel === 45)
     calc.fuel = 95;
 
-{
-    const d8 = loads.find(x => x.id === 8), t2 = trucks.find(x => x.id === "t2");
-    for (const x of [d8, t2])
-        if (x && !x.featUntil) {
-            x.featFrom = Date.now();
-            x.featUntil = Date.now() + 6 * 36e5;
-        }
-}
 
 
 // ===== Bulut katmanı =====

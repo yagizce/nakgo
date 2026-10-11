@@ -68,7 +68,8 @@ const premCard = () => `<div class="load" style="cursor:default"><div style="dis
 
 const featPrice = (kind, hrs) => (FEAT.prices[kind] || FEAT.prices.l)[hrs] || 0;
 
-const isF = x => !!x.featUntil && (x.featFrom || 0) <= Date.now() && Date.now() < x.featUntil;
+const isDemoFeature = x => !cloud && x.id === 8 && !x.uid && !x.mine;
+const isF = x => isDemoFeature(x) || !!x.featUntil && (x.featFrom || 0) <= Date.now() && Date.now() < x.featUntil;
 
 function openFeature(kind, id) {
     const it = findIt(kind, id);

@@ -1,10 +1,10 @@
 /* Profil kimliği, günlük araçlar ve iletişim */
-.profile-cover { display:flex; gap:14px; align-items:center; padding:20px 18px; border-radius:22px; background:var(--app-gradient); color:#fff; }
+.profile-cover { display:flex; gap:14px; align-items:center; padding:20px 18px; border-radius:22px; background:var(--app-gradient); color:var(--on-brand); }
 .profile-cover>div { min-width:0; overflow-wrap:anywhere; }
 .profile-cover .avatar { background:var(--accent); color:var(--on-accent); box-shadow:0 4px 14px #00262d30; }
 .profile-cover b { display:block; font-size:20px; line-height:1.4; }
-.profile-eyebrow { display:block; color:#d4fffb; font-size:9px; letter-spacing:1.2px; margin-bottom:4px; }
-.profile-caption { color:#e0fffc; font-size:11px; margin-top:3px; }
+.profile-eyebrow { display:block; color:var(--on-brand); font-size:9px; letter-spacing:1.2px; margin-bottom:4px; }
+.profile-caption { color:var(--on-brand); font-size:11px; margin-top:3px; }
 .profile-stats { gap:0; margin:12px 0; border:1px solid var(--line); border-radius:16px; background:var(--card); box-shadow:none; }
 .profile-stats>div { border:0; border-radius:0; padding:12px 8px; text-align:center; background:transparent; box-shadow:none; }
 .profile-stats>div+div { border-left:1px solid var(--line); }
@@ -15,11 +15,11 @@
 .profile-tool-icon { display:grid; place-items:center; width:34px; height:34px; border-radius:11px; background:var(--tag-bg); color:var(--brand-ink); margin-bottom:3px; }
 .profile-tool b { font-size:12px; overflow-wrap:anywhere; }
 .profile-tool small { font-size:10px; color:var(--mute); }
-.profile-tool.road-tool { grid-column:1/-1; flex-direction:row; align-items:center; gap:12px; padding:16px; background:var(--app-gradient); color:#fff; border-color:transparent; }
-.road-tool .profile-tool-icon { background:#ffffff18; color:#ffe075; width:44px; height:44px; margin:0; }
+.profile-tool.road-tool { grid-column:1/-1; flex-direction:row; align-items:center; gap:12px; padding:16px; background:var(--app-gradient); color:var(--on-brand); border-color:transparent; }
+.road-tool .profile-tool-icon { background:#ffffff18; color:var(--on-brand); width:44px; height:44px; margin:0; }
 .road-tool .profile-tool-copy { flex:1; min-width:0; }
 .road-tool b { display:block; font-size:16px; }
-.road-tool small { display:block; color:#ddfffa; margin-top:3px; font-size:11px; }
+.road-tool small { display:block; color:var(--on-brand); margin-top:3px; font-size:11px; }
 .profile-group h2 { font-size:16px; margin:22px 2px 12px; }
 .profile-info { cursor:default; padding:16px; }
 .profile-info label:first-child { margin-top:0; }

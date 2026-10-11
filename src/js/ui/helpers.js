@@ -51,7 +51,7 @@ function updTheme() {
     try {
         const m = document.querySelector('meta[name="theme-color"]');
         if (m)
-            m.content = "#006970";
+            m.content = "#4ad9cc";
     }
     catch (e) { }
 }

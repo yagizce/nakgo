@@ -1,5 +1,15 @@
 /* İlan yenilemesi: filtrelerin birlikte çalışması ve teklif işleminin korunması */
 module.exports = function register({ run }) {
+  run("Öne çıkan örnek süre sonunda kaybolmaz", (r, ok) => {
+    r("const demo=loads.find(x=>x.id===8);demo.featFrom=Date.now()-12*36e5;demo.featUntil=Date.now()-6*36e5;tab='list';mode='load';F=F0();render()");
+    ok(r("return isF(loads.find(x=>x.id===8))"), "süresi eskimiş demo hâlâ öne çıkar");
+    ok(r("return loads.filter(isDemoFeature).length===1&&main().includes('Öne çıkan · Örnek')"), "tek örnek açıkça etiketlenir");
+    r("F.from='Bursa';render()");
+    ok(!r("return main()").includes('data-id="8"'), "örnek ilan filtreleri aşmaz");
+    ok(!r("return isF({id:900,mine:true,featUntil:Date.now()-1})"), "normal öne çıkarma süresi değişmez");
+    r("cloud=true;F=F0();render()");
+    ok(!r("return isF(loads.find(x=>x.id===8))"), "gerçek veri modunda demo öne çıkarılmaz");
+  });
   run("Güzergâh filtresi ve kaldırılabilir etiketler", (r, ok) => {
     r("F=F0();F.from='İstanbul';F.to='Ankara';F.veh=['Tır'];tab='list';mode='load';render()");
     let h = r("return main()");
@@ -16,7 +26,7 @@ module.exports = function register({ run }) {
     r("tab='list';mode='load';render()");
     const h = r("return main()"), card = r("return lCard(loads.find(x=>x.date==='Bugün'))");
     ok(h.indexOf('route-search') < h.indexOf('class="seg"') && h.indexOf('market-stats') > h.indexOf('data-id="1"'), "arama başta, istatistik ilanlardan sonra");
-    ok(h.includes('id="fuel-home"') && h.includes('Demo modu'), "mazot hesabı kısayolu erişilir, demo açıklaması görünür");
+    ok(!h.includes('id="fuel-home"') && h.includes('Demo modu'), "ilanlarda mazot kısayolu yok, demo açıklaması görünür");
     ok(card.includes('Bugün') && !card.includes('Acil'), "Bugün ayrı aciliyet verisi olmadan Acil olmaz");
     ok(!card.includes("Taşıma ücreti") && card.includes("Ara veya mesajlaş"), "fiyat yerine iletişim vurgusu gelir");
     r("cloud=true;render()");
@@ -24,11 +34,12 @@ module.exports = function register({ run }) {
   });
   run("Detaydan tutarsız taşıma talebi ve kalıcılık", (r,ok)=>{
     r("openLoad(1)");const h=r("return sheet()");
-    ok(['Yük bilgileri','Taşıma bilgileri','Yük sahibi','Tahmini mesafe','Mazot hesabı'].every(t=>h.includes(t)), "bilgi grupları ve hesap erişimi");
-    ok(h.includes('dual-contact')&&['cc','sh','call','pf','cp2','rp','close','mg'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
-    r("el('#send').onclick();tab='mine';render()");
+    ok(['Yük bilgileri','Taşıma bilgileri','Yük sahibi','Tahmini mesafe'].every(t=>h.includes(t)), "bilgi grupları korunur");
+    ok(h.includes('dual-contact')&&['sh','call','pf','cp2','rp','close','mg'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
+    ok(!h.includes('id="send"')&&!h.includes('id="cc"'), 'ilan detayında talep düğmesi ve mazot hesabı yok');
+    r("requestLoad(loads.find(x=>x.id===1));tab='mine';render()");
     ok(r("return offers[0].offer===0&&offers[0].loadId===1&&offers[0].status==='wait'"), "talep tutarsız kaydedilir");
     ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].loadId")===1, "yerel saklama korunur");
-    r("openLoad(1);el('#send').onclick()");ok(r("return offers.length")===1, "aynı talep yinelenmez");
+    r("requestLoad(loads.find(x=>x.id===1))");ok(r("return offers.length")===1, "aynı talep yinelenmez");
   });
 };
