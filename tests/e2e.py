@@ -148,6 +148,7 @@ with sync_playwright() as p:
     check("manifest kısayolları ve kimliği var", len(man.get("shortcuts", [])) == 3 and man.get("id"))
     pg.goto(URL+'#l=1');pg.wait_for_selector('#sheet.open')
     check("doğrudan ilan bağlantısında odak ve arka plan başlatılır",pg.evaluate("document.querySelector('#main').inert&&document.querySelector('#sheetBody').contains(document.activeElement)"))
+    pg.click('#close')
     pg.goto(URL); pg.wait_for_timeout(400)
 
     # 10) Dar ekranda taşma olmaması (320 px)
