@@ -12,7 +12,7 @@ npm start              # HTTP sunucusu; ilk kullanımda serve indirilir
 npm test               # çıktı tutarlılığı, lint, davranış testleri
 npm run test:e2e        # gerçek Chromium; kurulum docs/development.md
 npm run test:shots      # tests/shots/ görüntüleri
-npm run logo           # tek SVG kaynağından web/PWA simgeleri
+npm run logo           # özgün logodan web/PWA simgeleri
 npm run mobile:prepare # www/ çıktısı; native derleme değildir
 ```
 
@@ -21,12 +21,12 @@ npm run mobile:prepare # www/ çıktısı; native derleme değildir
 | Yol | Sorumluluk |
 | --- | --- |
 | src/index.template.html, src/js/, src/css/ | Düzenlenebilir uygulama kaynakları |
-| assets/brand/mark.svg | Tek marka kaynağı |
+| assets/brand/logo.png, assets/brand/layout.json | Özgün logo, görüntü çerçeveleri ve slogan |
 | tools/ | Kaynak sırası, bundle, lint, harita, simge üretimi |
 | tests/run.js, tests/unit/, tests/e2e.py | Testler |
 | docs/ | Ayrıntılı belgeler |
 | index.html | **Üretilen yayın çıktısı**, doğrudan düzenlemeyin |
-| icons/ | **Üretilen** web/PWA simgeleri |
+| icons/ | **Üretilen** logo ve web/PWA simgeleri |
 | manifest.webmanifest, sw.js, vercel.json | PWA, önbellek ve statik yayın ayarları |
 | capacitor.config.json | Mobil kabuk başlangıç ayarı |
 

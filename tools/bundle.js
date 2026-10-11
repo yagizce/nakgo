@@ -8,15 +8,14 @@ const list = ext => ext === ".js" ? jsFiles : cssFiles;
 function build() {
   const tpl = read("src/index.template.html");
   for (const k of ["/*@CSS@*/", "/*@JS@*/"]) if (!tpl.includes(k)) throw new Error("Şablonda " + k + " yok");
-  const brand = read("assets/brand/mark.svg").trim().replace("<svg ", '<svg class="tk" ');
+  const {slogan} = JSON.parse(read("assets/brand/layout.json"));
+  if (typeof slogan !== "string" || /[<>&"]/.test(slogan)) throw new Error("Geçersiz marka sloganı");
+  const brand = '<img class="tk" src="icons/icon-192.png" width="50" height="50" alt="" decoding="async">';
+  const logo = '<img class="tk" src="icons/brand-logo.png" width="576" height="538" alt="NakGo" fetchpriority="high">';
   const css = list(".css").map(f => read(f).trim()).join("\n\n");
   const js = list(".js").map(f => read(f).trim()).join("\n\n");
   if (/<\/script/i.test(js)) throw new Error("JS içinde </script> geçemez");
-  let instance = 0;
-  return tpl.replaceAll("/*@BRAND@*/", () => {
-    const prefix = "mark" + (++instance) + "-";
-    return brand.replace(/id="([^"]+)"/g, (_, id) => `id="${prefix}${id}"`).replace(/url\(#([^)]+)\)/g, (_, id) => `url(#${prefix}${id})`);
-  }).replace("/*@CSS@*/", () => css).replace("/*@JS@*/", () => js);
+  return tpl.replaceAll("/*@BRAND@*/", () => brand).replaceAll("/*@LOGO@*/", () => logo).replaceAll("/*@SLOGAN@*/", () => slogan).replace("/*@CSS@*/", () => css).replace("/*@JS@*/", () => js);
 }
 
 if (require.main === module) {

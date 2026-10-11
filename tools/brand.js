@@ -1,58 +1,65 @@
 #!/usr/bin/env node
-// Tek SVG kaynağından PNG üretimi; ek paket, tarayıcı veya font gerektirmez.
+// Kullanıcının özgün PNG logosundan yayın simgeleri; yalnızca Node yerleşik modülleri.
 const fs=require('fs'),path=require('path'),zlib=require('zlib');
 const {root}=require('./project.js');
-const svg=fs.readFileSync(path.join(root,'assets/brand/mark.svg'),'utf8');
-// Markanın kullandığı SVG alt kümesi: rect, circle, polygon ve linearGradient.
-// Desteklenmeyen bir şekil sessizce kaybolmak yerine oluşturmayı durdurur.
-const attrs=s=>Object.fromEntries([...s.matchAll(/([\w-]+)="([^"]*)"/g)].map(m=>[m[1],m[2]]));
-const rgb=s=>s.slice(1).match(/../g).map(x=>parseInt(x,16));
-const gradients=Object.fromEntries([...svg.matchAll(/<linearGradient\b([^>]*)>([\s\S]*?)<\/linearGradient>/g)].map(m=>{
- const a=attrs(m[1]);return [a.id,{x1:+a.x1,y1:+a.y1,x2:+a.x2,y2:+a.y2,stops:[...m[2].matchAll(/<stop\b([^>]*)\/>/g)].map(s=>{const p=attrs(s[1]);return {offset:+p.offset,color:rgb(p['stop-color'])};})}];
-}));
-const supported=new Set(['svg','defs','linearGradient','stop','rect','circle','polygon']);
-if([...svg.matchAll(/<([A-Za-z]\w*)\b/g)].some(m=>!supported.has(m[1])))throw Error('Marka SVG rasterleştiricisinin desteklemediği bir şekil kullanıyor.');
-if(!svg.includes('viewBox="0 0 100 100"'))throw Error('Marka SVG 100 × 100 koordinat alanı kullanmalı.');
-const shapes=[...svg.matchAll(/<(rect|circle|polygon)\b([^>]*)\/>/g)].map(m=>{
- const a=attrs(m[2]),kind=m[1],poly=kind==='polygon'?a.points.trim().split(/\s+/).map(p=>p.split(',').map(Number)):null;
- const box=poly?[Math.min(...poly.map(p=>p[0])),Math.min(...poly.map(p=>p[1])),Math.max(...poly.map(p=>p[0])),Math.max(...poly.map(p=>p[1]))]:kind==='circle'?[+a.cx- +a.r,+a.cy- +a.r,+a.cx+ +a.r,+a.cy+ +a.r]:[+a.x,+a.y,+a.x+ +a.width,+a.y+ +a.height];
- const gradient=/url\(#([^)]+)\)/.exec(a.fill);
- if(!gradient&&!/^#[a-f\d]{6}$/i.test(a.fill))throw Error('Desteklenmeyen marka rengi: '+a.fill);
- return {kind,a,poly,box,opacity:a.opacity===undefined?1:+a.opacity,color:gradient?null:rgb(a.fill),gradient:gradient&&gradients[gradient[1]]};
-});
-const hits=(s,x,y)=>{
- const [x0,y0,x1,y1]=s.box;if(x<x0||x>x1||y<y0||y>y1)return false;
- if(s.kind==='polygon')return inside(x,y,s.poly);
- if(s.kind==='circle')return (x- +s.a.cx)**2+(y- +s.a.cy)**2<=(+s.a.r)**2;
- const r=+s.a.rx||0,dx=Math.max(x0+r-x,x-(x1-r),0),dy=Math.max(y0+r-y,y-(y1-r),0);return dx*dx+dy*dy<=r*r;
-};
-function paint(s,x,y){
- if(s.color)return s.color;
- const g=s.gradient,[x0,y0,x1,y1]=s.box,px=(x-x0)/(x1-x0),py=(y-y0)/(y1-y0),dx=g.x2-g.x1,dy=g.y2-g.y1;
- const t=Math.max(0,Math.min(1,((px-g.x1)*dx+(py-g.y1)*dy)/(dx*dx+dy*dy)));
- let lo=g.stops[0],hi=g.stops[g.stops.length-1];for(let i=1;i<g.stops.length;i++)if(t<=g.stops[i].offset){lo=g.stops[i-1];hi=g.stops[i];break;}
- const k=Math.max(0,Math.min(1,(t-lo.offset)/(hi.offset-lo.offset)));return lo.color.map((v,i)=>v+(hi.color[i]-v)*k);
-}
-const inside=(x,y,poly)=>{let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const a=poly[i],b=poly[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c}return c};
+const layout=require('../assets/brand/layout.json');
+const signature=Buffer.from([137,80,78,71,13,10,26,10]);
 const crc=b=>{let c=~0;for(const x of b){c^=x;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0)}return (c^~0)>>>0};
 const chunk=(name,data)=>{const t=Buffer.from(name),len=Buffer.alloc(4),tail=Buffer.alloc(4);len.writeUInt32BE(data.length);tail.writeUInt32BE(crc(Buffer.concat([t,data])));return Buffer.concat([len,t,data,tail])};
-function png(size,full=false,mask=false){
- const raw=Buffer.alloc(size*(size*4+1));
- for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-  const sum=[0,0,0,0];for(let ay=0;ay<2;ay++)for(let ax=0;ax<2;ax++){
-   const px=(x+(ax+.5)/2)*100/size,py=(y+(ay+.5)/2)*100/size,col=[0,0,0];let alpha=0;
-   shapes.forEach((s,i)=>{const sx=mask&&i?(px-50)/.72+50:px,sy=mask&&i?(py-50)/.72+50:py;
-    if(!((full&&i===0)||hits(s,sx,sy)))return;
-    const c=paint(s,sx,sy),a=s.opacity;for(let k=0;k<3;k++)col[k]=c[k]*a+col[k]*(1-a);alpha=a+alpha*(1-a);
-   });
-   for(let k=0;k<3;k++)sum[k]+=col[k];sum[3]+=alpha*255;
-  }
-  const off=y*(size*4+1)+1+x*4;for(let k=0;k<3;k++)raw[off+k]=sum[3]?Math.round(sum[k]*255/sum[3]):0;raw[off+3]=Math.round(sum[3]/4);
+const paeth=(a,b,c)=>{const p=a+b-c,pa=Math.abs(p-a),pb=Math.abs(p-b),pc=Math.abs(p-c);return pa<=pb&&pa<=pc?a:pb<=pc?b:c};
+function decode(file){
+ const png=fs.readFileSync(file),parts=[];let w,h,channels;
+ if(!png.subarray(0,8).equals(signature))throw Error('Marka kaynağı PNG olmalı.');
+ for(let p=8;p<png.length;){
+  const n=png.readUInt32BE(p),type=png.toString('ascii',p+4,p+8),data=png.subarray(p+8,p+8+n);
+  if(p+12+n>png.length||crc(png.subarray(p+4,p+8+n))!==png.readUInt32BE(p+8+n))throw Error('Bozuk PNG parçası.');
+  if(type==='IHDR'){
+   w=data.readUInt32BE(0);h=data.readUInt32BE(4);channels=data[9]===2?3:data[9]===6?4:0;
+   if(data[8]!==8||!channels||data[10]||data[11]||data[12])throw Error('Logo, 8 bit RGB/RGBA ve interlace kapalı PNG olmalı.');
+  }else if(type==='IDAT')parts.push(data);
+  p+=12+n;
  }
- const h=Buffer.alloc(13);h.writeUInt32BE(size,0);h.writeUInt32BE(size,4);h[8]=8;h[9]=6;
- return Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',h),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);
+ const stride=w*channels,raw=zlib.inflateSync(Buffer.concat(parts)),pixels=Buffer.alloc(w*h*channels);
+ if(raw.length!==h*(stride+1))throw Error('Logo piksel boyutu uyuşmuyor.');
+ for(let y=0;y<h;y++){
+  const filter=raw[y*(stride+1)];if(filter>4)throw Error('Desteklenmeyen PNG filtresi.');
+  for(let x=0;x<stride;x++){
+   const i=y*stride+x,a=x>=channels?pixels[i-channels]:0,b=y?pixels[i-stride]:0,c=y&&x>=channels?pixels[i-stride-channels]:0;
+   pixels[i]=(raw[y*(stride+1)+1+x]+[0,a,b,Math.floor((a+b)/2),paeth(a,b,c)][filter])&255;
+  }
+ }
+ return {w,h,channels,pixels};
 }
-fs.mkdirSync(path.join(root,'icons'),{recursive:true});
-fs.writeFileSync(path.join(root,'icons/icon.svg'),svg);
-for(const [name,size,full,mask]of [['icon-192.png',192],['icon-512.png',512],['icon-maskable-512.png',512,true,true],['apple-touch-icon.png',180,true]])fs.writeFileSync(path.join(root,'icons',name),png(size,full,mask));
-console.log('NakGo simgeleri assets/brand/mark.svg kaynağından üretildi.');
+const source=decode(path.join(root,'assets/brand/logo.png'));
+function frame(value){
+ if(!Array.isArray(value)||value.length!==4||value.some(x=>!Number.isFinite(x)))throw Error('Geçersiz logo çerçevesi.');
+ const [x,y,w,h]=value;if(x<0||y<0||w<=0||h<=0||x+w>source.w||y+h>source.h)throw Error('Logo çerçevesi kaynak dışında.');
+ return value;
+}
+function sample(x,y,k){
+ x=Math.max(0,Math.min(source.w-1,x));y=Math.max(0,Math.min(source.h-1,y));
+ const x0=Math.floor(x),y0=Math.floor(y),x1=Math.min(source.w-1,x0+1),y1=Math.min(source.h-1,y0+1),fx=x-x0,fy=y-y0;
+ const at=(px,py)=>{const i=(py*source.w+px)*source.channels;return source.channels===4?source.pixels[i+k]*source.pixels[i+3]/255+255*(1-source.pixels[i+3]/255):source.pixels[i+k]};
+ return (at(x0,y0)*(1-fx)+at(x1,y0)*fx)*(1-fy)+(at(x0,y1)*(1-fx)+at(x1,y1)*fx)*fy;
+}
+function render(w,h,crop,coverage=1){
+ const [sx,sy,sw,sh]=frame(crop),scale=Math.min(w/sw,h/sh)*coverage,dw=sw*scale,dh=sh*scale,ox=(w-dw)/2,oy=(h-dh)/2;
+ const raw=Buffer.alloc(h*(w*3+1));
+ for(let y=0;y<h;y++)for(let x=0;x<w;x++)for(let k=0;k<3;k++){
+  let sum=0;
+  for(let ay=0;ay<2;ay++)for(let ax=0;ax<2;ax++){
+   const px=x+(ax+.5)/2,py=y+(ay+.5)/2;
+   sum+=px<ox||px>=ox+dw||py<oy||py>=oy+dh?255:sample(sx+(px-ox)/scale-.5,sy+(py-oy)/scale-.5,k);
+  }
+  raw[y*(w*3+1)+1+x*3+k]=Math.round(sum/4);
+ }
+ const hdr=Buffer.alloc(13);hdr.writeUInt32BE(w,0);hdr.writeUInt32BE(h,4);hdr[8]=8;hdr[9]=2;
+ return Buffer.concat([signature,chunk('IHDR',hdr),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);
+}
+const output=path.join(root,'icons');fs.mkdirSync(output,{recursive:true});
+for(const [name,size,coverage]of [['icon-192.png',192,.94],['icon-512.png',512,.94],['icon-maskable-512.png',512,.64],['apple-touch-icon.png',180,.94]])fs.writeFileSync(path.join(output,name),render(size,size,layout.mark,coverage));
+const [,,fw,fh]=frame(layout.full),width=576;
+fs.writeFileSync(path.join(output,'brand-logo.png'),render(width,Math.round(width*fh/fw),layout.full));
+const icon=fs.readFileSync(path.join(output,'icon-192.png')).toString('base64');
+fs.writeFileSync(path.join(output,'icon.svg'),'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><image width="192" height="192" href="data:image/png;base64,'+icon+'"/></svg>\n');
+console.log('NakGo logosu ve simgeleri özgün assets/brand/logo.png kaynağından üretildi.');

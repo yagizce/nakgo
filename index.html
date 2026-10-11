@@ -1528,19 +1528,21 @@ header p {
 }
 
 .splash .tile {
-  width:112px;
-  height:112px;
-  border-radius:30px;
-  background:var(--accent);
+  width:min(260px,calc(100vw - 64px));
+  height:auto;
+  border-radius:24px;
+  background:#fff;
+  box-shadow:0 16px 48px #003e4540;
   display:grid;
   place-items:center;
   overflow:hidden;
   animation:pop .55s cubic-bezier(.2,.9,.3,1.25) both;
 }
 
-.splash .tile svg {
-  width:100px;
-  height:100px;
+.splash .tile img {
+  display:block;
+  width:100%;
+  height:auto;
 }
 
 .splash .tk {
@@ -1548,14 +1550,11 @@ header p {
 }
 
 .splash p {
+  margin-top:24px;
   color:#fff;
-  opacity:.8;
+  opacity:1;
   font-size:14px;
   animation:rise .55s .5s both;
-}
-
-.splash .tile {
-  background:linear-gradient(135deg,#ffd24f,#f0a30a);
 }
 
 /* Animasyonlar, hareket azaltma ve dar ekran düzeltmeleri (en sonda, diğer kuralları ezer) */
@@ -1805,8 +1804,6 @@ textarea:focus { outline:2px solid var(--brand-ink); outline-offset:2px; }
 .meta { flex-wrap:wrap; gap:8px; }
 .off { background:var(--card); color:var(--ink); border-bottom:2px solid var(--bad); }
 .logo { background:transparent; }
-.splash .tile { background:transparent; box-shadow:none; }
-.wordmark { font-size:38px; letter-spacing:-1.5px; color:#fff; margin-top:16px; }
 .screen-heading { margin:0 0 22px; }
 .screen-heading h2 { font-size:26px; line-height:1.25; letter-spacing:-.8px; margin:6px 0; }
 .screen-heading p { font-size:14px; color:var(--mute); }
@@ -1847,7 +1844,7 @@ header { background:var(--app-gradient); padding-top:calc(12px + env(safe-area-i
 header h1 { font-size:24px; letter-spacing:-1px; }
 header p { font-size:10px; color:#e0ffff; }
 .logo { width:50px; height:50px; background:transparent; border-radius:16px; }
-.logo svg { width:50px; height:50px; border:0; border-radius:16px; }
+.logo img { display:block; width:50px; height:50px; border:0; border-radius:16px; }
 .bell { width:44px; min-height:44px; border:1px solid #ffffff30; background:#004f5866; }
 #thh+.bell { margin-left:0; }
 main { background:radial-gradient(ellipse at 100% 0%,var(--tag-bg),transparent 48%),var(--bg); }
@@ -1945,8 +1942,6 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .draft-state { max-width:110px; }
 .form-section { border-radius:22px; }
 .splash { background:var(--app-gradient); }
-.splash .tile svg { width:108px; height:108px; }
-.splash .tile { width:108px; height:108px; }
 .toast { bottom:calc(var(--nav-height) + 80px); }
 #app[data-keyboard=true] { --nav-height:0px; }
 #app[data-keyboard=true] nav { display:none; }
@@ -2032,92 +2027,8 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 </head>
 <body>
 <div id="app">
-  <div id="splash" class="splash" aria-hidden="true"><div class="tile"><svg class="tk" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
-  <defs>
-    <linearGradient id="mark1-sea" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#006d74"/><stop offset="1" stop-color="#20c9bd"/></linearGradient>
-    <linearGradient id="mark1-metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fcffff"/><stop offset="0.5" stop-color="#c9dfe0"/><stop offset="1" stop-color="#719da1"/></linearGradient>
-    <linearGradient id="mark1-cab" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3a0"/><stop offset="0.45" stop-color="#ffd34e"/><stop offset="1" stop-color="#df9a0a"/></linearGradient>
-    <linearGradient id="mark1-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#78bfc5"/><stop offset="0.45" stop-color="#264b56"/><stop offset="1" stop-color="#0d2935"/></linearGradient>
-  </defs>
-  <rect x="0" y="0" width="100" height="100" rx="24" fill="url(#mark1-sea)"/>
-  <circle cx="78" cy="22" r="18" fill="#ffffff" opacity="0.08"/>
-  <polygon points="10,83 76,69 93,76 32,93" fill="#004a51" opacity="0.28"/>
-  <polygon points="12,29 55,17 70,26 27,39" fill="#eff8f8"/>
-  <polygon points="12,29 27,39 27,70 12,60" fill="#8bafb3"/>
-  <polygon points="27,39 70,26 70,57 27,70" fill="url(#mark1-metal)"/>
-  <polygon points="31,42 68,31 68,33 31,44" fill="#ffffff" opacity="0.7"/>
-  <polygon points="31,49 68,38 68,40 31,51" fill="#ffffff" opacity="0.55"/>
-  <polygon points="31,56 68,45 68,47 31,58" fill="#ffffff" opacity="0.45"/>
-  <polygon points="27,67 70,54 70,58 27,71" fill="#007f83"/>
-  <polygon points="15,61 72,45 78,58 26,79 15,73" fill="#173c44"/>
-  <circle cx="25" cy="73" r="7" fill="#112b34"/>
-  <circle cx="25" cy="73" r="3.5" fill="url(#mark1-metal)"/>
-  <circle cx="38" cy="69" r="7" fill="#112b34"/>
-  <circle cx="38" cy="69" r="3.5" fill="url(#mark1-metal)"/>
-  <polygon points="51,36 72,30 88,41 67,49" fill="#fff1a0"/>
-  <polygon points="51,36 67,49 69,78 50,64" fill="#dfb02c"/>
-  <polygon points="67,49 88,41 92,70 72,82 69,78" fill="url(#mark1-cab)"/>
-  <polygon points="68,48 87,42 88,54 69,61" fill="url(#mark1-glass)"/>
-  <polygon points="70,49 84,45 76,55 70,57" fill="#bcf1ee" opacity="0.45"/>
-  <polygon points="54,41 63,48 64,59 54,52" fill="url(#mark1-glass)"/>
-  <polygon points="54,41 57,43 57,50 54,48" fill="#b6e2e2" opacity="0.6"/>
-  <polygon points="50,54 54,56 54,64 50,61" fill="#ffdd5b"/>
-  <polygon points="62,44 67,47 67,53 64,51" fill="#123c45"/>
-  <polygon points="89,47 93,46 94,52 90,53" fill="#123c45"/>
-  <polygon points="70,65 89,59 90,67 71,74" fill="#173943"/>
-  <polygon points="72,67 88,62 88,63 72,69" fill="#87a8ac"/>
-  <polygon points="72,71 88,66 88,67 72,73" fill="#87a8ac"/>
-  <polygon points="69,63 73,62 73,65 70,66" fill="#fffdec"/>
-  <polygon points="86,57 90,56 90,59 86,60" fill="#fffdec"/>
-  <polygon points="71,76 92,68 92,73 72,83" fill="url(#mark1-metal)"/>
-  <polygon points="77,76 85,72 85,74 77,78" fill="#ffffff"/>
-  <circle cx="57" cy="73" r="8" fill="#102c35"/>
-  <circle cx="57" cy="73" r="4" fill="url(#mark1-metal)"/>
-  <circle cx="57" cy="73" r="1.5" fill="#4d7076"/>
-</svg></div><strong class="wordmark">NakGo</strong><p>Yükünü bul, aracını doldur.</p></div>
-  <header><div class="logo"><svg class="tk" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" aria-hidden="true">
-  <defs>
-    <linearGradient id="mark2-sea" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#006d74"/><stop offset="1" stop-color="#20c9bd"/></linearGradient>
-    <linearGradient id="mark2-metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fcffff"/><stop offset="0.5" stop-color="#c9dfe0"/><stop offset="1" stop-color="#719da1"/></linearGradient>
-    <linearGradient id="mark2-cab" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3a0"/><stop offset="0.45" stop-color="#ffd34e"/><stop offset="1" stop-color="#df9a0a"/></linearGradient>
-    <linearGradient id="mark2-glass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#78bfc5"/><stop offset="0.45" stop-color="#264b56"/><stop offset="1" stop-color="#0d2935"/></linearGradient>
-  </defs>
-  <rect x="0" y="0" width="100" height="100" rx="24" fill="url(#mark2-sea)"/>
-  <circle cx="78" cy="22" r="18" fill="#ffffff" opacity="0.08"/>
-  <polygon points="10,83 76,69 93,76 32,93" fill="#004a51" opacity="0.28"/>
-  <polygon points="12,29 55,17 70,26 27,39" fill="#eff8f8"/>
-  <polygon points="12,29 27,39 27,70 12,60" fill="#8bafb3"/>
-  <polygon points="27,39 70,26 70,57 27,70" fill="url(#mark2-metal)"/>
-  <polygon points="31,42 68,31 68,33 31,44" fill="#ffffff" opacity="0.7"/>
-  <polygon points="31,49 68,38 68,40 31,51" fill="#ffffff" opacity="0.55"/>
-  <polygon points="31,56 68,45 68,47 31,58" fill="#ffffff" opacity="0.45"/>
-  <polygon points="27,67 70,54 70,58 27,71" fill="#007f83"/>
-  <polygon points="15,61 72,45 78,58 26,79 15,73" fill="#173c44"/>
-  <circle cx="25" cy="73" r="7" fill="#112b34"/>
-  <circle cx="25" cy="73" r="3.5" fill="url(#mark2-metal)"/>
-  <circle cx="38" cy="69" r="7" fill="#112b34"/>
-  <circle cx="38" cy="69" r="3.5" fill="url(#mark2-metal)"/>
-  <polygon points="51,36 72,30 88,41 67,49" fill="#fff1a0"/>
-  <polygon points="51,36 67,49 69,78 50,64" fill="#dfb02c"/>
-  <polygon points="67,49 88,41 92,70 72,82 69,78" fill="url(#mark2-cab)"/>
-  <polygon points="68,48 87,42 88,54 69,61" fill="url(#mark2-glass)"/>
-  <polygon points="70,49 84,45 76,55 70,57" fill="#bcf1ee" opacity="0.45"/>
-  <polygon points="54,41 63,48 64,59 54,52" fill="url(#mark2-glass)"/>
-  <polygon points="54,41 57,43 57,50 54,48" fill="#b6e2e2" opacity="0.6"/>
-  <polygon points="50,54 54,56 54,64 50,61" fill="#ffdd5b"/>
-  <polygon points="62,44 67,47 67,53 64,51" fill="#123c45"/>
-  <polygon points="89,47 93,46 94,52 90,53" fill="#123c45"/>
-  <polygon points="70,65 89,59 90,67 71,74" fill="#173943"/>
-  <polygon points="72,67 88,62 88,63 72,69" fill="#87a8ac"/>
-  <polygon points="72,71 88,66 88,67 72,73" fill="#87a8ac"/>
-  <polygon points="69,63 73,62 73,65 70,66" fill="#fffdec"/>
-  <polygon points="86,57 90,56 90,59 86,60" fill="#fffdec"/>
-  <polygon points="71,76 92,68 92,73 72,83" fill="url(#mark2-metal)"/>
-  <polygon points="77,76 85,72 85,74 77,78" fill="#ffffff"/>
-  <circle cx="57" cy="73" r="8" fill="#102c35"/>
-  <circle cx="57" cy="73" r="4" fill="url(#mark2-metal)"/>
-  <circle cx="57" cy="73" r="1.5" fill="#4d7076"/>
-</svg></div><div><h1>NakGo</h1><p id="sub">Yükünü bul, aracını doldur.</p></div><button class="bell" id="thh" aria-label="Temayı değiştir" title="Temayı değiştir"></button><button class="bell" id="bell" aria-label="Bildirimler"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><b id="bc"></b></button></header>
+  <div id="splash" class="splash" aria-hidden="true"><div class="tile"><img class="tk" src="icons/brand-logo.png" width="576" height="538" alt="NakGo" fetchpriority="high"></div><p>Biz bu işin NakGosuyuz</p></div>
+  <header><div class="logo"><img class="tk" src="icons/icon-192.png" width="50" height="50" alt="" decoding="async"></div><div><h1>NakGo</h1><p id="sub">Biz bu işin NakGosuyuz</p></div><button class="bell" id="thh" aria-label="Temayı değiştir" title="Temayı değiştir"></button><button class="bell" id="bell" aria-label="Bildirimler"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><b id="bc"></b></button></header>
   <div id="off" class="off" role="status">İnternet bağlantısı yok. Yerel demo cihazında kullanılabilir; ortak veriler için bağlantı gerekir.</div>
   <main id="main"></main>
   <nav id="nav" aria-label="Ana menü">
@@ -2571,7 +2482,6 @@ async function initCloud() {
         loaded = false;
         myName = esc((await u.me()).name || "");
         names[me] = myName || "Ben";
-        $("#sub").textContent = "Canlı: ortak ilan havuzu";
         const ts = (a, b) => (b.ts || 0) - (a.ts || 0) || String(a.id).localeCompare(String(b.id), "tr", { numeric: true });
         const who = async (list) => {
             const ids = [...new Set(list.filter(Boolean))].filter(i => !names[i]);

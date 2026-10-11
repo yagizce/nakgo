@@ -880,19 +880,21 @@
 }
 
 .splash .tile {
-  width:112px;
-  height:112px;
-  border-radius:30px;
-  background:var(--accent);
+  width:min(260px,calc(100vw - 64px));
+  height:auto;
+  border-radius:24px;
+  background:#fff;
+  box-shadow:0 16px 48px #003e4540;
   display:grid;
   place-items:center;
   overflow:hidden;
   animation:pop .55s cubic-bezier(.2,.9,.3,1.25) both;
 }
 
-.splash .tile svg {
-  width:100px;
-  height:100px;
+.splash .tile img {
+  display:block;
+  width:100%;
+  height:auto;
 }
 
 .splash .tk {
@@ -900,12 +902,9 @@
 }
 
 .splash p {
+  margin-top:24px;
   color:#fff;
-  opacity:.8;
+  opacity:1;
   font-size:14px;
   animation:rise .55s .5s both;
-}
-
-.splash .tile {
-  background:linear-gradient(135deg,#ffd24f,#f0a30a);
 }

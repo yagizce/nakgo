@@ -14,8 +14,6 @@ textarea:focus { outline:2px solid var(--brand-ink); outline-offset:2px; }
 .meta { flex-wrap:wrap; gap:8px; }
 .off { background:var(--card); color:var(--ink); border-bottom:2px solid var(--bad); }
 .logo { background:transparent; }
-.splash .tile { background:transparent; box-shadow:none; }
-.wordmark { font-size:38px; letter-spacing:-1.5px; color:#fff; margin-top:16px; }
 .screen-heading { margin:0 0 22px; }
 .screen-heading h2 { font-size:26px; line-height:1.25; letter-spacing:-.8px; margin:6px 0; }
 .screen-heading p { font-size:14px; color:var(--mute); }
@@ -56,7 +54,7 @@ header { background:var(--app-gradient); padding-top:calc(12px + env(safe-area-i
 header h1 { font-size:24px; letter-spacing:-1px; }
 header p { font-size:10px; color:#e0ffff; }
 .logo { width:50px; height:50px; background:transparent; border-radius:16px; }
-.logo svg { width:50px; height:50px; border:0; border-radius:16px; }
+.logo img { display:block; width:50px; height:50px; border:0; border-radius:16px; }
 .bell { width:44px; min-height:44px; border:1px solid #ffffff30; background:#004f5866; }
 #thh+.bell { margin-left:0; }
 main { background:radial-gradient(ellipse at 100% 0%,var(--tag-bg),transparent 48%),var(--bg); }
@@ -154,8 +152,6 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .draft-state { max-width:110px; }
 .form-section { border-radius:22px; }
 .splash { background:var(--app-gradient); }
-.splash .tile svg { width:108px; height:108px; }
-.splash .tile { width:108px; height:108px; }
 .toast { bottom:calc(var(--nav-height) + 80px); }
 #app[data-keyboard=true] { --nav-height:0px; }
 #app[data-keyboard=true] nav { display:none; }
