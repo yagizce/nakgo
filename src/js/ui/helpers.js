@@ -7,14 +7,8 @@
 // Yakıt hesabı, tema, paylaşma ve derin bağlantı, çevrimdışı uyarısı.
 
 
-const APPURL = (() => {
-    try {
-        return location.origin + location.pathname;
-    }
-    catch (e) {
-        return "";
-    }
-})();
+// Paylaşım preview, eski alias veya native origin yerine resmi Production'a gider.
+const APPURL = "https://nakgo.vercel.app/";
 
 function deep() {
     if (deepId && loads.some(x => x.id === deepId)) {
