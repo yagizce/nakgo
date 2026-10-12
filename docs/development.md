@@ -18,6 +18,6 @@ Vercel statik yayın kullanır. Kaynaklar/araçlar/belgeler .vercelignore ile d�
 
 GitHub Actions `checks.yml`, her PR ve main güncellemesinde bundle/lint/birim testlerini, Chromium akışlarını ve mobil web çıktısını doğrular. İş akışı yalnızca okuma izni kullanır, deploy yapmaz ve uygulama sırlarına ihtiyaç duymaz. Action sürümleri commit SHA ile, Playwright test sürümü tests/requirements.txt içinde sabittir. Test kurulumu [Playwright’ın CI belgesini](https://playwright.dev/python/docs/ci-intro) izler.
 
-`tests/reliability.py` gerçek formdan güvenli metin, depo dolması, bozuk kayıt, belge fotoğrafı, tarih, filtre, iletişim durumu ve iki temada kontrast senaryolarını kapsar; ana E2E komutu tarafından çağrılır. Geçici rapor ve ekran görüntüleri tests/shots altında tutulur.
+`tests/reliability.py` gerçek formdan güvenli metin, depo dolması, bozuk kayıt, belge fotoğrafı, tarih, filtre, iletişim durumu ve iki temada kontrast senaryolarını kapsar; ana E2E komutu tarafından çağrılır. `tests/forms.py` taslak geçişleri, gecikmeli fotoğraf, geçersiz miktar/seçimler, favori/iş kaydı ve mazot hesabında hata sonrası tutarlılığı denetler. Geçici rapor ve ekran görüntüleri tests/shots altında tutulur.
 
 Bundle satır sonlarını LF olarak sabitler; aynı kaynaklar Windows ve Linux’ta aynı index.html üretir. Yerel HTTP sunucusu tools/serve.js içindedir, dış ağa açılmaz; PORT ortam değişkeni ile port değiştirilebilir.

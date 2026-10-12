@@ -57,6 +57,8 @@ def run_reliability(browser, url, check, errors, root):
     for raw in ['{}','null','{invalid','[]',json.dumps({'loads':[],'offers':None,'trucks':[],'calc':'bad','chats':[]})]:
         p=page(raw);check('eksik/bozuk kayıt açılışı: '+raw[:35],p.evaluate("Array.isArray(offers)&&Number.isFinite(calc.km)") and p.is_visible('#route-heading'))
         check('orijinal bozuk kayıt kurtarma kopyasında durur',p.evaluate("Object.keys(localStorage).some(k=>k.startsWith('yy2-recovery-'))"));p.context.close()
+    from forms import run_forms
+    run_forms(page,check)
     # Metin kontrastı geçişin her renk durağına karşı hesaplanır.
     contrast="""e=>{const rgb=s=>(s.match(/[\\d.]+/g)||[]).slice(0,3).map(Number),lum=c=>c.map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);let parent=e;while(parent&&!getComputedStyle(parent).backgroundImage.includes('gradient'))parent=parent.parentElement;const stops=(getComputedStyle(parent).backgroundImage.match(/rgba?\\([^)]+\\)/g)||[]).map(rgb),fg=lum(rgb(getComputedStyle(e).color));return Math.min(...stops.map(c=>{const bg=lum(c);return(Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05)}))}"""
     for theme in ['light','dark']:

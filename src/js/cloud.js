@@ -44,6 +44,12 @@ function untrack(t, id) {
     db.doc("events/" + k + "_" + me).delete().catch(() => { });
 }
 
+// Ortak kayıttan gelen değişiklikleri önbelleğe al; tercihleri geri gönderme.
+function refreshCloudState() {
+    save(false);
+    soft();
+}
+
 async function initCloud() {
     try {
         if (!window.claude || !claude.use)
@@ -74,7 +80,7 @@ async function initCloud() {
             who(loads.map(l => l.uid));
             rebuild();
             loaded = true;
-            soft();
+            refreshCloudState();
             deep();
         }, () => {
             loaded = true;
@@ -83,7 +89,7 @@ async function initCloud() {
         db.collection("trucks").onSnapshot(sn => {
             trucks = sn.docs.map(x => normalizeListing(x.data())).filter(Boolean).sort(ts);
             who(trucks.map(t => t.uid));
-            soft();
+            refreshCloudState();
         }, () => { });
         db.collection("offers").onSnapshot(sn => {
             allO = sn.docs.map(x => x.data());
@@ -92,7 +98,7 @@ async function initCloud() {
                 sim.add(o.id);
                 simulate(o.id);
             });
-            soft();
+            refreshCloudState();
         }, () => { });
         let first = true;
         db.collection("carriers").onSnapshot(sn => {
@@ -107,7 +113,7 @@ async function initCloud() {
                 first = false;
             }
             who(Object.keys(carriers));
-            soft();
+            refreshCloudState();
         }, () => { });
         admin = await u.isOwner();
         db.collection("events").onSnapshot(sn => {
@@ -120,14 +126,14 @@ async function initCloud() {
         if (admin)
             db.collection("reports").onSnapshot(sn => {
                 reports = sn.docs.map(x => ({ k: x.id, ...clean(x.data()) }));
-                soft();
+                refreshCloudState();
             }, () => { });
         db.collection("ratings").onSnapshot(sn => {
             rates = sn.docs.map(x => {
                 const v = x.data();
                 return { k: x.id, to: String(v.to || ""), by: String(v.by || ""), stars: Math.min(5, Math.max(1, +v.stars || 1)), text: String(v.text || ""), ts: +v.ts || 0 };
             });
-            soft();
+            refreshCloudState();
         }, () => { });
         db.collection("approvals").onSnapshot(sn => {
             appr = {};
@@ -154,7 +160,7 @@ async function initCloud() {
             blocked = Array.isArray(v.blocked) ? v.blocked.map(String).slice(0, 200) : [];
         }
         lastP = JSON.stringify({ favs, calc, alerts, blocked });
-        soft();
+        refreshCloudState();
     }
     catch (e) { }
 }

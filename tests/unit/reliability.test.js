@@ -30,8 +30,8 @@ module.exports = ({run,test,boot}) => {
     ok(r("return el('#toast').textContent").includes('Kaydedilemedi'),"hata açıkça görünür");
   });
   run("Çizim ve arama depolamayı tekrar yazmaz",(r,ok)=>{
-    r("localStorage.auditCount=0;localStorage.originalSet=localStorage.setItem;localStorage.setItem=(k,v)=>{if(k==='yy2')localStorage.auditCount++;localStorage.originalSet(k,v)};q='ank';render();render()");
-    ok(r("return localStorage.auditCount")===0,"değişmeyen durum için sıfır yazma");
+    r("localStorage.auditCount=0;localStorage.originalSet=localStorage.setItem;localStorage.setItem=(k,v)=>{if(k==='yy2')localStorage.auditCount++;localStorage.originalSet(k,v)};loads[0].note='Geçici bellek değişikliği';q='ank';render();render()");
+    ok(r("return localStorage.auditCount")===0,"çizim kalıcı durumu yazmaz");
   });
   test("Belge fotoğrafı ve eski yüklenmiş işareti tutarlı",async()=>{
     const r=boot();r("cdocs['local/src']='data:image/jpeg;base64,AAAA';setCar({src:true,docs:{src:true}})");

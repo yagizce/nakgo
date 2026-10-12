@@ -2284,6 +2284,26 @@ const dateBucket = x => {
     }
     return "İleri tarih";
 };
+const positiveAmount = value => Number.isFinite(+value) && +value > 0 && +value <= Number.MAX_SAFE_INTEGER;
+const postDateOK = value => ["Bugün", "Yarın", "Bu hafta"].includes(value) || validDay(value);
+const ITEM_UNITS = ["ton", "kg", "palet", "koli", "adet", "m³"];
+function postError(x, isTruck = false, step = 2) {
+    if (!cities.includes(x.from) || !cities.includes(x.to)) return "Çıkış ve varış şehrini seç";
+    if (x.from === x.to) return "Çıkış ve varış şehri farklı olmalı";
+    if (step < 1) return "";
+    if (!positiveAmount(isTruck ? x.cap : x.ton)) return "Geçerli, sıfırdan büyük bir tonaj gir";
+    if (!isTruck && !String(x.cargo || "").trim()) return "Yük cinsini gir";
+    if (!vehicles.includes(x.veh) || !bodies.includes(x.body)) return "Araç ve kasa tipini seç";
+    if (step < 2) return "";
+    if (!postDateOK(x.date) || dateFields(x.date).date < localDay()) return "Güncel bir yükleme veya müsaitlik tarihi seç";
+    if (Array.isArray(x.items) && x.items.some(i => !positiveAmount(i.q) || !ITEM_UNITS.includes(i.u))) return "Yük kalemlerine geçerli, sıfırdan büyük miktar ve birim gir";
+    return "";
+}
+function fuelEstimate(values) {
+    if (["km","cons","fuel","toll","other"].some(k => !Number.isFinite(values[k]) || values[k] < 0 || values[k] > Number.MAX_SAFE_INTEGER)) return null;
+    const distance=values.km*(values.back?2:1), litres=distance*values.cons/100, fuel=litres*values.fuel, extras=values.toll+values.other, total=fuel+extras;
+    return [distance,litres,fuel,extras,total].every(v=>Number.isFinite(v)&&v<=Number.MAX_SAFE_INTEGER) ? {distance,litres,fuel,extras,total} : null;
+}
 const listingDistance = x => Number.isFinite(+x.km) && +x.km > 0 ? +x.km : dist(x.from,x.to) || 0;
 const imageDataOK = (u, max=250000) => typeof u === "string" && u.length < max && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(u);
 function normalizeListing(v) {
@@ -2291,7 +2311,7 @@ function normalizeListing(v) {
     const x={...v};
     for (const k of ["cargo","note","owner","who","veh","body","phone","uid","date"]) if (k in x) x[k]=String(x[k]??"");
     for (const k of ["ton","cap","km","ts","featUntil","stage"]) if(k in x) x[k]=Number.isFinite(+x[k])?Math.max(0,+x[k]):0;
-    if(Array.isArray(x.items)) x.items=x.items.filter(isRecord).slice(0,6).map(i=>({n:String(i.n||""),q:Math.max(0,+i.q||0),u:String(i.u||"")}));
+    if(Array.isArray(x.items)) x.items=x.items.filter(isRecord).slice(0,6).map(i=>({n:String(i.n||""),q:positiveAmount(i.q)?+i.q:0,u:String(i.u||"")}));
     else delete x.items;
     if (!imageDataOK(x.img,60000)) delete x.img;
     if (x.mine && !x.ts) {
@@ -2299,6 +2319,7 @@ function normalizeListing(v) {
         x.ts=Number.isFinite(old)&&old>1e12?old:Date.now();
     }
     if ((x.mine || x.uid || x.ts) && !validDay(x.date)) Object.assign(x,dateFields(x.date,x.ts||Date.now()));
+    if (!validDay(x.dateEnd) || x.dateEnd < x.date) delete x.dateEnd;
     if(Array.isArray(x.featWin)) x.featWin=x.featWin.filter(w=>Array.isArray(w)&&Number.isFinite(+w[0])&&Number.isFinite(+w[1]));
     if (x.status && !["wait","ok","counter","no"].includes(x.status)) x.status="wait";
     return x;
@@ -2446,6 +2467,7 @@ function normalizeState(d) {
     if(isRecord(d.calc)) {
         for(const k of ["km","cons","fuel","toll","other"]) if(Number.isFinite(+d.calc[k])&&+d.calc[k]>=0) out.calc[k]=+d.calc[k];
         out.calc.back=d.calc.back===true;
+        if (!fuelEstimate(out.calc)) out.calc={...base.calc};
     }
     if(isRecord(d.myCar)) out.myCar={...base.myCar,...d.myCar};
     for(const k of ["displayName","city","about","phone","lic"]) if(k in out.myCar) out.myCar[k]=typeof out.myCar[k]==="string"?out.myCar[k]:"";
@@ -2468,14 +2490,14 @@ function savePrefs() {
     clearTimeout(pt);
     pt=setTimeout(()=>db.doc("data/users/"+me+"/prefs").set(prefs).then(()=>{lastP=j;}).catch(()=>toast("Tercihler bağlantı nedeniyle eşitlenemedi")),800);
 }
-function save() {
+function save(syncPrefs = true) {
     try {
         if(recoveryBlocked) throw new Error("recovery");
         const j=JSON.stringify(stateData());
         if(j!==persistedState) localStorage.setItem("yy2",j);
         persistedState=j;
         savedState=j;
-        savePrefs();
+        if (syncPrefs) savePrefs();
         return true;
     } catch(e) {
         if(savedState&&!cloud) applyState(JSON.parse(savedState));
@@ -2509,6 +2531,7 @@ function restoreState() {
     } catch(e) { storageNotice="Cihaz depolamasına erişilemiyor. Değişikliklerin kalıcı kaydı yapılamayabilir."; }
     // İlk başarısız yazmada da bellek güvenli başlangıç durumuna dönebilir.
     savedState=JSON.stringify(stateData());
+    if (!recoveryBlocked) save(false);
     offers.filter(o=>o.status==="wait").forEach(o=>simulate(o.id));
 
 }
@@ -2559,6 +2582,12 @@ function untrack(t, id) {
     db.doc("events/" + k + "_" + me).delete().catch(() => { });
 }
 
+// Ortak kayıttan gelen değişiklikleri önbelleğe al; tercihleri geri gönderme.
+function refreshCloudState() {
+    save(false);
+    soft();
+}
+
 async function initCloud() {
     try {
         if (!window.claude || !claude.use)
@@ -2589,7 +2618,7 @@ async function initCloud() {
             who(loads.map(l => l.uid));
             rebuild();
             loaded = true;
-            soft();
+            refreshCloudState();
             deep();
         }, () => {
             loaded = true;
@@ -2598,7 +2627,7 @@ async function initCloud() {
         db.collection("trucks").onSnapshot(sn => {
             trucks = sn.docs.map(x => normalizeListing(x.data())).filter(Boolean).sort(ts);
             who(trucks.map(t => t.uid));
-            soft();
+            refreshCloudState();
         }, () => { });
         db.collection("offers").onSnapshot(sn => {
             allO = sn.docs.map(x => x.data());
@@ -2607,7 +2636,7 @@ async function initCloud() {
                 sim.add(o.id);
                 simulate(o.id);
             });
-            soft();
+            refreshCloudState();
         }, () => { });
         let first = true;
         db.collection("carriers").onSnapshot(sn => {
@@ -2622,7 +2651,7 @@ async function initCloud() {
                 first = false;
             }
             who(Object.keys(carriers));
-            soft();
+            refreshCloudState();
         }, () => { });
         admin = await u.isOwner();
         db.collection("events").onSnapshot(sn => {
@@ -2635,14 +2664,14 @@ async function initCloud() {
         if (admin)
             db.collection("reports").onSnapshot(sn => {
                 reports = sn.docs.map(x => ({ k: x.id, ...clean(x.data()) }));
-                soft();
+                refreshCloudState();
             }, () => { });
         db.collection("ratings").onSnapshot(sn => {
             rates = sn.docs.map(x => {
                 const v = x.data();
                 return { k: x.id, to: String(v.to || ""), by: String(v.by || ""), stars: Math.min(5, Math.max(1, +v.stars || 1)), text: String(v.text || ""), ts: +v.ts || 0 };
             });
-            soft();
+            refreshCloudState();
         }, () => { });
         db.collection("approvals").onSnapshot(sn => {
             appr = {};
@@ -2669,7 +2698,7 @@ async function initCloud() {
             blocked = Array.isArray(v.blocked) ? v.blocked.map(String).slice(0, 200) : [];
         }
         lastP = JSON.stringify({ favs, calc, alerts, blocked });
-        soft();
+        refreshCloudState();
     }
     catch (e) { }
 }
@@ -2888,6 +2917,8 @@ const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
 
 function postTruck(t) {
+    const error = postError(t, true);
+    if (error) { toast(error); return false; }
     Object.assign(t, dateFields(t.date), {ts:Date.now()});
     if (myCar.phone)
         t.phone = myCar.phone;
@@ -2930,13 +2961,15 @@ function openEdit(k, id, reopen=false) {
     B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#es").onclick = () => {
         const v = L ? 0 : +$("#ep").value;
-        if (!L && !(v > 0))
+        if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
         const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 1000) } : { cap: v, date: $("#ed").value };
         const selectedDate=$("#ed").value;
+        if (!postDateOK(selectedDate)) return toast("Geçerli bir tarih seç");
         if (selectedDate !== it.date) Object.assign(patch,dateFields(selectedDate));
         if (reopen) {
-            if ((patch.dateEnd||patch.date)<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
+            const end = selectedDate === it.date ? (it.dateEnd||it.date) : (patch.dateEnd||patch.date);
+            if (end<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
             Object.assign(patch,{closed:false,ts:Date.now()});
         }
         if (!patchIt(k, id, patch)) return;
@@ -2987,16 +3020,21 @@ function itemsUI() {
             return toast("En fazla 6 kalem");
         const d = document.createElement("div");
         d.className = "itrow";
-        d.innerHTML = `<input data-in placeholder="Kalem" maxlength="40"><input data-iq type="number" inputmode="decimal" placeholder="Miktar"><select data-iu>${["ton", "kg", "palet", "koli", "adet", "m³"].map(u => `<option>${u}</option>`).join("")}</select><button class="chip" type="button" data-ix aria-label="Kaldır">×</button>`;
+        d.innerHTML = `<input data-in placeholder="Kalem" maxlength="40"><input data-iq type="number" min="0" step="any" inputmode="decimal" placeholder="Miktar"><select data-iu>${ITEM_UNITS.map(u => `<option>${u}</option>`).join("")}</select><button class="chip" type="button" data-ix aria-label="Kaldır">×</button>`;
         box.appendChild(d);
         d.querySelector("[data-ix]").onclick = () => { d.remove(); capturePostDraft(); };
     };
     $("#addit").onclick = add;
-    $("#ph").onclick = () => pickImg(u => {
-        postImg = u;
-        capturePostDraft();
-        $("#phs").innerHTML = `<img class="th" src="${u}" alt="">`;
-    }, 200, 22000);
+    $("#ph").onclick = () => {
+        const preview = $("#phs");
+        pickImg(u => {
+            // Fotoğraf hazırlanırken başka forma geçildiyse yeni taslağa yazma.
+            if (tab !== "post" || postMode !== "load" || $("#phs") !== preview) return;
+            postImg = u;
+            preview.innerHTML = `<img class="th" src="${u}" alt="Yük fotoğrafı">`;
+            capturePostDraft();
+        }, 200, 22000);
+    };
 }
 
 const expired = (x, k) => !!(x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
@@ -3021,7 +3059,24 @@ const ago = x => {
  * İki aşamalı iş takibi, bildirimler ve mesajlaşma.
  */
 const opath = o => "offers/" + o.loadId + "_" + o.bidder;
-function oup(o,patch){Object.assign(o,patch);if(!save())return false;if(cloud)dbw(db.doc(opath(o)).update(patch));render();}
+function oup(o, patch) {
+    if (!o) return false;
+    Object.assign(o, patch);
+    if (!save()) return false;
+    if (cloud) dbw(db.doc(opath(o)).update(patch));
+    render();
+    return true;
+}
+function withdrawOffer(id) {
+    const o = offers.find(x => String(x.id) === String(id));
+    if (!o || !["wait", "counter"].includes(o.status)) return false;
+    offers = offers.filter(x => x !== o);
+    if (!save()) return false;
+    if (cloud) dbw(db.doc(opath(o)).delete());
+    render();
+    toast("Taşıma talebi geri çekildi");
+    return true;
+}
 // Eski stage 2 yüklenmiş, stage 3 onaylanmış kayıt olarak gösterilir; kayıtlar silinmez.
 const jobStage = o => (o.stage || 0) >= 3 ? 3 : (o.stage || 0) >= 1 ? 1 : 0;
 const offerExp = o => o.status === "wait" && !!o.ots && Date.now()-o.ots>TTL.offer*864e5;
@@ -3044,17 +3099,18 @@ function setStage(o,n){
     if(cloud)dbw(db.doc(opath(o)).update(n===3?{stage:n,doneAt:o.doneAt}:{stage:n}));
     if(!save()) return;if(tab==="mine"||tab==="me")render();
     if(n===1&&!(o.ownerUid||o.uid))setTimeout(()=>{
-        if(jobStage(o)!==1)return;
-        // Demo yük sahibi onayı. Gerçek kullanıcı kayıtlarına otomatik onay verilmez.
-        o.stage=3;o.doneAt=Date.now();if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: yükleme onaylandı");
+        const current=offers.find(x=>x.id===o.id);
+        if(!current||current.status!=="ok"||current.ownerUid||current.uid||jobStage(current)!==1)return;
+        // Yeniden yüklenen durumdaki kaydı güncelle; eski nesneye onay yazma.
+        current.stage=3;current.doneAt=Date.now();if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: yükleme onaylandı");
     },3000);
 }
-const stageUI=o=>`<div class="ret">${stepper(o)}<div class="job-actions">${jobStage(o)===0?`<button class="chip on" data-sg="${esc(o.id)}|1">Yükledim</button>`:jobStage(o)===1?'<span class="hint">Yük sahibinin onayı bekleniyor</span>':'<span class="st ok">✓ Onaylandı</span>'}${jobStage(o)===3?(rates.some(x=>x.k===rkey(o,"c"))?'<span class="hint">Değerlendirmen kaydedildi</span>':`<button class="chip" data-rt="${esc(o.id)}">Yük sahibini puanla</button>`):''}</div></div>`;
+const stageUI=o=>`<div class="ret">${stepper(o)}<div class="job-actions">${jobStage(o)===0?`<button class="chip on" data-sg="${esc(o.id)}|1">Yükledim</button>`:jobStage(o)===1?'<span class="hint">Yük sahibinin onayı bekleniyor</span>':'<span class="st ok">✓ Onaylandı</span>'}${jobStage(o)===3?(rates.some(x=>x.k===rkey(o,"carrier"))?'<span class="hint">Değerlendirmen kaydedildi</span>':`<button class="chip" data-rt="${esc(o.id)}">Yük sahibini puanla</button>`):''}</div></div>`;
 const retHTML=o=>{
     const c=loads.filter(l=>!l.closed&&!expired(l,"load")&&l.from===o.to&&l.id!==o.id&&!(l.uid&&l.uid===me)&&!(l.uid&&blocked.includes(l.uid))).sort((a,b)=>(b.to===o.from)-(a.to===o.from)).slice(0,2);
     return c.length?`<div class="ret"><b>Dönüş güzergâhındaki yükler</b>${c.map(l=>`<button class="retc" data-rl="${esc(l.id)}"><span>${esc(l.from)} → ${esc(l.to)}</span><span>${esc(l.veh)} · ${esc(l.ton)} ton</span></button>`).join('')}</div>`:'';
 };
-const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(nm(o.bidder))}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'o'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
+const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(nm(o.bidder))}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'owner'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
 function simulate(id){setTimeout(()=>{const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
 
 // ===== Bildirim ve alarm =====
@@ -3207,9 +3263,10 @@ function listBind() {
     const M = $("#main");
     M.querySelectorAll("[data-rc]").forEach(b => b.onclick = () => {
         const k = b.dataset.rc;
+        reports = reports.filter(x => x.k !== k);
+        if (!save()) return;
         if (cloud)
             dbw(db.doc("reports/" + k).delete());
-        reports = reports.filter(x => x.k !== k);
         render();
     });
     M.querySelectorAll("[data-ub]").forEach(b => b.onclick = () => {
@@ -3235,7 +3292,7 @@ function listBind() {
     if ($("#pm2"))
         $("#pm2").onclick = () => {
             prem = { until: 0, plan: "" };
-            save();
+            if (!save()) return;
             if (cloud)
                 dbw(db.doc("premium/" + me).set(prem));
             render();
@@ -3886,10 +3943,28 @@ function openCalc() {
     const num = (k,t,u) => `<div><label for="calc-${k}">${t}</label><div class="unit"><input id="calc-${k}" data-k="${k}" type="number" min="0" inputmode="decimal" value="${calc[k]}"><em>${u}</em></div></div>`;
     const cur = vehicles.find(v=>CONS[v]===calc.cons) || "";
     m.innerHTML = `<div class="load-detail fuel-detail"><div class="detail-top"><b>Mazot hesabı</b><button class="chip detail-close" id="cx">Kapat ×</button></div><div class="fuel-result" id="res" role="status" aria-live="polite"></div><div class="detail-scroll"><section class="detail-group"><h2>Yol ve araç</h2><label for="cv">Araç tipi</label><select id="cv"><option value="" hidden>Özel tüketim</option>${vehicles.map(v=>`<option ${v===cur?"selected":""}>${v}</option>`).join("")}</select>${num("km","Tek yön mesafe","km")}<label class="chk"><input type="checkbox" id="bk" ${calc.back?"checked":""}> Boş dönüşü de hesapla</label></section><section class="detail-group"><h2>Mazot ve tüketim</h2><div class="row">${num("fuel","Litre fiyatı","₺/L")}${num("cons","Tüketim","L/100 km")}</div><p class="estimate-note">Litre fiyatı hesaplama varsayımıdır. Güncel pompa fiyatını kendin gir.</p></section><details class="profile-panel"><summary>Otoyol ve diğer giderler</summary><div class="row">${num("toll","Otoyol / köprü","₺")}${num("other","Diğer giderler","₺")}</div></details><p class="estimate-note">Sonuç yaklaşık giderdir; trafik, yük ve sürüş koşullarına göre değişir. Boş dönüş seçimi mesafeyi iki katına çıkarır. Girdilerin cihazında saklanır.</p></div></div>`;
-    const out=()=>{const d=calc.km*(calc.back?2:1),litres=d*calc.cons/100,fuel=litres*calc.fuel,total=fuel+calc.toll+calc.other;$("#res").innerHTML=`<span>Tahmini toplam gider</span><strong>${fmt(Math.round(total))}</strong><div class="fuel-metrics"><div><b>${f1(litres)} L</b><span>Mazot</span></div><div><b>${d.toLocaleString("tr-TR")} km</b><span>Toplam yol</span></div></div><p>Mazot ${fmt(Math.round(fuel))} · Diğer giderler ${fmt(Math.round(calc.toll+calc.other))}</p>`;};
-    m.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>{calc[i.dataset.k]=Number.isFinite(+i.value)?Math.max(0,+i.value):0;if(i.dataset.k==="cons")$("#cv").value=vehicles.find(v=>CONS[v]===calc.cons)||"";out();save();});
-    $("#cv").onchange=e=>{calc.cons=CONS[e.target.value]||calc.cons;m.querySelector('[data-k="cons"]').value=calc.cons;out();save();};
-    $("#bk").onchange=e=>{calc.back=e.target.checked;out();save();};
+    const out=()=>{
+        const value=fuelEstimate(calc);
+        if(!value){$("#res").textContent="Hesaplamak için geçerli değerler gir.";return;}
+        const {distance,litres,fuel,extras,total}=value;
+        $("#res").innerHTML=`<span>Tahmini toplam gider</span><strong>${fmt(Math.round(total))}</strong><div class="fuel-metrics"><div><b>${f1(litres)} L</b><span>Mazot</span></div><div><b>${distance.toLocaleString("tr-TR")} km</b><span>Toplam yol</span></div></div><p>Mazot ${fmt(Math.round(fuel))} · Diğer giderler ${fmt(Math.round(extras))}</p>`;
+    };
+    const update=patch=>{
+        const previous={...calc};
+        Object.assign(calc,patch);
+        let stored=false;
+        if(fuelEstimate(calc)) stored=save();
+        else {calc=previous;toast("Hesaplama için geçerli, sıfır veya daha büyük değerler gir.");}
+        if(!stored){
+            m.querySelectorAll("[data-k]").forEach(i=>i.value=calc[i.dataset.k]);
+            $("#bk").checked=calc.back;
+        }
+        $("#cv").value=vehicles.find(v=>CONS[v]===calc.cons)||"";
+        out();
+    };
+    m.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>update({[i.dataset.k]:+i.value}));
+    $("#cv").onchange=e=>{update({cons:CONS[e.target.value]||calc.cons});m.querySelector('[data-k="cons"]').value=calc.cons;};
+    $("#bk").onchange=e=>update({back:e.target.checked});
     out();syncDetailViewport();$("#cx").onclick=closeSheet;$("#sheet").classList.add("open");
 }
 
@@ -4159,9 +4234,26 @@ function roadMapBind(root,returnToDetail=null,onViewChange=()=>{}) {
  * İlan taslağı ve adımları
  * Mevcut yayınlama işlevlerini ve kimliklerini koruyarak formu gruplar.
  */
-let postStep = 0;
+let postStep = 0, postDrafts = null, postDraftSaved = true;
 function getPostDrafts() {
-    try { const d=JSON.parse(localStorage.getItem("ng-post-drafts") || "{}"); return isRecord(d)?d:{}; } catch (e) { return {}; }
+    if (postDrafts) return postDrafts;
+    try { const d=JSON.parse(localStorage.getItem("ng-post-drafts") || "{}"); postDrafts=isRecord(d)?d:{}; }
+    catch (e) { postDrafts={}; }
+    return postDrafts;
+}
+function persistPostDrafts() {
+    const previouslySaved = postDraftSaved;
+    try { localStorage.setItem("ng-post-drafts", JSON.stringify(getPostDrafts())); postDraftSaved=true; }
+    catch (e) {
+        postDraftSaved=false;
+        if (previouslySaved) toast("Taslak kaydedilemedi. Sayfayı kapatmadan depolama alanını kontrol et.");
+    }
+    const status = $("#main .draft-state");
+    if (status) {
+        status.textContent = postDraftSaved ? "Taslak kaydedildi" : "Taslak kaydedilemedi";
+        status.dataset.saved = String(postDraftSaved);
+    }
+    return postDraftSaved;
 }
 function capturePostDraft() {
     if (tab !== "post" || !document.querySelectorAll) return;
@@ -4169,11 +4261,11 @@ function capturePostDraft() {
     document.querySelectorAll('#main input[id], #main select[id], #main textarea[id]').forEach(e => fields[e.id] = e.value);
     const items = [...document.querySelectorAll('#its .itrow')].map(e => ({n:e.querySelector('[data-in]').value,q:e.querySelector('[data-iq]').value,u:e.querySelector('[data-iu]').value}));
     const drafts = getPostDrafts(); drafts[postMode] = {fields, items, image: postImg, step: postStep};
-    try { localStorage.setItem("ng-post-drafts", JSON.stringify(drafts)); } catch (e) { toast("Taslak için cihazda yer kalmadı"); }
+    return persistPostDrafts();
 }
 function clearPostDraft() {
     const drafts=getPostDrafts(); delete drafts[postMode];
-    try { localStorage.setItem("ng-post-drafts",JSON.stringify(drafts)); } catch(e) { }
+    return persistPostDrafts();
 }
 function initPostWizard(m) {
     // Sahte DOM testi yerine gerçek DOM'da uygulanır.
@@ -4181,9 +4273,9 @@ function initPostWizard(m) {
     const savedDraft=getPostDrafts()[postMode], draft=isRecord(savedDraft)?savedDraft:null;
     postStep=draft ? Math.max(0,Math.min(2,+draft.step||0)) : 0;
     if (draft) {
-        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string')e.value=value; }
+        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=value; }
         if(postMode==='load') {
-            for(const item of (Array.isArray(draft.items)?draft.items:[]).filter(isRecord).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=item.n; e.querySelector('[data-iq]').value=item.q; e.querySelector('[data-iu]').value=item.u; }
+            for(const item of (Array.isArray(draft.items)?draft.items:[]).filter(isRecord).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=typeof item.n==='string'?item.n:''; e.querySelector('[data-iq]').value=typeof item.q==='string'||Number.isFinite(item.q)?item.q:''; if(ITEM_UNITS.includes(item.u))e.querySelector('[data-iu]').value=item.u; }
             if(imgOk(draft.image)){postImg=draft.image;$('#phs').innerHTML=`<img class="th" src="${postImg}" alt="Taslak yük fotoğrafı">`;}
         }
     }
@@ -4192,14 +4284,14 @@ function initPostWizard(m) {
     const nodes=[...m.children].filter(e=>!e.classList.contains('seg'));
     const groups=[0,1,2].map(i=>{const s=document.createElement('section');s.className='form-section';s.dataset.step=i; m.appendChild(s);return s;});
     let step=0;for(const e of nodes){if(e===start1)step=1;if(e===start2)step=2;groups[step].appendChild(e);}
-    m.insertAdjacentHTML('afterbegin',screenHeading('İlan oluştur',draft?'Kaydedilmiş taslağına devam ediyorsun.':'Güzergâhı seç, bilgileri ekle ve yayınla.')+demoNotice()+`<ol class="form-steps"><li>1 · Güzergâh</li><li>2 · ${postMode==='load'?'Yük ve taşıma':'Araç'}</li><li>3 · ${postMode==='load'?'Not ve ekler':'Müsaitlik'}</li></ol>`);
-    m.insertAdjacentHTML('beforeend','<div class="form-dock"><button class="chip" id="post-prev">Geri</button><span class="draft-state" role="status">Taslak cihazında korunur</span><button class="btn" id="post-next">Devam →</button></div>');
+    m.insertAdjacentHTML('afterbegin',screenHeading('İlan oluştur',draft?'Taslağına devam ediyorsun.':'Güzergâhı seç, bilgileri ekle ve yayınla.')+demoNotice()+`<ol class="form-steps"><li>1 · Güzergâh</li><li>2 · ${postMode==='load'?'Yük ve taşıma':'Araç'}</li><li>3 · ${postMode==='load'?'Not ve ekler':'Müsaitlik'}</li></ol>`);
+    m.insertAdjacentHTML('beforeend','<div class="form-dock"><button class="chip" id="post-prev">Geri</button><span class="draft-state" role="status">Taslak kaydediliyor…</span><button class="btn" id="post-next">Devam →</button></div>');
     m.querySelector('.form-dock').appendChild($('#go'));
     const show=()=>{groups.forEach((e,i)=>e.hidden=i!==postStep);m.querySelectorAll('.form-steps li').forEach((e,i)=>e.setAttribute('aria-current',i===postStep?'step':'false'));$('#post-prev').hidden=postStep===0;$('#post-next').hidden=postStep===2;$('#go').hidden=postStep!==2;m.scrollTop=0;capturePostDraft();};
     $('#post-prev').onclick=()=>{postStep--;show();};
     $('#post-next').onclick=()=>{
-        if(postStep===0&&$('#f').value===$('#t').value)return toast('Çıkış ve varış şehri farklı olmalı');
-        if(postStep===1&&(!(+$('#w').value>0)||(postMode==='load'&&!$('#c').value.trim())))return toast('Yük bilgilerini ve pozitif tonajı gir');
+        const error=postError(postValues(),postMode==='truck',postStep);
+        if(error)return toast(error);
         postStep++;show();
     };
     m.oninput=capturePostDraft;m.onchange=capturePostDraft;
@@ -4304,6 +4396,7 @@ function renderListings(m) {
             e.stopPropagation();
             const f = b.dataset.fav, was = favs.includes(f);
             tog(favs, f);
+            if (!save()) return;
             if (/^\d+$/.test(f))
                 (was ? untrack : track)("s", +f);
             render();
@@ -4379,30 +4472,37 @@ function renderListings(m) {
  * Klasik uygulama kapsamında yüklenir; sıra tools/project.js içinde tanımlıdır.
  */
 
+function postValues() {
+    const truck = postMode === "truck";
+    return {
+        from: $("#f").value, to: $("#t").value, veh: $("#v").value,
+        body: $(truck ? "#bd" : "#b").value, date: $("#d").value,
+        ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
+    };
+}
+
 function renderPost(m) {
+        postImg = "";
         const opt = a => a.map(c => `<option>${c}</option>`).join("");
         const PS = `<div class="seg"><button data-pm="load" class="${postMode === "load" ? "on" : ""}">Yük ilanı</button><button data-pm="truck" class="${postMode === "truck" ? "on" : ""}">Boş araç ilanı</button></div>`;
         const pb = () => m.querySelectorAll("[data-pm]").forEach(b => b.onclick = () => {
+            capturePostDraft();
             postMode = b.dataset.pm;
             try { localStorage.setItem("ng-post-mode",postMode); } catch(e) { }
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             $("#go").onclick = () => {
-                if ($("#f").value === $("#t").value)
-                    return toast("Çıkış ve varış şehri farklı olmalı");
-                if (!(+$("#w").value > 0))
-                    return toast("Boş kapasiteyi gir");
-                if (!postTruck({ id: "t" + Date.now(), who: (myCar.displayName || "") || myName || "Ben", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" })) return;
-                clearPostDraft();
+                if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
+                const cleared = clearPostDraft();
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
                 tab = "list";
                 setNav();
                 render();
-                toast("Boş araç ilanı yayınlandı");
+                toast(cleared ? "Boş araç ilanı yayınlandı" : "İlan yayınlandı; eski taslak cihazdan temizlenemedi.");
             };
             initPostWizard(m);
             return;
@@ -4410,7 +4510,7 @@ function renderPost(m) {
         m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>
     <label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>
     <label>Yük cinsi</label><input id="c" maxlength="120" placeholder="Örn. Paletli gıda">
-    <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="1" value="10"></div>
+    <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div>
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
     </div>
@@ -4420,18 +4520,16 @@ function renderPost(m) {
         pb();
         itemsUI();
         $("#go").onclick = () => {
-            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim().slice(0,120), ton: +$("#w").value, veh: $("#v").value, date: $("#d").value, body: $("#b").value, note: $("#n").value.trim().slice(0,1000), owner: (myCar.displayName || "") || myName || "Ben" };
-            if (l.from === l.to)
-                return toast("Çıkış ve varış şehri farklı olmalı");
-            if (!l.cargo || !(l.ton > 0))
-                return toast("Yük cinsi ve ağırlığı gir");
+            const l = { ...postValues(), id: Date.now(), note: $("#n").value.trim().slice(0,1000), owner: myCar.displayName || myName || "Ben" };
             if (myCar.phone)
                 l.phone = myCar.phone;
             if (postImg)
                 l.img = postImg;
-            const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value || 0, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
+            const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
             if (its.length)
                 l.items = its;
+            const error = postError(l);
+            if (error) return toast(error);
             Object.assign(l,dateFields(l.date),{ts:Date.now()});
             if (cloud) {
                 l.uid = me;
@@ -4444,13 +4542,13 @@ function renderPost(m) {
             loads.unshift(l);
             if (!save()) return;
             postImg = "";
-            clearPostDraft();
+            const cleared = clearPostDraft();
             F = F0(); q = ""; nearOn = false;
             mode = "load";
             tab = "list";
             setNav();
             render();
-            toast("İlan yayınlandı");
+            toast(cleared ? "İlan yayınlandı" : "İlan yayınlandı; eski taslak cihazdan temizlenemedi.");
         };
         initPostWizard(m);
 }
@@ -4461,9 +4559,9 @@ function renderPost(m) {
  */
 function renderOffers(m){
     m.innerHTML=screenHeading("İşlerim","Taşıma taleplerini takip et. Yüklediğini bildir, onayı burada gör.")+demoNotice()+incHTML()+(offers.length?offers.map(o=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(o.cargo)} · ${esc(o.ton)} ton</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div><div class="job-actions">${o.status==='counter'?`<button class="chip on" data-ca="${esc(o.id)}">Talebi sürdür</button>`:''}${['wait','counter'].includes(o.status)?`<button class="chip" data-c="${esc(o.id)}">Geri çek</button>`:''}</div>${o.status==='ok'?stageUI(o)+retHTML(o):''}</article>`).join(''):'<div class="empty">Henüz taşıma talebin yok. İlan detayından yük sahibiyle görüşebilirsin.</div>');
-    m.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{const o=offers.find(x=>x.id===+b.dataset.c);offers=offers.filter(x=>x!==o);if(cloud&&o)dbw(db.doc(opath(o)).delete());render();toast('Taşıma talebi geri çekildi');});
+    m.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>withdrawOffer(b.dataset.c));
     m.querySelectorAll('[data-ca]').forEach(b=>b.onclick=()=>oup(offers.find(x=>x.id===+b.dataset.ca),{status:'wait'}));
-    m.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{oup(incoming[+b.dataset.ia],{status:'ok'});toast('Taşıma talebi kabul edildi');});
+    m.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{if(oup(incoming[+b.dataset.ia],{status:'ok'}))toast('Taşıma talebi kabul edildi');});
     m.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>oup(incoming[+b.dataset.ir],{status:'no'}));
     m.querySelectorAll('[data-rl]').forEach(b=>b.onclick=()=>openLoad(+b.dataset.rl));
     m.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>setStage(offers.find(o=>o.id===+b.dataset.sg.split('|')[0]),1));
@@ -4740,7 +4838,7 @@ function contactDockHTML(unavailable=false) {
  */
 
 function render() {
- const m = $("#main"); save(); bell();
+ const m = $("#main"); bell();
  m.dataset.screen = tab;
  if(tab === "list") renderListings(m);
  else if(tab === "post") renderPost(m);

@@ -38,6 +38,26 @@ const dateBucket = x => {
     }
     return "İleri tarih";
 };
+const positiveAmount = value => Number.isFinite(+value) && +value > 0 && +value <= Number.MAX_SAFE_INTEGER;
+const postDateOK = value => ["Bugün", "Yarın", "Bu hafta"].includes(value) || validDay(value);
+const ITEM_UNITS = ["ton", "kg", "palet", "koli", "adet", "m³"];
+function postError(x, isTruck = false, step = 2) {
+    if (!cities.includes(x.from) || !cities.includes(x.to)) return "Çıkış ve varış şehrini seç";
+    if (x.from === x.to) return "Çıkış ve varış şehri farklı olmalı";
+    if (step < 1) return "";
+    if (!positiveAmount(isTruck ? x.cap : x.ton)) return "Geçerli, sıfırdan büyük bir tonaj gir";
+    if (!isTruck && !String(x.cargo || "").trim()) return "Yük cinsini gir";
+    if (!vehicles.includes(x.veh) || !bodies.includes(x.body)) return "Araç ve kasa tipini seç";
+    if (step < 2) return "";
+    if (!postDateOK(x.date) || dateFields(x.date).date < localDay()) return "Güncel bir yükleme veya müsaitlik tarihi seç";
+    if (Array.isArray(x.items) && x.items.some(i => !positiveAmount(i.q) || !ITEM_UNITS.includes(i.u))) return "Yük kalemlerine geçerli, sıfırdan büyük miktar ve birim gir";
+    return "";
+}
+function fuelEstimate(values) {
+    if (["km","cons","fuel","toll","other"].some(k => !Number.isFinite(values[k]) || values[k] < 0 || values[k] > Number.MAX_SAFE_INTEGER)) return null;
+    const distance=values.km*(values.back?2:1), litres=distance*values.cons/100, fuel=litres*values.fuel, extras=values.toll+values.other, total=fuel+extras;
+    return [distance,litres,fuel,extras,total].every(v=>Number.isFinite(v)&&v<=Number.MAX_SAFE_INTEGER) ? {distance,litres,fuel,extras,total} : null;
+}
 const listingDistance = x => Number.isFinite(+x.km) && +x.km > 0 ? +x.km : dist(x.from,x.to) || 0;
 const imageDataOK = (u, max=250000) => typeof u === "string" && u.length < max && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(u);
 function normalizeListing(v) {
@@ -45,7 +65,7 @@ function normalizeListing(v) {
     const x={...v};
     for (const k of ["cargo","note","owner","who","veh","body","phone","uid","date"]) if (k in x) x[k]=String(x[k]??"");
     for (const k of ["ton","cap","km","ts","featUntil","stage"]) if(k in x) x[k]=Number.isFinite(+x[k])?Math.max(0,+x[k]):0;
-    if(Array.isArray(x.items)) x.items=x.items.filter(isRecord).slice(0,6).map(i=>({n:String(i.n||""),q:Math.max(0,+i.q||0),u:String(i.u||"")}));
+    if(Array.isArray(x.items)) x.items=x.items.filter(isRecord).slice(0,6).map(i=>({n:String(i.n||""),q:positiveAmount(i.q)?+i.q:0,u:String(i.u||"")}));
     else delete x.items;
     if (!imageDataOK(x.img,60000)) delete x.img;
     if (x.mine && !x.ts) {
@@ -53,6 +73,7 @@ function normalizeListing(v) {
         x.ts=Number.isFinite(old)&&old>1e12?old:Date.now();
     }
     if ((x.mine || x.uid || x.ts) && !validDay(x.date)) Object.assign(x,dateFields(x.date,x.ts||Date.now()));
+    if (!validDay(x.dateEnd) || x.dateEnd < x.date) delete x.dateEnd;
     if(Array.isArray(x.featWin)) x.featWin=x.featWin.filter(w=>Array.isArray(w)&&Number.isFinite(+w[0])&&Number.isFinite(+w[1]));
     if (x.status && !["wait","ok","counter","no"].includes(x.status)) x.status="wait";
     return x;

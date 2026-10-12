@@ -4,7 +4,7 @@
  */
 
 function render() {
- const m = $("#main"); save(); bell();
+ const m = $("#main"); bell();
  m.dataset.screen = tab;
  if(tab === "list") renderListings(m);
  else if(tab === "post") renderPost(m);

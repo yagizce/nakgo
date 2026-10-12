@@ -10,9 +10,10 @@ function listBind() {
     const M = $("#main");
     M.querySelectorAll("[data-rc]").forEach(b => b.onclick = () => {
         const k = b.dataset.rc;
+        reports = reports.filter(x => x.k !== k);
+        if (!save()) return;
         if (cloud)
             dbw(db.doc("reports/" + k).delete());
-        reports = reports.filter(x => x.k !== k);
         render();
     });
     M.querySelectorAll("[data-ub]").forEach(b => b.onclick = () => {
@@ -38,7 +39,7 @@ function listBind() {
     if ($("#pm2"))
         $("#pm2").onclick = () => {
             prem = { until: 0, plan: "" };
-            save();
+            if (!save()) return;
             if (cloud)
                 dbw(db.doc("premium/" + me).set(prem));
             render();

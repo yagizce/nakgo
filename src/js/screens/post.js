@@ -3,30 +3,37 @@
  * Klasik uygulama kapsamında yüklenir; sıra tools/project.js içinde tanımlıdır.
  */
 
+function postValues() {
+    const truck = postMode === "truck";
+    return {
+        from: $("#f").value, to: $("#t").value, veh: $("#v").value,
+        body: $(truck ? "#bd" : "#b").value, date: $("#d").value,
+        ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
+    };
+}
+
 function renderPost(m) {
+        postImg = "";
         const opt = a => a.map(c => `<option>${c}</option>`).join("");
         const PS = `<div class="seg"><button data-pm="load" class="${postMode === "load" ? "on" : ""}">Yük ilanı</button><button data-pm="truck" class="${postMode === "truck" ? "on" : ""}">Boş araç ilanı</button></div>`;
         const pb = () => m.querySelectorAll("[data-pm]").forEach(b => b.onclick = () => {
+            capturePostDraft();
             postMode = b.dataset.pm;
             try { localStorage.setItem("ng-post-mode",postMode); } catch(e) { }
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             $("#go").onclick = () => {
-                if ($("#f").value === $("#t").value)
-                    return toast("Çıkış ve varış şehri farklı olmalı");
-                if (!(+$("#w").value > 0))
-                    return toast("Boş kapasiteyi gir");
-                if (!postTruck({ id: "t" + Date.now(), who: (myCar.displayName || "") || myName || "Ben", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" })) return;
-                clearPostDraft();
+                if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
+                const cleared = clearPostDraft();
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
                 tab = "list";
                 setNav();
                 render();
-                toast("Boş araç ilanı yayınlandı");
+                toast(cleared ? "Boş araç ilanı yayınlandı" : "İlan yayınlandı; eski taslak cihazdan temizlenemedi.");
             };
             initPostWizard(m);
             return;
@@ -34,7 +41,7 @@ function renderPost(m) {
         m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>
     <label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>
     <label>Yük cinsi</label><input id="c" maxlength="120" placeholder="Örn. Paletli gıda">
-    <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="1" value="10"></div>
+    <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div>
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
     </div>
@@ -44,18 +51,16 @@ function renderPost(m) {
         pb();
         itemsUI();
         $("#go").onclick = () => {
-            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim().slice(0,120), ton: +$("#w").value, veh: $("#v").value, date: $("#d").value, body: $("#b").value, note: $("#n").value.trim().slice(0,1000), owner: (myCar.displayName || "") || myName || "Ben" };
-            if (l.from === l.to)
-                return toast("Çıkış ve varış şehri farklı olmalı");
-            if (!l.cargo || !(l.ton > 0))
-                return toast("Yük cinsi ve ağırlığı gir");
+            const l = { ...postValues(), id: Date.now(), note: $("#n").value.trim().slice(0,1000), owner: myCar.displayName || myName || "Ben" };
             if (myCar.phone)
                 l.phone = myCar.phone;
             if (postImg)
                 l.img = postImg;
-            const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value || 0, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
+            const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
             if (its.length)
                 l.items = its;
+            const error = postError(l);
+            if (error) return toast(error);
             Object.assign(l,dateFields(l.date),{ts:Date.now()});
             if (cloud) {
                 l.uid = me;
@@ -68,13 +73,13 @@ function renderPost(m) {
             loads.unshift(l);
             if (!save()) return;
             postImg = "";
-            clearPostDraft();
+            const cleared = clearPostDraft();
             F = F0(); q = ""; nearOn = false;
             mode = "load";
             tab = "list";
             setNav();
             render();
-            toast("İlan yayınlandı");
+            toast(cleared ? "İlan yayınlandı" : "İlan yayınlandı; eski taslak cihazdan temizlenemedi.");
         };
         initPostWizard(m);
 }

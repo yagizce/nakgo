@@ -3,7 +3,24 @@
  * İki aşamalı iş takibi, bildirimler ve mesajlaşma.
  */
 const opath = o => "offers/" + o.loadId + "_" + o.bidder;
-function oup(o,patch){Object.assign(o,patch);if(!save())return false;if(cloud)dbw(db.doc(opath(o)).update(patch));render();}
+function oup(o, patch) {
+    if (!o) return false;
+    Object.assign(o, patch);
+    if (!save()) return false;
+    if (cloud) dbw(db.doc(opath(o)).update(patch));
+    render();
+    return true;
+}
+function withdrawOffer(id) {
+    const o = offers.find(x => String(x.id) === String(id));
+    if (!o || !["wait", "counter"].includes(o.status)) return false;
+    offers = offers.filter(x => x !== o);
+    if (!save()) return false;
+    if (cloud) dbw(db.doc(opath(o)).delete());
+    render();
+    toast("Taşıma talebi geri çekildi");
+    return true;
+}
 // Eski stage 2 yüklenmiş, stage 3 onaylanmış kayıt olarak gösterilir; kayıtlar silinmez.
 const jobStage = o => (o.stage || 0) >= 3 ? 3 : (o.stage || 0) >= 1 ? 1 : 0;
 const offerExp = o => o.status === "wait" && !!o.ots && Date.now()-o.ots>TTL.offer*864e5;
@@ -26,17 +43,18 @@ function setStage(o,n){
     if(cloud)dbw(db.doc(opath(o)).update(n===3?{stage:n,doneAt:o.doneAt}:{stage:n}));
     if(!save()) return;if(tab==="mine"||tab==="me")render();
     if(n===1&&!(o.ownerUid||o.uid))setTimeout(()=>{
-        if(jobStage(o)!==1)return;
-        // Demo yük sahibi onayı. Gerçek kullanıcı kayıtlarına otomatik onay verilmez.
-        o.stage=3;o.doneAt=Date.now();if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: yükleme onaylandı");
+        const current=offers.find(x=>x.id===o.id);
+        if(!current||current.status!=="ok"||current.ownerUid||current.uid||jobStage(current)!==1)return;
+        // Yeniden yüklenen durumdaki kaydı güncelle; eski nesneye onay yazma.
+        current.stage=3;current.doneAt=Date.now();if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: yükleme onaylandı");
     },3000);
 }
-const stageUI=o=>`<div class="ret">${stepper(o)}<div class="job-actions">${jobStage(o)===0?`<button class="chip on" data-sg="${esc(o.id)}|1">Yükledim</button>`:jobStage(o)===1?'<span class="hint">Yük sahibinin onayı bekleniyor</span>':'<span class="st ok">✓ Onaylandı</span>'}${jobStage(o)===3?(rates.some(x=>x.k===rkey(o,"c"))?'<span class="hint">Değerlendirmen kaydedildi</span>':`<button class="chip" data-rt="${esc(o.id)}">Yük sahibini puanla</button>`):''}</div></div>`;
+const stageUI=o=>`<div class="ret">${stepper(o)}<div class="job-actions">${jobStage(o)===0?`<button class="chip on" data-sg="${esc(o.id)}|1">Yükledim</button>`:jobStage(o)===1?'<span class="hint">Yük sahibinin onayı bekleniyor</span>':'<span class="st ok">✓ Onaylandı</span>'}${jobStage(o)===3?(rates.some(x=>x.k===rkey(o,"carrier"))?'<span class="hint">Değerlendirmen kaydedildi</span>':`<button class="chip" data-rt="${esc(o.id)}">Yük sahibini puanla</button>`):''}</div></div>`;
 const retHTML=o=>{
     const c=loads.filter(l=>!l.closed&&!expired(l,"load")&&l.from===o.to&&l.id!==o.id&&!(l.uid&&l.uid===me)&&!(l.uid&&blocked.includes(l.uid))).sort((a,b)=>(b.to===o.from)-(a.to===o.from)).slice(0,2);
     return c.length?`<div class="ret"><b>Dönüş güzergâhındaki yükler</b>${c.map(l=>`<button class="retc" data-rl="${esc(l.id)}"><span>${esc(l.from)} → ${esc(l.to)}</span><span>${esc(l.veh)} · ${esc(l.ton)} ton</span></button>`).join('')}</div>`:'';
 };
-const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(nm(o.bidder))}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'o'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
+const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(nm(o.bidder))}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'owner'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
 function simulate(id){setTimeout(()=>{const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
 
 // ===== Bildirim ve alarm =====

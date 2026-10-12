@@ -212,6 +212,8 @@ const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
 
 function postTruck(t) {
+    const error = postError(t, true);
+    if (error) { toast(error); return false; }
     Object.assign(t, dateFields(t.date), {ts:Date.now()});
     if (myCar.phone)
         t.phone = myCar.phone;
@@ -254,13 +256,15 @@ function openEdit(k, id, reopen=false) {
     B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#es").onclick = () => {
         const v = L ? 0 : +$("#ep").value;
-        if (!L && !(v > 0))
+        if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
         const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 1000) } : { cap: v, date: $("#ed").value };
         const selectedDate=$("#ed").value;
+        if (!postDateOK(selectedDate)) return toast("Geçerli bir tarih seç");
         if (selectedDate !== it.date) Object.assign(patch,dateFields(selectedDate));
         if (reopen) {
-            if ((patch.dateEnd||patch.date)<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
+            const end = selectedDate === it.date ? (it.dateEnd||it.date) : (patch.dateEnd||patch.date);
+            if (end<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
             Object.assign(patch,{closed:false,ts:Date.now()});
         }
         if (!patchIt(k, id, patch)) return;
@@ -311,16 +315,21 @@ function itemsUI() {
             return toast("En fazla 6 kalem");
         const d = document.createElement("div");
         d.className = "itrow";
-        d.innerHTML = `<input data-in placeholder="Kalem" maxlength="40"><input data-iq type="number" inputmode="decimal" placeholder="Miktar"><select data-iu>${["ton", "kg", "palet", "koli", "adet", "m³"].map(u => `<option>${u}</option>`).join("")}</select><button class="chip" type="button" data-ix aria-label="Kaldır">×</button>`;
+        d.innerHTML = `<input data-in placeholder="Kalem" maxlength="40"><input data-iq type="number" min="0" step="any" inputmode="decimal" placeholder="Miktar"><select data-iu>${ITEM_UNITS.map(u => `<option>${u}</option>`).join("")}</select><button class="chip" type="button" data-ix aria-label="Kaldır">×</button>`;
         box.appendChild(d);
         d.querySelector("[data-ix]").onclick = () => { d.remove(); capturePostDraft(); };
     };
     $("#addit").onclick = add;
-    $("#ph").onclick = () => pickImg(u => {
-        postImg = u;
-        capturePostDraft();
-        $("#phs").innerHTML = `<img class="th" src="${u}" alt="">`;
-    }, 200, 22000);
+    $("#ph").onclick = () => {
+        const preview = $("#phs");
+        pickImg(u => {
+            // Fotoğraf hazırlanırken başka forma geçildiyse yeni taslağa yazma.
+            if (tab !== "post" || postMode !== "load" || $("#phs") !== preview) return;
+            postImg = u;
+            preview.innerHTML = `<img class="th" src="${u}" alt="Yük fotoğrafı">`;
+            capturePostDraft();
+        }, 200, 22000);
+    };
 }
 
 const expired = (x, k) => !!(x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());

@@ -35,6 +35,7 @@ function renderListings(m) {
             e.stopPropagation();
             const f = b.dataset.fav, was = favs.includes(f);
             tog(favs, f);
+            if (!save()) return;
             if (/^\d+$/.test(f))
                 (was ? untrack : track)("s", +f);
             render();

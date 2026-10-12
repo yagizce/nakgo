@@ -23,6 +23,7 @@ function normalizeState(d) {
     if(isRecord(d.calc)) {
         for(const k of ["km","cons","fuel","toll","other"]) if(Number.isFinite(+d.calc[k])&&+d.calc[k]>=0) out.calc[k]=+d.calc[k];
         out.calc.back=d.calc.back===true;
+        if (!fuelEstimate(out.calc)) out.calc={...base.calc};
     }
     if(isRecord(d.myCar)) out.myCar={...base.myCar,...d.myCar};
     for(const k of ["displayName","city","about","phone","lic"]) if(k in out.myCar) out.myCar[k]=typeof out.myCar[k]==="string"?out.myCar[k]:"";
@@ -45,14 +46,14 @@ function savePrefs() {
     clearTimeout(pt);
     pt=setTimeout(()=>db.doc("data/users/"+me+"/prefs").set(prefs).then(()=>{lastP=j;}).catch(()=>toast("Tercihler bağlantı nedeniyle eşitlenemedi")),800);
 }
-function save() {
+function save(syncPrefs = true) {
     try {
         if(recoveryBlocked) throw new Error("recovery");
         const j=JSON.stringify(stateData());
         if(j!==persistedState) localStorage.setItem("yy2",j);
         persistedState=j;
         savedState=j;
-        savePrefs();
+        if (syncPrefs) savePrefs();
         return true;
     } catch(e) {
         if(savedState&&!cloud) applyState(JSON.parse(savedState));
@@ -86,6 +87,7 @@ function restoreState() {
     } catch(e) { storageNotice="Cihaz depolamasına erişilemiyor. Değişikliklerin kalıcı kaydı yapılamayabilir."; }
     // İlk başarısız yazmada da bellek güvenli başlangıç durumuna dönebilir.
     savedState=JSON.stringify(stateData());
+    if (!recoveryBlocked) save(false);
     offers.filter(o=>o.status==="wait").forEach(o=>simulate(o.id));
 
 }
