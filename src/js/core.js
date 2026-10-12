@@ -27,7 +27,7 @@ const dec = t => {
 
 const imgOk = u => typeof u === "string" && u.length < 60000 && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(u);
 
-const isDark = () => ["#0b1d22", "#101722"].includes(getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
+const isDark = () => ["#152123", "#11191b", "#0b1d22", "#101722"].includes(getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
 
 const opt2 = (a, d) => a.map(c => `<option ${c === d ? "selected" : ""}>${esc(c)}</option>`).join("");
 

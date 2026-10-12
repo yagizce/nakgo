@@ -45,7 +45,7 @@ function updTheme() {
     try {
         const m = document.querySelector('meta[name="theme-color"]');
         if (m)
-            m.content = "#4ad9cc";
+            m.content = isDark() ? "#4bb8ae" : "#2f9f96";
     }
     catch (e) { }
 }

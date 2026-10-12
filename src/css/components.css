@@ -3,7 +3,7 @@
 /* ----- Sayfa iskeleti: üst bar, alt menü, alt pencere, bildirim ----- */
 
 header {
-  background:var(--brand);
+  background:var(--brand-fill);
   color:var(--on-brand);
   padding:calc(14px + env(safe-area-inset-top,0px)) 18px 16px;
   display:flex;
@@ -203,7 +203,7 @@ nav button.on::before {
 }
 
 .logo {
-  background:linear-gradient(135deg,#ffd24f,#f0a30a);
+  background:linear-gradient(135deg,var(--accent-soft),var(--accent));
 }
 
 #thh+.bell {
@@ -242,9 +242,9 @@ header p {
 }
 
 .chip.on {
-  background:var(--brand);
+  background:var(--brand-fill);
   color:var(--on-brand);
-  border-color:var(--brand);
+  border-color:var(--brand-fill);
 }
 
 .load {
@@ -463,5 +463,5 @@ header p {
 
 .chip.on .bdg {
   background:var(--on-brand);
-  color:var(--brand);
+  color:var(--brand-fill);
 }
