@@ -36,3 +36,11 @@ Başarısız PR main'e birleşmez; böylece mevcut Vercel Git entegrasyonunun Pr
 ## Sınırlar
 
 Bu paket statik uygulamanın yerel/demo davranışını ve güvenli render'ını doğrular; gerçek backend, gerçek ödeme, iki ayrı gerçek kullanıcı veya fiziksel telefon/Safari doğrulaması değildir. npm audit yalnızca production bağımlılıklarında high/critical bulguda fail eder; ağ/registry hatasında da sonuç bilinmediği için kapı kapalı kalır. Güvenlik metin denemeleri script, img onerror, svg onload, attribute kırma ve javascript: dizgilerini açıklama/ad/not/mesaj çiziminde kullanır. Bu kontroller güvenlik incelemesinin yerine geçmez.
+
+## Kurulum doğrulaması — 12 Ekim 2026
+
+PR #9, iki workflow başarılı olduktan sonra squash ile birleştirildi. Kaydedilmiş main kuralı quality-gate ve verify kontrollerini yalnızca GitHub Actions kaynağından kabul ediyor; PR ve güncel taban şartı ile yönetici bypass engeli etkin. Kontrol devam ederken GitHub birleşme isteğini 405 ile reddetti; eski başarılı çalışma yeni çalışmanın yerine geçmedi.
+
+Kurulum sürümünde npm test 309/309, mevcut E2E 406/406, bağımsız browser 184 kontrol/10 senaryo, guard 29/29, statik 50/50 ve otomasyon 16/16 geçti. HTML ve actionlint temiz; npm audit sıfır bulgu. Bağımsız testler 390×844 ve 393×852, iki temada çalıştı. Çift yayın click sonrasında eski formun yeniden okunması testte yakalandı ve iki küçük düğme korumasıyla düzeltildi.
+
+Bu belge güncellemesi, kontrol kodunu değiştirmeden kurulum sonrası main tabanlı kalite kapısı ve otomatik birleşmenin gerçek PR akışını doğrular.
