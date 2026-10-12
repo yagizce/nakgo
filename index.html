@@ -7,7 +7,7 @@
 <title>NakGo – Yük ve Araç Eşleştirme</title>
 <meta name="description" content="NakGo – Yük sahipleri ve taşıyıcıları buluşturan yük pazarı">
 <link rel="canonical" href="https://nakgo.vercel.app/">
-<meta name="theme-color" content="#2f9f96">
+<meta name="theme-color" content="#29aaa0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -28,10 +28,14 @@
   --ink:#183034;
   --mute:#627477;
   --line:#d9e3e1;
-  --brand:#2f9f96;
+  --brand:#29aaa0;
+  --brand-strong:#259e95;
+  --brand-highlight:#4ebcaf;
+  --brand-soft:#e2f1ec;
   --brand-ink:#176a64;
   --on-brand:#102527;
-  --accent:#d8b84a;
+  --accent:#e4b646;
+  --accent-highlight:#edcb73;
   --on-accent:#2b240b;
   --accent-ink:#806716;
   --ok:#1f7a4d;
@@ -40,8 +44,11 @@
   --tag-ink:#176a64;
   /* Aydınlık, mat marka yüzeylerinde koyu metin kontrastı korunur. */
   --brand-fill:var(--brand);
-  --app-gradient:linear-gradient(115deg,#2f9f96 0%,#349f96 74%,#3da398 100%);
-  --accent-soft:color-mix(in srgb,var(--accent) 88%,var(--card));
+  --gradient-brand:linear-gradient(115deg,var(--brand) 0%,var(--brand-highlight) 100%);
+  --gradient-brand-soft:linear-gradient(145deg,var(--tag-bg) 0%,var(--brand-soft) 100%);
+  --gradient-accent:linear-gradient(140deg,var(--accent) 0%,var(--accent-highlight) 100%);
+  --app-gradient:var(--gradient-brand);
+  --accent-soft:var(--accent-highlight);
   --brand-overlay:color-mix(in srgb,var(--card) 8%,transparent);
   --brand-edge:color-mix(in srgb,var(--on-brand) 24%,transparent);
   --on-brand-bad:#4b1812;
@@ -56,13 +63,16 @@
     --ink:#edf4f3;
     --mute:#a7b6b7;
     --line:#304044;
-    --brand:#4bb8ae;
+    --brand:#43bfb4;
+    --brand-strong:#3bb2a8;
+    --brand-highlight:#61cabf;
+    --brand-soft:#2d4646;
     --brand-ink:#79cbc4;
     --on-brand:#102527;
     --on-brand-bad:#4b1812;
     --brand-fill:var(--brand);
-    --app-gradient:linear-gradient(115deg,#4bb8ae 0%,#45afa5 74%,#4ab2a6 100%);
-    --accent:#c2a65a;
+    --accent:#d1b05a;
+    --accent-highlight:#ddc079;
     --accent-ink:#d0b76f;
     --ok:#71b791;
     --bad:#e8998d;
@@ -78,13 +88,16 @@
   --ink:#edf4f3;
   --mute:#a7b6b7;
   --line:#304044;
-  --brand:#4bb8ae;
+  --brand:#43bfb4;
+  --brand-strong:#3bb2a8;
+  --brand-highlight:#61cabf;
+  --brand-soft:#2d4646;
   --brand-ink:#79cbc4;
   --on-brand:#102527;
   --on-brand-bad:#4b1812;
   --brand-fill:var(--brand);
-  --app-gradient:linear-gradient(115deg,#4bb8ae 0%,#45afa5 74%,#4ab2a6 100%);
-  --accent:#c2a65a;
+  --accent:#d1b05a;
+  --accent-highlight:#ddc079;
   --accent-ink:#d0b76f;
   --ok:#71b791;
   --bad:#e8998d;
@@ -410,7 +423,7 @@ nav button.on::before {
 }
 
 .logo {
-  background:linear-gradient(135deg,var(--accent-soft),var(--accent));
+  background:var(--gradient-accent);
 }
 
 #thh+.bell {
@@ -449,9 +462,9 @@ header p {
 }
 
 .chip.on {
-  background:var(--brand-fill);
+  background:var(--gradient-brand);
   color:var(--on-brand);
-  border-color:var(--brand-fill);
+  border-color:var(--brand-strong);
 }
 
 .load {
@@ -543,7 +556,7 @@ header p {
   padding:15px;
   border:0;
   border-radius:14px;
-  background:var(--accent);
+  background:var(--gradient-accent);
   color:var(--on-accent);
   font:800 16px 'Archivo',sans-serif;
   cursor:pointer;
@@ -1168,7 +1181,7 @@ header p {
 }
 
 .tag.ft {
-  background:var(--brand-fill);
+  background:var(--gradient-brand);
   color:var(--on-brand);
 }
 
@@ -1888,14 +1901,14 @@ main { background:radial-gradient(ellipse at 100% 0%,var(--tag-bg),transparent 4
 nav { flex:none; height:var(--nav-height); padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px)); gap:6px; border-radius:24px 24px 0 0; box-shadow:0 -6px 24px #003e4510; z-index:3; }
 nav button { justify-content:center; border-radius:16px; padding:7px 2px; gap:5px; font-size:10px; }
 nav button svg { width:23px; height:23px; }
-nav button.on { background:var(--tag-bg); color:var(--brand-ink); }
+nav button.on { background:var(--gradient-brand-soft); color:var(--brand-ink); }
 nav button.on::before { display:none; }
-nav button[data-t=post] { background:linear-gradient(145deg,var(--accent-soft),var(--accent)); color:var(--on-accent); box-shadow:0 4px 14px #c9901630; transform:translateY(-4px); font-weight:800; }
+nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-accent); box-shadow:0 4px 14px #c9901630; transform:translateY(-4px); font-weight:800; }
 .list-actions { position:absolute; left:0; right:0; bottom:var(--nav-height); z-index:2; padding:10px 16px; background:var(--card); border-top:1px solid var(--line); box-shadow:0 -8px 24px #003e4508; }
 .list-controls { display:flex; gap:10px; align-items:center; margin:auto; }
 .list-controls>* { flex:1; min-width:0; }
 .list-controls .chip { display:flex; align-items:center; justify-content:center; gap:8px; border-radius:14px; background:var(--tag-bg); color:var(--brand-ink); border-color:transparent; }
-.list-controls .chip.on { background:var(--brand-fill); color:var(--on-brand); }
+.list-controls .chip.on { background:var(--gradient-brand); color:var(--on-brand); }
 .list-controls select { font-size:12px; min-height:44px; padding:10px 26px 10px 10px; background-position:right 9px center; border-radius:14px; }
 .list-controls .chip { font-size:12px; padding:10px 8px; gap:5px; }
 .list-controls .chip svg { width:16px; height:16px; }
@@ -1915,7 +1928,7 @@ nav button[data-t=post] { background:linear-gradient(145deg,var(--accent-soft),v
 .route-swap { width:30px; height:46px; background:var(--brand-overlay); color:var(--on-brand); border:1px solid var(--brand-edge); }
 .seg { padding:4px; border-radius:16px; background:var(--card); border:1px solid var(--line); }
 .seg button { border-radius:12px; }
-.seg button.on { background:var(--brand-fill); color:var(--on-brand); box-shadow:0 3px 10px #007f8320; }
+.seg button.on { background:var(--gradient-brand); color:var(--on-brand); box-shadow:0 3px 10px #007f8320; }
 .demo-note { font-size:10px; padding:8px 10px; background:var(--card); border-style:dashed; border-radius:12px; margin-bottom:12px; }
 .listing-search input { border-radius:16px; }
 .listing-count { font-size:12px; }
@@ -1962,12 +1975,12 @@ nav button[data-t=post] { background:linear-gradient(145deg,var(--accent-soft),v
 .detail-summary .route i { border-color:var(--on-brand); }
 .detail-summary .route i::before { background:var(--on-brand); border-color:var(--on-brand); }
 .detail-summary .tag { background:var(--tag-bg); color:var(--tag-ink); padding:6px 10px; }
-.detail-summary .tag.ft { background:var(--accent); color:var(--on-accent); }
+.detail-summary .tag.ft { background:var(--gradient-accent); color:var(--on-accent); }
 .detail-group { border-radius:20px; }
 .contact-dock { box-shadow:0 -6px 20px #003e4510; border-radius:22px 22px 0 0; }
 .contact-dock { padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px)); background:var(--card); flex:none; }
 .contact-dock .btn { margin:0; }
-.form-dock .btn,.contact-dock .btn { background:linear-gradient(140deg,var(--accent-soft),var(--accent)); border-radius:14px; }
+.form-dock .btn,.contact-dock .btn { background:var(--gradient-accent); border-radius:14px; }
 .screen-heading { padding:20px; background:var(--app-gradient); color:var(--on-brand); border-radius:24px; margin-bottom:18px; }
 .screen-heading h2 { margin:0 0 6px; }
 .screen-heading p { color:var(--on-brand); font-size:12px; }
@@ -2062,8 +2075,8 @@ nav button[data-t=post] { background:linear-gradient(145deg,var(--accent-soft),v
 </head>
 <body>
 <div id="app">
-  <div id="splash" class="splash" aria-hidden="true"><div class="tile"><img class="tk" src="icons/brand-logo.png" width="576" height="538" alt="NakGo" fetchpriority="high"></div><p>Biz bu işin NakGosuyuz</p></div>
-  <header><div class="logo"><img class="tk" src="icons/icon-192.png" width="50" height="50" alt="" decoding="async"></div><div><h1>NakGo</h1><p id="sub">Biz bu işin NakGosuyuz</p></div><button class="bell" id="thh" aria-label="Temayı değiştir" title="Temayı değiştir"></button><button class="bell" id="bell" aria-label="Bildirimler"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><b id="bc"></b></button></header>
+  <div id="splash" class="splash" aria-hidden="true"><div class="tile"><img class="tk" src="icons/brand-logo.png" width="576" height="538" alt="NakGo" fetchpriority="high"></div><p>Biz bu işin NakGo'suyuz</p></div>
+  <header><div class="logo"><img class="tk" src="icons/icon-192.png" width="50" height="50" alt="" decoding="async"></div><div><h1>NakGo</h1><p id="sub">Biz bu işin NakGo'suyuz</p></div><button class="bell" id="thh" aria-label="Temayı değiştir" title="Temayı değiştir"></button><button class="bell" id="bell" aria-label="Bildirimler"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 01-3.4 0"/></svg><b id="bc"></b></button></header>
   <div id="off" class="off" role="status">İnternet bağlantısı yok. Yerel demo cihazında kullanılabilir; ortak veriler için bağlantı gerekir.</div>
   <main id="main"></main>
   <nav id="nav" aria-label="Ana menü">
@@ -3944,7 +3957,7 @@ function updTheme() {
     try {
         const m = document.querySelector('meta[name="theme-color"]');
         if (m)
-            m.content = isDark() ? "#4bb8ae" : "#2f9f96";
+            m.content = isDark() ? "#43bfb4" : "#29aaa0";
     }
     catch (e) { }
 }
