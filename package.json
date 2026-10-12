@@ -18,7 +18,10 @@
     "test:guard": "node tests/guard.js",
     "test:static": "node tests/gate/static.js && python tests/gate/static_html.py",
     "test:gate": "node --test tests/gate/control.test.js",
-    "test:browser": "python tests/gate/browser.py"
+    "test:browser": "python tests/gate/browser.py",
+    "whatsapp:test": "node --test tests/whatsapp/*.test.cjs",
+    "whatsapp:parse": "node tools/whatsapp-parse.js",
+    "build:vercel": "node tools/bundle.js && node tools/whatsapp-web-output.js"
   },
   "engines": {
     "node": ">=18"
