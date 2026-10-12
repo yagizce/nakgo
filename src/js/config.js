@@ -34,14 +34,13 @@ const SUPPORT_MAIL = "destek@example.com";
 
 const FAQ = [["Premium üyelik nedir?", "Premium üyeler ilan sahiplerini ve taşıyıcıları arayabilir ve uygulama içinden mesajlaşabilir."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Yükleme nasıl onaylanır?", "Taşıyıcı İşlerim bölümünde Yükledim der; yük sahibi yüklemeyi onaylar. Teslim fotoğrafı adımı yoktur."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
 
-/* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ayrıntı HANDOFF.md bölüm 14. */
+/* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ürün kuralları docs/product.md içinde. */
 const FEAT = { prices: { l: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 }, t: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 } } };
 
 const FDUR = [[3, "3 saat"], [6, "6 saat"], [12, "12 saat"], [24, "24 saat"], [72, "3 gün"]];
 
 
 
-const FUEL_ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V4a1 1 0 011-1h8a1 1 0 011 1v17M2 21h14M4 10h10M7 6h4M14 12h2a2 2 0 012 2v4a1.5 1.5 0 003 0V8l-3-3M19 6v3h2"/></svg>';
 
 const VB = '<span class="vb">✓ Belgeli</span>';
 

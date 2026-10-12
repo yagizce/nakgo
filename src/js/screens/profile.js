@@ -7,7 +7,7 @@ function profileIdentityHTML(own,active,done,name,rating) {
     return `<div class="profile-cover">
         <div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div>
         <div><span class="profile-eyebrow">NAKGO HESABIM</span>
-            <b>${esc(myCar.displayName||'')||myName||'Profilim'}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
+            <b>${esc(myCar.displayName||myName||'Profilim')}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
             <div class="profile-caption">${role==='owner'?'Yük sahibi':'Taşıyıcı'}${myCar.city?' · '+esc(myCar.city):''}</div>
             <div class="profile-caption">${rating?'★ '+rating.avg.toFixed(1)+' · '+rating.n+' değerlendirme':'Henüz değerlendirme yok'}</div>
         </div>
@@ -68,12 +68,12 @@ function renderProfile(main) {
         </div>`;
     carBind();listBind();
     $('#profile-save').onclick=()=>{
-        setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)});
+        if (!setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)})) return;
         toast('Profilin kaydedildi');
     };
     $('#profile-messages').onclick=openInbox;
     $('#profile-fuel').onclick=()=>openCalc();
     $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();};
     $('#profile-map').onclick=()=>openRoadMap();
-    if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:esc(myCar.displayName||'')||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
+    if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:myCar.displayName||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
 }

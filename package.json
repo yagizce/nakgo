@@ -4,8 +4,8 @@
   "private": true,
   "description": "Yük sahipleri ve taşıyıcıları buluşturan yük pazarı (statik uygulama)",
   "scripts": {
-    "start": "npx --yes serve .",
-    "dev": "npx --yes serve .",
+    "start": "node tools/serve.js",
+    "dev": "node tools/serve.js",
     "bundle": "node tools/bundle.js",
     "test": "node tools/bundle.js --check && node tools/dev.js lint && node tests/run.js",
     "test:e2e": "python tests/e2e.py",

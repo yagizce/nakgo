@@ -8,7 +8,7 @@ module.exports = function register({run}) {
     r("me='owner';setStage(offers[0],3);setStage(offers[0],1)");ok(r("return offers[0].stage===3&&offers[0].doneAt>0"),"yük sahibi onayı kaydedilir, tamamlanan iş geriye gitmez");
   });
   run("Eski tutarlar gizlenir, saklanan iş kaybolmaz",(r,ok)=>{
-    r("offers=[{...loads[0],offer:28500,counter:30000,status:'counter',loadId:1,bidder:'',stage:0},{...loads[1],offer:14000,status:'ok',loadId:2,bidder:'',stage:2}];tab='mine';render()");
+    r("offers=[{...loads[0],offer:28500,counter:30000,status:'counter',loadId:1,bidder:'',stage:0},{...loads[1],offer:14000,status:'ok',loadId:2,bidder:'',stage:2}];save();tab='mine';render()");
     const h=r("return main()");ok(!/28.500|30.000|14.000|Fotoğraf|Teslim ettim/.test(h),"eski fiyat ve teslim aşamaları ekranda yok");
     ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].counter")===30000,"eski veriler silinmez");
     r("tab='me';render();openInbox()");ok(r("return sheet()").includes('data-conv="0"'),"eski görüşmeye profil üzerinden erişilir");

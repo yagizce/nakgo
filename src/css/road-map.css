@@ -30,7 +30,7 @@
 .road-heading h2 { color:var(--ink); margin:3px 0 10px; font-size:19px; line-height:1.3; overflow-wrap:anywhere; }
 .road-city-field { display:flex; gap:10px; align-items:center; padding-left:12px; background:var(--bg); border:1px solid var(--line); border-radius:14px; color:var(--brand-ink); }
 .road-city-field select { margin:0; flex:1; min-width:0; border:0; background-color:transparent; padding-top:10px; padding-bottom:10px; font-size:14px; }
-.road-back { display:flex; gap:4px; align-items:center; background:transparent; border-color:#ffffff40; color:#fff; }
+.road-back { display:flex; gap:4px; align-items:center; background:transparent; border-color:currentColor; color:var(--on-brand); }
 .road-footer { flex:none; padding:12px 12px calc(14px + env(safe-area-inset-bottom)); background:var(--card); }
 .road-categories { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
 .road-categories .chip { flex:none; min-height:44px; font-size:11px; padding:9px 10px; }

@@ -10,9 +10,10 @@ function listBind() {
     const M = $("#main");
     M.querySelectorAll("[data-rc]").forEach(b => b.onclick = () => {
         const k = b.dataset.rc;
+        reports = reports.filter(x => x.k !== k);
+        if (!save()) return;
         if (cloud)
             dbw(db.doc("reports/" + k).delete());
-        reports = reports.filter(x => x.k !== k);
         render();
     });
     M.querySelectorAll("[data-ub]").forEach(b => b.onclick = () => {
@@ -38,7 +39,7 @@ function listBind() {
     if ($("#pm2"))
         $("#pm2").onclick = () => {
             prem = { until: 0, plan: "" };
-            save();
+            if (!save()) return;
             if (cloud)
                 dbw(db.doc("premium/" + me).set(prem));
             render();
@@ -68,6 +69,7 @@ function listBind() {
             const it = findIt(k, id);
             if (it) {
                 const off = it.closed || expired(it, k === "l" ? "load" : "truck");
+                if (off && validDay(it.date) && (it.dateEnd||it.date)<localDay()) return openEdit(k,id,true);
                 patchIt(k, id, off ? { closed: false, ts: Date.now() } : { closed: true });
             }
         };
@@ -85,7 +87,7 @@ const ratingOf = u => {
 
 const starTxt = x => {
     const R = x.uid ? ratingOf(x.uid) : null;
-    return R ? "★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "★ " + (x.rate || "Yeni");
+    return R ? "★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "★ " + esc(x.rate || "Yeni");
 };
 
 const rkey = (o, as) => o.loadId + "_" + o.bidder + "_" + (as === "owner" ? "o" : "c");
@@ -110,6 +112,7 @@ function openRate(o, as) {
             dbw(db.doc("ratings/" + key).set(rec));
         rates = rates.filter(x => x.k !== key);
         rates.push(rec);
+        if (!save()) return;
         closeSheet();
         render();
         toast("Teşekkürler, puanın kaydedildi");
@@ -173,7 +176,7 @@ function openOnb() {
             };
         }
         else {
-            el.innerHTML = `<div class="ob-body"><h2>Sen kimsin?</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></button><button class="rolebtn" id="r-o"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></button></div>${dots(3)}`;
+            el.innerHTML = `<div class="ob-body"><h2>Sen kimsin?</h2><p>Ana sayfanı buna göre hazırlayalım.</p><button class="rolebtn" id="r-c"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></button><button class="rolebtn" id="r-o"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></button></div>${dots(3)}`;
             $("#r-c").onclick = () => setRole("carrier", 1);
             $("#r-o").onclick = () => setRole("owner", 1);
         }
@@ -194,7 +197,7 @@ function openProfile(o) {
     const info = o.uid ? carriers[o.uid] || {} : {};
     const act = o.uid ? loads.filter(l => l.uid === o.uid && !l.closed && !expired(l, "load")).length + trucks.filter(t => t.uid === o.uid && !t.closed && !expired(t, "truck")).length : 0;
     const done = o.uid ? allO.filter(x => (x.bidder === o.uid || x.ownerUid === o.uid) && (+x.stage || 0) >= 3).length : 0, n2 = o.name || "Kullanıcı";
-    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${(String(n2).replace(/&[^;]+;/g, "?")[0] || "?").toUpperCase()}</div><div><b style="font-size:18px">${n2}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${cloud ? x.text : esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b style="font-size:18px">${esc(n2)}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
     if ($("#pr"))
         $("#pr").onclick = () => openReport("u", o.uid);
     if ($("#pb2"))
@@ -236,7 +239,11 @@ const installCard = () => {
 // ===== Doğrulama ve iletişim =====
 // Belge rozetleri, belge fotoğrafı, yönetici onayı, telefon numarası.
 
-const phoneOf = x => x.phone || (x.uid ? "" : "0000 000 00 " + String(x.id).replace(/\D/g, "").padStart(2, "0").slice(-2));
+const phoneOf = x => {
+    if ((!cloud&&x.mine)||(cloud&&x.uid===me)) return myCar.phone||"";
+    if (x.uid) return carrierPhone(x.uid)||x.phone||"";
+    return x.phone||"0000 000 00 "+String(x.id).replace(/\D/g,"").padStart(2,"0").slice(-2);
+};
 
 const carrierPhone = u => (carriers[u] && carriers[u].phone) || "";
 
@@ -244,7 +251,7 @@ function savePhone() {
     const d = ($("#myph").value || "").replace(/\D/g, ""), n = d.length === 10 ? "0" + d : d;
     if (!/^05\d{9}$/.test(n))
         return toast("Geçerli bir cep numarası gir (05xx xxx xx xx)");
-    setCar({ phone: n.slice(0, 4) + " " + n.slice(4, 7) + " " + n.slice(7, 9) + " " + n.slice(9) });
+    if (!setCar({ phone: n.slice(0, 4) + " " + n.slice(4, 7) + " " + n.slice(7, 9) + " " + n.slice(9) })) return;
     toast("Numara kaydedildi");
 }
 
@@ -267,7 +274,7 @@ function docPhoto(k) {
         cdocs[(me || "local") + "/" + k] = u;
         if (cloud)
             dbw(db.doc("carrierDocs/" + me + "/files/" + k).set({ img: u }));
-        setCar({ [k]: true, docs: { ...(myCar.docs || {}), [k]: true } });
+        if (!setCar({ [k]: true, docs: { ...(myCar.docs || {}), [k]: true } })) return;
         toast("Belge fotoğrafı yüklendi");
     });
 }
@@ -288,18 +295,19 @@ const adminCard = () => {
     if (!admin)
         return "";
     const P = Object.entries(carriers).filter(([id, c]) => id !== me && c.docs && (c.docs.src || c.docs.kb || c.docs.ruh) && appr[id] !== true);
-    return `<div class="load" style="cursor:default"><b>Onay bekleyen taşıyıcılar</b>${P.length ? P.map(([id, c]) => `<div class="kv" style="display:block"><b style="font-size:14px">${nm(id)}</b> <span style="color:var(--mute);font-size:12px">Ehliyet ${c.lic || "—"}</span><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${["src", "kb", "ruh"].filter(k => c.docs[k]).map(k => `<button class="chip" data-av="${esc(id)}|${k}">${{ src: "SRC", kb: "K belgesi", ruh: "Ruhsat" }[k]}</button>`).join("")}<button class="chip on" data-ap="${esc(id)}">Onayla</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Bekleyen başvuru yok.</p>`}</div>`;
+    return `<div class="load" style="cursor:default"><b>Onay bekleyen taşıyıcılar</b>${P.length ? P.map(([id, c]) => `<div class="kv" style="display:block"><b style="font-size:14px">${esc(nm(id))}</b> <span style="color:var(--mute);font-size:12px">Ehliyet ${esc(c.lic || "—")}</span><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${["src", "kb", "ruh"].filter(k => c.docs[k]).map(k => `<button class="chip" data-av="${esc(id)}|${k}">${{ src: "SRC", kb: "K belgesi", ruh: "Ruhsat" }[k]}</button>`).join("")}<button class="chip on" data-ap="${esc(id)}">Onayla</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Bekleyen başvuru yok.</p>`}</div>`;
 };
 
 function setCar(patch) {
     Object.assign(myCar, patch);
+    if (!save()) return false;
     const d = { displayName: myCar.displayName || "", city: myCar.city || "", about: myCar.about || "", phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
     d.ok = cOk(d);
     carriers[me || "local"] = d;
     if (cloud)
         dbw(db.doc("carriers/" + me).set(d));
-    save();
     render();
+    return true;
 }
 
 function carBind() {
@@ -334,8 +342,9 @@ function openReport(kind, id) {
             dbw(db.doc("reports/" + key).set(rec));
         reports = reports.filter(x => x.k !== key);
         reports.push({ k: key, ...rec });
+        if (!save()) return;
         closeSheet();
-        toast("Şikayetin alındı, teşekkürler");
+        toast(cloud ? "Şikayetin alındı, teşekkürler" : "Şikayetin bu cihazda kaydedildi. Demo modunda ekibe gönderilmez.");
     };
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
@@ -347,7 +356,7 @@ function blockUser(u) {
     if (!blocked.includes(u))
         blocked.push(u);
     rebuild();
-    save();
+    if (!save()) return;
     closeSheet();
     render();
     toast("Kullanıcı engellendi");
@@ -356,9 +365,9 @@ function blockUser(u) {
 const reportsCard = () => {
     if (!admin)
         return "";
-    return `<div class="load" style="cursor:default"><b>Şikayetler (${reports.length})</b>${reports.length ? reports.map(x => `<div class="kv" style="display:block"><b style="font-size:14px">${x.reason} · ${x.kind === "l" ? "ilan" : x.kind === "u" ? "kullanıcı" : "boş araç"} ${x.tid}</b>${x.note ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.note}</div>` : ""}<button class="chip" style="margin-top:8px" data-rc="${esc(x.k)}">Kapat</button></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Şikayet yok.</p>`}</div>`;
+    return `<div class="load" style="cursor:default"><b>Şikayetler (${reports.length})</b>${reports.length ? reports.map(x => `<div class="kv" style="display:block"><b style="font-size:14px">${esc(x.reason)} · ${x.kind === "l" ? "ilan" : x.kind === "u" ? "kullanıcı" : "boş araç"} ${esc(x.tid)}</b>${x.note ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${esc(x.note)}</div>` : ""}<button class="chip" style="margin-top:8px" data-rc="${esc(x.k)}">Kapat</button></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Şikayet yok.</p>`}</div>`;
 };
 
-const blockedCard = () => blocked.length ? `<div class="load" style="cursor:default"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span style="color:var(--ink);font-weight:700">${nm(u)}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
+const blockedCard = () => blocked.length ? `<div class="load" style="cursor:default"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span style="color:var(--ink);font-weight:700">${esc(nm(u))}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
 
 const helpCard = () => `<div class="load" style="cursor:default"><b>Yardım ve destek</b>${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join("")}${SUPPORT_MAIL.endsWith("@example.com") ? '<p class="estimate-note">Destek iletişim adresi henüz tanımlanmadı.</p>' : `<a class="chip" href="mailto:${SUPPORT_MAIL}" style="display:inline-block;margin-top:12px;text-decoration:none">Bize yaz</a>`}</div>`;

@@ -1758,13 +1758,13 @@ header p { opacity:1; }
 .dual-contact { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:10px; }
 .dual-contact .btn { padding:13px 8px; min-height:50px; font-size:14px; }
 .dual-contact .btn.alt { background:var(--tag-bg); color:var(--brand-ink); box-shadow:none; }
-.fuel-result { background:var(--app-gradient); color:#fff; border-radius:22px; padding:22px 18px; margin-bottom:16px; }
-.fuel-result>span { font-size:12px; color:#e0fffc; }
-.fuel-result>strong { display:block; font-size:33px; color:#ffe075; margin:8px 0 18px; overflow-wrap:anywhere; }
+.fuel-result { background:var(--app-gradient); color:var(--on-brand); border-radius:22px; padding:22px 18px; margin-bottom:16px; }
+.fuel-result>span { font-size:13px; color:var(--on-brand); }
+.fuel-result>strong { display:block; font-size:33px; color:var(--on-brand); margin:8px 0 18px; overflow-wrap:anywhere; }
 .fuel-metrics { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; padding-top:14px; border-top:1px solid #ffffff40; }
 .fuel-metrics b,.fuel-metrics span { display:block; overflow-wrap:anywhere; }
 .fuel-metrics b { font-size:20px; }
-.fuel-metrics span,.fuel-result p { font-size:11px; color:#e0fffc; margin-top:5px; line-height:1.6; }
+.fuel-metrics span,.fuel-result p { font-size:12px; color:var(--on-brand); margin-top:5px; line-height:1.6; }
 .fuel-result p { margin-top:14px; }
 .fuel-detail>.fuel-result { flex:none; margin:12px 16px 0; padding:14px 16px; border-radius:18px; }
 .fuel-detail>.fuel-result>strong { font-size:28px; margin:4px 0 8px; }
@@ -1789,6 +1789,9 @@ header p { opacity:1; }
 .dual-contact .btn>span { display:flex; align-items:center; justify-content:center; gap:6px; }
 .dual-contact .btn.alt .ui-icon { width:17px; height:17px; }
 .dual-contact .pm { margin:0; font-size:9px; line-height:1.2; }
+
+.contact-unavailable{grid-column:1/-1;margin:0;color:var(--ink);font-size:13px;line-height:1.5}
+.contact-dock button:disabled{opacity:.55;cursor:default}
 
 /* Ortak tasarım sistemi ve telefon düzeni */
 
@@ -2011,7 +2014,7 @@ nav button[data-t=post] { background:linear-gradient(145deg,#ffe68b,#ffd34e); co
 .road-heading h2 { color:var(--ink); margin:3px 0 10px; font-size:19px; line-height:1.3; overflow-wrap:anywhere; }
 .road-city-field { display:flex; gap:10px; align-items:center; padding-left:12px; background:var(--bg); border:1px solid var(--line); border-radius:14px; color:var(--brand-ink); }
 .road-city-field select { margin:0; flex:1; min-width:0; border:0; background-color:transparent; padding-top:10px; padding-bottom:10px; font-size:14px; }
-.road-back { display:flex; gap:4px; align-items:center; background:transparent; border-color:#ffffff40; color:#fff; }
+.road-back { display:flex; gap:4px; align-items:center; background:transparent; border-color:currentColor; color:var(--on-brand); }
 .road-footer { flex:none; padding:12px 12px calc(14px + env(safe-area-inset-bottom)); background:var(--card); }
 .road-categories { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
 .road-categories .chip { flex:none; min-height:44px; font-size:11px; padding:9px 10px; }
@@ -2082,14 +2085,13 @@ const SUPPORT_MAIL = "destek@example.com";
 
 const FAQ = [["Premium üyelik nedir?", "Premium üyeler ilan sahiplerini ve taşıyıcıları arayabilir ve uygulama içinden mesajlaşabilir."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Yükleme nasıl onaylanır?", "Taşıyıcı İşlerim bölümünde Yükledim der; yük sahibi yüklemeyi onaylar. Teslim fotoğrafı adımı yoktur."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
 
-/* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ayrıntı HANDOFF.md bölüm 14. */
+/* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ürün kuralları docs/product.md içinde. */
 const FEAT = { prices: { l: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 }, t: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 } } };
 
 const FDUR = [[3, "3 saat"], [6, "6 saat"], [12, "12 saat"], [24, "24 saat"], [72, "3 gün"]];
 
 
 
-const FUEL_ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V4a1 1 0 011-1h8a1 1 0 011 1v17M2 21h14M4 10h10M7 6h4M14 12h2a2 2 0 012 2v4a1.5 1.5 0 003 0V8l-3-3M19 6v3h2"/></svg>';
 
 const VB = '<span class="vb">✓ Belgeli</span>';
 
@@ -2166,7 +2168,6 @@ let appr = {};
 let cdocs = {};
 let names = {};
 let seen = new Set();
-let pods = {};
 let reports = [];
 
 // --- Kullanıcı tercihleri ---
@@ -2244,6 +2245,87 @@ loads.push({ id: 15, from: "Ankara", to: "İstanbul", cargo: "Beyaz eşya", ton:
 trucks.push({ id: "t4", verified: true, approved: true, who: "Yılmaz Ağır Nakliyat", from: "Samsun", to: "Mersin", veh: "Lowbed", cap: 30, body: "Lowbed", date: "Cuma", rate: 4.8 }, { id: "t5", who: "Selim K.", from: "Bursa", to: "İstanbul", veh: "Panelvan", cap: 1.5, body: "Kapalı kasa", date: "Bugün", rate: 4.5 }, { id: "t6", verified: true, who: "Doğu Tankercilik", from: "Mersin", to: "Gaziantep", veh: "Tanker", cap: 25, body: "Tanker", date: "Yarın", rate: 4.6 });
 
 /**
+ * Veri kuralları
+ * Tarih, mesafe ve kayıt doğrulama; metinler ham saklanır, çizim sınırında kaçışlanır.
+ */
+const isRecord = v => !!v && typeof v === "object" && !Array.isArray(v);
+const localDay = (value = Date.now()) => {
+    const d = new Date(value);
+    return Number.isFinite(d.getTime()) ? [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-") : "";
+};
+const validDay = d => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && localDay(d+"T12:00:00") === d;
+function dateFields(value, now = Date.now()) {
+    if (validDay(value)) return {date:value, dateEnd:""};
+    const d = new Date(now); d.setHours(12,0,0,0);
+    if (value === "Yarın") d.setDate(d.getDate()+1);
+    const days = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+    if (days.includes(value)) d.setDate(d.getDate()+(days.indexOf(value)-d.getDay()+7)%7);
+    const date = localDay(d);
+    if (value === "Bu hafta") { d.setDate(d.getDate()+(7-d.getDay())%7); return {date,dateEnd:localDay(d)}; }
+    return {date,dateEnd:""};
+}
+function dateLabel(x, now = Date.now()) {
+    const d = typeof x === "string" ? x : x.date;
+    if (!validDay(d)) return String(d || "Belirtilmedi");
+    const end = typeof x === "object" && validDay(x.dateEnd) ? x.dateEnd : "";
+    const format = v => new Date(v+"T12:00:00").toLocaleDateString("tr-TR",{day:"numeric",month:"short",year:"numeric"});
+    if (end && end !== d) return format(d)+" – "+format(end);
+    if (d === localDay(now)) return "Bugün";
+    if (d === dateFields("Yarın",now).date) return "Yarın";
+    return format(d);
+}
+const dateBucket = x => {
+    const d = typeof x === "string" ? x : x.date;
+    if (d === "Bugün" || d === "Yarın") return d;
+    if (validDay(d)) {
+        const end = typeof x === "object" && validDay(x.dateEnd) ? x.dateEnd : d, today=localDay();
+        if (d <= today && end >= today) return "Bugün";
+        if (d === dateFields("Yarın").date) return "Yarın";
+    }
+    return "İleri tarih";
+};
+const positiveAmount = value => Number.isFinite(+value) && +value > 0 && +value <= Number.MAX_SAFE_INTEGER;
+const postDateOK = value => ["Bugün", "Yarın", "Bu hafta"].includes(value) || validDay(value);
+const ITEM_UNITS = ["ton", "kg", "palet", "koli", "adet", "m³"];
+function postError(x, isTruck = false, step = 2) {
+    if (!cities.includes(x.from) || !cities.includes(x.to)) return "Çıkış ve varış şehrini seç";
+    if (x.from === x.to) return "Çıkış ve varış şehri farklı olmalı";
+    if (step < 1) return "";
+    if (!positiveAmount(isTruck ? x.cap : x.ton)) return "Geçerli, sıfırdan büyük bir tonaj gir";
+    if (!isTruck && !String(x.cargo || "").trim()) return "Yük cinsini gir";
+    if (!vehicles.includes(x.veh) || !bodies.includes(x.body)) return "Araç ve kasa tipini seç";
+    if (step < 2) return "";
+    if (!postDateOK(x.date) || dateFields(x.date).date < localDay()) return "Güncel bir yükleme veya müsaitlik tarihi seç";
+    if (Array.isArray(x.items) && x.items.some(i => !positiveAmount(i.q) || !ITEM_UNITS.includes(i.u))) return "Yük kalemlerine geçerli, sıfırdan büyük miktar ve birim gir";
+    return "";
+}
+function fuelEstimate(values) {
+    if (["km","cons","fuel","toll","other"].some(k => !Number.isFinite(values[k]) || values[k] < 0 || values[k] > Number.MAX_SAFE_INTEGER)) return null;
+    const distance=values.km*(values.back?2:1), litres=distance*values.cons/100, fuel=litres*values.fuel, extras=values.toll+values.other, total=fuel+extras;
+    return [distance,litres,fuel,extras,total].every(v=>Number.isFinite(v)&&v<=Number.MAX_SAFE_INTEGER) ? {distance,litres,fuel,extras,total} : null;
+}
+const listingDistance = x => Number.isFinite(+x.km) && +x.km > 0 ? +x.km : dist(x.from,x.to) || 0;
+const imageDataOK = (u, max=250000) => typeof u === "string" && u.length < max && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(u);
+function normalizeListing(v) {
+    if (!isRecord(v) || !["number","string"].includes(typeof v.id) || !String(v.id) || typeof v.from !== "string" || typeof v.to !== "string") return null;
+    const x={...v};
+    for (const k of ["cargo","note","owner","who","veh","body","phone","uid","date"]) if (k in x) x[k]=String(x[k]??"");
+    for (const k of ["ton","cap","km","ts","featUntil","stage"]) if(k in x) x[k]=Number.isFinite(+x[k])?Math.max(0,+x[k]):0;
+    if(Array.isArray(x.items)) x.items=x.items.filter(isRecord).slice(0,6).map(i=>({n:String(i.n||""),q:positiveAmount(i.q)?+i.q:0,u:String(i.u||"")}));
+    else delete x.items;
+    if (!imageDataOK(x.img,60000)) delete x.img;
+    if (x.mine && !x.ts) {
+        const old=Number(String(x.id).replace(/^t/,""));
+        x.ts=Number.isFinite(old)&&old>1e12?old:Date.now();
+    }
+    if ((x.mine || x.uid || x.ts) && !validDay(x.date)) Object.assign(x,dateFields(x.date,x.ts||Date.now()));
+    if (!validDay(x.dateEnd) || x.dateEnd < x.date) delete x.dateEnd;
+    if(Array.isArray(x.featWin)) x.featWin=x.featWin.filter(w=>Array.isArray(w)&&Number.isFinite(+w[0])&&Number.isFinite(+w[1]));
+    if (x.status && !["wait","ok","counter","no"].includes(x.status)) x.status="wait";
+    return x;
+}
+
+/**
  * Çekirdek: yardımcılar, fotoğraf, kayıt, bulut
  * Kaçışlama ve biçimlendirme, fotoğraf işleme, localStorage kaydı ve geri yükleme, ortak veritabanı katmanı.
  */
@@ -2251,23 +2333,16 @@ trucks.push({ id: "t4", verified: true, approved: true, who: "Yılmaz Ağır Nak
 // ===== Yardımcılar =====
 // Kaçışlama, biçimlendirme, bildirim mesajı ve küçük genel işlevler.
 
-const dk = d => d === "Bugün" || d === "Yarın" ? d : "İleri tarih";
+const dk = d => dateBucket(d);
 
 const tog = (a, v) => {
     const i = a.indexOf(v);
     i < 0 ? a.push(v) : a.splice(i, 1);
 };
 
-const esc = x => String(x).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const esc = x => String(x ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-const clean = o => {
-    const r = {};
-    for (const k in o) {
-        const v = o[k];
-        r[k] = typeof v === "string" ? esc(v) : v;
-    }
-    return r;
-};
+const clean = o => isRecord(o) ? { ...o } : {};
 
 const nm = u => names[u] || "Kullanıcı";
 
@@ -2281,7 +2356,7 @@ const imgOk = u => typeof u === "string" && u.length < 60000 && /^data:image\/jp
 
 const isDark = () => ["#0b1d22", "#101722"].includes(getComputedStyle(document.documentElement).getPropertyValue("--bg").trim());
 
-const opt2 = (a, d) => a.map(c => `<option ${c === d ? "selected" : ""}>${c}</option>`).join("");
+const opt2 = (a, d) => a.map(c => `<option ${c === d ? "selected" : ""}>${esc(c)}</option>`).join("");
 
 const SKEL = [1, 2, 3].map(() => `<div class="load sk"><i></i><i></i><i></i></div>`).join("");
 
@@ -2304,7 +2379,8 @@ function toast(t) {
     const e = $("#toast");
     e.textContent = t;
     e.style.display = "block";
-    setTimeout(() => e.style.display = "none", 2000);
+    clearTimeout(toast.timer);
+    toast.timer=setTimeout(() => e.style.display = "none", 3500);
 }
 
 // ===== Fotoğraf =====
@@ -2327,11 +2403,13 @@ function shrink(file, cb, max, lim) {
                 if (u.length < lim)
                     break;
             }
+            if (u.length >= lim) return toast("Fotoğraf çok büyük; daha küçük bir fotoğraf seç");
             cb(u);
         };
         im.onerror = () => toast("Fotoğraf okunamadı");
         im.src = rd.result;
     };
+    rd.onerror = () => toast("Fotoğraf okunamadı");
     rd.readAsDataURL(file);
 }
 
@@ -2350,8 +2428,8 @@ function pickImg(cb, max, lim) {
 function showImg(u, t) {
     const B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:17px">${t}</b><div id="pi" style="margin-top:12px"></div><button class="btn alt" id="close">Kapat</button>`;
-    if (typeof u === "string" && u.startsWith("data:image/jpeg;base64,") && u.length < 250000) {
+    B.innerHTML = `<b style="font-size:17px">${esc(t)}</b><div id="pi" style="margin-top:12px"></div><button class="btn alt" id="close">Kapat</button>`;
+    if (imageDataOK(u)) {
         const im = new Image();
         im.src = u;
         im.alt = t;
@@ -2364,76 +2442,116 @@ function showImg(u, t) {
     $("#close").onclick = closeSheet;
 }
 
-// ===== Kayıt ve geri yükleme =====
-// localStorage ve kullanıcı tercihleri (bulut) kaydı, açılışta geri yükleme ve veri taşıma yamaları.
-
+/**
+ * Cihaz kaydı ve kurtarma
+ * Sürümlü yerel veri, kalıcı yazma sonucu, geri alma ve eski kayıtların taşınması.
+ */
+const STORE_VERSION = 3;
+let savedState = "", persistedState = "", recoveryBlocked = false, storageNotice = "";
+const stateData = () => ({version:STORE_VERSION,loads,offers,trucks,chats,calc,favs,myCar,alerts,rates,prem,blocked,reports,cdocs});
+function applyState(d) {
+    ({loads,offers,trucks,chats,calc,favs,myCar,alerts,rates,prem,blocked,reports,cdocs}=d);
+    carriers[me||"local"]={...myCar,ok:!!(myCar.lic&&myCar.src&&myCar.kb&&myCar.ruh)};
+}
+function normalizeState(d) {
+    const base=stateData(), out={...base};
+    for(const k of ["loads","offers","trucks"]) if(Array.isArray(d[k])) out[k]=d[k].map(normalizeListing).filter(Boolean);
+    for(const k of ["favs","blocked"]) if(Array.isArray(d[k])) out[k]=d[k].filter(v=>["string","number"].includes(typeof v)).map(String);
+    for(const k of ["alerts","reports"]) if(Array.isArray(d[k])) out[k]=d[k].filter(isRecord);
+    if(Array.isArray(d.rates)) out.rates=d.rates.filter(isRecord).map(r=>({...r,stars:Math.min(5,Math.max(1,Math.round(+r.stars||1))),text:String(r.text||"")}));
+    out.chats={};
+    if(isRecord(d.chats)) for(const [k,msgs] of Object.entries(d.chats)) {
+        if(!["__proto__","constructor","prototype"].includes(k)&&Array.isArray(msgs)) out.chats[k]=msgs.filter(isRecord).map(m=>({...m,me:m.me?1:0,t:String(m.t||"")}));
+    }
+    out.calc={...base.calc};
+    if(isRecord(d.calc)) {
+        for(const k of ["km","cons","fuel","toll","other"]) if(Number.isFinite(+d.calc[k])&&+d.calc[k]>=0) out.calc[k]=+d.calc[k];
+        out.calc.back=d.calc.back===true;
+        if (!fuelEstimate(out.calc)) out.calc={...base.calc};
+    }
+    if(isRecord(d.myCar)) out.myCar={...base.myCar,...d.myCar};
+    for(const k of ["displayName","city","about","phone","lic"]) if(k in out.myCar) out.myCar[k]=typeof out.myCar[k]==="string"?out.myCar[k]:"";
+    out.myCar.docs={...(isRecord(out.myCar.docs)?out.myCar.docs:{})};
+    out.cdocs={};
+    if(isRecord(d.cdocs)) for(const [k,u] of Object.entries(d.cdocs)) if(/^(local|[^/]+)\/(src|kb|ruh)$/.test(k)&&imageDataOK(u)) out.cdocs[k]=u;
+    for(const k of ["src","kb","ruh"]) if(!out.cdocs["local/"+k]) out.myCar.docs[k]=false;
+    if(isRecord(d.prem)) out.prem={until:Math.max(0,+d.prem.until||0),plan:String(d.prem.plan||"")};
+    // Eski sürüm yalnızca ad/telefon alanlarını HTML olarak saklıyordu.
+    if(!d.version || d.version<STORE_VERSION) {
+        const raw=s=>String(s).replace(/&(amp|lt|gt|quot|#39);/g,(_,k)=>({amp:"&",lt:"<",gt:">",quot:'"',"#39":"'"}[k]));
+        for(const k of ["loads","trucks","offers"]) out[k]=out[k].map(x=>{const v={...x};for(const key of ["owner","who","phone"])if(typeof v[key]==="string")v[key]=raw(v[key]);return v;});
+    }
+    return out;
+}
 function savePrefs() {
-    if (!cloud)
-        return;
-    const j = JSON.stringify({ favs, calc, alerts, blocked });
-    if (j === lastP)
-        return;
-    lastP = j;
+    if(!cloud) return;
+    const prefs={favs,calc,alerts,blocked}, j=JSON.stringify(prefs);
+    if(j===lastP) return;
     clearTimeout(pt);
-    pt = setTimeout(() => db.doc("data/users/" + me + "/prefs").set({ favs, calc, alerts, blocked }).catch(() => { }), 800);
+    pt=setTimeout(()=>db.doc("data/users/"+me+"/prefs").set(prefs).then(()=>{lastP=j;}).catch(()=>toast("Tercihler bağlantı nedeniyle eşitlenemedi")),800);
 }
-
-try {
-    seen = new Set(JSON.parse(localStorage.getItem("yy-seen") || "[]"));
-}
-catch (e) { }
-
-try {
-    role = localStorage.getItem("yy-role") || "";
-}
-catch (e) { }
-
-function save() {
+function save(syncPrefs = true) {
     try {
-        localStorage.setItem("yy2", JSON.stringify({ loads, offers, trucks, chats, calc, favs, myCar, alerts, rates, prem, blocked, reports }));
-    }
-    catch (e) { }
-    savePrefs();
-}
-
-try {
-    const d = JSON.parse(localStorage.getItem("yy2") || "null");
-    if (d) {
-        loads = d.loads;
-        offers = d.offers;
-        trucks = d.trucks;
-        chats = d.chats;
-        calc = d.calc;
-        favs = d.favs || [];
-        myCar = d.myCar || myCar;
-        alerts = d.alerts || [];
-        rates = d.rates || [];
-        prem = d.prem || prem;
-        blocked = d.blocked || [];
-        reports = d.reports || [];
+        if(recoveryBlocked) throw new Error("recovery");
+        const j=JSON.stringify(stateData());
+        if(j!==persistedState) localStorage.setItem("yy2",j);
+        persistedState=j;
+        savedState=j;
+        if (syncPrefs) savePrefs();
+        return true;
+    } catch(e) {
+        if(savedState&&!cloud) applyState(JSON.parse(savedState));
+        toast(recoveryBlocked?"Eski kayıt korunuyor; depolama erişimi olmadan yeni kayıt yapılamıyor":"Kaydedilemedi. Cihaz depolama alanını ve tarayıcı izinlerini kontrol et; tekrar dene.");
+        return false;
     }
 }
-catch (e) { }
+function restoreState() {
+    try {
+        const v=JSON.parse(localStorage.getItem("yy-seen")||"[]");
+        seen=new Set(Array.isArray(v)?v.filter(x=>typeof x==="string"):[]);
+        role=["owner","carrier"].includes(localStorage.getItem("yy-role"))?localStorage.getItem("yy-role"):"";
+    } catch(e) { }
+    try {
+        const raw=localStorage.getItem("yy2");
+        persistedState=raw||"";
+        if(raw) {
+            let d;
+            try { d=JSON.parse(raw); } catch(e) { d=null; }
+            const partial=!isRecord(d)||["loads","offers","trucks"].some(k=>!Array.isArray(d[k])||d[k].some(x=>!normalizeListing(x)));
+            if(isRecord(d)&&d.version>STORE_VERSION){recoveryBlocked=true;storageNotice="Bu kayıt daha yeni bir uygulama sürümüne ait. Veriyi korumak için kaydetme kapalı; uygulamayı güncelle.";}
+            if(partial) {
+                // Bozuk/kısmi kaydı silmeden ayrı anahtarda koru. Yedeklenemiyorsa üstüne yazma.
+                try { localStorage.setItem("yy2-recovery-"+Date.now(),raw); }
+                catch(e) { recoveryBlocked=true; }
+                storageNotice="Cihaz kaydının eksik bölümleri onarıldı. Önceki kayıt kurtarma kopyasında korundu.";
+                if(recoveryBlocked) storageNotice="Cihaz kaydı okunamadı. Önceki kayıt korundu; depolama erişimi olmadan yeni değişiklikler kaydedilemez.";
+            }
+            if(isRecord(d)) applyState(normalizeState(d));
+        }
+    } catch(e) { storageNotice="Cihaz depolamasına erişilemiyor. Değişikliklerin kalıcı kaydı yapılamayabilir."; }
+    // İlk başarısız yazmada da bellek güvenli başlangıç durumuna dönebilir.
+    savedState=JSON.stringify(stateData());
+    if (!recoveryBlocked) save(false);
+    offers.filter(o=>o.status==="wait").forEach(o=>simulate(o.id));
 
-offers.filter(o => o.status === "wait").forEach(o => simulate(o.id));
+}
 
-if (calc.fuel === 45)
-    calc.fuel = 95;
-
-
-
+/**
+ * Eski host bağlantısı
+ * Mevcut ortak veri bağdaştırıcısı; normal PWA yayını yerel demo olarak çalışır.
+ */
 // ===== Bulut katmanı =====
 // Ortak veritabanı: yazma yardımcıları, okunan verinin duruma çevrilmesi, olay izleme, bulut başlatma.
 
-const dbw = p => p.catch(() => toast("Bu işlem için yazma yetkin yok"));
+const dbw = p => p.then(() => true).catch(() => { toast("Kayıt eşitlenemedi. Bağlantını ve erişimini kontrol edip tekrar dene."); return false; });
 
 function rebuild() {
+    if (!cloud) return;
+    const previous = [...offers, ...incoming];
     offers = [];
     incoming = [];
     allO.forEach(od => {
-        const L = loads.find(x => x.id === od.loadId);
-        if (!L)
-            return;
+        const L = loads.find(x => x.id === od.loadId) || normalizeListing(od.listing) || previous.find(x => x.loadId === od.loadId) || {id:od.loadId,from:"İlan kaldırıldı",to:"Güzergâh kaydı yok",cargo:"",uid:od.ownerUid||""};
         const B = String(od.bidder);
         const o = { ...L, offer: +od.offer || 0, status: ["wait", "ok", "counter", "no"].includes(od.status) ? od.status : "wait", counter: +od.counter || 0, loadId: L.id, bidder: B, ownerUid: od.ownerUid || "", stage: Math.min(3, Math.max(0, +od.stage || 0)), ots: +od.ts || 0, doneAt: +od.doneAt || 0 };
         if (B === me)
@@ -2464,6 +2582,12 @@ function untrack(t, id) {
     db.doc("events/" + k + "_" + me).delete().catch(() => { });
 }
 
+// Ortak kayıttan gelen değişiklikleri önbelleğe al; tercihleri geri gönderme.
+function refreshCloudState() {
+    save(false);
+    soft();
+}
+
 async function initCloud() {
     try {
         if (!window.claude || !claude.use)
@@ -2477,7 +2601,7 @@ async function initCloud() {
         db = d;
         cloud = true;
         loaded = false;
-        myName = esc((await u.me()).name || "");
+        myName = String((await u.me()).name || "");
         names[me] = myName || "Ben";
         const ts = (a, b) => (b.ts || 0) - (a.ts || 0) || String(a.id).localeCompare(String(b.id), "tr", { numeric: true });
         const who = async (list) => {
@@ -2485,25 +2609,25 @@ async function initCloud() {
             if (!ids.length)
                 return;
             const pr = await u.profiles(ids);
-            ids.forEach(i => names[i] = esc((pr[i] && pr[i].name) || "") || "Kullanıcı");
+            ids.forEach(i => names[i] = String((pr[i] && pr[i].name) || "") || "Kullanıcı");
             soft();
         };
         const sim = new Set();
         db.collection("loads").onSnapshot(sn => {
-            loads = sn.docs.map(x => clean(x.data())).sort(ts);
+            loads = sn.docs.map(x => normalizeListing(x.data())).filter(Boolean).sort(ts);
             who(loads.map(l => l.uid));
             rebuild();
             loaded = true;
-            soft();
+            refreshCloudState();
             deep();
         }, () => {
             loaded = true;
             soft();
         });
         db.collection("trucks").onSnapshot(sn => {
-            trucks = sn.docs.map(x => clean(x.data())).sort(ts);
+            trucks = sn.docs.map(x => normalizeListing(x.data())).filter(Boolean).sort(ts);
             who(trucks.map(t => t.uid));
-            soft();
+            refreshCloudState();
         }, () => { });
         db.collection("offers").onSnapshot(sn => {
             allO = sn.docs.map(x => x.data());
@@ -2512,14 +2636,14 @@ async function initCloud() {
                 sim.add(o.id);
                 simulate(o.id);
             });
-            soft();
+            refreshCloudState();
         }, () => { });
         let first = true;
         db.collection("carriers").onSnapshot(sn => {
             carriers = {};
             sn.docs.forEach(x => {
                 const v = x.data();
-                carriers[x.id] = { displayName: String(v.displayName || "").slice(0,60), city: String(v.city || "").slice(0,40), about: String(v.about || "").slice(0,200), phone: esc(String(v.phone || "").slice(0, 20)), ok: v.ok === true, lic: esc(v.lic || ""), src: !!v.src, kb: !!v.kb, ruh: !!v.ruh, docs: { src: !!(v.docs && v.docs.src), kb: !!(v.docs && v.docs.kb), ruh: !!(v.docs && v.docs.ruh) } };
+                carriers[x.id] = { displayName: String(v.displayName || "").slice(0,60), city: String(v.city || "").slice(0,40), about: String(v.about || "").slice(0,200), phone: String(v.phone || "").slice(0, 20), ok: v.ok === true, lic: String(v.lic || ""), src: !!v.src, kb: !!v.kb, ruh: !!v.ruh, docs: { src: !!(v.docs && v.docs.src), kb: !!(v.docs && v.docs.kb), ruh: !!(v.docs && v.docs.ruh) } };
             });
             if (first) {
                 if (carriers[me])
@@ -2527,7 +2651,7 @@ async function initCloud() {
                 first = false;
             }
             who(Object.keys(carriers));
-            soft();
+            refreshCloudState();
         }, () => { });
         admin = await u.isOwner();
         db.collection("events").onSnapshot(sn => {
@@ -2540,14 +2664,14 @@ async function initCloud() {
         if (admin)
             db.collection("reports").onSnapshot(sn => {
                 reports = sn.docs.map(x => ({ k: x.id, ...clean(x.data()) }));
-                soft();
+                refreshCloudState();
             }, () => { });
         db.collection("ratings").onSnapshot(sn => {
             rates = sn.docs.map(x => {
                 const v = x.data();
-                return { k: x.id, to: String(v.to || ""), by: String(v.by || ""), stars: Math.min(5, Math.max(1, +v.stars || 1)), text: esc(v.text || ""), ts: +v.ts || 0 };
+                return { k: x.id, to: String(v.to || ""), by: String(v.by || ""), stars: Math.min(5, Math.max(1, +v.stars || 1)), text: String(v.text || ""), ts: +v.ts || 0 };
             });
-            soft();
+            refreshCloudState();
         }, () => { });
         db.collection("approvals").onSnapshot(sn => {
             appr = {};
@@ -2574,7 +2698,7 @@ async function initCloud() {
             blocked = Array.isArray(v.blocked) ? v.blocked.map(String).slice(0, 200) : [];
         }
         lastP = JSON.stringify({ favs, calc, alerts, blocked });
-        soft();
+        refreshCloudState();
     }
     catch (e) { }
 }
@@ -2610,7 +2734,7 @@ function match(x, isT) {
         return 0;
     if (F.tonMax !== "" && t > +F.tonMax)
         return 0;
-    if (F.date.length && !F.date.includes(dk(x.date)))
+    if (F.date.length && !F.date.includes(dateBucket(x)))
         return 0;
     const rr = x.uid && ratingOf(x.uid) ? ratingOf(x.uid).avg : x.rate;
     if (F.rate && !(rr >= F.rate))
@@ -2655,23 +2779,23 @@ function rmF(k, v) {
     render();
 }
 
-const routeTitle = x => `<div class="route route-title"><span>${x.from}</span><i aria-hidden="true"></i><span>${x.to}</span></div>`;
+const routeTitle = x => `<div class="route route-title"><span>${esc(x.from)}</span><i aria-hidden="true"></i><span>${esc(x.to)}</span></div>`;
 
-const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${x.from}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${x.to}</b></div></div>`;
+const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${esc(x.from)}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${esc(x.to)}</b></div></div>`;
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
-const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${l.id}" role="button" tabindex="0" aria-label="${l.from} → ${l.to}, ${l.ton} ton yük, ilanı aç">
+const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
     ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>Doğrudan görüş</span><b>Ara veya mesajlaş</b></div></div>
-    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${l.cargo}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${l.ton}</b> ton</span></div>
-    <div class="listing-spec"><span>${l.veh} · ${l.body || "Kasa belirtilmedi"}</span><span class="load-date">Yükleme: <b>${l.date}</b></span></div>
-    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${favs.includes(String(l.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(l.id))}" class="fav ${favs.includes(String(l.id)) ? "on" : ""}" data-fav="${l.id}">${favs.includes(String(l.id)) ? "♥" : "♡"}</button></div>
+    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
+    <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
+    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${favs.includes(String(l.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(l.id))}" class="fav ${favs.includes(String(l.id)) ? "on" : ""}" data-fav="${esc(l.id)}">${favs.includes(String(l.id)) ? "♥" : "♡"}</button></div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${t.id}" role="button" tabindex="0" aria-label="${t.from} → ${t.to}, ${t.cap} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${t.cap}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${t.who || nm(t.uid)}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${t.veh} · ${t.body}</span><span>Müsait: <b>${t.date}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${favs.includes(String(t.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(t.id))}" class="fav ${favs.includes(String(t.id)) ? "on" : ""}" data-fav="${t.id}">${favs.includes(String(t.id)) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${favs.includes(String(t.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(t.id))}" class="fav ${favs.includes(String(t.id)) ? "on" : ""}" data-fav="${esc(t.id)}">${favs.includes(String(t.id)) ? "♥" : "♡"}</button></div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
-    const cnt = () => (isT ? trucks : loads).filter(x => match(x, isT)).length;
+    const cnt = () => (isT ? trucks : loads).filter(x => visibleListing(x, isT)).length;
     const grp = (k, t, o) => `<label>${t}</label><div class="chips wrap">${o.map(v => `<button class="chip ${F[k].includes(v) ? "on" : ""}" data-g="${k}" data-v="${v}">${v}</button>`).join("")}</div>`;
     const sel = (k, t, o) => `<div><label>${t}</label><select data-s="${k}"><option value="">Hepsi</option>${o.map(c => `<option ${F[k] === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>`;
     B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Filtrele</b><button class="chip" id="fr">Sıfırla</button></div>`
@@ -2776,23 +2900,26 @@ function openCompare() {
     const B = $("#sheetBody");
     B.dataset.k = "";
     const km = l => l.km || dist(l.from, l.to);
-    const rows = [["Yük", l => l.cargo, null], ["Ağırlık", l => l.ton + " ton", null], ["Araç", l => l.veh + " · " + (l.body || "—"), null], ["Mesafe", l => km(l) ? km(l) + " km" : "—", l => -km(l)], ["Yükleme", l => l.date, null], ["Puan", l => starTxt(l), rv]];
+    const rows = [["Yük", l => esc(l.cargo), null], ["Ağırlık", l => esc(l.ton) + " ton", null], ["Araç", l => esc(l.veh + " · " + (l.body || "—")), null], ["Mesafe", l => km(l) ? km(l) + " km" : "—", l => -km(l)], ["Yükleme", l => esc(dateLabel(l)), null], ["Puan", l => starTxt(l), rv]];
     const cell = (i, rw) => {
         const g = rw[1], sc = rw[2], win = sc && sc(L[0]) !== sc(L[1]) && sc(L[i]) === Math.max(sc(L[0]), sc(L[1]));
         return `<div class="${win ? "win" : ""}">${g(L[i])}</div>`;
     };
-    B.innerHTML = `<b style="font-size:19px">İlanları karşılaştır</b><div class="cmp"><div></div>${L.map(l => `<div class="ch">${l.from}<br>→ ${l.to}</div>`).join("")}${rows.map(rw => `<div class="rl">${rw[0]}</div>${cell(0, rw)}${cell(1, rw)}`).join("")}</div><div class="row" style="margin-top:14px">${L.map(l => `<button class="chip" data-gl="${l.id}">İlana git</button>`).join("")}</div><button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlanları karşılaştır</b><div class="cmp"><div></div>${L.map(l => `<div class="ch">${esc(l.from)}<br>→ ${esc(l.to)}</div>`).join("")}${rows.map(rw => `<div class="rl">${rw[0]}</div>${cell(0, rw)}${cell(1, rw)}`).join("")}</div><div class="row" style="margin-top:14px">${L.map(l => `<button class="chip" data-gl="${esc(l.id)}">İlana git</button>`).join("")}</div><button class="btn alt" id="close">Kapat</button>`;
     B.querySelectorAll("[data-gl]").forEach(b => b.onclick = () => openLoad(+b.dataset.gl));
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
 }
 
-const sortL = a => sort === "km" ? [...a].sort((x, y) => (x.km || 9e9) - (y.km || 9e9)) : sort === "rate" ? [...a].sort((x, y) => rv(y) - rv(x)) : a;
+const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 9e9) - (listingDistance(y) || 9e9)) : sort === "rate" ? [...a].sort((x, y) => rv(y) - rv(x)) : a;
 
 // ===== İlanlarım =====
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
 
 function postTruck(t) {
+    const error = postError(t, true);
+    if (error) { toast(error); return false; }
+    Object.assign(t, dateFields(t.date), {ts:Date.now()});
     if (myCar.phone)
         t.phone = myCar.phone;
     if (cloud) {
@@ -2804,6 +2931,7 @@ function postTruck(t) {
     if (!cloud)
         t.mine = true;
     trucks.unshift(t);
+    return save();
 }
 
 const mineL = () => loads.filter(l => cloud ? l.uid === me : l.mine);
@@ -2817,25 +2945,35 @@ function patchIt(k, id, patch) {
     if (!it)
         return;
     Object.assign(it, patch);
+    if (!save()) return false;
     if (cloud)
         dbw(db.doc((k === "l" ? "loads/" : "trucks/") + id).update(patch));
     render();
+    return true;
 }
 
-function openEdit(k, id) {
+function openEdit(k, id, reopen=false) {
     const it = findIt(k, id);
     if (!it)
         return;
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${it.from}<i></i>${it.to}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${it.cap}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${d}</option>`).join("")}</select>${L ? `<label>Not</label><input id="en" maxlength="200" value="${String(it.note || "").replace(/"/g, "&quot;")}">` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#es").onclick = () => {
         const v = L ? 0 : +$("#ep").value;
-        if (!L && !(v > 0))
+        if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
-        const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 200) } : { cap: v, date: $("#ed").value };
+        const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 1000) } : { cap: v, date: $("#ed").value };
+        const selectedDate=$("#ed").value;
+        if (!postDateOK(selectedDate)) return toast("Geçerli bir tarih seç");
+        if (selectedDate !== it.date) Object.assign(patch,dateFields(selectedDate));
+        if (reopen) {
+            const end = selectedDate === it.date ? (it.dateEnd||it.date) : (patch.dateEnd||patch.date);
+            if (end<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
+            Object.assign(patch,{closed:false,ts:Date.now()});
+        }
+        if (!patchIt(k, id, patch)) return;
         closeSheet();
-        patchIt(k, id, patch);
         toast("İlan güncellendi");
     };
     $("#close").onclick = closeSheet;
@@ -2848,7 +2986,7 @@ function askDel(k, id) {
         return;
     const B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${it.from}<i></i>${it.to}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">Bu işlem geri alınamaz.</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">Bu işlem geri alınamaz.</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#yes").onclick = () => {
         if (cloud)
             dbw(db.doc((k === "l" ? "loads/" : "trucks/") + id).delete());
@@ -2856,6 +2994,7 @@ function askDel(k, id) {
             loads = loads.filter(x => String(x.id) !== String(id));
         else
             trucks = trucks.filter(x => String(x.id) !== String(id));
+        if (!save()) return;
         closeSheet();
         render();
         toast("İlan silindi");
@@ -2866,7 +3005,7 @@ function askDel(k, id) {
 
 const myListHTML = () => {
     const a = [...mineL().map(l => ({ k: "l", id: l.id, r: l.from + " → " + l.to, v: l.ton + " ton", c: l.closed || expired(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: t.from + " → " + t.to, v: t.cap + " ton", c: t.closed || expired(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))];
-    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${x.r}</b><span>${x.v}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${x.id}">Düzenle</button>${x.k === "l" ? `<button class="chip" data-st2="${x.id}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${x.id}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${x.id}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${x.id}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
+    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${esc(x.id)}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
 };
 
 const itemsTxt = l => (Array.isArray(l.items) ? l.items : []).slice(0, 6).map(i => esc(i.n) + " " + (+i.q || 0) + " " + esc(i.u)).join(", ");
@@ -2881,19 +3020,32 @@ function itemsUI() {
             return toast("En fazla 6 kalem");
         const d = document.createElement("div");
         d.className = "itrow";
-        d.innerHTML = `<input data-in placeholder="Kalem" maxlength="40"><input data-iq type="number" inputmode="decimal" placeholder="Miktar"><select data-iu>${["ton", "kg", "palet", "koli", "adet", "m³"].map(u => `<option>${u}</option>`).join("")}</select><button class="chip" type="button" data-ix aria-label="Kaldır">×</button>`;
+        d.innerHTML = `<input data-in placeholder="Kalem" maxlength="40"><input data-iq type="number" min="0" step="any" inputmode="decimal" placeholder="Miktar"><select data-iu>${ITEM_UNITS.map(u => `<option>${u}</option>`).join("")}</select><button class="chip" type="button" data-ix aria-label="Kaldır">×</button>`;
         box.appendChild(d);
         d.querySelector("[data-ix]").onclick = () => { d.remove(); capturePostDraft(); };
     };
     $("#addit").onclick = add;
-    $("#ph").onclick = () => pickImg(u => {
-        postImg = u;
-        capturePostDraft();
-        $("#phs").innerHTML = `<img class="th" src="${u}" alt="">`;
-    }, 200, 22000);
+    $("#ph").onclick = () => {
+        const preview = $("#phs");
+        pickImg(u => {
+            // Fotoğraf hazırlanırken başka forma geçildiyse yeni taslağa yazma.
+            if (tab !== "post" || postMode !== "load" || $("#phs") !== preview) return;
+            postImg = u;
+            preview.innerHTML = `<img class="th" src="${u}" alt="Yük fotoğrafı">`;
+            capturePostDraft();
+        }, 200, 22000);
+    };
 }
 
-const expired = (x, k) => !!(x.ts && Date.now() - x.ts > TTL[k] * 864e5);
+const expired = (x, k) => !!(x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
+const availableListing = (x,isT=false) => !!x && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
+const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||x.who||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
+function contactAllowed(x,isT=false,allowOwn=false) {
+    const current=x&&findIt(isT?"t":"l",x.id);
+    if(!availableListing(current,isT)) { toast("Bu ilan artık açık değil. Yeni iletişim başlatılamaz."); return false; }
+    if(!allowOwn && ((cloud && current.uid===me)||(!cloud&&current.mine))) { toast("Kendi ilanına mesaj gönderemezsin"); return false; }
+    return true;
+}
 
 const ago = x => {
     if (!x.ts)
@@ -2907,18 +3059,35 @@ const ago = x => {
  * İki aşamalı iş takibi, bildirimler ve mesajlaşma.
  */
 const opath = o => "offers/" + o.loadId + "_" + o.bidder;
-function oup(o,patch){Object.assign(o,patch);if(cloud)dbw(db.doc(opath(o)).update(patch));render();}
+function oup(o, patch) {
+    if (!o) return false;
+    Object.assign(o, patch);
+    if (!save()) return false;
+    if (cloud) dbw(db.doc(opath(o)).update(patch));
+    render();
+    return true;
+}
+function withdrawOffer(id) {
+    const o = offers.find(x => String(x.id) === String(id));
+    if (!o || !["wait", "counter"].includes(o.status)) return false;
+    offers = offers.filter(x => x !== o);
+    if (!save()) return false;
+    if (cloud) dbw(db.doc(opath(o)).delete());
+    render();
+    toast("Taşıma talebi geri çekildi");
+    return true;
+}
 // Eski stage 2 yüklenmiş, stage 3 onaylanmış kayıt olarak gösterilir; kayıtlar silinmez.
 const jobStage = o => (o.stage || 0) >= 3 ? 3 : (o.stage || 0) >= 1 ? 1 : 0;
 const offerExp = o => o.status === "wait" && !!o.ots && Date.now()-o.ots>TTL.offer*864e5;
 const stepper = o => `<div class="steps job-steps"><span class="${jobStage(o)>=1?'on':''}"><i></i>Yükledim</span><span class="${jobStage(o)===3?'on':''}"><i></i>Onaylandı</span></div>`;
 function requestLoad(l){
-    if(cloud&&l.uid===me){toast("Kendi ilanına talep gönderemezsin");return false;}
+    if(!contactAllowed(l)) return false;
     if(offers.some(o=>o.id===l.id&&o.status!=="no"&&!offerExp(o))){toast("Bu ilan İşlerim bölümünde kayıtlı");return false;}
     const o={...l,offer:0,status:"wait",loadId:l.id,bidder:me,ownerUid:l.uid||"",ots:Date.now(),stage:0};
     offers=offers.filter(x=>x.id!==l.id);offers.unshift(o);
-    if(cloud)dbw(db.doc(opath(o)).set({loadId:l.id,bidder:me,ownerUid:l.uid||"",offer:0,status:"wait",stage:0,ts:o.ots}));
-    save();if(!l.uid)simulate(l.id);return true;
+    if(cloud)dbw(db.doc(opath(o)).set({loadId:l.id,bidder:me,ownerUid:l.uid||"",offer:0,status:"wait",stage:0,ts:o.ots,listing:{...l}}));
+    if(!save()) return false;if(!l.uid)simulate(l.id);return true;
 }
 function setStage(o,n){
     if(!o||o.status!=="ok")return;
@@ -2928,20 +3097,21 @@ function setStage(o,n){
     if(cloud&&((n===1&&o.bidder!==me)||(n===3&&!isOwner)))return toast("Bu adımı diğer taraf onaylamalı");
     o.stage=n;if(n===3)o.doneAt=Date.now();
     if(cloud)dbw(db.doc(opath(o)).update(n===3?{stage:n,doneAt:o.doneAt}:{stage:n}));
-    save();if(tab==="mine"||tab==="me")render();
+    if(!save()) return;if(tab==="mine"||tab==="me")render();
     if(n===1&&!(o.ownerUid||o.uid))setTimeout(()=>{
-        if(jobStage(o)!==1)return;
-        // Demo yük sahibi onayı. Gerçek kullanıcı kayıtlarına otomatik onay verilmez.
-        o.stage=3;o.doneAt=Date.now();save();if(tab==="mine"||tab==="me")render();toast("Demo: yükleme onaylandı");
+        const current=offers.find(x=>x.id===o.id);
+        if(!current||current.status!=="ok"||current.ownerUid||current.uid||jobStage(current)!==1)return;
+        // Yeniden yüklenen durumdaki kaydı güncelle; eski nesneye onay yazma.
+        current.stage=3;current.doneAt=Date.now();if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: yükleme onaylandı");
     },3000);
 }
-const stageUI=o=>`<div class="ret">${stepper(o)}<div class="job-actions">${jobStage(o)===0?`<button class="chip on" data-sg="${o.id}|1">Yükledim</button>`:jobStage(o)===1?'<span class="hint">Yük sahibinin onayı bekleniyor</span>':'<span class="st ok">✓ Onaylandı</span>'}${jobStage(o)===3?(rates.some(x=>x.k===rkey(o,"c"))?'<span class="hint">Değerlendirmen kaydedildi</span>':`<button class="chip" data-rt="${o.id}">Yük sahibini puanla</button>`):''}</div></div>`;
+const stageUI=o=>`<div class="ret">${stepper(o)}<div class="job-actions">${jobStage(o)===0?`<button class="chip on" data-sg="${esc(o.id)}|1">Yükledim</button>`:jobStage(o)===1?'<span class="hint">Yük sahibinin onayı bekleniyor</span>':'<span class="st ok">✓ Onaylandı</span>'}${jobStage(o)===3?(rates.some(x=>x.k===rkey(o,"carrier"))?'<span class="hint">Değerlendirmen kaydedildi</span>':`<button class="chip" data-rt="${esc(o.id)}">Yük sahibini puanla</button>`):''}</div></div>`;
 const retHTML=o=>{
     const c=loads.filter(l=>!l.closed&&!expired(l,"load")&&l.from===o.to&&l.id!==o.id&&!(l.uid&&l.uid===me)&&!(l.uid&&blocked.includes(l.uid))).sort((a,b)=>(b.to===o.from)-(a.to===o.from)).slice(0,2);
-    return c.length?`<div class="ret"><b>Dönüş güzergâhındaki yükler</b>${c.map(l=>`<button class="retc" data-rl="${l.id}"><span>${l.from} → ${l.to}</span><span>${l.veh} · ${l.ton} ton</span></button>`).join('')}</div>`:'';
+    return c.length?`<div class="ret"><b>Dönüş güzergâhındaki yükler</b>${c.map(l=>`<button class="retc" data-rl="${esc(l.id)}"><span>${esc(l.from)} → ${esc(l.to)}</span><span>${esc(l.veh)} · ${esc(l.ton)} ton</span></button>`).join('')}</div>`:'';
 };
-const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${nm(o.bidder)}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'o'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
-function simulate(id){setTimeout(()=>{const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});save();if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
+const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(nm(o.bidder))}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'owner'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
+function simulate(id){setTimeout(()=>{const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
 
 // ===== Bildirim ve alarm =====
 // Uygulama içi bildirimler, zil, rota alarmı.
@@ -2966,7 +3136,7 @@ function notifs() {
         if (o.status === "ok" && (o.stage || 0) === 3)
             a.push({ k: k + "s3", t: "Yükleme onaylandı", s: rt(o) });
     });
-    alerts.forEach(al => loads.filter(l => !l.closed && (!al.from || l.from === al.from) && (!al.to || l.to === al.to) && (!al.veh || l.veh === al.veh) && !(l.uid && l.uid === me)).forEach(l => a.push({ k: "a" + al.id + "_" + l.id, t: "Alarm: " + (al.from || "Her yer") + " → " + (al.to || "Her yer") + " yeni yük", s: l.cargo + " · " + l.ton + " ton", tab: "list" })));
+    alerts.forEach(al => loads.filter(l => availableListing(l) && (!al.from || l.from === al.from) && (!al.to || l.to === al.to) && (!al.veh || l.veh === al.veh) && !(l.uid && l.uid === me)).forEach(l => a.push({ k: "a" + al.id + "_" + l.id, t: "Alarm: " + (al.from || "Her yer") + " → " + (al.to || "Her yer") + " yeni yük", s: l.cargo + " · " + l.ton + " ton", tab: "list" })));
     return a;
 }
 
@@ -2982,7 +3152,7 @@ function bell() {
 function openBell() {
     const a = notifs(), B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Bildirimler</b><button class="chip" id="close">Kapat</button></div>` + (a.length ? a.map(x => `<button class="nt ${seen.has(x.k) ? "" : "new"}" data-nt="${x.tab || "mine"}"><b>${x.t}</b><span>${x.s}</span></button>`).join("") : `<div class="empty">Henüz bildirim yok.<br>Taşıma talebi geldiğinde veya yanıt aldığında burada görünür.</div>`);
+    B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Bildirimler</b><button class="chip" id="close">Kapat</button></div>` + (a.length ? a.map(x => `<button class="nt ${seen.has(x.k) ? "" : "new"}" data-nt="${x.tab || "mine"}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></button>`).join("") : `<div class="empty">Henüz bildirim yok.<br>Taşıma talebi geldiğinde veya yanıt aldığında burada görünür.</div>`);
     seen = new Set([...seen, ...a.map(x => x.k)]);
     try {
         localStorage.setItem("yy-seen", JSON.stringify([...seen]));
@@ -3013,7 +3183,7 @@ function addAlert() {
         localStorage.setItem("yy-seen", JSON.stringify([...seen]));
     }
     catch (e) { }
-    save();
+    if (!save()) return;
     render();
     toast("Alarm kuruldu: " + (al.from || "Her yer") + " → " + (al.to || "Her yer"));
 }
@@ -3023,7 +3193,7 @@ const alertsCard = () => `<div class="load" style="cursor:default"><b>Rota alarm
 // ===== Mesajlaşma =====
 // Teklif sohbeti (gerçek kullanıcılar arasında canlı, örnek ilanlarda hazır cevaplı).
 
-function openChat(key, who, onFirstSend) {
+function openChat(key, who, onFirstSend, guard) {
     if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
     const live = cloud && /^o\d+_./.test(key), B = $("#sheetBody");
     B.dataset.k = key;
@@ -3034,7 +3204,7 @@ function openChat(key, who, onFirstSend) {
         $("#msgs").innerHTML = msgs.map(x => `<div class="bub ${x.me ? "me" : ""}">${esc(x.t)}</div>`).join("");
         $("#msgs").scrollTop = 1e5;
     };
-    B.innerHTML = `<div class="load-detail chat-detail"><div class="detail-top"><b>${who}</b><button class="chip detail-close" id="close" aria-label="Sohbeti kapat">Kapat ×</button></div>${!live ? '<p class="demo-note"><b>Demo sohbet</b> · Mesajlar cihazında tutulur; yanıtlar simüledir.</p>' : ""}<div id="msgs" role="log" aria-live="polite" aria-label="Mesajlar"></div><div class="chat-composer"><label class="sr-only" for="mi">Mesajın</label><input id="mi" placeholder="Mesaj yaz" maxlength="500"><button class="btn" id="ms">Gönder</button></div></div>`;
+    B.innerHTML = `<div class="load-detail chat-detail"><div class="detail-top"><b>${esc(who)}</b><button class="chip detail-close" id="close" aria-label="Sohbeti kapat">Kapat ×</button></div>${!live ? '<p class="demo-note"><b>Demo sohbet</b> · Mesajlar cihazında tutulur; yanıtlar simüledir.</p>' : ""}<div id="msgs" role="log" aria-live="polite" aria-label="Mesajlar"></div><div class="chat-composer"><label class="sr-only" for="mi">Mesajın</label><input id="mi" placeholder="Mesaj yaz" maxlength="500"><button class="btn" id="ms">Gönder</button></div></div>`;
     if (unChat) {
         unChat();
         unChat = null;
@@ -3048,24 +3218,30 @@ function openChat(key, who, onFirstSend) {
     syncDetailViewport();
     $("#sheet").classList.add("open");
     $("#close").onclick = closeSheet;
-    const send = () => {
+    const send = async () => {
+        if (guard && !guard()) return;
         if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
         const t = $("#mi").value.trim().slice(0, 500);
         if (!t)
             return;
-        if (onFirstSend) { onFirstSend(); onFirstSend = null; }
-        $("#mi").value = "";
         if (live) {
-            dbw(db.collection("msgs").add({ k: key, uid: me, t, ts: Date.now() }));
+            if (onFirstSend && onFirstSend() === false) return;
+            if (await dbw(db.collection("msgs").add({ k: key, uid: me, t, ts: Date.now() }))) { onFirstSend=null; if(B.dataset.k===key) $("#mi").value=""; }
             return;
         }
-        msgs.push({ me: 1, t });
+        const oldOffers=JSON.parse(JSON.stringify(offers));
+        msgs.push({me:1,t});
+        chats[key]=msgs;
+        if (onFirstSend && onFirstSend() === false) { msgs=chats[key]||[]; return; }
+        if (!save()) { offers=oldOffers; msgs=chats[key]||[]; return; }
+        onFirstSend=null;
+        $("#mi").value="";
         draw();
-        save();
         setTimeout(() => {
             msgs.push({ me: 0, t: ["Tamamdır, yarın sabah yüklemeye hazırız.", "Fiyatta biraz esneyebiliriz, ne düşünüyorsun?", "Telefonla konuşalım mı?"][Math.floor(Math.random() * 3)] });
+            chats[key]=msgs;
+            if (!save()) {msgs=chats[key]||[];}
             draw();
-            save();
         }, 1500);
     };
     $("#ms").onclick = send;
@@ -3087,9 +3263,10 @@ function listBind() {
     const M = $("#main");
     M.querySelectorAll("[data-rc]").forEach(b => b.onclick = () => {
         const k = b.dataset.rc;
+        reports = reports.filter(x => x.k !== k);
+        if (!save()) return;
         if (cloud)
             dbw(db.doc("reports/" + k).delete());
-        reports = reports.filter(x => x.k !== k);
         render();
     });
     M.querySelectorAll("[data-ub]").forEach(b => b.onclick = () => {
@@ -3115,7 +3292,7 @@ function listBind() {
     if ($("#pm2"))
         $("#pm2").onclick = () => {
             prem = { until: 0, plan: "" };
-            save();
+            if (!save()) return;
             if (cloud)
                 dbw(db.doc("premium/" + me).set(prem));
             render();
@@ -3145,6 +3322,7 @@ function listBind() {
             const it = findIt(k, id);
             if (it) {
                 const off = it.closed || expired(it, k === "l" ? "load" : "truck");
+                if (off && validDay(it.date) && (it.dateEnd||it.date)<localDay()) return openEdit(k,id,true);
                 patchIt(k, id, off ? { closed: false, ts: Date.now() } : { closed: true });
             }
         };
@@ -3162,7 +3340,7 @@ const ratingOf = u => {
 
 const starTxt = x => {
     const R = x.uid ? ratingOf(x.uid) : null;
-    return R ? "★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "★ " + (x.rate || "Yeni");
+    return R ? "★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "★ " + esc(x.rate || "Yeni");
 };
 
 const rkey = (o, as) => o.loadId + "_" + o.bidder + "_" + (as === "owner" ? "o" : "c");
@@ -3187,6 +3365,7 @@ function openRate(o, as) {
             dbw(db.doc("ratings/" + key).set(rec));
         rates = rates.filter(x => x.k !== key);
         rates.push(rec);
+        if (!save()) return;
         closeSheet();
         render();
         toast("Teşekkürler, puanın kaydedildi");
@@ -3250,7 +3429,7 @@ function openOnb() {
             };
         }
         else {
-            el.innerHTML = `<div class="ob-body"><h2>Sen kimsin?</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></button><button class="rolebtn" id="r-o"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></button></div>${dots(3)}`;
+            el.innerHTML = `<div class="ob-body"><h2>Sen kimsin?</h2><p>Ana sayfanı buna göre hazırlayalım.</p><button class="rolebtn" id="r-c"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></button><button class="rolebtn" id="r-o"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></button></div>${dots(3)}`;
             $("#r-c").onclick = () => setRole("carrier", 1);
             $("#r-o").onclick = () => setRole("owner", 1);
         }
@@ -3271,7 +3450,7 @@ function openProfile(o) {
     const info = o.uid ? carriers[o.uid] || {} : {};
     const act = o.uid ? loads.filter(l => l.uid === o.uid && !l.closed && !expired(l, "load")).length + trucks.filter(t => t.uid === o.uid && !t.closed && !expired(t, "truck")).length : 0;
     const done = o.uid ? allO.filter(x => (x.bidder === o.uid || x.ownerUid === o.uid) && (+x.stage || 0) >= 3).length : 0, n2 = o.name || "Kullanıcı";
-    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${(String(n2).replace(/&[^;]+;/g, "?")[0] || "?").toUpperCase()}</div><div><b style="font-size:18px">${n2}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${cloud ? x.text : esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b style="font-size:18px">${esc(n2)}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
     if ($("#pr"))
         $("#pr").onclick = () => openReport("u", o.uid);
     if ($("#pb2"))
@@ -3313,7 +3492,11 @@ const installCard = () => {
 // ===== Doğrulama ve iletişim =====
 // Belge rozetleri, belge fotoğrafı, yönetici onayı, telefon numarası.
 
-const phoneOf = x => x.phone || (x.uid ? "" : "0000 000 00 " + String(x.id).replace(/\D/g, "").padStart(2, "0").slice(-2));
+const phoneOf = x => {
+    if ((!cloud&&x.mine)||(cloud&&x.uid===me)) return myCar.phone||"";
+    if (x.uid) return carrierPhone(x.uid)||x.phone||"";
+    return x.phone||"0000 000 00 "+String(x.id).replace(/\D/g,"").padStart(2,"0").slice(-2);
+};
 
 const carrierPhone = u => (carriers[u] && carriers[u].phone) || "";
 
@@ -3321,7 +3504,7 @@ function savePhone() {
     const d = ($("#myph").value || "").replace(/\D/g, ""), n = d.length === 10 ? "0" + d : d;
     if (!/^05\d{9}$/.test(n))
         return toast("Geçerli bir cep numarası gir (05xx xxx xx xx)");
-    setCar({ phone: n.slice(0, 4) + " " + n.slice(4, 7) + " " + n.slice(7, 9) + " " + n.slice(9) });
+    if (!setCar({ phone: n.slice(0, 4) + " " + n.slice(4, 7) + " " + n.slice(7, 9) + " " + n.slice(9) })) return;
     toast("Numara kaydedildi");
 }
 
@@ -3344,7 +3527,7 @@ function docPhoto(k) {
         cdocs[(me || "local") + "/" + k] = u;
         if (cloud)
             dbw(db.doc("carrierDocs/" + me + "/files/" + k).set({ img: u }));
-        setCar({ [k]: true, docs: { ...(myCar.docs || {}), [k]: true } });
+        if (!setCar({ [k]: true, docs: { ...(myCar.docs || {}), [k]: true } })) return;
         toast("Belge fotoğrafı yüklendi");
     });
 }
@@ -3365,18 +3548,19 @@ const adminCard = () => {
     if (!admin)
         return "";
     const P = Object.entries(carriers).filter(([id, c]) => id !== me && c.docs && (c.docs.src || c.docs.kb || c.docs.ruh) && appr[id] !== true);
-    return `<div class="load" style="cursor:default"><b>Onay bekleyen taşıyıcılar</b>${P.length ? P.map(([id, c]) => `<div class="kv" style="display:block"><b style="font-size:14px">${nm(id)}</b> <span style="color:var(--mute);font-size:12px">Ehliyet ${c.lic || "—"}</span><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${["src", "kb", "ruh"].filter(k => c.docs[k]).map(k => `<button class="chip" data-av="${esc(id)}|${k}">${{ src: "SRC", kb: "K belgesi", ruh: "Ruhsat" }[k]}</button>`).join("")}<button class="chip on" data-ap="${esc(id)}">Onayla</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Bekleyen başvuru yok.</p>`}</div>`;
+    return `<div class="load" style="cursor:default"><b>Onay bekleyen taşıyıcılar</b>${P.length ? P.map(([id, c]) => `<div class="kv" style="display:block"><b style="font-size:14px">${esc(nm(id))}</b> <span style="color:var(--mute);font-size:12px">Ehliyet ${esc(c.lic || "—")}</span><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${["src", "kb", "ruh"].filter(k => c.docs[k]).map(k => `<button class="chip" data-av="${esc(id)}|${k}">${{ src: "SRC", kb: "K belgesi", ruh: "Ruhsat" }[k]}</button>`).join("")}<button class="chip on" data-ap="${esc(id)}">Onayla</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Bekleyen başvuru yok.</p>`}</div>`;
 };
 
 function setCar(patch) {
     Object.assign(myCar, patch);
+    if (!save()) return false;
     const d = { displayName: myCar.displayName || "", city: myCar.city || "", about: myCar.about || "", phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
     d.ok = cOk(d);
     carriers[me || "local"] = d;
     if (cloud)
         dbw(db.doc("carriers/" + me).set(d));
-    save();
     render();
+    return true;
 }
 
 function carBind() {
@@ -3411,8 +3595,9 @@ function openReport(kind, id) {
             dbw(db.doc("reports/" + key).set(rec));
         reports = reports.filter(x => x.k !== key);
         reports.push({ k: key, ...rec });
+        if (!save()) return;
         closeSheet();
-        toast("Şikayetin alındı, teşekkürler");
+        toast(cloud ? "Şikayetin alındı, teşekkürler" : "Şikayetin bu cihazda kaydedildi. Demo modunda ekibe gönderilmez.");
     };
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
@@ -3424,7 +3609,7 @@ function blockUser(u) {
     if (!blocked.includes(u))
         blocked.push(u);
     rebuild();
-    save();
+    if (!save()) return;
     closeSheet();
     render();
     toast("Kullanıcı engellendi");
@@ -3433,10 +3618,10 @@ function blockUser(u) {
 const reportsCard = () => {
     if (!admin)
         return "";
-    return `<div class="load" style="cursor:default"><b>Şikayetler (${reports.length})</b>${reports.length ? reports.map(x => `<div class="kv" style="display:block"><b style="font-size:14px">${x.reason} · ${x.kind === "l" ? "ilan" : x.kind === "u" ? "kullanıcı" : "boş araç"} ${x.tid}</b>${x.note ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.note}</div>` : ""}<button class="chip" style="margin-top:8px" data-rc="${esc(x.k)}">Kapat</button></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Şikayet yok.</p>`}</div>`;
+    return `<div class="load" style="cursor:default"><b>Şikayetler (${reports.length})</b>${reports.length ? reports.map(x => `<div class="kv" style="display:block"><b style="font-size:14px">${esc(x.reason)} · ${x.kind === "l" ? "ilan" : x.kind === "u" ? "kullanıcı" : "boş araç"} ${esc(x.tid)}</b>${x.note ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${esc(x.note)}</div>` : ""}<button class="chip" style="margin-top:8px" data-rc="${esc(x.k)}">Kapat</button></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Şikayet yok.</p>`}</div>`;
 };
 
-const blockedCard = () => blocked.length ? `<div class="load" style="cursor:default"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span style="color:var(--ink);font-weight:700">${nm(u)}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
+const blockedCard = () => blocked.length ? `<div class="load" style="cursor:default"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span style="color:var(--ink);font-weight:700">${esc(nm(u))}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
 
 const helpCard = () => `<div class="load" style="cursor:default"><b>Yardım ve destek</b>${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join("")}${SUPPORT_MAIL.endsWith("@example.com") ? '<p class="estimate-note">Destek iletişim adresi henüz tanımlanmadı.</p>' : `<a class="chip" href="mailto:${SUPPORT_MAIL}" style="display:inline-block;margin-top:12px;text-decoration:none">Bize yaz</a>`}</div>`;
 
@@ -3460,7 +3645,7 @@ function openPaywall(why) {
     let pl = "y";
     const pr = id => PLANS.find(x => x.id === id), save12 = Math.round((1 - pr("y").price / (pr("m").price * 12)) * 100);
     const draw = () => {
-        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>İlan sahipleriyle uygulama içinden mesajlaş</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${x.id}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
+        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>İlan sahipleriyle uygulama içinden mesajlaş</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${esc(x.id)}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
         B.querySelectorAll("[data-pl]").forEach(b => b.onclick = () => {
             pl = b.dataset.pl;
             draw();
@@ -3468,7 +3653,7 @@ function openPaywall(why) {
         $("#close").onclick = closeSheet;
         $("#buy").onclick = () => {
             prem = { until: Date.now() + pr(pl).days * 864e5, plan: pl };
-            save();
+            if (!save()) return;
             if (cloud)
                 dbw(db.doc("premium/" + me).set(prem));
             closeSheet();
@@ -3523,7 +3708,7 @@ function openFeature(kind, id) {
     let dur = 6;
     const draw = () => {
         const price = featPrice(kind, dur);
-        B.innerHTML = `<b style="font-size:19px">${L ? "İlanını" : "Boş araç ilanını"} öne çıkar</b><div class="route" style="margin-top:10px">${it.from}<i></i>${it.to}</div>
+        B.innerHTML = `<b style="font-size:19px">${L ? "İlanını" : "Boş araç ilanını"} öne çıkar</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>
   <p style="font-size:13px;color:var(--mute);margin:8px 0 12px">Öne çıkan ${L ? "ilanlar" : "boş araç ilanları"} listenin en üstünde "Öne çıkan" etiketiyle gösterilir.${active ? ` Şu an ${left} saat daha öne çıkıyor, yeni süre bitince başlar.` : ""}</p>
   <div class="fopts">${FDUR.map(([h, t]) => {
             const p = featPrice(kind, h);
@@ -3538,7 +3723,7 @@ function openFeature(kind, id) {
         $("#close").onclick = closeSheet;
         $("#fbuy").onclick = () => {
             const p = featPrice(kind, dur);
-            patchIt(kind, id, { featFrom: active ? (it.featFrom || Date.now()) : st, featUntil: st + dur * 36e5, featPaid: (+it.featPaid || 0) + p, featWin: [...featWins(it), [st, st + dur * 36e5]].slice(-10) });
+            if (!patchIt(kind, id, { featFrom: active ? (it.featFrom || Date.now()) : st, featUntil: st + dur * 36e5, featPaid: (+it.featPaid || 0) + p, featWin: [...featWins(it), [st, st + dur * 36e5]].slice(-10) })) return;
             closeSheet();
             toast(active ? "Öne çıkarma süresi uzatıldı" : "İlanın öne çıkarıldı");
         };
@@ -3577,14 +3762,6 @@ const fxBox = fx => {
     return `<div class="fxbox"><b>Öne çıkarmanın etkisi</b>${fx.lift !== null ? `<p>Öne çıkarıldığı ${Math.max(1, Math.round(fx.hF))} saatte saatlik <b>${f1(fx.rF)}</b> görüntülenme, diğer saatlerde <b>${f1(fx.rO)}</b>. Yaklaşık <b>%${Math.abs(fx.lift)}</b> ${fx.lift >= 0 ? "fazla" : "az"} ilgi.</p>` : `<p>Henüz yeterli veri yok. Anlamlı karşılaştırma için en az 3 saat öne çıkarılmış, 3 saat normal geçmiş ve 8 görüntülenme gerekir.</p>`}<p class="fxn">${fx.oF} teklif öne çıkarma sırasında geldi. ${fx.demo ? "Örnek veri. " : ""}Bu bir karşılaştırmadır, tek başına kesin neden göstermez.</p></div>`;
 };
 
-const featSumCard = () => {
-    const P = [...mineL(), ...mineT()].filter(x => +x.featPaid > 0);
-    if (!P.length)
-        return "";
-    const tot = P.reduce((a, x) => a + (+x.featPaid || 0), 0), L = mineL().map(l => fxOf(l)).filter(f => f && f.lift !== null), avg = L.length ? Math.round(L.reduce((a, f) => a + f.lift, 0) / L.length) : null;
-    return `<div class="load" style="cursor:default"><b>Öne çıkarma özeti</b><div class="stat flat" style="margin:10px 0 4px"><div><b>${fmt(tot)}</b><span>Toplam harcama</span></div><div><b>${P.length}</b><span>Öne çıkan ilan</span></div><div><b>${avg === null ? "—" : "%" + avg}</b><span>Ort. ilgi artışı</span></div></div><p style="font-size:12px;color:var(--mute)">${cloud ? "" : "Yerel modda örnek veri. "}İlgi artışı, öne çıkarılan saatlerle diğer saatlerin görüntülenme farkıdır.</p></div>`;
-};
-
 // ===== İlan istatistikleri =====
 // Görüntülenme, kayıt, paylaşım, arama isteği sayımı ve istatistik ekranı.
 
@@ -3594,15 +3771,15 @@ function statsOf0(l) {
     if (!cloud) {
         const h = ((l.id * 7919) % 1000) / 1000, v = Math.round(18 + h * 60);
         daily = daily.map((_, i) => Math.round(v / 7 * (.5 + ((l.id + i * 37) % 10) / 10)));
-        return { demo: true, views: v, saves: Math.round(v * .12), shares: Math.round(v * .05), calls: Math.round(v * .08), offers: Math.round(v * .06), best: Math.round(l.price * (.9 + h * .1)), avg: Math.round(l.price * (.85 + h * .1)), daily, age: l.ts ? Math.floor((now - l.ts) / 864e5) : 0 };
+        return { demo: true, views: v, saves: Math.round(v * .12), shares: Math.round(v * .05), calls: Math.round(v * .08), offers: Math.round(v * .06), daily, age: l.ts ? Math.floor((now - l.ts) / 864e5) : 0 };
     }
-    const E = events.filter(e => e.loadId === l.id && e.uid !== l.uid), O = allO.filter(o => o.loadId === l.id), offs = O.map(o => +o.offer || 0).filter(x => x > 0);
+    const E = events.filter(e => e.loadId === l.id && e.uid !== l.uid), O = allO.filter(o => o.loadId === l.id);
     E.filter(e => e.t === "v").forEach(e => {
         const d = Math.floor((now - e.ts) / 864e5);
         if (d >= 0 && d < 7)
             daily[6 - d]++;
     });
-    return { demo: false, views: E.filter(e => e.t === "v").length, saves: E.filter(e => e.t === "s").length, shares: E.filter(e => e.t === "sh").length, calls: E.filter(e => e.t === "c").length, offers: O.length, best: offs.length ? Math.max(...offs) : 0, avg: offs.length ? Math.round(offs.reduce((a, b) => a + b, 0) / offs.length) : 0, daily, age: l.ts ? Math.floor((now - l.ts) / 864e5) : 0 };
+    return { demo: false, views: E.filter(e => e.t === "v").length, saves: E.filter(e => e.t === "s").length, shares: E.filter(e => e.t === "sh").length, calls: E.filter(e => e.t === "c").length, offers: O.length, daily, age: l.ts ? Math.floor((now - l.ts) / 864e5) : 0 };
 }
 
 const statLine = l => {
@@ -3637,7 +3814,7 @@ function openStats(id) {
         return `<div title="${v}"><i style="height:${v ? Math.max(6, Math.round(v / mx * 60)) : 3}px;${v ? "" : "background:var(--line)"}"></i><span>${d.toLocaleDateString("tr-TR", { weekday: "short" })}</span></div>`;
     }).join("");
     const tile = (n, t) => `<div><b>${n}</b><span>${t}</span></div>`;
-    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${l.from}<i></i>${l.to}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${esc(l.from)}<i></i>${esc(l.to)}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
 }
@@ -3721,7 +3898,7 @@ function deep() {
 
 function shareLoad(l) {
     track("sh", l.id);
-    const url = APPURL + "#l=" + l.id, text = dec(l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton");
+    const url = APPURL + "#l=" + l.id, text = l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton";
     const copy = () => {
         if (navigator.clipboard)
             navigator.clipboard.writeText(text + " " + url).then(() => toast("Bağlantı kopyalandı")).catch(() => toast("Kopyalanamadı"));
@@ -3766,10 +3943,28 @@ function openCalc() {
     const num = (k,t,u) => `<div><label for="calc-${k}">${t}</label><div class="unit"><input id="calc-${k}" data-k="${k}" type="number" min="0" inputmode="decimal" value="${calc[k]}"><em>${u}</em></div></div>`;
     const cur = vehicles.find(v=>CONS[v]===calc.cons) || "";
     m.innerHTML = `<div class="load-detail fuel-detail"><div class="detail-top"><b>Mazot hesabı</b><button class="chip detail-close" id="cx">Kapat ×</button></div><div class="fuel-result" id="res" role="status" aria-live="polite"></div><div class="detail-scroll"><section class="detail-group"><h2>Yol ve araç</h2><label for="cv">Araç tipi</label><select id="cv"><option value="" hidden>Özel tüketim</option>${vehicles.map(v=>`<option ${v===cur?"selected":""}>${v}</option>`).join("")}</select>${num("km","Tek yön mesafe","km")}<label class="chk"><input type="checkbox" id="bk" ${calc.back?"checked":""}> Boş dönüşü de hesapla</label></section><section class="detail-group"><h2>Mazot ve tüketim</h2><div class="row">${num("fuel","Litre fiyatı","₺/L")}${num("cons","Tüketim","L/100 km")}</div><p class="estimate-note">Litre fiyatı hesaplama varsayımıdır. Güncel pompa fiyatını kendin gir.</p></section><details class="profile-panel"><summary>Otoyol ve diğer giderler</summary><div class="row">${num("toll","Otoyol / köprü","₺")}${num("other","Diğer giderler","₺")}</div></details><p class="estimate-note">Sonuç yaklaşık giderdir; trafik, yük ve sürüş koşullarına göre değişir. Boş dönüş seçimi mesafeyi iki katına çıkarır. Girdilerin cihazında saklanır.</p></div></div>`;
-    const out=()=>{const d=calc.km*(calc.back?2:1),litres=d*calc.cons/100,fuel=litres*calc.fuel,total=fuel+calc.toll+calc.other;$("#res").innerHTML=`<span>Tahmini toplam gider</span><strong>${fmt(Math.round(total))}</strong><div class="fuel-metrics"><div><b>${f1(litres)} L</b><span>Mazot</span></div><div><b>${d.toLocaleString("tr-TR")} km</b><span>Toplam yol</span></div></div><p>Mazot ${fmt(Math.round(fuel))} · Diğer giderler ${fmt(Math.round(calc.toll+calc.other))}</p>`;};
-    m.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>{calc[i.dataset.k]=Number.isFinite(+i.value)?Math.max(0,+i.value):0;if(i.dataset.k==="cons")$("#cv").value=vehicles.find(v=>CONS[v]===calc.cons)||"";out();save();});
-    $("#cv").onchange=e=>{calc.cons=CONS[e.target.value]||calc.cons;m.querySelector('[data-k="cons"]').value=calc.cons;out();save();};
-    $("#bk").onchange=e=>{calc.back=e.target.checked;out();save();};
+    const out=()=>{
+        const value=fuelEstimate(calc);
+        if(!value){$("#res").textContent="Hesaplamak için geçerli değerler gir.";return;}
+        const {distance,litres,fuel,extras,total}=value;
+        $("#res").innerHTML=`<span>Tahmini toplam gider</span><strong>${fmt(Math.round(total))}</strong><div class="fuel-metrics"><div><b>${f1(litres)} L</b><span>Mazot</span></div><div><b>${distance.toLocaleString("tr-TR")} km</b><span>Toplam yol</span></div></div><p>Mazot ${fmt(Math.round(fuel))} · Diğer giderler ${fmt(Math.round(extras))}</p>`;
+    };
+    const update=patch=>{
+        const previous={...calc};
+        Object.assign(calc,patch);
+        let stored=false;
+        if(fuelEstimate(calc)) stored=save();
+        else {calc=previous;toast("Hesaplama için geçerli, sıfır veya daha büyük değerler gir.");}
+        if(!stored){
+            m.querySelectorAll("[data-k]").forEach(i=>i.value=calc[i.dataset.k]);
+            $("#bk").checked=calc.back;
+        }
+        $("#cv").value=vehicles.find(v=>CONS[v]===calc.cons)||"";
+        out();
+    };
+    m.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>update({[i.dataset.k]:+i.value}));
+    $("#cv").onchange=e=>{update({cons:CONS[e.target.value]||calc.cons});m.querySelector('[data-k="cons"]').value=calc.cons;};
+    $("#bk").onchange=e=>update({back:e.target.checked});
     out();syncDetailViewport();$("#cx").onclick=closeSheet;$("#sheet").classList.add("open");
 }
 
@@ -4039,9 +4234,26 @@ function roadMapBind(root,returnToDetail=null,onViewChange=()=>{}) {
  * İlan taslağı ve adımları
  * Mevcut yayınlama işlevlerini ve kimliklerini koruyarak formu gruplar.
  */
-let postStep = 0;
+let postStep = 0, postDrafts = null, postDraftSaved = true;
 function getPostDrafts() {
-    try { return JSON.parse(localStorage.getItem("ng-post-drafts") || "{}"); } catch (e) { return {}; }
+    if (postDrafts) return postDrafts;
+    try { const d=JSON.parse(localStorage.getItem("ng-post-drafts") || "{}"); postDrafts=isRecord(d)?d:{}; }
+    catch (e) { postDrafts={}; }
+    return postDrafts;
+}
+function persistPostDrafts() {
+    const previouslySaved = postDraftSaved;
+    try { localStorage.setItem("ng-post-drafts", JSON.stringify(getPostDrafts())); postDraftSaved=true; }
+    catch (e) {
+        postDraftSaved=false;
+        if (previouslySaved) toast("Taslak kaydedilemedi. Sayfayı kapatmadan depolama alanını kontrol et.");
+    }
+    const status = $("#main .draft-state");
+    if (status) {
+        status.textContent = postDraftSaved ? "Taslak kaydedildi" : "Taslak kaydedilemedi";
+        status.dataset.saved = String(postDraftSaved);
+    }
+    return postDraftSaved;
 }
 function capturePostDraft() {
     if (tab !== "post" || !document.querySelectorAll) return;
@@ -4049,21 +4261,21 @@ function capturePostDraft() {
     document.querySelectorAll('#main input[id], #main select[id], #main textarea[id]').forEach(e => fields[e.id] = e.value);
     const items = [...document.querySelectorAll('#its .itrow')].map(e => ({n:e.querySelector('[data-in]').value,q:e.querySelector('[data-iq]').value,u:e.querySelector('[data-iu]').value}));
     const drafts = getPostDrafts(); drafts[postMode] = {fields, items, image: postImg, step: postStep};
-    try { localStorage.setItem("ng-post-drafts", JSON.stringify(drafts)); } catch (e) { toast("Taslak için cihazda yer kalmadı"); }
+    return persistPostDrafts();
 }
 function clearPostDraft() {
     const drafts=getPostDrafts(); delete drafts[postMode];
-    try { localStorage.setItem("ng-post-drafts",JSON.stringify(drafts)); } catch(e) { }
+    return persistPostDrafts();
 }
 function initPostWizard(m) {
     // Sahte DOM testi yerine gerçek DOM'da uygulanır.
     if (!m.insertAdjacentHTML) return;
-    const draft=getPostDrafts()[postMode];
+    const savedDraft=getPostDrafts()[postMode], draft=isRecord(savedDraft)?savedDraft:null;
     postStep=draft ? Math.max(0,Math.min(2,+draft.step||0)) : 0;
     if (draft) {
-        for(const [id,value] of Object.entries(draft.fields||{})) { const e=m.querySelector('#'+id); if(e)e.value=value; }
+        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=value; }
         if(postMode==='load') {
-            for(const item of (draft.items||[]).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=item.n; e.querySelector('[data-iq]').value=item.q; e.querySelector('[data-iu]').value=item.u; }
+            for(const item of (Array.isArray(draft.items)?draft.items:[]).filter(isRecord).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=typeof item.n==='string'?item.n:''; e.querySelector('[data-iq]').value=typeof item.q==='string'||Number.isFinite(item.q)?item.q:''; if(ITEM_UNITS.includes(item.u))e.querySelector('[data-iu]').value=item.u; }
             if(imgOk(draft.image)){postImg=draft.image;$('#phs').innerHTML=`<img class="th" src="${postImg}" alt="Taslak yük fotoğrafı">`;}
         }
     }
@@ -4072,14 +4284,14 @@ function initPostWizard(m) {
     const nodes=[...m.children].filter(e=>!e.classList.contains('seg'));
     const groups=[0,1,2].map(i=>{const s=document.createElement('section');s.className='form-section';s.dataset.step=i; m.appendChild(s);return s;});
     let step=0;for(const e of nodes){if(e===start1)step=1;if(e===start2)step=2;groups[step].appendChild(e);}
-    m.insertAdjacentHTML('afterbegin',screenHeading('İlan oluştur',draft?'Kaydedilmiş taslağına devam ediyorsun.':'Güzergâhı seç, bilgileri ekle ve yayınla.')+demoNotice()+`<ol class="form-steps"><li>1 · Güzergâh</li><li>2 · ${postMode==='load'?'Yük ve taşıma':'Araç'}</li><li>3 · ${postMode==='load'?'Not ve ekler':'Müsaitlik'}</li></ol>`);
-    m.insertAdjacentHTML('beforeend','<div class="form-dock"><button class="chip" id="post-prev">Geri</button><span class="draft-state" role="status">Taslak cihazında korunur</span><button class="btn" id="post-next">Devam →</button></div>');
+    m.insertAdjacentHTML('afterbegin',screenHeading('İlan oluştur',draft?'Taslağına devam ediyorsun.':'Güzergâhı seç, bilgileri ekle ve yayınla.')+demoNotice()+`<ol class="form-steps"><li>1 · Güzergâh</li><li>2 · ${postMode==='load'?'Yük ve taşıma':'Araç'}</li><li>3 · ${postMode==='load'?'Not ve ekler':'Müsaitlik'}</li></ol>`);
+    m.insertAdjacentHTML('beforeend','<div class="form-dock"><button class="chip" id="post-prev">Geri</button><span class="draft-state" role="status">Taslak kaydediliyor…</span><button class="btn" id="post-next">Devam →</button></div>');
     m.querySelector('.form-dock').appendChild($('#go'));
     const show=()=>{groups.forEach((e,i)=>e.hidden=i!==postStep);m.querySelectorAll('.form-steps li').forEach((e,i)=>e.setAttribute('aria-current',i===postStep?'step':'false'));$('#post-prev').hidden=postStep===0;$('#post-next').hidden=postStep===2;$('#go').hidden=postStep!==2;m.scrollTop=0;capturePostDraft();};
     $('#post-prev').onclick=()=>{postStep--;show();};
     $('#post-next').onclick=()=>{
-        if(postStep===0&&$('#f').value===$('#t').value)return toast('Çıkış ve varış şehri farklı olmalı');
-        if(postStep===1&&(!(+$('#w').value>0)||(postMode==='load'&&!$('#c').value.trim())))return toast('Yük bilgilerini ve pozitif tonajı gir');
+        const error=postError(postValues(),postMode==='truck',postStep);
+        if(error)return toast(error);
         postStep++;show();
     };
     m.oninput=capturePostDraft;m.onchange=capturePostDraft;
@@ -4160,7 +4372,7 @@ function renderListings(m) {
         render();
     });
         const isT = mode === "truck";
-        const ok = x => !x.closed && !expired(x, isT ? "truck" : "load") && !(x.uid && blocked.includes(x.uid)) && (!nearOn || !nearR || dKm(x) <= nearR) && match(x, isT) && (!q || (x.from + x.to + (x.cargo || x.who)).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
+        const ok = x => visibleListing(x,isT);
         let items = isT ? trucks.filter(ok) : sortL(loads.filter(ok));
         if (nearOn && myPos)
             items = [...items].sort((a, b) => dKm(a) - dKm(b));
@@ -4173,10 +4385,10 @@ function renderListings(m) {
                 shown = 20;
             }
         }
-        const st = isT ? [[trucks.length, "boş araç"], [trucks.filter(x => x.date === "Bugün").length, "bugün müsait"], [Math.round(trucks.reduce((a, x) => a + x.cap, 0)), "ton kapasite"]] : [[loads.filter(x => !x.closed).length, "açık ilan"], [loads.filter(x => x.date === "Bugün").length, "bugün yükleme"], [new Set(loads.filter(x=>!x.closed).map(x=>x.from)).size, "çıkış şehri"]];
+        const st = isT ? [[trucks.filter(x=>availableListing(x,true)).length, "boş araç"], [trucks.filter(x => availableListing(x,true)&&dateBucket(x)==="Bugün").length, "bugün müsait"], [Math.round(trucks.filter(x=>availableListing(x,true)).reduce((a, x) => a + (+x.cap||0), 0)), "ton kapasite"]] : [[loads.filter(x => availableListing(x)).length, "açık ilan"], [loads.filter(x => availableListing(x)&&dateBucket(x)==="Bugün").length, "bugün yükleme"], [new Set(loads.filter(x=>availableListing(x)).map(x=>x.from)).size, "çıkış şehri"]];
         const hero = `<div class="hero">${st.map(([a, b]) => `<div><b>${a}</b><span>${b}</span></div>`).join("")}</div>`;
-        m.innerHTML = routeSearch() + SEG + (!cloud ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${q}" style="margin:0"></div>
-    ${nearRow()}${ac.length ? `<div class="chips active-filters wrap">${ac.map(c => `<button class="chip on" data-x="${c[0]}" data-v="${c[1]}">${c[2]} ×</button>`).join("")}</div>` : ""}
+        m.innerHTML = routeSearch() + SEG + (!cloud ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${esc(q)}" style="margin:0"></div>
+    ${nearRow()}${ac.length ? `<div class="chips active-filters wrap">${ac.map(c => `<button class="chip on" data-x="${c[0]}" data-v="${esc(c[1])}">${esc(c[2])} ×</button>`).join("")}</div>` : ""}
     <div class="meta listing-count" style="margin:0 2px 10px"><span>${items.length} ${isT ? "boş araç" : "ilan"}${!isT && (F.from || F.to) ? ` <button class="chip" id="al" style="margin-left:6px;padding:4px 10px;font-size:12px">Alarm kur</button>` : ""}</span><span>Yola çıkmaya hazır</span></div>
     <div class="listing-grid">${!loaded ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div><section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section><div class="list-actions" aria-label="İlan araçları">${cmpBar()}<div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option><option value="rate" ${sort === "rate" ? "selected" : ""}>Puan ↓</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
         segBind();
@@ -4184,6 +4396,7 @@ function renderListings(m) {
             e.stopPropagation();
             const f = b.dataset.fav, was = favs.includes(f);
             tog(favs, f);
+            if (!save()) return;
             if (/^\d+$/.test(f))
                 (was ? untrack : track)("s", +f);
             render();
@@ -4259,38 +4472,45 @@ function renderListings(m) {
  * Klasik uygulama kapsamında yüklenir; sıra tools/project.js içinde tanımlıdır.
  */
 
+function postValues() {
+    const truck = postMode === "truck";
+    return {
+        from: $("#f").value, to: $("#t").value, veh: $("#v").value,
+        body: $(truck ? "#bd" : "#b").value, date: $("#d").value,
+        ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
+    };
+}
+
 function renderPost(m) {
+        postImg = "";
         const opt = a => a.map(c => `<option>${c}</option>`).join("");
         const PS = `<div class="seg"><button data-pm="load" class="${postMode === "load" ? "on" : ""}">Yük ilanı</button><button data-pm="truck" class="${postMode === "truck" ? "on" : ""}">Boş araç ilanı</button></div>`;
         const pb = () => m.querySelectorAll("[data-pm]").forEach(b => b.onclick = () => {
+            capturePostDraft();
             postMode = b.dataset.pm;
             try { localStorage.setItem("ng-post-mode",postMode); } catch(e) { }
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             $("#go").onclick = () => {
-                if ($("#f").value === $("#t").value)
-                    return toast("Çıkış ve varış şehri farklı olmalı");
-                if (!(+$("#w").value > 0))
-                    return toast("Boş kapasiteyi gir");
-                postTruck({ id: "t" + Date.now(), who: esc(myCar.displayName || "") || myName || "Ben", from: $("#f").value, to: $("#t").value, veh: $("#v").value, cap: +$("#w").value, body: $("#bd").value, date: $("#d").value, rate: "Yeni" });
-                clearPostDraft();
+                if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
+                const cleared = clearPostDraft();
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
                 tab = "list";
                 setNav();
                 render();
-                toast("Boş araç ilanı yayınlandı");
+                toast(cleared ? "Boş araç ilanı yayınlandı" : "İlan yayınlandı; eski taslak cihazdan temizlenemedi.");
             };
             initPostWizard(m);
             return;
         }
         m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>
     <label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>
-    <label>Yük cinsi</label><input id="c" placeholder="Örn. Paletli gıda">
-    <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="1" value="10"></div>
+    <label>Yük cinsi</label><input id="c" maxlength="120" placeholder="Örn. Paletli gıda">
+    <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div>
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
     </div>
@@ -4300,19 +4520,17 @@ function renderPost(m) {
         pb();
         itemsUI();
         $("#go").onclick = () => {
-            const l = { id: Date.now(), from: $("#f").value, to: $("#t").value, cargo: $("#c").value.trim(), ton: +$("#w").value, veh: $("#v").value, date: $("#d").value, body: $("#b").value, note: $("#n").value.trim(), owner: esc(myCar.displayName || "") || myName || "Ben" };
-            if (l.from === l.to)
-                return toast("Çıkış ve varış şehri farklı olmalı");
-            if (!l.cargo || !(l.ton > 0))
-                return toast("Yük cinsi ve ağırlığı gir");
+            const l = { ...postValues(), id: Date.now(), note: $("#n").value.trim().slice(0,1000), owner: myCar.displayName || myName || "Ben" };
             if (myCar.phone)
                 l.phone = myCar.phone;
             if (postImg)
                 l.img = postImg;
-            const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value || 0, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
+            const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
             if (its.length)
                 l.items = its;
-            postImg = "";
+            const error = postError(l);
+            if (error) return toast(error);
+            Object.assign(l,dateFields(l.date),{ts:Date.now()});
             if (cloud) {
                 l.uid = me;
                 l.ts = Date.now();
@@ -4322,12 +4540,15 @@ function renderPost(m) {
             if (!cloud)
                 l.mine = true;
             loads.unshift(l);
-            clearPostDraft();
+            if (!save()) return;
+            postImg = "";
+            const cleared = clearPostDraft();
             F = F0(); q = ""; nearOn = false;
+            mode = "load";
             tab = "list";
             setNav();
             render();
-            toast("İlan yayınlandı");
+            toast(cleared ? "İlan yayınlandı" : "İlan yayınlandı; eski taslak cihazdan temizlenemedi.");
         };
         initPostWizard(m);
 }
@@ -4337,10 +4558,10 @@ function renderPost(m) {
  * Tutar içermeyen talepler ve iki aşamalı yükleme takibi.
  */
 function renderOffers(m){
-    m.innerHTML=screenHeading("İşlerim","Taşıma taleplerini takip et. Yüklediğini bildir, onayı burada gör.")+demoNotice()+incHTML()+(offers.length?offers.map(o=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${o.cargo} · ${o.ton} ton</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div><div class="job-actions">${o.status==='counter'?`<button class="chip on" data-ca="${o.id}">Talebi sürdür</button>`:''}${['wait','counter'].includes(o.status)?`<button class="chip" data-c="${o.id}">Geri çek</button>`:''}</div>${o.status==='ok'?stageUI(o)+retHTML(o):''}</article>`).join(''):'<div class="empty">Henüz taşıma talebin yok. İlan detayından yük sahibiyle görüşebilirsin.</div>');
-    m.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{const o=offers.find(x=>x.id===+b.dataset.c);offers=offers.filter(x=>x!==o);if(cloud&&o)dbw(db.doc(opath(o)).delete());render();toast('Taşıma talebi geri çekildi');});
+    m.innerHTML=screenHeading("İşlerim","Taşıma taleplerini takip et. Yüklediğini bildir, onayı burada gör.")+demoNotice()+incHTML()+(offers.length?offers.map(o=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(o.cargo)} · ${esc(o.ton)} ton</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div><div class="job-actions">${o.status==='counter'?`<button class="chip on" data-ca="${esc(o.id)}">Talebi sürdür</button>`:''}${['wait','counter'].includes(o.status)?`<button class="chip" data-c="${esc(o.id)}">Geri çek</button>`:''}</div>${o.status==='ok'?stageUI(o)+retHTML(o):''}</article>`).join(''):'<div class="empty">Henüz taşıma talebin yok. İlan detayından yük sahibiyle görüşebilirsin.</div>');
+    m.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>withdrawOffer(b.dataset.c));
     m.querySelectorAll('[data-ca]').forEach(b=>b.onclick=()=>oup(offers.find(x=>x.id===+b.dataset.ca),{status:'wait'}));
-    m.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{oup(incoming[+b.dataset.ia],{status:'ok'});toast('Taşıma talebi kabul edildi');});
+    m.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>{if(oup(incoming[+b.dataset.ia],{status:'ok'}))toast('Taşıma talebi kabul edildi');});
     m.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>oup(incoming[+b.dataset.ir],{status:'no'}));
     m.querySelectorAll('[data-rl]').forEach(b=>b.onclick=()=>openLoad(+b.dataset.rl));
     m.querySelectorAll('[data-sg]').forEach(b=>b.onclick=()=>setStage(offers.find(o=>o.id===+b.dataset.sg.split('|')[0]),1));
@@ -4360,7 +4581,7 @@ function profileIdentityHTML(own,active,done,name,rating) {
     return `<div class="profile-cover">
         <div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div>
         <div><span class="profile-eyebrow">NAKGO HESABIM</span>
-            <b>${esc(myCar.displayName||'')||myName||'Profilim'}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
+            <b>${esc(myCar.displayName||myName||'Profilim')}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
             <div class="profile-caption">${role==='owner'?'Yük sahibi':'Taşıyıcı'}${myCar.city?' · '+esc(myCar.city):''}</div>
             <div class="profile-caption">${rating?'★ '+rating.avg.toFixed(1)+' · '+rating.n+' değerlendirme':'Henüz değerlendirme yok'}</div>
         </div>
@@ -4421,14 +4642,14 @@ function renderProfile(main) {
         </div>`;
     carBind();listBind();
     $('#profile-save').onclick=()=>{
-        setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)});
+        if (!setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)})) return;
         toast('Profilin kaydedildi');
     };
     $('#profile-messages').onclick=openInbox;
     $('#profile-fuel').onclick=()=>openCalc();
     $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();};
     $('#profile-map').onclick=()=>openRoadMap();
-    if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:esc(myCar.displayName||'')||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
+    if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:myCar.displayName||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
 }
 
 /**
@@ -4466,7 +4687,7 @@ function openInbox() {
     body.innerHTML=`<div class="load-detail">
         <div class="detail-top"><b>Mesajlar</b><button class="chip detail-close" id="close">Kapat ×</button></div>
         <div class="detail-scroll">${entries.map((entry,index)=>`<button class="conversation" data-conv="${index}">
-            <b>${entry.who}</b><span>${entry.route}</span>
+            <b>${esc(entry.who)}</b><span>${esc(entry.route)}</span>
             <small>${esc((chats[entry.k]||[]).slice(-1)[0]?.t||'Görüşmeyi aç')}</small>
         </button>`).join('')||'<div class="empty">Henüz görüşmen yok. İlan detayındaki Mesaj gönder düğmesinden başlayabilirsin.</div>'}</div>
     </div>`;
@@ -4549,21 +4770,22 @@ function openLoad(id) {
     if (!l)
         return toast("İlan bulunamadı");
     track("v", id);
-    const km = l.km || dist(l.from, l.to);
+    const km = listingDistance(l);
+    const unavailable = !availableListing(l);
     const kv = rows => rows.map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("");
     $("#sheetBody").innerHTML = `<div class="load-detail">
-      <div class="detail-top"><span>Yük ilanı <span class="detail-id">#${l.id}</span></span><button class="chip detail-close" id="close" aria-label="İlan detayını kapat">Kapat <span aria-hidden="true">×</span></button></div>
+      <div class="detail-top"><span>Yük ilanı <span class="detail-id">#${esc(l.id)}</span></span><button class="chip detail-close" id="close" aria-label="İlan detayını kapat">Kapat <span aria-hidden="true">×</span></button></div>
       <div class="detail-scroll" tabindex="0" aria-label="İlan bilgileri">
-        <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${l.date}</span>${isF(l) ? `<span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span>` : ""}</div></section>
+        <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${esc(dateLabel(l))}</span>${isF(l) ? `<span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span>` : ""}</div></section>
         ${!cloud ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
         ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
-        <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", l.cargo], ["Tonaj", l.ton + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", l.date]])}${l.note ? `<p class="detail-note">${l.note}</p>` : ""}</section>
-        <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", l.veh + " · " + (l.body || "Belirtilmedi")], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p></section>
+        <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", esc(l.cargo)], ["Tonaj", esc(l.ton) + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", esc(dateLabel(l))]])}${l.note ? `<p class="detail-note">${esc(l.note)}</p>` : ""}</section>
+        <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
-        <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${l.owner || (l.uid ? nm(l.uid) : "Bireysel")}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button></div></section>
+        <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${esc(l.owner || (l.uid ? nm(l.uid) : "Bireysel"))}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button></div></section>
         <div class="detail-actions"><button class="chip" id="sh">Paylaş</button><button class="chip" id="cp2">${cmp.includes(l.id) ? "Karşılaştırmadan çıkar" : "Karşılaştır"}</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
       </div>
-      ${contactDockHTML()}
+      ${contactDockHTML(unavailable)}
     </div>`;
     $("#sheetBody").scrollTop = 0;
     syncDetailViewport();
@@ -4572,6 +4794,7 @@ function openLoad(id) {
     $("#close").onclick = closeSheet;
     $("#sh").onclick = () => shareLoad(l);
     $("#call").onclick = () => {
+        if (!contactAllowed(l,false,true)) return;
         track("c", l.id);
         callTo(phoneOf(l));
     };
@@ -4581,8 +4804,8 @@ function openLoad(id) {
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
     $("#mg").onclick = () => {
-        if (cloud && l.uid === me) return toast("Kendi ilanına mesaj gönderemezsin");
-        openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => requestLoad(l));
+        if (!contactAllowed(l)) return;
+        openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => offers.some(o=>o.id===l.id&&o.status!=="no"&&!offerExp(o)) || requestLoad(l), () => contactAllowed(l));
     };
 }
 
@@ -4590,22 +4813,23 @@ function openTruck(id) {
     roadMapDispose(true);
     const t = trucks.find(x => x.id === id);
     if (!t) return toast("İlan bulunamadı");
-    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${t.cap} ton boş kapasite</span><span class="tag">${t.date}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", (t.who || nm(t.uid)) + (lvT(t) === 2 ? " ✓ Onaylı" : vok(t) ? " ✓ Belgeli" : "") + " · " + starTxt(t)], ["Araç", t.veh + " · " + t.body], ["Boş kapasite", t.cap + " ton"], ["Müsait", t.date]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div></section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML()}</div>`;
+    const unavailable = !availableListing(t,true);
+    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", esc(t.who || nm(t.uid)) + (lvT(t) === 2 ? " ✓ Onaylı" : vok(t) ? " ✓ Belgeli" : "") + " · " + starTxt(t)], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div></section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable)}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openTruck(id));
     $("#close").onclick = closeSheet;
-    $("#mg").onclick = () => openChat("t" + id, t.who || nm(t.uid));
-    $("#call").onclick = () => callTo(phoneOf(t));
+    $("#mg").onclick = () => { if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
+    $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
     $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid), lv: lvT(t), rate: t.rate });
     $("#rp").onclick = () => openReport("t", t.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(t.uid);
 }
 
-function contactDockHTML() {
+function contactDockHTML(unavailable=false) {
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
-    return `<div class="contact-dock dual-contact"><button class="btn contact-call" id="call"><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg"><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
+    return `<div class="contact-dock dual-contact">${unavailable?'<p class="contact-unavailable" role="status">Bu ilan kapalı veya süresi dolmuş. Yeni görüşme başlatılamaz.</p>':""}<button class="btn contact-call" id="call" ${unavailable?"disabled":""}><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg" ${unavailable?"disabled":""}><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
 }
 
 /**
@@ -4614,18 +4838,21 @@ function contactDockHTML() {
  */
 
 function render() {
- const m = $("#main"); save(); bell();
+ const m = $("#main"); bell();
  m.dataset.screen = tab;
  if(tab === "list") renderListings(m);
  else if(tab === "post") renderPost(m);
  else if(tab === "mine") renderOffers(m);
  else if(tab === "me") renderProfile(m);
+ if(storageNotice && m.insertAdjacentHTML) m.insertAdjacentHTML("afterbegin",`<p class="demo-note" role="status">${esc(storageNotice)}</p>`);
 }
 
 /**
  * Başlatma
  * Olay bağlama, açılış ekranı, tema ve kısayollar. Her şey tanımlandıktan sonra en sonda çalışır.
  */
+
+restoreState();
 
 try {
     const hm = /^#l=(\d+)$/.exec(location.hash || "");
