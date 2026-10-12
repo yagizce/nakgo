@@ -14,7 +14,11 @@
     "lint": "node tools/dev.js lint",
     "map": "node tools/dev.js map",
     "logo": "node tools/brand.js",
-    "mobile:prepare": "node tools/dev.js www"
+    "mobile:prepare": "node tools/dev.js www",
+    "test:guard": "node tests/guard.js",
+    "test:static": "node tests/gate/static.js && python tests/gate/static_html.py",
+    "test:gate": "node --test tests/gate/control.test.js",
+    "test:browser": "python tests/gate/browser.py"
   },
   "engines": {
     "node": ">=18"

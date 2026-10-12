@@ -1,0 +1,84 @@
+name: NakGo quality gate
+run-name: quality:${{ github.event.pull_request.number }}:${{ github.event.pull_request.head.sha }}:${{ github.event.pull_request.base.sha }}
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review, edited]
+permissions:
+  contents: read
+concurrency:
+  group: quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  quality-gate:
+    name: quality-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: baseline
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+      - name: Select trusted controls
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if test -f baseline/tests/guard.js; then
+            echo 'CONTROLS=baseline' >> "$GITHUB_ENV"
+          elif test "$BASE_SHA" = '1a626359026a08f2e5658ba28fb8ed4eb6d9ee00'; then
+            echo 'CONTROLS=candidate' >> "$GITHUB_ENV"
+          else
+            echo 'Trusted controls missing' >&2
+            exit 1
+          fi
+      - name: Guard and automation tests
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          node "$CONTROLS/tests/guard.js" --root candidate --base-ref "$BASE_SHA"
+          node --test "$CONTROLS/tests/gate/control.test.js"
+      - name: Install locked packages
+        working-directory: candidate
+        run: npm ci --ignore-scripts --no-fund --no-audit
+      - name: Existing npm test
+        working-directory: candidate
+        run: npm test
+      - name: Static and security checks
+        run: |
+          node "$CONTROLS/tests/gate/static.js" candidate
+          python "$CONTROLS/tests/gate/static_html.py" candidate
+      - name: Workflow syntax checks
+        run: |
+          curl --fail --silent --show-error --location https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz --output "$RUNNER_TEMP/actionlint.tar.gz"
+          echo '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  '"$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= candidate/.github/workflows/*.yml
+      - name: Install browser runner
+        run: |
+          python -m pip install -r "$CONTROLS/tests/requirements.txt"
+          python -m playwright install --with-deps chromium
+      - name: Existing browser tests
+        working-directory: candidate
+        run: npm run test:e2e
+      - name: Independent browser tests
+        run: python "$CONTROLS/tests/gate/browser.py" --root candidate
+      - name: Runtime dependency audit
+        working-directory: candidate
+        run: npm audit --omit=dev --audit-level=high
+      - name: Mobile output
+        working-directory: candidate
+        run: npm run mobile:prepare

@@ -25,7 +25,9 @@ function renderPost(m) {
         if (postMode === "truck") {
             m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
-            $("#go").onclick = () => {
+            const publishButton = $("#go");
+            publishButton.onclick = () => {
+                if (tab !== "post" || $("#go") !== publishButton) return;
                 if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
                 const cleared = clearPostDraft();
                 F = F0(); q = ""; nearOn = false;
@@ -50,7 +52,9 @@ function renderPost(m) {
     <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
         pb();
         itemsUI();
-        $("#go").onclick = () => {
+        const publishButton = $("#go");
+        publishButton.onclick = () => {
+            if (tab !== "post" || $("#go") !== publishButton) return;
             const l = { ...postValues(), id: Date.now(), note: $("#n").value.trim().slice(0,1000), owner: myCar.displayName || myName || "Ben" };
             if (myCar.phone)
                 l.phone = myCar.phone;
