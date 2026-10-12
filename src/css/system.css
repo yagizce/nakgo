@@ -60,7 +60,7 @@ header p { font-family:'Trebuchet MS','Segoe UI',sans-serif; font-size:11px; fon
 #bell { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
 .bell:focus-visible { outline:2px solid var(--on-brand); outline-offset:3px; }
 #thh+.bell { margin-left:0; }
-main { background:radial-gradient(ellipse at 100% 0%,var(--tag-bg),transparent 48%),var(--bg); }
+main { background:var(--bg); }
 #main[data-screen=list],#main[data-screen=post] { padding-bottom:160px; scroll-padding-bottom:160px; }
 #main[data-screen=list][data-comparing=true] { padding-bottom:210px; scroll-padding-bottom:210px; }
 nav { flex:none; height:var(--nav-height); padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px)); gap:6px; border-radius:24px 24px 0 0; box-shadow:0 -6px 24px #003e4510; z-index:3; }
@@ -102,7 +102,7 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .load.feat { border:1px solid var(--line); border-left:4px solid var(--accent); padding-left:15px; }
 .capacity-summary { padding:10px 12px; background:var(--tag-bg); border-radius:14px; margin:14px 0 12px; }
 .capacity-summary .capacity-value { font-size:27px; }
-.listing-label .tag { background:var(--accent); color:var(--on-accent); }
+.listing-label .tag { background:var(--gradient-accent); color:var(--on-accent); }
 .listing-spec { gap:6px; }
 .listing-spec>span { padding:4px 8px; border-radius:8px; background:var(--bg); }
 .load .fav { border-radius:50%; background:var(--bg); }
