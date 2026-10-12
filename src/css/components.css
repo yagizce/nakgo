@@ -203,7 +203,7 @@ nav button.on::before {
 }
 
 .logo {
-  background:linear-gradient(135deg,var(--accent-soft),var(--accent));
+  background:var(--gradient-accent);
 }
 
 #thh+.bell {
@@ -242,9 +242,9 @@ header p {
 }
 
 .chip.on {
-  background:var(--brand-fill);
+  background:var(--gradient-brand);
   color:var(--on-brand);
-  border-color:var(--brand-fill);
+  border-color:var(--brand-strong);
 }
 
 .load {
@@ -336,7 +336,7 @@ header p {
   padding:15px;
   border:0;
   border-radius:14px;
-  background:var(--accent);
+  background:var(--gradient-accent);
   color:var(--on-accent);
   font:800 16px 'Archivo',sans-serif;
   cursor:pointer;

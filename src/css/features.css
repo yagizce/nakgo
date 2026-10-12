@@ -493,7 +493,7 @@
 }
 
 .tag.ft {
-  background:var(--brand-fill);
+  background:var(--gradient-brand);
   color:var(--on-brand);
 }
 
