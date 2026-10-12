@@ -1,5 +1,13 @@
 {
   "cleanUrls": true,
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "public",
+  "functions": {
+    "api/whatsapp/webhook.mjs": {
+      "includeFiles": "src/js/config.js",
+      "maxDuration": 10
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

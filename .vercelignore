@@ -1,6 +1,4 @@
-src
 assets
-tools
 tests
 docs
 export
@@ -12,3 +10,6 @@ capacitor.config.json
 
 .github
 .gitattributes
+
+.env
+.env.*
