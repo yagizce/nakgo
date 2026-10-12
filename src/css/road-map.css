@@ -1,26 +1,26 @@
 /* Gerçek Türkiye haritası ve mobil yol noktaları */
-.road-map { position:relative; height:255px; min-height:180px; overflow:hidden; border:1px solid var(--line); border-radius:17px; background:#d5e8e6; isolation:isolate; }
+.road-map { position:relative; height:255px; min-height:180px; overflow:hidden; border:1px solid var(--line); border-radius:17px; background:var(--tag-bg); isolation:isolate; }
 .road-viewport { position:absolute; inset:0; overflow:hidden; touch-action:none; cursor:grab; }
 .road-viewport:active { cursor:grabbing; }
 .road-viewport:focus-visible { outline:3px solid var(--brand-ink); outline-offset:-3px; }
 .road-pane,.road-tiles,.road-pins { position:absolute; inset:0; pointer-events:none; }
 .road-tiles img { position:absolute; left:0; top:0; width:256px; height:256px; max-width:none; }
-.road-controls { position:absolute; right:12px; bottom:32px; display:flex; flex-direction:column; overflow:hidden; border:1px solid #b8d3d0; border-radius:16px; background:#fff; box-shadow:0 4px 18px #123b3a30; }
-.road-controls button { display:grid; place-items:center; width:48px; height:48px; border:0; color:#123b3a; background:#fff; cursor:pointer; }
-.road-controls button+button { border-top:1px solid #d9e9e5; }
-.road-controls button:active { background:#dff4ef; }
-.road-controls button:focus-visible { outline-offset:-4px; outline-color:#00616b; }
-.road-controls button:disabled { color:#6d8482; cursor:default; }
-.road-attribution { position:absolute; bottom:0; right:0; max-width:100%; padding:4px 7px; background:#fffffff0; color:#263e3c; font-size:9px; line-height:1.4; }
-.road-attribution a { color:#00685e; text-decoration:underline; }
+.road-controls { position:absolute; right:12px; bottom:32px; display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--line); border-radius:16px; background:var(--card); box-shadow:0 4px 18px #123b3a30; }
+.road-controls button { display:grid; place-items:center; width:48px; height:48px; border:0; color:var(--ink); background:var(--card); cursor:pointer; }
+.road-controls button+button { border-top:1px solid var(--line); }
+.road-controls button:active { background:var(--tag-bg); }
+.road-controls button:focus-visible { outline-offset:-4px; outline-color:var(--brand-ink); }
+.road-controls button:disabled { color:var(--mute); cursor:default; }
+.road-attribution { position:absolute; bottom:0; right:0; max-width:100%; padding:4px 7px; background:color-mix(in srgb,var(--card) 94%,transparent); color:var(--ink); font-size:9px; line-height:1.4; }
+.road-attribution a { color:var(--brand-ink); text-decoration:underline; }
 .road-status { position:absolute; bottom:32px; left:12px; right:74px; border-radius:12px; background:var(--card); color:var(--ink); font-size:11px; line-height:1.5; padding:10px; box-shadow:0 2px 10px #163a3920; }
 .road-status:has(span:empty) { display:none; }
 .road-status .chip { margin-top:6px; min-height:44px; }
 .road-status button[hidden] { display:none; }
 .road-pin { position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; max-width:130px; }
-.road-pin i { order:2; width:14px; height:14px; background:#007d70; border:3px solid #fff; border-radius:50%; box-shadow:0 1px 6px #123b3a70; }
-.road-pin.finish i { background:#e6af00; }
-.road-pin span { padding:5px 8px; border-radius:8px; background:#fff; color:#113d37; box-shadow:0 2px 10px #123b3a35; font-size:11px; font-weight:800; text-align:center; overflow-wrap:anywhere; margin-bottom:4px; }
+.road-pin i { order:2; width:14px; height:14px; background:var(--brand-ink); border:3px solid var(--card); border-radius:50%; box-shadow:0 1px 6px #123b3a70; }
+.road-pin.finish i { background:var(--accent); }
+.road-pin span { padding:5px 8px; border-radius:8px; background:var(--card); color:var(--ink); box-shadow:0 2px 10px #123b3a35; font-size:11px; font-weight:800; text-align:center; overflow-wrap:anywhere; margin-bottom:4px; }
 .road-pin small { display:block; font-size:9px; font-weight:500; }
 .road-caption { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; font-size:11px; line-height:1.8; color:var(--brand-ink); }
 .road-caption>span { min-width:0; overflow-wrap:anywhere; }
@@ -43,7 +43,7 @@
     .road-footer { padding:6px 10px calc(6px + env(safe-area-inset-bottom)); }
     .road-detail .road-map { min-height:100px; }
     .road-controls { flex-direction:row; bottom:30px; }
-    .road-controls button+button { border-top:0; border-left:1px solid #d9e9e5; }
+    .road-controls button+button { border-top:0; border-left:1px solid var(--line); }
     .road-status { bottom:auto; top:8px; left:8px; right:172px; padding:8px; font-size:10px; }
     .road-status .chip { padding:8px; font-size:10px; width:100%; }
 }
