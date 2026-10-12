@@ -13,7 +13,7 @@ Bu sürüm resmi WhatsApp Business Cloud API için altyapıdır. Meta uygulamas�
 
 ## Ortam ve webhook
 
-URL: https://<domain>/api/whatsapp/webhook — bu proje için https://yukyoll.vercel.app/api/whatsapp/webhook.
+Resmi webhook URL: https://nakgo.vercel.app/api/whatsapp/webhook. Yeni kurulum, örnek ve Meta callback ayarlarında bu adres kullanılır.
 
 İleride yalnız Vercel backend ortamına tanımlanacak değişkenler:
 

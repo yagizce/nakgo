@@ -48,6 +48,6 @@ www/, tests/shots/ ve docs/CODEMAP.md yerel üretilen çıktılardır, Git dış
 - [Ürün kuralları ve sınırlar](docs/product.md)
 - [Birleştirilen ve kaldırılan dosyalar](docs/cleanup.md)
 
-[GitHub deposu](https://github.com/yagizce/yukyoll) · [Vercel projesi](https://vercel.com/yagizces-projects/yukyoll) · [Canlı site](https://yukyoll.vercel.app). Yeni değişiklikler ayrı dal ve önizleme üzerinden ilerler. Kullanıcının yetkilendirdiği codex/* otomatik birleşme koşulları [kalite kapısı belgesindedir](docs/quality-gate.md); kapsam dışındaki PR'lar inceleme bekler.
+[GitHub deposu](https://github.com/yagizce/yukyoll) · [Vercel projesi](https://vercel.com/yagizces-projects/nakgo) · [Canlı site](https://nakgo.vercel.app). Marka NakGo, resmi Production adresi https://nakgo.vercel.app olarak esas alınır. Repo slug'ı teknik kimlik olarak korunur. Yeni değişiklikler ayrı dal ve önizleme üzerinden ilerler. Kullanıcının yetkilendirdiği codex/* otomatik birleşme koşulları [kalite kapısı belgesindedir](docs/quality-gate.md); kapsam dışındaki PR'lar inceleme bekler.
 
 Yol haritası ve doğrulanacak mola/bakım noktalarının veri biçimi için [mimari belgesi](docs/architecture.md) içindeki harita bölümüne bak. Arama ve uygulama içi mesajlaşma Premium üyelik gerektirir.

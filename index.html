@@ -5,7 +5,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>NakGo – Yük ve Araç Eşleştirme</title>
-<meta name="description" content="Yük sahipleri ve taşıyıcıları buluşturan yük pazarı">
+<meta name="description" content="NakGo – Yük sahipleri ve taşıyıcıları buluşturan yük pazarı">
+<link rel="canonical" href="https://nakgo.vercel.app/">
 <meta name="theme-color" content="#4ad9cc">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -3879,14 +3880,8 @@ function roadFitViewport(points,width,height) {
 // Yakıt hesabı, tema, paylaşma ve derin bağlantı, çevrimdışı uyarısı.
 
 
-const APPURL = (() => {
-    try {
-        return location.origin + location.pathname;
-    }
-    catch (e) {
-        return "";
-    }
-})();
+// Paylaşım preview, eski alias veya native origin yerine resmi Production'a gider.
+const APPURL = "https://nakgo.vercel.app/";
 
 function deep() {
     if (deepId && loads.some(x => x.id === deepId)) {
