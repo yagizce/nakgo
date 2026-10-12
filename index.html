@@ -29,12 +29,17 @@
   --mute:#627477;
   --line:#d9e3e1;
   --brand:#29aaa0;
+  --brand-start:#188d86;
+  --brand-end:#74d8cc;
   --brand-strong:#259e95;
   --brand-highlight:#65c9bb;
   --brand-soft:#e2f1ec;
   --brand-ink:#176a64;
   --on-brand:#102527;
+  --on-gradient-brand:#031513;
   --accent:#e4b646;
+  --accent-start:#be811d;
+  --accent-end:#f4d77a;
   --accent-dark:#c99434;
   --accent-highlight:#f1d68b;
   --on-accent:#2b240b;
@@ -45,9 +50,9 @@
   --tag-ink:#176a64;
   /* Aydınlık, mat marka yüzeylerinde koyu metin kontrastı korunur. */
   --brand-fill:var(--brand);
-  --gradient-brand:linear-gradient(100deg,var(--brand-strong) 0%,var(--brand) 45%,var(--brand-highlight) 100%);
+  --gradient-brand:linear-gradient(120deg,var(--brand-start) 0%,var(--brand) 55%,var(--brand-end) 100%);
   --gradient-brand-soft:linear-gradient(100deg,var(--tag-bg) 0%,var(--brand-soft) 45%,color-mix(in srgb,var(--brand) 20%,var(--card)) 100%);
-  --gradient-accent:linear-gradient(100deg,var(--accent-dark) 0%,var(--accent) 48%,var(--accent-highlight) 100%);
+  --gradient-accent:linear-gradient(120deg,var(--accent-start) 10%,var(--accent) 60%,var(--accent-end) 100%);
   --app-gradient:var(--gradient-brand);
   --accent-soft:var(--accent-highlight);
   --brand-overlay:color-mix(in srgb,var(--card) 8%,transparent);
@@ -65,6 +70,8 @@
     --mute:#a7b6b7;
     --line:#304044;
     --brand:#43bfb4;
+    --brand-start:#218e86;
+    --brand-end:#8ad9cd;
     --brand-strong:#3bb2a8;
     --brand-highlight:#78d2c4;
     --brand-soft:#2d4646;
@@ -73,6 +80,8 @@
     --on-brand-bad:#4b1812;
     --brand-fill:var(--brand);
     --accent:#d1b05a;
+    --accent-start:#b48733;
+    --accent-end:#edd28b;
     --accent-dark:#b18b42;
     --accent-highlight:#e4c982;
     --accent-ink:#d0b76f;
@@ -91,6 +100,8 @@
   --mute:#a7b6b7;
   --line:#304044;
   --brand:#43bfb4;
+  --brand-start:#218e86;
+  --brand-end:#8ad9cd;
   --brand-strong:#3bb2a8;
   --brand-highlight:#78d2c4;
   --brand-soft:#2d4646;
@@ -99,6 +110,8 @@
   --on-brand-bad:#4b1812;
   --brand-fill:var(--brand);
   --accent:#d1b05a;
+  --accent-start:#b48733;
+  --accent-end:#edd28b;
   --accent-dark:#b18b42;
   --accent-highlight:#e4c982;
   --accent-ink:#d0b76f;
@@ -1886,6 +1899,8 @@ textarea:focus { outline:2px solid var(--brand-ink); outline-offset:2px; }
 .off { flex:none; }
 
 /* Mobil uygulama kabuğu: menü ve birincil işlemler başparmak hizasında. */
+/* Koyu gradient başlangıcında küçük yazı kontrastı; düz marka yüzeyleri korunur. */
+header,.route-search,.detail-top,.detail-summary,.screen-heading,.profile-cover,.profile-tool.road-tool,.fuel-result,.splash,.chip.on,.seg button.on,.tag.ft { --on-brand:var(--on-gradient-brand); --brand-overlay:color-mix(in srgb,var(--brand-end) 8%,transparent); }
 :root { --nav-height:calc(78px + env(safe-area-inset-bottom,0px)); }
 #app { max-width:430px; background:var(--bg); overflow:hidden; }
 header { background:var(--app-gradient); padding-top:calc(12px + env(safe-area-inset-top,0px)); padding-bottom:12px; gap:10px; flex:none; }

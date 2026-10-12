@@ -48,6 +48,8 @@ textarea:focus { outline:2px solid var(--brand-ink); outline-offset:2px; }
 .off { flex:none; }
 
 /* Mobil uygulama kabuğu: menü ve birincil işlemler başparmak hizasında. */
+/* Koyu gradient başlangıcında küçük yazı kontrastı; düz marka yüzeyleri korunur. */
+header,.route-search,.detail-top,.detail-summary,.screen-heading,.profile-cover,.profile-tool.road-tool,.fuel-result,.splash,.chip.on,.seg button.on,.tag.ft { --on-brand:var(--on-gradient-brand); --brand-overlay:color-mix(in srgb,var(--brand-end) 8%,transparent); }
 :root { --nav-height:calc(78px + env(safe-area-inset-bottom,0px)); }
 #app { max-width:430px; background:var(--bg); overflow:hidden; }
 header { background:var(--app-gradient); padding-top:calc(12px + env(safe-area-inset-top,0px)); padding-bottom:12px; gap:10px; flex:none; }
