@@ -1,4 +1,7 @@
-assets
+assets/*
+!assets/brand/
+assets/brand/*
+!assets/brand/layout.json
 tests
 docs
 export
