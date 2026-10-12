@@ -11,6 +11,10 @@ npm run bundle         # kaynaklardan index.html üret
 npm start              # http://127.0.0.1:3000; ek paket indirmez
 npm test               # çıktı tutarlılığı, lint, davranış testleri
 npm run test:e2e        # gerçek Chromium; kurulum docs/development.md
+npm run test:browser    # bağımsız mobil/güvenlik sözleşmesi
+npm run test:guard      # main tabanına karşı test/komut koruması
+npm run test:gate       # otomatik birleşme engellerinin testleri
+npm run test:static     # bağımsız JS/JSON/HTML kontrolleri
 npm run test:shots      # tests/shots/ görüntüleri
 npm run logo           # özgün logodan web/PWA simgeleri
 npm run mobile:prepare # www/ çıktısı; native derleme değildir
@@ -36,10 +40,11 @@ www/, tests/shots/ ve docs/CODEMAP.md yerel üretilen çıktılardır, Git dış
 
 - [Mimari ve veri saklama](docs/architecture.md)
 - [Geliştirme ve test](docs/development.md)
+- [Kalite kapısı ve otomatik birleşme](docs/quality-gate.md)
 - [PWA ve mobil kurulum](docs/mobile.md)
 - [Ürün kuralları ve sınırlar](docs/product.md)
 - [Birleştirilen ve kaldırılan dosyalar](docs/cleanup.md)
 
-[GitHub deposu](https://github.com/yagizce/yukyoll) · [Vercel projesi](https://vercel.com/yagizces-projects/yukyoll) · [Canlı site](https://yukyoll.vercel.app). Yeni değişiklikler ayrı dal ve önizleme üzerinden incelenir; canlıya geçiş kullanıcı onayından sonradır.
+[GitHub deposu](https://github.com/yagizce/yukyoll) · [Vercel projesi](https://vercel.com/yagizces-projects/yukyoll) · [Canlı site](https://yukyoll.vercel.app). Yeni değişiklikler ayrı dal ve önizleme üzerinden ilerler. Kullanıcının yetkilendirdiği codex/* otomatik birleşme koşulları [kalite kapısı belgesindedir](docs/quality-gate.md); kapsam dışındaki PR'lar inceleme bekler.
 
 Yol haritası ve doğrulanacak mola/bakım noktalarının veri biçimi için [mimari belgesi](docs/architecture.md) içindeki harita bölümüne bak. Arama ve uygulama içi mesajlaşma Premium üyelik gerektirir.

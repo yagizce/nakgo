@@ -1,0 +1,32 @@
+name: NakGo codex auto-merge
+on:
+  workflow_run:
+    workflows: [NakGo quality gate, NakGo checks]
+    types: [completed]
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+  checks: read
+concurrency:
+  group: codex-auto-merge
+  cancel-in-progress: false
+jobs:
+  merge:
+    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.head_repository.full_name == github.repository && startsWith(github.event.workflow_run.head_branch, 'codex/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # workflow_run yürütmesi main kodunu kullanır. PR checkout/cache/artefaktı yok.
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify latest checks and merge
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/auto-merge.js
