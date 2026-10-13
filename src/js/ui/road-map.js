@@ -20,7 +20,7 @@ function roadMapHTML(from="",to="") {
 }
 function routeMapHTML(a,b) {
     if(!LL[a]||!LL[b])return "";
-    return `${roadMapHTML(a,b)}<div class="road-caption"><span>● Çıkış: ${esc(a)}<br>● Varış: ${esc(b)}</span><button class="chip" data-map-expand>Haritayı büyüt ↗</button></div><p class="estimate-note">Şehir merkezleri gösterilir. Mesafe tahminidir; tıra uygun navigasyon rotası değildir.</p>`;
+    return `${roadMapHTML(a,b)}<div class="road-caption"><span>A · Çıkış: ${esc(a)}<br>B · Varış: ${esc(b)}</span><button class="chip" data-map-expand>Haritayı büyüt ↗</button></div><p class="estimate-note">Kesikli çizgi şehir merkezlerini bağlar; yol veya tıra uygun navigasyon rotası değildir. Mesafe tahminidir.</p>`;
 }
 function roadMapDispose(all=false) {
     roadMaps.forEach(controller=>{

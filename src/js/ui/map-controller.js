@@ -14,7 +14,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
     let zoomLevel=ROAD_MAP.minZoom,center=[35.25,39],width=0,height=0;
     let active=false,disposed=false,category='',serial=0,resizeObserver,intersectionObserver,frame;
     const fingers=new Map();
-    let gesture=null;
+    let gesture=null,fitted=true;
 
     function clampCenter() {
         center=[Math.max(24,Math.min(46,center[0])),Math.max(34,Math.min(44,center[1]))];
@@ -52,15 +52,21 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         settle();
     }
     function drawPins(left,top) {
+        let connection='';
+        if(route) {
+            const [a,b]=points.map(point=>roadProject(point,zoomLevel).map((value,index)=>value-(index?top:left)));
+            el.classList.toggle('road-close-pins',Math.abs(a[0]-b[0])<140&&Math.abs(a[1]-b[1])<65);
+            connection=`<svg class="road-connection" width="${width}" height="${height}" aria-hidden="true"><path class="road-connection-halo" d="M${a[0]},${a[1]} L${b[0]},${b[1]}"/><path d="M${a[0]},${a[1]} L${b[0]},${b[1]}"/></svg>`;
+        }
         const markers=route?[
             {name:from,coordinates:LL[from],label:'Çıkış',className:'start'},
             {name:to,coordinates:LL[to],label:'Varış',className:'finish'}
         ]:[];
         markers.push(...roadStopsFor(category).map(stop=>({...stop,label:ROAD_KINDS[stop.kind],className:'stop'})));
-        pins.innerHTML=markers.map(marker=>{
+        pins.innerHTML=connection+markers.map(marker=>{
             const point=roadProject(marker.coordinates,zoomLevel),x=point[0]-left,y=point[1]-top;
             if(x<0||y<0||x>width||y>height)return '';
-            return `<div class="road-pin ${marker.className}" style="left:${x}px;top:${y}px"><i></i><span><small>${esc(marker.label)}</small>${esc(marker.name)}</span></div>`;
+            return `<div class="road-pin ${marker.className}" style="left:${x}px;top:${y}px"><i aria-hidden="true">${marker.className==='start'?'A':marker.className==='finish'?'B':''}</i><span><small class="sr-only">${esc(marker.label)}: </small>${esc(marker.name)}</span></div>`;
         }).join('');
     }
     function draw() {
@@ -75,6 +81,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
     function zoom(delta,anchor=[width/2,height/2]) {
         const next=Math.max(ROAD_MAP.minZoom,Math.min(ROAD_MAP.maxZoom,zoomLevel+delta));
         if(next===zoomLevel)return;
+        fitted=false;
         const projected=roadProject(center,zoomLevel);
         const geo=roadUnproject([projected[0]+anchor[0]-width/2,projected[1]+anchor[1]-height/2],zoomLevel);
         zoomLevel=next;
@@ -82,7 +89,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         center=roadUnproject([point[0]-anchor[0]+width/2,point[1]-anchor[1]+height/2],zoomLevel);
         clampCenter();draw();
     }
-    function resetView() {fit();draw();onViewChange('');}
+    function resetView() {fitted=true;fit();draw();onViewChange('');}
     el.querySelectorAll('[data-map-action]').forEach(button=>button.onclick=()=>{
         const action=button.dataset.mapAction;
         if(action==='in'||action==='out')zoom(action==='in'?1:-1);
@@ -119,6 +126,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
     viewport.onpointerup=event=>{
         if(!fingers.has(event.pointerId)||!gesture)return;
         const points=[...fingers.values()],mid=midpoint(points);
+        fitted=false;
         center=roadUnproject([gesture.center[0]-mid[0]+gesture.mid[0],gesture.center[1]-mid[1]+gesture.mid[1]],zoomLevel);
         clampCenter();
         if(points.length>1&&gesture.distance)zoom(Math.round(Math.log2(Math.max(.25,distance(points)/gesture.distance))),mid);
@@ -131,6 +139,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         const actions={'+':()=>zoom(1),'=':()=>zoom(1),'-':()=>zoom(-1),'0':resetView};
         if(actions[event.key]) {event.preventDefault();actions[event.key]();return;}
         if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
+        fitted=false;
         event.preventDefault();
         const point=roadProject(center,zoomLevel);
         point[0]+=event.key==='ArrowLeft'?-80:event.key==='ArrowRight'?80:0;
@@ -145,7 +154,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         const rect=viewport.getBoundingClientRect();
         if(rect.width<1||rect.height<1)return;
         const initial=!width;width=rect.width;height=rect.height;
-        if(initial)fit();draw();
+        if(initial||fitted)fit();draw();
     }
     function activate() {
         if(active||disposed)return;
@@ -163,7 +172,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         el,
         category(value) {category=value;draw();},
         focus(city) {
-            if(LL[city]) {center=LL[city].slice();zoomLevel=11;draw();}
+            if(LL[city]) {fitted=false;center=LL[city].slice();zoomLevel=11;draw();}
             else resetView();
         },
         dispose() {
