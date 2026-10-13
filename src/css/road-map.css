@@ -5,11 +5,8 @@
 .road-viewport:focus-visible { outline:3px solid var(--brand-ink); outline-offset:-3px; }
 .road-pane,.road-tiles,.road-pins { position:absolute; inset:0; pointer-events:none; }
 .road-tiles img { position:absolute; left:0; top:0; width:256px; height:256px; max-width:none; }
-.road-tiles { filter:saturate(.28) contrast(.92); }
-:root[data-theme="dark"] .road-tiles { filter:invert(1) hue-rotate(180deg) saturate(.22) brightness(.78) contrast(.88); }
-@media (prefers-color-scheme:dark) {
-    :root:not([data-theme="light"]) .road-tiles { filter:invert(1) hue-rotate(180deg) saturate(.22) brightness(.78) contrast(.88); }
-}
+/* Keep OSM's light land, blue water and green terrain readable in both themes. */
+.road-tiles { filter:saturate(.8); }
 .road-connection { position:absolute; inset:0; overflow:hidden; }
 .road-connection path { fill:none; stroke:var(--brand-ink); stroke-width:3; stroke-dasharray:8 6; stroke-linecap:round; }
 .road-connection .road-connection-halo { stroke:var(--card); stroke-width:7; stroke-dasharray:none; opacity:.9; }
