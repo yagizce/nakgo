@@ -2047,7 +2047,15 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .road-viewport:focus-visible { outline:3px solid var(--brand-ink); outline-offset:-3px; }
 .road-pane,.road-tiles,.road-pins { position:absolute; inset:0; pointer-events:none; }
 .road-tiles img { position:absolute; left:0; top:0; width:256px; height:256px; max-width:none; }
-.road-controls { position:absolute; right:12px; bottom:32px; display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--line); border-radius:16px; background:var(--card); box-shadow:0 4px 18px #123b3a30; }
+.road-tiles { filter:saturate(.28) contrast(.92); }
+:root[data-theme="dark"] .road-tiles { filter:invert(1) hue-rotate(180deg) saturate(.22) brightness(.78) contrast(.88); }
+@media (prefers-color-scheme:dark) {
+    :root:not([data-theme="light"]) .road-tiles { filter:invert(1) hue-rotate(180deg) saturate(.22) brightness(.78) contrast(.88); }
+}
+.road-connection { position:absolute; inset:0; overflow:hidden; }
+.road-connection path { fill:none; stroke:var(--brand-ink); stroke-width:3; stroke-dasharray:8 6; stroke-linecap:round; }
+.road-connection .road-connection-halo { stroke:var(--card); stroke-width:7; stroke-dasharray:none; opacity:.9; }
+.road-controls { position:absolute; right:12px; bottom:32px; display:flex; flex-direction:column; overflow:hidden; border:1px solid var(--line); border-radius:16px; background:var(--card); box-shadow:0 2px 6px #123b3a14; }
 .road-controls button { display:grid; place-items:center; width:48px; height:48px; border:0; color:var(--ink); background:var(--card); cursor:pointer; }
 .road-controls button+button { border-top:1px solid var(--line); }
 .road-controls button:active { background:var(--tag-bg); }
@@ -2059,11 +2067,13 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .road-status:has(span:empty) { display:none; }
 .road-status .chip { margin-top:6px; min-height:44px; }
 .road-status button[hidden] { display:none; }
-.road-pin { position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; max-width:130px; }
-.road-pin i { order:2; width:14px; height:14px; background:var(--brand-ink); border:3px solid var(--card); border-radius:50%; box-shadow:0 1px 6px #123b3a70; }
-.road-pin.finish i { background:var(--accent); }
-.road-pin span { padding:5px 8px; border-radius:8px; background:var(--card); color:var(--ink); box-shadow:0 2px 10px #123b3a35; font-size:11px; font-weight:800; text-align:center; overflow-wrap:anywhere; margin-bottom:4px; }
-.road-pin small { display:block; font-size:9px; font-weight:500; }
+.road-pin { position:absolute; transform:translate(-50%,calc(-100% + 11px)); display:flex; flex-direction:column; align-items:center; max-width:130px; }
+.road-pin i { order:2; display:grid; place-items:center; box-sizing:border-box; width:22px; height:22px; background:var(--ink); color:var(--card); border:2px solid var(--card); border-radius:50%; font-size:10px; font-weight:800; font-style:normal; }
+.road-pin.finish i { background:var(--accent); color:var(--on-accent); }
+.road-pin span { padding:4px 7px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font-size:11px; font-weight:600; text-align:center; overflow-wrap:anywhere; margin-bottom:4px; }
+.road-close-pins .road-pin.finish { transform:translate(-50%,-11px); }
+.road-close-pins .road-pin.finish i { order:0; }
+.road-close-pins .road-pin.finish span { margin-top:4px; margin-bottom:0; }
 .road-caption { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:10px; font-size:11px; line-height:1.8; color:var(--brand-ink); }
 .road-caption>span { min-width:0; overflow-wrap:anywhere; }
 .road-caption .chip { flex:none; font-size:11px; min-height:44px; }
@@ -2081,6 +2091,7 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 @media (max-height:580px) {
     .road-heading { padding:8px 12px; }
     .road-heading .eyebrow,.road-hint { display:none; }
+    .road-hint.road-route-note { display:block; }
     .road-heading h2 { font-size:16px; margin-bottom:6px; }
     .road-footer { padding:6px 10px calc(6px + env(safe-area-inset-bottom)); }
     .road-detail .road-map { min-height:100px; }
@@ -3921,10 +3932,13 @@ function roadFitViewport(points,width,height) {
     const projected=points.map(point=>roadProject(point,0));
     const dx=Math.abs(projected[0][0]-projected[1][0]);
     const dy=Math.abs(projected[0][1]-projected[1][1]);
-    const scale=Math.min(Math.max(1,width-90)/Math.max(dx,.5),Math.max(1,height-90)/Math.max(dy,.5));
+    // Leave room for city labels, attribution and the existing touch controls.
+    const padding={left:70,right:86,top:60,bottom:60};
+    const scale=Math.min(Math.max(1,width-padding.left-padding.right)/Math.max(dx,.5),Math.max(1,height-padding.top-padding.bottom)/Math.max(dy,.5));
+    const zoom=Math.max(ROAD_MAP.minZoom,Math.min(10,Math.floor(Math.log2(scale))));
     return {
-        zoom:Math.max(ROAD_MAP.minZoom,Math.min(12,Math.floor(Math.log2(scale)))),
-        center:roadUnproject([(projected[0][0]+projected[1][0])/2,(projected[0][1]+projected[1][1])/2],0)
+        zoom,
+        center:roadUnproject([(projected[0][0]+projected[1][0])/2+(padding.right-padding.left)/2/2**zoom,(projected[0][1]+projected[1][1])/2],0)
     };
 }
 
@@ -4075,7 +4089,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
     let zoomLevel=ROAD_MAP.minZoom,center=[35.25,39],width=0,height=0;
     let active=false,disposed=false,category='',serial=0,resizeObserver,intersectionObserver,frame;
     const fingers=new Map();
-    let gesture=null;
+    let gesture=null,fitted=true;
 
     function clampCenter() {
         center=[Math.max(24,Math.min(46,center[0])),Math.max(34,Math.min(44,center[1]))];
@@ -4113,15 +4127,21 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         settle();
     }
     function drawPins(left,top) {
+        let connection='';
+        if(route) {
+            const [a,b]=points.map(point=>roadProject(point,zoomLevel).map((value,index)=>value-(index?top:left)));
+            el.classList.toggle('road-close-pins',Math.abs(a[0]-b[0])<140&&Math.abs(a[1]-b[1])<65);
+            connection=`<svg class="road-connection" width="${width}" height="${height}" aria-hidden="true"><path class="road-connection-halo" d="M${a[0]},${a[1]} L${b[0]},${b[1]}"/><path d="M${a[0]},${a[1]} L${b[0]},${b[1]}"/></svg>`;
+        }
         const markers=route?[
             {name:from,coordinates:LL[from],label:'Çıkış',className:'start'},
             {name:to,coordinates:LL[to],label:'Varış',className:'finish'}
         ]:[];
         markers.push(...roadStopsFor(category).map(stop=>({...stop,label:ROAD_KINDS[stop.kind],className:'stop'})));
-        pins.innerHTML=markers.map(marker=>{
+        pins.innerHTML=connection+markers.map(marker=>{
             const point=roadProject(marker.coordinates,zoomLevel),x=point[0]-left,y=point[1]-top;
             if(x<0||y<0||x>width||y>height)return '';
-            return `<div class="road-pin ${marker.className}" style="left:${x}px;top:${y}px"><i></i><span><small>${esc(marker.label)}</small>${esc(marker.name)}</span></div>`;
+            return `<div class="road-pin ${marker.className}" style="left:${x}px;top:${y}px"><i aria-hidden="true">${marker.className==='start'?'A':marker.className==='finish'?'B':''}</i><span><small class="sr-only">${esc(marker.label)}: </small>${esc(marker.name)}</span></div>`;
         }).join('');
     }
     function draw() {
@@ -4136,6 +4156,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
     function zoom(delta,anchor=[width/2,height/2]) {
         const next=Math.max(ROAD_MAP.minZoom,Math.min(ROAD_MAP.maxZoom,zoomLevel+delta));
         if(next===zoomLevel)return;
+        fitted=false;
         const projected=roadProject(center,zoomLevel);
         const geo=roadUnproject([projected[0]+anchor[0]-width/2,projected[1]+anchor[1]-height/2],zoomLevel);
         zoomLevel=next;
@@ -4143,7 +4164,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         center=roadUnproject([point[0]-anchor[0]+width/2,point[1]-anchor[1]+height/2],zoomLevel);
         clampCenter();draw();
     }
-    function resetView() {fit();draw();onViewChange('');}
+    function resetView() {fitted=true;fit();draw();onViewChange('');}
     el.querySelectorAll('[data-map-action]').forEach(button=>button.onclick=()=>{
         const action=button.dataset.mapAction;
         if(action==='in'||action==='out')zoom(action==='in'?1:-1);
@@ -4180,6 +4201,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
     viewport.onpointerup=event=>{
         if(!fingers.has(event.pointerId)||!gesture)return;
         const points=[...fingers.values()],mid=midpoint(points);
+        fitted=false;
         center=roadUnproject([gesture.center[0]-mid[0]+gesture.mid[0],gesture.center[1]-mid[1]+gesture.mid[1]],zoomLevel);
         clampCenter();
         if(points.length>1&&gesture.distance)zoom(Math.round(Math.log2(Math.max(.25,distance(points)/gesture.distance))),mid);
@@ -4192,6 +4214,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         const actions={'+':()=>zoom(1),'=':()=>zoom(1),'-':()=>zoom(-1),'0':resetView};
         if(actions[event.key]) {event.preventDefault();actions[event.key]();return;}
         if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
+        fitted=false;
         event.preventDefault();
         const point=roadProject(center,zoomLevel);
         point[0]+=event.key==='ArrowLeft'?-80:event.key==='ArrowRight'?80:0;
@@ -4206,7 +4229,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         const rect=viewport.getBoundingClientRect();
         if(rect.width<1||rect.height<1)return;
         const initial=!width;width=rect.width;height=rect.height;
-        if(initial)fit();draw();
+        if(initial||fitted)fit();draw();
     }
     function activate() {
         if(active||disposed)return;
@@ -4224,7 +4247,7 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         el,
         category(value) {category=value;draw();},
         focus(city) {
-            if(LL[city]) {center=LL[city].slice();zoomLevel=11;draw();}
+            if(LL[city]) {fitted=false;center=LL[city].slice();zoomLevel=11;draw();}
             else resetView();
         },
         dispose() {
@@ -4261,7 +4284,7 @@ function roadMapHTML(from="",to="") {
 }
 function routeMapHTML(a,b) {
     if(!LL[a]||!LL[b])return "";
-    return `${roadMapHTML(a,b)}<div class="road-caption"><span>● Çıkış: ${esc(a)}<br>● Varış: ${esc(b)}</span><button class="chip" data-map-expand>Haritayı büyüt ↗</button></div><p class="estimate-note">Şehir merkezleri gösterilir. Mesafe tahminidir; tıra uygun navigasyon rotası değildir.</p>`;
+    return `${roadMapHTML(a,b)}<div class="road-caption"><span>A · Çıkış: ${esc(a)}<br>B · Varış: ${esc(b)}</span><button class="chip" data-map-expand>Haritayı büyüt ↗</button></div><p class="estimate-note">Kesikli çizgi şehir merkezlerini bağlar; yol veya tıra uygun navigasyon rotası değildir. Mesafe tahminidir.</p>`;
 }
 function roadMapDispose(all=false) {
     roadMaps.forEach(controller=>{
@@ -4782,7 +4805,7 @@ function openRoadMap(from="",to="",returnToDetail=null) {
                 ${Object.entries(ROAD_KINDS).map(([kind,label])=>`<button class="chip" data-map-kind="${kind}" aria-pressed="false">${label}</button>`).join('')}
             </div>
             <p id="map-poi-note" role="status"></p>
-            <small class="road-hint">Kaydırarak gezin · İki parmakla yakınlaştır</small>
+            <small class="road-hint${from?' road-route-note':''}">${from?'Kesikli çizgi şehir merkezlerini bağlar; navigasyon rotası değildir.':'Kaydırarak gezin · İki parmakla yakınlaştır'}</small>
         </div>
     </div>`;
     syncDetailViewport();$('#sheet').classList.add('open');$('#close').onclick=closeSheet;

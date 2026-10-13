@@ -25,7 +25,7 @@ function openRoadMap(from="",to="",returnToDetail=null) {
                 ${Object.entries(ROAD_KINDS).map(([kind,label])=>`<button class="chip" data-map-kind="${kind}" aria-pressed="false">${label}</button>`).join('')}
             </div>
             <p id="map-poi-note" role="status"></p>
-            <small class="road-hint">Kaydırarak gezin · İki parmakla yakınlaştır</small>
+            <small class="road-hint${from?' road-route-note':''}">${from?'Kesikli çizgi şehir merkezlerini bağlar; navigasyon rotası değildir.':'Kaydırarak gezin · İki parmakla yakınlaştır'}</small>
         </div>
     </div>`;
     syncDetailViewport();$('#sheet').classList.add('open');$('#close').onclick=closeSheet;

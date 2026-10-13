@@ -36,9 +36,12 @@ function roadFitViewport(points,width,height) {
     const projected=points.map(point=>roadProject(point,0));
     const dx=Math.abs(projected[0][0]-projected[1][0]);
     const dy=Math.abs(projected[0][1]-projected[1][1]);
-    const scale=Math.min(Math.max(1,width-90)/Math.max(dx,.5),Math.max(1,height-90)/Math.max(dy,.5));
+    // Leave room for city labels, attribution and the existing touch controls.
+    const padding={left:70,right:86,top:60,bottom:60};
+    const scale=Math.min(Math.max(1,width-padding.left-padding.right)/Math.max(dx,.5),Math.max(1,height-padding.top-padding.bottom)/Math.max(dy,.5));
+    const zoom=Math.max(ROAD_MAP.minZoom,Math.min(10,Math.floor(Math.log2(scale))));
     return {
-        zoom:Math.max(ROAD_MAP.minZoom,Math.min(12,Math.floor(Math.log2(scale)))),
-        center:roadUnproject([(projected[0][0]+projected[1][0])/2,(projected[0][1]+projected[1][1])/2],0)
+        zoom,
+        center:roadUnproject([(projected[0][0]+projected[1][0])/2+(padding.right-padding.left)/2/2**zoom,(projected[0][1]+projected[1][1])/2],0)
     };
 }
