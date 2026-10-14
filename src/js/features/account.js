@@ -372,7 +372,7 @@ const blockedCard = () => blocked.length ? `<div class="load" style="cursor:defa
 
 const helpCard = () => `<div class="load" style="cursor:default"><b>Yardım ve destek</b>${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join("")}${SUPPORT_MAIL.endsWith("@example.com") ? '<p class="estimate-note">Destek iletişim adresi henüz tanımlanmadı.</p>' : `<a class="chip" href="mailto:${SUPPORT_MAIL}" style="display:inline-block;margin-top:12px;text-decoration:none">Bize yaz</a>`}</div>`;
 
-// Preview account UI uses the existing sheet, inputs and buttons.
+// Auth keeps the existing dialog/focus lifecycle and SDK-backed form behavior.
 function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
@@ -408,7 +408,10 @@ function openAuth(kind='signin') {
     const submit={signin:'Giriş yap',signup:'Hesap oluştur',recover:'Sıfırlama bağlantısı gönder',password:'Şifreyi güncelle',profile:'Kaydet'};
     const email=['signin','signup','recover'].includes(kind), password=['signin','signup','password'].includes(kind), details=['signup','profile'].includes(kind);
     B.dataset.k='auth';
-    B.innerHTML=`<h2>${titles[kind]}</h2><p class="estimate-note">${kind==='recover'?'E-postandaki bağlantıyı bu tarayıcıda aç.':kind==='password'?'Şifren güncellendikten sonra tekrar giriş yapacaksın.':'NakGo geliştirme hesabı. Demo kayıtları hesabına aktarılmaz.'}</p>
+    const entry=kind!=='profile';
+    const intro={signin:'Yola kaldığın yerden devam et.',signup:'Yükün de yolun da burada buluşsun.',recover:'E-postandaki bağlantıyı bu tarayıcıda aç.',password:'Şifren güncellendikten sonra tekrar giriş yapacaksın.',profile:'NakGo geliştirme hesabı. Demo kayıtları hesabına aktarılmaz.'};
+    B.innerHTML=`${entry?`<div class="auth-screen"><section class="auth-paper"><div class="auth-topline"><div class="auth-brand"><img src="icons/brand-logo.png" alt="" width="48" height="48"><span>NakGo<small>Biz bu işin NakGo'suyuz</small></span></div><button class="auth-close" id="close" aria-label="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>`:''}
+        <h2>${titles[kind]}</h2><p class="${entry?'auth-intro':'estimate-note'}">${intro[kind]}</p>
         <form id="account-form">
         ${details?`<label for="account-name">Adın / firma adı</label><input id="account-name" autocomplete="name" required maxlength="60" value="${kind==='profile'?esc(s.profile?.display_name||''):''}">
         <label for="account-type">Hesap türü</label><select id="account-type"><option value="carrier">Taşıyıcı</option><option value="owner" ${s.profile?.account_type==='owner'?'selected':''}>Yük sahibi</option></select>`:''}
@@ -418,11 +421,19 @@ function openAuth(kind='signin') {
         <p id="account-feedback" role="status" aria-live="polite" class="estimate-note"></p>
         <button type="submit" class="btn" id="account-submit">${submit[kind]}</button>
         </form>
-        ${kind==='signin'?'<div class="chips"><button class="chip" id="account-forgot">Şifremi unuttum</button><button class="chip" id="account-register">Kayıt ol</button></div>':''}
-        <button class="btn alt" id="close">Kapat</button>`;
+        ${kind==='signin'?'<button class="auth-forgot" id="account-forgot">Şifremi unuttum</button>':''}
+        ${entry?`</section><section class="auth-bottom">
+            ${kind==='signin'||kind==='signup'?`<div class="auth-divider"><span>veya</span></div><div class="auth-methods" aria-label="Diğer giriş yöntemleri">
+            <button type="button" class="auth-provider" disabled><span class="auth-provider-symbol" aria-hidden="true">G</span><span>Google ile devam et</span><small>Yakında</small></button>
+            <button type="button" class="auth-provider" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3c-1.4.1-3 1-3.8 2-.7.8-1.2 2-1 3.2 1.5.1 3-.7 3.9-1.8.8-.9 1.2-2.2.9-3.4ZM20 16.3c-.4 1-1 2.3-1.8 3.4-.8 1-1.7 2.1-3 2.1-1.2 0-1.6-.8-3.1-.8-1.6 0-2 .8-3.2.8-1.3 0-2.2-1.1-3-2.2C3.5 16.4 3 11.8 4.5 9.5c1-1.6 2.6-2.5 4.1-2.5 1.3 0 2.4.8 3.2.8.7 0 2-.9 3.5-.8 1.3.1 2.6.8 3.4 1.9-3 1.6-2.5 5.8 1.3 7.4Z"/></svg><span>Apple ile devam et</span><small>Yakında</small></button></div>
+            <p class="auth-switch-copy">${kind==='signin'?'Henüz hesabın yok mu?':'Zaten hesabın var mı?'}</p><button class="btn auth-switch" id="${kind==='signin'?'account-register':'account-back'}">${kind==='signin'?'Kayıt ol':'Giriş yap'}</button>`:
+            '<p class="auth-switch-copy">Hesabına dönmeye hazır mısın?</p><button class="btn auth-switch" id="account-back">Giriş yap</button>'}
+            <p class="auth-preview-note">Test sürümü · E-posta ile giriş açık.<br>İlanlar ve mesajlar henüz demo.</p>
+        </section></div>`:'<button class="btn alt" id="close">Kapat</button>'}`;
     const form=$('#account-form'), feedback=$('#account-feedback'), button=$('#account-submit');
     $('#close').onclick=closeSheet;
     if(kind==='signin') {$('#account-forgot').onclick=()=>openAuth('recover');$('#account-register').onclick=()=>openAuth('signup');}
+    if($('#account-back'))$('#account-back').onclick=()=>openAuth('signin');
     form.onsubmit=async event=>{
         event.preventDefault();
         if(button.disabled||!form.reportValidity())return;
