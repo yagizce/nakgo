@@ -164,3 +164,142 @@ async function initCloud() {
     }
     catch (e) { }
 }
+
+// Supabase Auth is deliberately independent of the legacy host and demo records.
+// The pinned official browser SDK owns PKCE, session refresh and sign-out.
+const nakgoAuth = (() => {
+    let client = null, revision = 0, started = false;
+    const state = {enabled:false, ready:false, user:null, profile:null, recovery:false, error:''};
+    const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
+    const changed = () => { if (tab === 'me') render(); };
+    const message = error => ({
+        invalid_credentials:'E-posta veya şifre doğru değil.',
+        email_not_confirmed:'Giriş yapmadan önce e-postandaki doğrulama bağlantısını aç.',
+        over_email_send_rate_limit:'E-posta sınırına ulaşıldı. Bir süre sonra tekrar dene.',
+        over_request_rate_limit:'Çok sık deneme yapıldı. Bir süre sonra tekrar dene.',
+        email_address_not_authorized:'Test ortamı şu an yalnız proje ekibinin e-posta adreslerine gönderim yapabiliyor.',
+        weak_password:'Daha güçlü bir şifre seç.',
+        same_password:'Önceki şifrenden farklı bir şifre seç.',
+        otp_expired:'Bağlantının süresi dolmuş veya daha önce kullanılmış. Yeni bağlantı iste.',
+        flow_state_not_found:'Bağlantıyı isteği başlattığın tarayıcıda aç veya yeni bağlantı iste.'
+    }[error?.code] || 'İşlem tamamlanamadı. Bağlantını kontrol edip tekrar dene.');
+    const configOK = c => c?.enabled === true && /^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(c.url) && /^sb_publishable_[A-Za-z0-9_-]{16,200}$/.test(c.publishableKey);
+    const requireClient = () => { if (!client || !state.ready) throw Error('Auth unavailable'); return client; };
+    const redirectTo = () => new URL('/', location.origin).href;
+
+    async function sync() {
+        const current = ++revision;
+        const {data:{session}, error:sessionError} = await client.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (current !== revision) return;
+        if (!session) { state.user=null; state.profile=null; state.recovery=false; changed(); return; }
+        // Never use the locally cached user as proof of a valid identity.
+        const {data, error} = await client.auth.getUser();
+        if (error) { if(current===revision) {state.user=null;state.profile=null;} throw error; }
+        if (current !== revision) return;
+        const user = data.user;
+        state.user = {id:user.id, email:user.email || ''};
+        state.profile = null;
+        let result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).maybeSingle();
+        if (result.error) throw result.error;
+        if (!result.data) {
+            const metadata = user.user_metadata || {};
+            const profile = {id:user.id, display_name:String(metadata.display_name || '').trim().slice(0,60), account_type:['carrier','owner'].includes(metadata.account_type) ? metadata.account_type : null};
+            result = await client.from('profiles').insert(profile).select('id,display_name,account_type').single();
+            if (result.error?.code === '23505') result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).single();
+            if (result.error) throw result.error;
+        }
+        if (current !== revision) return;
+        state.profile = result.data;
+        state.error = '';
+        changed();
+    }
+
+    function loadSDK() {
+        return new Promise((resolve,reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js';
+            script.integrity = 'sha384-BWcjm9OdFth9TbhCxZPdm+gAOUMAzQy9nmTs12ioXdCcbVnJaPMn+fMUoQCLt60R';
+            script.crossOrigin = 'anonymous'; script.referrerPolicy = 'no-referrer'; script.async = true;
+            const timer = setTimeout(() => { script.remove(); reject(Error('SDK timeout')); },15000);
+            script.onload = () => { clearTimeout(timer); window.supabase?.createClient ? resolve() : reject(Error('SDK unavailable')); };
+            script.onerror = () => { clearTimeout(timer); script.remove(); reject(Error('SDK unavailable')); };
+            document.head.appendChild(script);
+        });
+    }
+
+    async function init() {
+        if (started || typeof window === 'undefined' || !window.fetch) return;
+        started = true;
+        try {
+            const response = await window.fetch('/api/auth/config', {cache:'no-store', signal:AbortSignal.timeout(8000)});
+            if (!response.ok) return;
+            const config = await response.json();
+            if (!configOK(config)) return;
+            state.enabled = true; changed();
+            await loadSDK();
+            client = window.supabase.createClient(config.url,config.publishableKey, {auth:{
+                flowType:'pkce', persistSession:true, autoRefreshToken:true, detectSessionInUrl:true,
+                storageKey:'ng-auth-'+new URL(config.url).hostname.split('.')[0]
+            }});
+            client.auth.onAuthStateChange((event) => {
+                if (event === 'SIGNED_OUT') {
+                    revision++; state.user=null; state.profile=null; state.recovery=false; state.error=''; changed();
+                }
+                if (event === 'PASSWORD_RECOVERY') state.recovery = true;
+                // SDK callbacks must not await another SDK auth operation (lock deadlock).
+                if (['SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED','PASSWORD_RECOVERY'].includes(event)) setTimeout(() => {
+                    sync().then(() => {
+                        if (event === 'PASSWORD_RECOVERY' && state.recovery && state.user) { const onb=$('#onb'); if(onb)onb.style.display='none'; openAuth('password'); }
+                    }).catch(error => { state.error=message(error); changed(); });
+                },0);
+            });
+            state.ready = true;
+            await sync();
+            const address = new URL(location.href);
+            if (address.searchParams.has('error') || address.searchParams.has('error_code')) {
+                state.error = 'Doğrulama bağlantısı kullanılamadı. Aynı tarayıcıdan yeni bağlantı iste.';
+                for (const k of ['error','error_code','error_description','code']) address.searchParams.delete(k);
+                history.replaceState(history.state,'',address.pathname+address.search+address.hash);
+            }
+            changed();
+        } catch(error) { if(state.enabled) {state.error=message(error); changed();} }
+    }
+
+    async function signIn(email,password) {
+        const {error} = await requireClient().auth.signInWithPassword({email,password});
+        if(error)throw error;
+        await sync();
+    }
+    async function signUp(email,password,displayName,accountType) {
+        const {data,error} = await requireClient().auth.signUp({email,password,options:{
+            emailRedirectTo:redirectTo(),data:{display_name:displayName.trim().slice(0,60),account_type:accountType}
+        }});
+        if(error)throw error;
+        if(data.session)await sync();
+        return !!data.session;
+    }
+    async function recover(email) {
+        const {error} = await requireClient().auth.resetPasswordForEmail(email,{redirectTo:redirectTo()});
+        if(error)throw error;
+    }
+    async function password(value) {
+        if(!state.recovery || !state.user)throw Error('Recovery session required');
+        const {error} = await requireClient().auth.updateUser({password:value});
+        if(error)throw error;
+        // Keep the recovery gate until sign-out succeeds; do not leave a reset session active.
+        await signOut();
+    }
+    async function signOut() {
+        const {error} = await requireClient().auth.signOut({scope:'local'});
+        if(error)throw error;
+        revision++; state.user=null; state.profile=null; state.recovery=false; state.error=''; changed();
+    }
+    async function saveProfile(displayName,accountType) {
+        if(!state.user)throw Error('Sign in required');
+        const {error} = await requireClient().from('profiles').update({display_name:displayName.trim().slice(0,60),account_type:accountType}).eq('id',state.user.id);
+        if(error)throw error;
+        await sync();
+    }
+    return {init,snapshot,message,configOK,signIn,signUp,recover,password,signOut,saveProfile};
+})();

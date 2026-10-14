@@ -62,11 +62,12 @@ function renderProfile(main) {
                 <details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>
                 ${rating?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}
             </section>
-            <section class="profile-group"><h2>Üyelik ve destek</h2>${premCard()}
+            <section class="profile-group"><h2>Üyelik ve destek</h2>${authCardHTML()}${premCard()}
                 <details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details>
             </section>
         </div>`;
     carBind();listBind();
+    bindAuthCard();
     $('#profile-save').onclick=()=>{
         if (!setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)})) return;
         toast('Profilin kaydedildi');

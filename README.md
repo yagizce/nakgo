@@ -34,6 +34,7 @@ npm run mobile:prepare # www/ çıktısı; native derleme değildir
 | manifest.webmanifest, sw.js, vercel.json | PWA, önbellek ve statik yayın ayarları |
 | capacitor.config.json | Mobil kabuk başlangıç ayarı |
 | api/whatsapp/, server/whatsapp/ | WhatsApp V1 backend giriş noktası ve saf parser; frontend'e eklenmez |
+| api/auth/, supabase/ | Önizlemeye özel açık Auth yapılandırması, profil migration'ı ve RLS testi |
 | public/ | Vercel için üretilen statik allowlist çıktısı; Git dışında |
 
 www/, tests/shots/ ve docs/CODEMAP.md yerel üretilen çıktılardır, Git dışında kalır. Kaynak değişikliğinde bundle çalıştırın.
@@ -44,6 +45,7 @@ www/, tests/shots/ ve docs/CODEMAP.md yerel üretilen çıktılardır, Git dış
 - [Geliştirme ve test](docs/development.md)
 - [Kalite kapısı ve otomatik birleşme](docs/quality-gate.md)
 - [WhatsApp V1 backend, test ve aktivasyon sınırları](docs/whatsapp-v1.md)
+- [Supabase geliştirme kurulumu ve profil erişim testleri](docs/supabase-setup.md)
 - [PWA ve mobil kurulum](docs/mobile.md)
 - [Ürün kuralları ve sınırlar](docs/product.md)
 - [Birleştirilen ve kaldırılan dosyalar](docs/cleanup.md)

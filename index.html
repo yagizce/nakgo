@@ -2769,6 +2769,145 @@ async function initCloud() {
     catch (e) { }
 }
 
+// Supabase Auth is deliberately independent of the legacy host and demo records.
+// The pinned official browser SDK owns PKCE, session refresh and sign-out.
+const nakgoAuth = (() => {
+    let client = null, revision = 0, started = false;
+    const state = {enabled:false, ready:false, user:null, profile:null, recovery:false, error:''};
+    const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
+    const changed = () => { if (tab === 'me') render(); };
+    const message = error => ({
+        invalid_credentials:'E-posta veya şifre doğru değil.',
+        email_not_confirmed:'Giriş yapmadan önce e-postandaki doğrulama bağlantısını aç.',
+        over_email_send_rate_limit:'E-posta sınırına ulaşıldı. Bir süre sonra tekrar dene.',
+        over_request_rate_limit:'Çok sık deneme yapıldı. Bir süre sonra tekrar dene.',
+        email_address_not_authorized:'Test ortamı şu an yalnız proje ekibinin e-posta adreslerine gönderim yapabiliyor.',
+        weak_password:'Daha güçlü bir şifre seç.',
+        same_password:'Önceki şifrenden farklı bir şifre seç.',
+        otp_expired:'Bağlantının süresi dolmuş veya daha önce kullanılmış. Yeni bağlantı iste.',
+        flow_state_not_found:'Bağlantıyı isteği başlattığın tarayıcıda aç veya yeni bağlantı iste.'
+    }[error?.code] || 'İşlem tamamlanamadı. Bağlantını kontrol edip tekrar dene.');
+    const configOK = c => c?.enabled === true && /^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(c.url) && /^sb_publishable_[A-Za-z0-9_-]{16,200}$/.test(c.publishableKey);
+    const requireClient = () => { if (!client || !state.ready) throw Error('Auth unavailable'); return client; };
+    const redirectTo = () => new URL('/', location.origin).href;
+
+    async function sync() {
+        const current = ++revision;
+        const {data:{session}, error:sessionError} = await client.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (current !== revision) return;
+        if (!session) { state.user=null; state.profile=null; state.recovery=false; changed(); return; }
+        // Never use the locally cached user as proof of a valid identity.
+        const {data, error} = await client.auth.getUser();
+        if (error) { if(current===revision) {state.user=null;state.profile=null;} throw error; }
+        if (current !== revision) return;
+        const user = data.user;
+        state.user = {id:user.id, email:user.email || ''};
+        state.profile = null;
+        let result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).maybeSingle();
+        if (result.error) throw result.error;
+        if (!result.data) {
+            const metadata = user.user_metadata || {};
+            const profile = {id:user.id, display_name:String(metadata.display_name || '').trim().slice(0,60), account_type:['carrier','owner'].includes(metadata.account_type) ? metadata.account_type : null};
+            result = await client.from('profiles').insert(profile).select('id,display_name,account_type').single();
+            if (result.error?.code === '23505') result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).single();
+            if (result.error) throw result.error;
+        }
+        if (current !== revision) return;
+        state.profile = result.data;
+        state.error = '';
+        changed();
+    }
+
+    function loadSDK() {
+        return new Promise((resolve,reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js';
+            script.integrity = 'sha384-BWcjm9OdFth9TbhCxZPdm+gAOUMAzQy9nmTs12ioXdCcbVnJaPMn+fMUoQCLt60R';
+            script.crossOrigin = 'anonymous'; script.referrerPolicy = 'no-referrer'; script.async = true;
+            const timer = setTimeout(() => { script.remove(); reject(Error('SDK timeout')); },15000);
+            script.onload = () => { clearTimeout(timer); window.supabase?.createClient ? resolve() : reject(Error('SDK unavailable')); };
+            script.onerror = () => { clearTimeout(timer); script.remove(); reject(Error('SDK unavailable')); };
+            document.head.appendChild(script);
+        });
+    }
+
+    async function init() {
+        if (started || typeof window === 'undefined' || !window.fetch) return;
+        started = true;
+        try {
+            const response = await window.fetch('/api/auth/config', {cache:'no-store', signal:AbortSignal.timeout(8000)});
+            if (!response.ok) return;
+            const config = await response.json();
+            if (!configOK(config)) return;
+            state.enabled = true; changed();
+            await loadSDK();
+            client = window.supabase.createClient(config.url,config.publishableKey, {auth:{
+                flowType:'pkce', persistSession:true, autoRefreshToken:true, detectSessionInUrl:true,
+                storageKey:'ng-auth-'+new URL(config.url).hostname.split('.')[0]
+            }});
+            client.auth.onAuthStateChange((event) => {
+                if (event === 'SIGNED_OUT') {
+                    revision++; state.user=null; state.profile=null; state.recovery=false; state.error=''; changed();
+                }
+                if (event === 'PASSWORD_RECOVERY') state.recovery = true;
+                // SDK callbacks must not await another SDK auth operation (lock deadlock).
+                if (['SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED','PASSWORD_RECOVERY'].includes(event)) setTimeout(() => {
+                    sync().then(() => {
+                        if (event === 'PASSWORD_RECOVERY' && state.recovery && state.user) { const onb=$('#onb'); if(onb)onb.style.display='none'; openAuth('password'); }
+                    }).catch(error => { state.error=message(error); changed(); });
+                },0);
+            });
+            state.ready = true;
+            await sync();
+            const address = new URL(location.href);
+            if (address.searchParams.has('error') || address.searchParams.has('error_code')) {
+                state.error = 'Doğrulama bağlantısı kullanılamadı. Aynı tarayıcıdan yeni bağlantı iste.';
+                for (const k of ['error','error_code','error_description','code']) address.searchParams.delete(k);
+                history.replaceState(history.state,'',address.pathname+address.search+address.hash);
+            }
+            changed();
+        } catch(error) { if(state.enabled) {state.error=message(error); changed();} }
+    }
+
+    async function signIn(email,password) {
+        const {error} = await requireClient().auth.signInWithPassword({email,password});
+        if(error)throw error;
+        await sync();
+    }
+    async function signUp(email,password,displayName,accountType) {
+        const {data,error} = await requireClient().auth.signUp({email,password,options:{
+            emailRedirectTo:redirectTo(),data:{display_name:displayName.trim().slice(0,60),account_type:accountType}
+        }});
+        if(error)throw error;
+        if(data.session)await sync();
+        return !!data.session;
+    }
+    async function recover(email) {
+        const {error} = await requireClient().auth.resetPasswordForEmail(email,{redirectTo:redirectTo()});
+        if(error)throw error;
+    }
+    async function password(value) {
+        if(!state.recovery || !state.user)throw Error('Recovery session required');
+        const {error} = await requireClient().auth.updateUser({password:value});
+        if(error)throw error;
+        // Keep the recovery gate until sign-out succeeds; do not leave a reset session active.
+        await signOut();
+    }
+    async function signOut() {
+        const {error} = await requireClient().auth.signOut({scope:'local'});
+        if(error)throw error;
+        revision++; state.user=null; state.profile=null; state.recovery=false; state.error=''; changed();
+    }
+    async function saveProfile(displayName,accountType) {
+        if(!state.user)throw Error('Sign in required');
+        const {error} = await requireClient().from('profiles').update({display_name:displayName.trim().slice(0,60),account_type:accountType}).eq('id',state.user.id);
+        if(error)throw error;
+        await sync();
+    }
+    return {init,snapshot,message,configOK,signIn,signUp,recover,password,signOut,saveProfile};
+})();
+
 /**
  * İlan listesi ve ilanlarım
  * Liste kartları, filtre, sıralama, yakınımda, karşılaştırma, ilan yönetimi; kendi ilanlarını düzenleme, kapatma ve silme.
@@ -3690,6 +3829,87 @@ const reportsCard = () => {
 const blockedCard = () => blocked.length ? `<div class="load" style="cursor:default"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span style="color:var(--ink);font-weight:700">${esc(nm(u))}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
 
 const helpCard = () => `<div class="load" style="cursor:default"><b>Yardım ve destek</b>${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join("")}${SUPPORT_MAIL.endsWith("@example.com") ? '<p class="estimate-note">Destek iletişim adresi henüz tanımlanmadı.</p>' : `<a class="chip" href="mailto:${SUPPORT_MAIL}" style="display:inline-block;margin-top:12px;text-decoration:none">Bize yaz</a>`}</div>`;
+
+// Preview account UI uses the existing sheet, inputs and buttons.
+function authCardHTML() {
+    const s=nakgoAuth.snapshot();
+    if(!s.enabled)return '';
+    return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
+        <p class="estimate-note">Hesap bağlantısı gerçektir. İlanlar, mesajlar ve diğer profil alanları henüz cihazdaki demoya aittir.</p>
+        ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
+        ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
+            <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
+            <div class="chips"><button class="chip on" data-auth-open="${s.recovery?'password':'profile'}">${s.recovery?'Yeni şifre belirle':'Hesap bilgileri'}</button><button class="chip" id="account-signout">Çıkış yap</button></div>`:
+            '<div class="chips"><button class="chip on" data-auth-open="signin">Giriş yap</button><button class="chip" data-auth-open="signup">Kayıt ol</button></div>'}
+        <p id="account-status" role="status" class="estimate-note"></p>
+    </div>`;
+}
+
+function bindAuthCard() {
+    document.querySelectorAll('[data-auth-open]').forEach(button=>button.onclick=()=>openAuth(button.dataset.authOpen));
+    const out=$('#account-signout');
+    if(out)out.onclick=async()=>{
+        if(out.disabled)return;
+        out.disabled=true;
+        try {await nakgoAuth.signOut();toast('Hesabından çıkış yapıldı');}
+        catch(error){const status=$('#account-status');if(status)status.textContent=nakgoAuth.message(error);out.disabled=false;}
+    };
+}
+
+function openAuth(kind='signin') {
+    const s=nakgoAuth.snapshot(), B=$('#sheetBody');
+    if(!s.ready)return;
+    if(!['signin','signup','recover','password','profile'].includes(kind))return;
+    if(kind==='password'&&(!s.user||!s.recovery))return;
+    if(kind==='profile'&&!s.user)return;
+    const titles={signin:'Giriş yap',signup:'Kayıt ol',recover:'Şifremi unuttum',password:'Yeni şifre belirle',profile:'Hesap bilgileri'};
+    const submit={signin:'Giriş yap',signup:'Hesap oluştur',recover:'Sıfırlama bağlantısı gönder',password:'Şifreyi güncelle',profile:'Kaydet'};
+    const email=['signin','signup','recover'].includes(kind), password=['signin','signup','password'].includes(kind), details=['signup','profile'].includes(kind);
+    B.dataset.k='auth';
+    B.innerHTML=`<h2>${titles[kind]}</h2><p class="estimate-note">${kind==='recover'?'E-postandaki bağlantıyı bu tarayıcıda aç.':kind==='password'?'Şifren güncellendikten sonra tekrar giriş yapacaksın.':'NakGo geliştirme hesabı. Demo kayıtları hesabına aktarılmaz.'}</p>
+        <form id="account-form">
+        ${details?`<label for="account-name">Adın / firma adı</label><input id="account-name" autocomplete="name" required maxlength="60" value="${kind==='profile'?esc(s.profile?.display_name||''):''}">
+        <label for="account-type">Hesap türü</label><select id="account-type"><option value="carrier">Taşıyıcı</option><option value="owner" ${s.profile?.account_type==='owner'?'selected':''}>Yük sahibi</option></select>`:''}
+        ${email?'<label for="account-email">E-posta</label><input id="account-email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" required maxlength="254">':''}
+        ${password?`<label for="account-password">Şifre${kind==='signin'?'':' · en az 10 karakter'}</label><input id="account-password" type="password" autocomplete="${kind==='signin'?'current-password':'new-password'}" required minlength="${kind==='signin'?1:10}" maxlength="128">`:''}
+        ${kind==='password'||kind==='signup'?'<label for="account-repeat">Şifre tekrar</label><input id="account-repeat" type="password" autocomplete="new-password" required minlength="10" maxlength="128">':''}
+        <p id="account-feedback" role="status" aria-live="polite" class="estimate-note"></p>
+        <button type="submit" class="btn" id="account-submit">${submit[kind]}</button>
+        </form>
+        ${kind==='signin'?'<div class="chips"><button class="chip" id="account-forgot">Şifremi unuttum</button><button class="chip" id="account-register">Kayıt ol</button></div>':''}
+        <button class="btn alt" id="close">Kapat</button>`;
+    const form=$('#account-form'), feedback=$('#account-feedback'), button=$('#account-submit');
+    $('#close').onclick=closeSheet;
+    if(kind==='signin') {$('#account-forgot').onclick=()=>openAuth('recover');$('#account-register').onclick=()=>openAuth('signup');}
+    form.onsubmit=async event=>{
+        event.preventDefault();
+        if(button.disabled||!form.reportValidity())return;
+        const address=email?$('#account-email').value.trim():'', secret=password?$('#account-password').value:'';
+        const repeat=$('#account-repeat');
+        if(repeat&&repeat.value!==secret){feedback.textContent='Şifreler aynı olmalı.';return;}
+        const name=details?$('#account-name').value.trim():'', accountType=details?$('#account-type').value:'';
+        if(details&&!name){feedback.textContent='Adını veya firma adını gir.';return;}
+        button.disabled=true;feedback.textContent='İşlem yapılıyor…';
+        try {
+            let notice='';
+            if(kind==='signin'){await nakgoAuth.signIn(address,secret);notice='Giriş yapıldı';}
+            if(kind==='signup'){
+                const signedIn=await nakgoAuth.signUp(address,secret,name,accountType);
+                notice=signedIn?'Hesabın hazır':'Adres uygunsa doğrulama e-postası gönderildi. Bağlantıyı bu tarayıcıda aç; ardından giriş yap.';
+            }
+            if(kind==='recover'){await nakgoAuth.recover(address);notice='Adres kayıtlıysa sıfırlama bağlantısı gönderildi. E-postanı ve spam klasörünü kontrol et. Bağlantıyı bu tarayıcıda aç.';}
+            if(kind==='password'){await nakgoAuth.password(secret);notice='Şifren güncellendi. Yeni şifrenle giriş yap.';}
+            if(kind==='profile'){await nakgoAuth.saveProfile(name,accountType);notice='Hesap bilgilerin kaydedildi';}
+            if(!form.isConnected)return;
+            if(['signup','recover'].includes(kind)) {form.reset();feedback.textContent=notice;button.textContent='Gönderildi';}
+            else {closeSheet();render();toast(notice);}
+        } catch(error) {
+            if(!form.isConnected)return;
+            feedback.textContent=nakgoAuth.message(error);button.disabled=false;
+        }
+    };
+    $('#sheet').classList.add('open');
+}
 
 /**
  * Premium, öne çıkan ilan ve istatistik
@@ -4712,11 +4932,12 @@ function renderProfile(main) {
                 <details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>
                 ${rating?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}
             </section>
-            <section class="profile-group"><h2>Üyelik ve destek</h2>${premCard()}
+            <section class="profile-group"><h2>Üyelik ve destek</h2>${authCardHTML()}${premCard()}
                 <details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details>
             </section>
         </div>`;
     carBind();listBind();
+    bindAuthCard();
     $('#profile-save').onclick=()=>{
         if (!setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)})) return;
         toast('Profilin kaydedildi');
@@ -5129,6 +5350,9 @@ initCloud();
 
 // Ekranlar tanımlandıktan sonra ortak pencere erişilebilirliğini başlat.
 initDialogAccessibility();
+
+// Optional preview-only account service; demo state and legacy host remain separate.
+nakgoAuth.init();
 </script>
 </body>
 </html>
