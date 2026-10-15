@@ -204,7 +204,7 @@ const nakgoAuth = (() => {
         if (result.error) throw result.error;
         if (!result.data) {
             const metadata = user.user_metadata || {};
-            const profile = {id:user.id, display_name:String(metadata.display_name || '').trim().slice(0,60), account_type:['carrier','owner'].includes(metadata.account_type) ? metadata.account_type : null};
+            const profile = {id:user.id, display_name:String(metadata.display_name || metadata.full_name || '').trim().slice(0,60), account_type:['carrier','owner'].includes(metadata.account_type) ? metadata.account_type : null};
             result = await client.from('profiles').insert(profile).select('id,display_name,account_type').single();
             if (result.error?.code === '23505') result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).single();
             if (result.error) throw result.error;
@@ -255,13 +255,22 @@ const nakgoAuth = (() => {
                 },0);
             });
             state.ready = true;
-            await sync();
             const address = new URL(location.href);
-            if (address.searchParams.has('error') || address.searchParams.has('error_code')) {
-                state.error = 'Doğrulama bağlantısı kullanılamadı. Aynı tarayıcıdan yeni bağlantı iste.';
+            let googleReturn=false;
+            try {googleReturn=sessionStorage.getItem('ng-google-return')==='1';sessionStorage.removeItem('ng-google-return');} catch(e) { }
+            if(googleReturn) {tab='me';setNav();}
+            const fragment=new URL('/?'+address.hash.slice(1),location.origin).searchParams;
+            const callbackError=address.searchParams.has('error') || address.searchParams.has('error_code') || fragment.has('error') || fragment.has('error_code');
+            if (callbackError) {
                 for (const k of ['error','error_code','error_description','code']) address.searchParams.delete(k);
+                if(fragment.has('error') || fragment.has('error_code')) {
+                    for(const k of ['error','error_code','error_description','code'])fragment.delete(k);
+                    address.hash=fragment.toString();
+                }
                 history.replaceState(history.state,'',address.pathname+address.search+address.hash);
             }
+            await sync();
+            if(callbackError)state.error=googleReturn ? 'Google ile giriş tamamlanmadı. Yeniden deneyebilirsin.' : 'Doğrulama bağlantısı kullanılamadı. Aynı tarayıcıdan yeni bağlantı iste.';
             changed();
         } catch(error) { if(state.enabled) {state.error=message(error); changed();} }
     }
@@ -270,6 +279,18 @@ const nakgoAuth = (() => {
         const {error} = await requireClient().auth.signInWithPassword({email,password});
         if(error)throw error;
         await sync();
+    }
+    async function signInGoogle() {
+        const auth=requireClient().auth;
+        try {
+            // This marker restores the account screen only; it never proves identity.
+            try {sessionStorage.setItem('ng-google-return','1');} catch(e) { }
+            const {error}=await auth.signInWithOAuth({provider:'google',options:{redirectTo:redirectTo()}});
+            if(error)throw error;
+        } catch(error) {
+            try {sessionStorage.removeItem('ng-google-return');} catch(e) { }
+            throw error;
+        }
     }
     async function signUp(email,password,displayName,accountType) {
         const {data,error} = await requireClient().auth.signUp({email,password,options:{
@@ -301,5 +322,5 @@ const nakgoAuth = (() => {
         if(error)throw error;
         await sync();
     }
-    return {init,snapshot,message,configOK,signIn,signUp,recover,password,signOut,saveProfile};
+    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile};
 })();

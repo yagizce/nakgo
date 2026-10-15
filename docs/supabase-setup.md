@@ -94,6 +94,32 @@ tarayıcıda aç. Preview değişirse izin listesini kontrol et; eski izinleri t
 
 ## Test kapsamı
 
+### Google girişi (yalnız geliştirme önizlemesi)
+
+Google Auth Platform'da `nakgo1` projesinin Web application istemcisi kullanılır.
+Yetkili JavaScript kaynağı:
+`https://nakgo-git-codex-nakgo-email-auth-yagizces-projects.vercel.app`
+Yetkili Google yönlendirmesi:
+`https://axkotffqrsddbrazhcwj.supabase.co/auth/v1/callback`.
+Client ID ve Client Secret yalnız Supabase Authentication > Google sağlayıcısına
+girilir. Secret koda, frontend yapılandırmasına veya Vercel değişkenlerine eklenmez.
+Skip nonce checks ve Allow users without an email kapalı tutulur. Google Audience
+Testing durumundayken test hesabını Test users listesine ekle.
+
+Giriş düğmesi resmi SDK'nin `signInWithOAuth` çağrısını ve mevcut PKCE oturumunu
+kullanır; dönüş adresi mevcut originin `/` adresidir. Google dönüşünde hesap
+ekranı açılır. Sekmeye özel `ng-google-return` işareti yalnız ekranı seçer;
+oturum veya yetki sağlamaz. Profil `getUser()` ile doğrulanır, hesap türü otomatik
+tahmin edilmez. İptal edilen giriş tekrar denenebilir; ham sağlayıcı hata metni
+gösterilmez. Apple henüz bağlı değildir.
+
+`python tests/auth_google_browser.py` gerçek sabitlenmiş SDK ile sahte OAuth
+yönlendirmesi, PKCE challenge/verifier eşleşmesi, iptal/tekrar deneme, çift tıklama,
+profil, oturum yenileme ve demo izolasyonunu iki temada 360/390/430 pikselde sınar.
+Gerçek Google hesabıyla giriş kullanıcı tarafından ayrıca doğrulanmalıdır.
+
+### E-posta ve ortak oturum testleri
+
 `npm test` yeni `tests/unit/auth.test.js` dosyasını otomatik çalıştırır.
 `python tests/auth_browser.py` mevcut Playwright kurulumu ile 360/390/430 pikselde
 iki temayı test eder. Gerçek, SRI doğrulanmış SDK kullanır; Auth HTTP yanıtları

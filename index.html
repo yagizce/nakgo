@@ -2097,6 +2097,7 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .auth-divider::before,.auth-divider::after { content:''; height:1px; flex:1; background:color-mix(in srgb,var(--on-gradient-brand) 25%,transparent); }
 .auth-methods { display:grid; gap:10px; }
 .auth-provider { display:flex; align-items:center; gap:10px; width:100%; min-height:48px; padding:11px 14px; border:1px solid #ffffff80; border-radius:14px; background:var(--auth-paper); color:var(--auth-ink); font:600 13px 'Archivo',sans-serif; text-align:left; opacity:1; cursor:not-allowed; }
+.auth-provider:not(:disabled) { cursor:pointer; }
 .auth-provider svg,.auth-provider-symbol { width:20px; height:20px; flex:none; text-align:center; font-size:20px; line-height:20px; font-weight:700; }
 .auth-provider small { margin-left:auto; color:var(--auth-mute); font-size:10px; font-weight:500; }
 .auth-switch-copy { text-align:center; font-size:12px; margin-top:23px; }
@@ -2877,7 +2878,7 @@ const nakgoAuth = (() => {
         if (result.error) throw result.error;
         if (!result.data) {
             const metadata = user.user_metadata || {};
-            const profile = {id:user.id, display_name:String(metadata.display_name || '').trim().slice(0,60), account_type:['carrier','owner'].includes(metadata.account_type) ? metadata.account_type : null};
+            const profile = {id:user.id, display_name:String(metadata.display_name || metadata.full_name || '').trim().slice(0,60), account_type:['carrier','owner'].includes(metadata.account_type) ? metadata.account_type : null};
             result = await client.from('profiles').insert(profile).select('id,display_name,account_type').single();
             if (result.error?.code === '23505') result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).single();
             if (result.error) throw result.error;
@@ -2928,13 +2929,22 @@ const nakgoAuth = (() => {
                 },0);
             });
             state.ready = true;
-            await sync();
             const address = new URL(location.href);
-            if (address.searchParams.has('error') || address.searchParams.has('error_code')) {
-                state.error = 'Doğrulama bağlantısı kullanılamadı. Aynı tarayıcıdan yeni bağlantı iste.';
+            let googleReturn=false;
+            try {googleReturn=sessionStorage.getItem('ng-google-return')==='1';sessionStorage.removeItem('ng-google-return');} catch(e) { }
+            if(googleReturn) {tab='me';setNav();}
+            const fragment=new URL('/?'+address.hash.slice(1),location.origin).searchParams;
+            const callbackError=address.searchParams.has('error') || address.searchParams.has('error_code') || fragment.has('error') || fragment.has('error_code');
+            if (callbackError) {
                 for (const k of ['error','error_code','error_description','code']) address.searchParams.delete(k);
+                if(fragment.has('error') || fragment.has('error_code')) {
+                    for(const k of ['error','error_code','error_description','code'])fragment.delete(k);
+                    address.hash=fragment.toString();
+                }
                 history.replaceState(history.state,'',address.pathname+address.search+address.hash);
             }
+            await sync();
+            if(callbackError)state.error=googleReturn ? 'Google ile giriş tamamlanmadı. Yeniden deneyebilirsin.' : 'Doğrulama bağlantısı kullanılamadı. Aynı tarayıcıdan yeni bağlantı iste.';
             changed();
         } catch(error) { if(state.enabled) {state.error=message(error); changed();} }
     }
@@ -2943,6 +2953,18 @@ const nakgoAuth = (() => {
         const {error} = await requireClient().auth.signInWithPassword({email,password});
         if(error)throw error;
         await sync();
+    }
+    async function signInGoogle() {
+        const auth=requireClient().auth;
+        try {
+            // This marker restores the account screen only; it never proves identity.
+            try {sessionStorage.setItem('ng-google-return','1');} catch(e) { }
+            const {error}=await auth.signInWithOAuth({provider:'google',options:{redirectTo:redirectTo()}});
+            if(error)throw error;
+        } catch(error) {
+            try {sessionStorage.removeItem('ng-google-return');} catch(e) { }
+            throw error;
+        }
     }
     async function signUp(email,password,displayName,accountType) {
         const {data,error} = await requireClient().auth.signUp({email,password,options:{
@@ -2974,7 +2996,7 @@ const nakgoAuth = (() => {
         if(error)throw error;
         await sync();
     }
-    return {init,snapshot,message,configOK,signIn,signUp,recover,password,signOut,saveProfile};
+    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile};
 })();
 
 /**
@@ -3951,13 +3973,23 @@ function openAuth(kind='signin') {
         ${kind==='signin'?'<button class="auth-forgot" id="account-forgot">Şifremi unuttum</button>':''}
         ${entry?`</section><section class="auth-bottom">
             ${kind==='signin'||kind==='signup'?`<div class="auth-divider"><span>veya</span></div><div class="auth-methods" aria-label="Diğer giriş yöntemleri">
-            <button type="button" class="auth-provider" disabled><span class="auth-provider-symbol" aria-hidden="true">G</span><span>Google ile devam et</span><small>Yakında</small></button>
+            <button type="button" class="auth-provider" id="account-google"><span class="auth-provider-symbol" aria-hidden="true">G</span><span>Google ile devam et</span></button>
             <button type="button" class="auth-provider" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3c-1.4.1-3 1-3.8 2-.7.8-1.2 2-1 3.2 1.5.1 3-.7 3.9-1.8.8-.9 1.2-2.2.9-3.4ZM20 16.3c-.4 1-1 2.3-1.8 3.4-.8 1-1.7 2.1-3 2.1-1.2 0-1.6-.8-3.1-.8-1.6 0-2 .8-3.2.8-1.3 0-2.2-1.1-3-2.2C3.5 16.4 3 11.8 4.5 9.5c1-1.6 2.6-2.5 4.1-2.5 1.3 0 2.4.8 3.2.8.7 0 2-.9 3.5-.8 1.3.1 2.6.8 3.4 1.9-3 1.6-2.5 5.8 1.3 7.4Z"/></svg><span>Apple ile devam et</span><small>Yakında</small></button></div>
             <p class="auth-switch-copy">${kind==='signin'?'Henüz hesabın yok mu?':'Zaten hesabın var mı?'}</p><button class="btn auth-switch" id="${kind==='signin'?'account-register':'account-back'}">${kind==='signin'?'Kayıt ol':'Giriş yap'}</button>`:
             '<p class="auth-switch-copy">Hesabına dönmeye hazır mısın?</p><button class="btn auth-switch" id="account-back">Giriş yap</button>'}
-            <p class="auth-preview-note">Test sürümü · E-posta ile giriş açık.<br>İlanlar ve mesajlar henüz demo.</p>
+            <p class="auth-preview-note">Test sürümü · E-posta ve Google ile giriş açık.<br>İlanlar ve mesajlar henüz demo.</p>
         </section></div>`:'<button class="btn alt" id="close">Kapat</button>'}`;
     const form=$('#account-form'), feedback=$('#account-feedback'), button=$('#account-submit');
+    const google=$('#account-google');
+    if(google)google.onclick=async()=>{
+        if(google.disabled||button.disabled)return;
+        google.disabled=true;button.disabled=true;feedback.textContent='Google’a yönlendiriliyorsun…';
+        try {await nakgoAuth.signInGoogle();}
+        catch(error) {
+            if(!form.isConnected)return;
+            feedback.textContent=nakgoAuth.message(error);google.disabled=false;button.disabled=false;
+        }
+    };
     $('#close').onclick=closeSheet;
     if(kind==='signin') {$('#account-forgot').onclick=()=>openAuth('recover');$('#account-register').onclick=()=>openAuth('signup');}
     if($('#account-back'))$('#account-back').onclick=()=>openAuth('signin');
@@ -3969,7 +4001,7 @@ function openAuth(kind='signin') {
         if(repeat&&repeat.value!==secret){feedback.textContent='Şifreler aynı olmalı.';return;}
         const name=details?$('#account-name').value.trim():'', accountType=details?$('#account-type').value:'';
         if(details&&!name){feedback.textContent='Adını veya firma adını gir.';return;}
-        button.disabled=true;feedback.textContent='İşlem yapılıyor…';
+        button.disabled=true;if(google)google.disabled=true;feedback.textContent='İşlem yapılıyor…';
         try {
             let notice='';
             if(kind==='signin'){await nakgoAuth.signIn(address,secret);notice='Giriş yapıldı';}
@@ -3985,7 +4017,7 @@ function openAuth(kind='signin') {
             else {closeSheet();render();toast(notice);}
         } catch(error) {
             if(!form.isConnected)return;
-            feedback.textContent=nakgoAuth.message(error);button.disabled=false;
+            feedback.textContent=nakgoAuth.message(error);button.disabled=false;if(google)google.disabled=false;
         }
     };
     $('#sheet').classList.add('open');

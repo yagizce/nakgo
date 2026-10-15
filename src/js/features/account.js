@@ -424,13 +424,23 @@ function openAuth(kind='signin') {
         ${kind==='signin'?'<button class="auth-forgot" id="account-forgot">Şifremi unuttum</button>':''}
         ${entry?`</section><section class="auth-bottom">
             ${kind==='signin'||kind==='signup'?`<div class="auth-divider"><span>veya</span></div><div class="auth-methods" aria-label="Diğer giriş yöntemleri">
-            <button type="button" class="auth-provider" disabled><span class="auth-provider-symbol" aria-hidden="true">G</span><span>Google ile devam et</span><small>Yakında</small></button>
+            <button type="button" class="auth-provider" id="account-google"><span class="auth-provider-symbol" aria-hidden="true">G</span><span>Google ile devam et</span></button>
             <button type="button" class="auth-provider" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3c-1.4.1-3 1-3.8 2-.7.8-1.2 2-1 3.2 1.5.1 3-.7 3.9-1.8.8-.9 1.2-2.2.9-3.4ZM20 16.3c-.4 1-1 2.3-1.8 3.4-.8 1-1.7 2.1-3 2.1-1.2 0-1.6-.8-3.1-.8-1.6 0-2 .8-3.2.8-1.3 0-2.2-1.1-3-2.2C3.5 16.4 3 11.8 4.5 9.5c1-1.6 2.6-2.5 4.1-2.5 1.3 0 2.4.8 3.2.8.7 0 2-.9 3.5-.8 1.3.1 2.6.8 3.4 1.9-3 1.6-2.5 5.8 1.3 7.4Z"/></svg><span>Apple ile devam et</span><small>Yakında</small></button></div>
             <p class="auth-switch-copy">${kind==='signin'?'Henüz hesabın yok mu?':'Zaten hesabın var mı?'}</p><button class="btn auth-switch" id="${kind==='signin'?'account-register':'account-back'}">${kind==='signin'?'Kayıt ol':'Giriş yap'}</button>`:
             '<p class="auth-switch-copy">Hesabına dönmeye hazır mısın?</p><button class="btn auth-switch" id="account-back">Giriş yap</button>'}
-            <p class="auth-preview-note">Test sürümü · E-posta ile giriş açık.<br>İlanlar ve mesajlar henüz demo.</p>
+            <p class="auth-preview-note">Test sürümü · E-posta ve Google ile giriş açık.<br>İlanlar ve mesajlar henüz demo.</p>
         </section></div>`:'<button class="btn alt" id="close">Kapat</button>'}`;
     const form=$('#account-form'), feedback=$('#account-feedback'), button=$('#account-submit');
+    const google=$('#account-google');
+    if(google)google.onclick=async()=>{
+        if(google.disabled||button.disabled)return;
+        google.disabled=true;button.disabled=true;feedback.textContent='Google’a yönlendiriliyorsun…';
+        try {await nakgoAuth.signInGoogle();}
+        catch(error) {
+            if(!form.isConnected)return;
+            feedback.textContent=nakgoAuth.message(error);google.disabled=false;button.disabled=false;
+        }
+    };
     $('#close').onclick=closeSheet;
     if(kind==='signin') {$('#account-forgot').onclick=()=>openAuth('recover');$('#account-register').onclick=()=>openAuth('signup');}
     if($('#account-back'))$('#account-back').onclick=()=>openAuth('signin');
@@ -442,7 +452,7 @@ function openAuth(kind='signin') {
         if(repeat&&repeat.value!==secret){feedback.textContent='Şifreler aynı olmalı.';return;}
         const name=details?$('#account-name').value.trim():'', accountType=details?$('#account-type').value:'';
         if(details&&!name){feedback.textContent='Adını veya firma adını gir.';return;}
-        button.disabled=true;feedback.textContent='İşlem yapılıyor…';
+        button.disabled=true;if(google)google.disabled=true;feedback.textContent='İşlem yapılıyor…';
         try {
             let notice='';
             if(kind==='signin'){await nakgoAuth.signIn(address,secret);notice='Giriş yapıldı';}
@@ -458,7 +468,7 @@ function openAuth(kind='signin') {
             else {closeSheet();render();toast(notice);}
         } catch(error) {
             if(!form.isConnected)return;
-            feedback.textContent=nakgoAuth.message(error);button.disabled=false;
+            feedback.textContent=nakgoAuth.message(error);button.disabled=false;if(google)google.disabled=false;
         }
     };
     $('#sheet').classList.add('open');
