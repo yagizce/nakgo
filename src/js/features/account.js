@@ -371,3 +371,105 @@ const reportsCard = () => {
 const blockedCard = () => blocked.length ? `<div class="load" style="cursor:default"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span style="color:var(--ink);font-weight:700">${esc(nm(u))}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
 
 const helpCard = () => `<div class="load" style="cursor:default"><b>Yardım ve destek</b>${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join("")}${SUPPORT_MAIL.endsWith("@example.com") ? '<p class="estimate-note">Destek iletişim adresi henüz tanımlanmadı.</p>' : `<a class="chip" href="mailto:${SUPPORT_MAIL}" style="display:inline-block;margin-top:12px;text-decoration:none">Bize yaz</a>`}</div>`;
+
+// Auth keeps the existing dialog/focus lifecycle and SDK-backed form behavior.
+function authCardHTML() {
+    const s=nakgoAuth.snapshot();
+    if(!s.enabled)return '';
+    return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
+        <p class="estimate-note">Hesap bağlantısı gerçektir. İlanlar, mesajlar ve diğer profil alanları henüz cihazdaki demoya aittir.</p>
+        ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
+        ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
+            <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
+            <div class="chips"><button class="chip on" data-auth-open="${s.recovery?'password':'profile'}">${s.recovery?'Yeni şifre belirle':'Hesap bilgileri'}</button><button class="chip" id="account-signout">Çıkış yap</button></div>`:
+            '<div class="chips"><button class="chip on" data-auth-open="signin">Giriş yap</button><button class="chip" data-auth-open="signup">Kayıt ol</button></div>'}
+        <p id="account-status" role="status" class="estimate-note"></p>
+    </div>`;
+}
+
+function bindAuthCard() {
+    document.querySelectorAll('[data-auth-open]').forEach(button=>button.onclick=()=>openAuth(button.dataset.authOpen));
+    const out=$('#account-signout');
+    if(out)out.onclick=async()=>{
+        if(out.disabled)return;
+        out.disabled=true;
+        try {await nakgoAuth.signOut();toast('Hesabından çıkış yapıldı');}
+        catch(error){const status=$('#account-status');if(status)status.textContent=nakgoAuth.message(error);out.disabled=false;}
+    };
+}
+
+function openAuth(kind='signin') {
+    const s=nakgoAuth.snapshot(), B=$('#sheetBody');
+    if(!s.ready)return;
+    if(!['signin','signup','recover','password','profile'].includes(kind))return;
+    if(kind==='password'&&(!s.user||!s.recovery))return;
+    if(kind==='profile'&&!s.user)return;
+    const titles={signin:'Giriş yap',signup:'Kayıt ol',recover:'Şifremi unuttum',password:'Yeni şifre belirle',profile:'Hesap bilgileri'};
+    const submit={signin:'Giriş yap',signup:'Hesap oluştur',recover:'Sıfırlama bağlantısı gönder',password:'Şifreyi güncelle',profile:'Kaydet'};
+    const email=['signin','signup','recover'].includes(kind), password=['signin','signup','password'].includes(kind), details=['signup','profile'].includes(kind);
+    B.dataset.k='auth';
+    const entry=kind!=='profile';
+    const intro={signin:'Yola kaldığın yerden devam et.',signup:'Yükün de yolun da burada buluşsun.',recover:'E-postandaki bağlantıyı bu tarayıcıda aç.',password:'Şifren güncellendikten sonra tekrar giriş yapacaksın.',profile:'NakGo geliştirme hesabı. Demo kayıtları hesabına aktarılmaz.'};
+    B.innerHTML=`${entry?`<div class="auth-screen"><section class="auth-paper"><div class="auth-topline"><div class="auth-brand"><img src="icons/brand-logo.png" alt="" width="48" height="48"><span>NakGo<small>Biz bu işin NakGo'suyuz</small></span></div><button class="auth-close" id="close" aria-label="Kapat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>`:''}
+        <h2>${titles[kind]}</h2><p class="${entry?'auth-intro':'estimate-note'}">${intro[kind]}</p>
+        <form id="account-form">
+        ${details?`<label for="account-name">Adın / firma adı</label><input id="account-name" autocomplete="name" required maxlength="60" value="${kind==='profile'?esc(s.profile?.display_name||''):''}">
+        <label for="account-type">Hesap türü</label><select id="account-type"><option value="carrier">Taşıyıcı</option><option value="owner" ${s.profile?.account_type==='owner'?'selected':''}>Yük sahibi</option></select>`:''}
+        ${email?'<label for="account-email">E-posta</label><input id="account-email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" required maxlength="254">':''}
+        ${password?`<label for="account-password">Şifre${kind==='signin'?'':' · en az 10 karakter'}</label><input id="account-password" type="password" autocomplete="${kind==='signin'?'current-password':'new-password'}" required minlength="${kind==='signin'?1:10}" maxlength="128">`:''}
+        ${kind==='password'||kind==='signup'?'<label for="account-repeat">Şifre tekrar</label><input id="account-repeat" type="password" autocomplete="new-password" required minlength="10" maxlength="128">':''}
+        <p id="account-feedback" role="status" aria-live="polite" class="estimate-note"></p>
+        <button type="submit" class="btn" id="account-submit">${submit[kind]}</button>
+        </form>
+        ${kind==='signin'?'<button class="auth-forgot" id="account-forgot">Şifremi unuttum</button>':''}
+        ${entry?`</section><section class="auth-bottom">
+            ${kind==='signin'||kind==='signup'?`<div class="auth-divider"><span>veya</span></div><div class="auth-methods" aria-label="Diğer giriş yöntemleri">
+            <button type="button" class="auth-provider" id="account-google"><span class="auth-provider-symbol" aria-hidden="true">G</span><span>Google ile devam et</span></button>
+            <button type="button" class="auth-provider" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3c-1.4.1-3 1-3.8 2-.7.8-1.2 2-1 3.2 1.5.1 3-.7 3.9-1.8.8-.9 1.2-2.2.9-3.4ZM20 16.3c-.4 1-1 2.3-1.8 3.4-.8 1-1.7 2.1-3 2.1-1.2 0-1.6-.8-3.1-.8-1.6 0-2 .8-3.2.8-1.3 0-2.2-1.1-3-2.2C3.5 16.4 3 11.8 4.5 9.5c1-1.6 2.6-2.5 4.1-2.5 1.3 0 2.4.8 3.2.8.7 0 2-.9 3.5-.8 1.3.1 2.6.8 3.4 1.9-3 1.6-2.5 5.8 1.3 7.4Z"/></svg><span>Apple ile devam et</span><small>Yakında</small></button></div>
+            <p class="auth-switch-copy">${kind==='signin'?'Henüz hesabın yok mu?':'Zaten hesabın var mı?'}</p><button class="btn auth-switch" id="${kind==='signin'?'account-register':'account-back'}">${kind==='signin'?'Kayıt ol':'Giriş yap'}</button>`:
+            '<p class="auth-switch-copy">Hesabına dönmeye hazır mısın?</p><button class="btn auth-switch" id="account-back">Giriş yap</button>'}
+            <p class="auth-preview-note">Test sürümü · E-posta ve Google ile giriş açık.<br>İlanlar ve mesajlar henüz demo.</p>
+        </section></div>`:'<button class="btn alt" id="close">Kapat</button>'}`;
+    const form=$('#account-form'), feedback=$('#account-feedback'), button=$('#account-submit');
+    const google=$('#account-google');
+    if(google)google.onclick=async()=>{
+        if(google.disabled||button.disabled)return;
+        google.disabled=true;button.disabled=true;feedback.textContent='Google’a yönlendiriliyorsun…';
+        try {await nakgoAuth.signInGoogle();}
+        catch(error) {
+            if(!form.isConnected)return;
+            feedback.textContent=nakgoAuth.message(error);google.disabled=false;button.disabled=false;
+        }
+    };
+    $('#close').onclick=closeSheet;
+    if(kind==='signin') {$('#account-forgot').onclick=()=>openAuth('recover');$('#account-register').onclick=()=>openAuth('signup');}
+    if($('#account-back'))$('#account-back').onclick=()=>openAuth('signin');
+    form.onsubmit=async event=>{
+        event.preventDefault();
+        if(button.disabled||!form.reportValidity())return;
+        const address=email?$('#account-email').value.trim():'', secret=password?$('#account-password').value:'';
+        const repeat=$('#account-repeat');
+        if(repeat&&repeat.value!==secret){feedback.textContent='Şifreler aynı olmalı.';return;}
+        const name=details?$('#account-name').value.trim():'', accountType=details?$('#account-type').value:'';
+        if(details&&!name){feedback.textContent='Adını veya firma adını gir.';return;}
+        button.disabled=true;if(google)google.disabled=true;feedback.textContent='İşlem yapılıyor…';
+        try {
+            let notice='';
+            if(kind==='signin'){await nakgoAuth.signIn(address,secret);notice='Giriş yapıldı';}
+            if(kind==='signup'){
+                const signedIn=await nakgoAuth.signUp(address,secret,name,accountType);
+                notice=signedIn?'Hesabın hazır':'Adres uygunsa doğrulama e-postası gönderildi. Bağlantıyı bu tarayıcıda aç; ardından giriş yap.';
+            }
+            if(kind==='recover'){await nakgoAuth.recover(address);notice='Adres kayıtlıysa sıfırlama bağlantısı gönderildi. E-postanı ve spam klasörünü kontrol et. Bağlantıyı bu tarayıcıda aç.';}
+            if(kind==='password'){await nakgoAuth.password(secret);notice='Şifren güncellendi. Yeni şifrenle giriş yap.';}
+            if(kind==='profile'){await nakgoAuth.saveProfile(name,accountType);notice='Hesap bilgilerin kaydedildi';}
+            if(!form.isConnected)return;
+            if(['signup','recover'].includes(kind)) {form.reset();feedback.textContent=notice;button.textContent='Gönderildi';}
+            else {closeSheet();render();toast(notice);}
+        } catch(error) {
+            if(!form.isConnected)return;
+            feedback.textContent=nakgoAuth.message(error);button.disabled=false;if(google)google.disabled=false;
+        }
+    };
+    $('#sheet').classList.add('open');
+}

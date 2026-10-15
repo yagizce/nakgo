@@ -204,3 +204,6 @@ initCloud();
 
 // Ekranlar tanımlandıktan sonra ortak pencere erişilebilirliğini başlat.
 initDialogAccessibility();
+
+// Optional preview-only account service; demo state and legacy host remain separate.
+nakgoAuth.init();
