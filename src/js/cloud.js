@@ -200,6 +200,8 @@ const nakgoAuth = (() => {
         const user = data.user;
         state.user = {id:user.id, email:user.email || ''};
         state.profile = null;
+        // Password recovery needs a verified identity, not a successful profile query.
+        if (state.recovery) { state.error=''; changed(); return; }
         let result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).maybeSingle();
         if (result.error) throw result.error;
         if (!result.data) {
@@ -231,6 +233,23 @@ const nakgoAuth = (() => {
     async function init() {
         if (started || typeof window === 'undefined' || !window.fetch) return;
         started = true;
+        // Capture the callback before the SDK consumes its code and changes the URL.
+        const address = new URL(location.href);
+        const fragment=new URL('/?'+address.hash.slice(1),location.origin).searchParams;
+        let recoveryReturn=address.searchParams.get('auth')==='recovery';
+        try {
+            const requested=Number(localStorage.getItem('ng-recovery-request'));
+            if ((address.searchParams.has('code')||fragment.has('sb')||fragment.has('error')) && requested>0 && Date.now()-requested<3600000) recoveryReturn=true;
+        } catch(e) { }
+        const callbackError=address.searchParams.has('error') || address.searchParams.has('error_code') || fragment.has('error') || fragment.has('error_code');
+        const showReturn = () => {
+            tab='me'; setNav(); changed();
+            const onb=$('#onb'); if(onb)onb.style.display='none';
+            if(state.ready) {
+                openAuth(state.recovery&&state.user?'password':'recover');
+                const feedback=$('#account-feedback'); if(feedback)feedback.textContent=state.error;
+            }
+        };
         try {
             const response = await window.fetch('/api/auth/config', {cache:'no-store', signal:AbortSignal.timeout(8000)});
             if (!response.ok) return;
@@ -251,16 +270,13 @@ const nakgoAuth = (() => {
                 if (['SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED','PASSWORD_RECOVERY'].includes(event)) setTimeout(() => {
                     sync().then(() => {
                         if (event === 'PASSWORD_RECOVERY' && state.recovery && state.user) { const onb=$('#onb'); if(onb)onb.style.display='none'; openAuth('password'); }
-                    }).catch(error => { state.error=message(error); changed(); });
+                    }).catch(error => { state.error=message(error); changed(); if(event==='PASSWORD_RECOVERY')showReturn(); });
                 },0);
             });
             state.ready = true;
-            const address = new URL(location.href);
             let googleReturn=false;
             try {googleReturn=sessionStorage.getItem('ng-google-return')==='1';sessionStorage.removeItem('ng-google-return');} catch(e) { }
             if(googleReturn) {tab='me';setNav();}
-            const fragment=new URL('/?'+address.hash.slice(1),location.origin).searchParams;
-            const callbackError=address.searchParams.has('error') || address.searchParams.has('error_code') || fragment.has('error') || fragment.has('error_code');
             if (callbackError) {
                 for (const k of ['error','error_code','error_description','code']) address.searchParams.delete(k);
                 if(fragment.has('error') || fragment.has('error_code')) {
@@ -272,7 +288,12 @@ const nakgoAuth = (() => {
             await sync();
             if(callbackError)state.error=googleReturn ? 'Google ile giriş tamamlanmadı. Yeniden deneyebilirsin.' : 'Doğrulama bağlantısı kullanılamadı. Aynı tarayıcıdan yeni bağlantı iste.';
             changed();
-        } catch(error) { if(state.enabled) {state.error=message(error); changed();} }
+            if(state.recovery&&state.user)showReturn();
+            else if(recoveryReturn || (callbackError&&!googleReturn)) {
+                if(!state.error)state.error='Sıfırlama oturumu doğrulanamadı. En son e-postadaki bağlantıyı kullan veya buradan yeni bağlantı iste.';
+                showReturn();
+            } else if(callbackError) {tab='me';setNav();changed();}
+        } catch(error) { if(state.enabled) {state.error=message(error); changed(); if(recoveryReturn||callbackError)showReturn();} }
     }
 
     async function signIn(email,password) {
@@ -301,6 +322,8 @@ const nakgoAuth = (() => {
         return !!data.session;
     }
     async function recover(email) {
+        // Navigation hint only. Only the SDK recovery event can authorize a password change.
+        try {localStorage.setItem('ng-recovery-request',String(Date.now()));} catch(e) { }
         const {error} = await requireClient().auth.resetPasswordForEmail(email,{redirectTo:redirectTo()});
         if(error)throw error;
     }
