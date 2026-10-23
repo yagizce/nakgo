@@ -181,7 +181,8 @@ const nakgoAuth = (() => {
         weak_password:'Daha güçlü bir şifre seç.',
         same_password:'Önceki şifrenden farklı bir şifre seç.',
         otp_expired:'Bağlantının süresi dolmuş veya daha önce kullanılmış. Yeni bağlantı iste.',
-        flow_state_not_found:'Bağlantıyı isteği başlattığın tarayıcıda aç veya yeni bağlantı iste.'
+        flow_state_not_found:'Bağlantıyı isteği başlattığın tarayıcıda aç veya yeni bağlantı iste.',
+        bad_code_verifier:'Bu bağlantı tarayıcıdaki sıfırlama isteğiyle eşleşmiyor. Buradan yeni bağlantı iste ve en son gelen e-postayı kullan.'
     }[error?.code] || 'İşlem tamamlanamadı. Bağlantını kontrol edip tekrar dene.');
     const configOK = c => c?.enabled === true && /^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(c.url) && /^sb_publishable_[A-Za-z0-9_-]{16,200}$/.test(c.publishableKey);
     const requireClient = () => { if (!client || !state.ready) throw Error('Auth unavailable'); return client; };
@@ -259,6 +260,7 @@ const nakgoAuth = (() => {
             await loadSDK();
             client = window.supabase.createClient(config.url,config.publishableKey, {auth:{
                 flowType:'pkce', persistSession:true, autoRefreshToken:true, detectSessionInUrl:true,
+                experimental:{appendPkceFlowIdToRedirects:true},
                 storageKey:'ng-auth-'+new URL(config.url).hostname.split('.')[0]
             }});
             client.auth.onAuthStateChange((event) => {
