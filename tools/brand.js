@@ -62,7 +62,8 @@ function render(w,h,crop,coverage=1,background=null){
 const output=path.join(root,'icons');fs.mkdirSync(output,{recursive:true});
 const fullSource=source;
 source=decode(path.join(root,'assets/brand/logo-mark.png'));
-for(const [name,size,coverage,opaque]of [['icon-192.png',192,.94],['icon-512.png',512,.94],['icon-maskable-512.png',512,.64,true],['apple-touch-icon.png',180,.94,true]])fs.writeFileSync(path.join(output,name),render(size,size,layout.mark,coverage,opaque?[74,217,204]:null));
+fs.writeFileSync(path.join(output,'header-logo.png'),render(192,192,layout.mark,.94));
+for(const [name,size,coverage,opaque]of [['icon-192.png',192,.84],['icon-512.png',512,.84],['icon-maskable-512.png',512,.58,true],['apple-touch-icon.png',180,.84,true]])fs.writeFileSync(path.join(output,name),render(size,size,layout.mark,coverage,opaque?[74,217,204]:null));
 source=fullSource;
 const [,,fw,fh]=frame(layout.full),width=576;
 fs.writeFileSync(path.join(output,'brand-logo.png'),render(width,Math.round(width*fh/fw),layout.full));
