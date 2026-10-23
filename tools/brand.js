@@ -30,7 +30,7 @@ function decode(file){
  }
  return {w,h,channels,pixels};
 }
-const source=decode(path.join(root,'assets/brand/logo-transparent.png'));
+let source=decode(path.join(root,'assets/brand/logo-transparent.png'));
 function frame(value){
  if(!Array.isArray(value)||value.length!==4||value.some(x=>!Number.isFinite(x)))throw Error('Geçersiz logo çerçevesi.');
  const [x,y,w,h]=value;if(x<0||y<0||w<=0||h<=0||x+w>source.w||y+h>source.h)throw Error('Logo çerçevesi kaynak dışında.');
@@ -60,7 +60,10 @@ function render(w,h,crop,coverage=1,background=null){
  return Buffer.concat([signature,chunk('IHDR',hdr),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);
 }
 const output=path.join(root,'icons');fs.mkdirSync(output,{recursive:true});
+const fullSource=source;
+source=decode(path.join(root,'assets/brand/logo-mark.png'));
 for(const [name,size,coverage,opaque]of [['icon-192.png',192,.94],['icon-512.png',512,.94],['icon-maskable-512.png',512,.64,true],['apple-touch-icon.png',180,.94,true]])fs.writeFileSync(path.join(output,name),render(size,size,layout.mark,coverage,opaque?[74,217,204]:null));
+source=fullSource;
 const [,,fw,fh]=frame(layout.full),width=576;
 fs.writeFileSync(path.join(output,'brand-logo.png'),render(width,Math.round(width*fh/fw),layout.full));
 const icon=fs.readFileSync(path.join(output,'icon-192.png')).toString('base64');
