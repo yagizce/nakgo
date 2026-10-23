@@ -203,13 +203,13 @@ const nakgoAuth = (() => {
         state.profile = null;
         // Password recovery needs a verified identity, not a successful profile query.
         if (state.recovery) { state.error=''; changed(); return; }
-        let result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).maybeSingle();
+        let result = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).maybeSingle();
         if (result.error) throw result.error;
         if (!result.data) {
             const metadata = user.user_metadata || {};
             const profile = {id:user.id, display_name:String(metadata.display_name || metadata.full_name || '').trim().slice(0,60), account_type:['carrier','owner'].includes(metadata.account_type) ? metadata.account_type : null};
-            result = await client.from('profiles').insert(profile).select('id,display_name,account_type').single();
-            if (result.error?.code === '23505') result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).single();
+            result = await client.from('profiles').insert(profile).select('id,display_name,account_type,city,about,phone').single();
+            if (result.error?.code === '23505') result = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).single();
             if (result.error) throw result.error;
         }
         if (current !== revision) return;
@@ -347,5 +347,19 @@ const nakgoAuth = (() => {
         if(error)throw error;
         await sync();
     }
-    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile};
+    async function saveProfileDetails(patch) {
+        if(!state.user || !state.profile || state.recovery)throw Error('Profile unavailable');
+        const id=state.user.id, current=revision, values={};
+        for(const [key,max] of [['display_name',60],['city',40],['about',200],['phone',11]]) {
+            if(!Object.prototype.hasOwnProperty.call(patch,key))continue;
+            if(typeof patch[key]!=='string' || patch[key].trim().length>max)throw Error('Invalid profile');
+            values[key]=patch[key].trim();
+        }
+        if(!Object.keys(values).length || (values.phone && !/^05[0-9]{9}$/.test(values.phone)))throw Error('Invalid profile');
+        const result=await requireClient().from('profiles').update(values).eq('id',id).select('id,display_name,account_type,city,about,phone').single();
+        if(result.error)throw result.error;
+        if(current!==revision || state.user?.id!==id)throw Error('Account changed');
+        state.profile=result.data; state.error=''; changed();
+    }
+    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails};
 })();

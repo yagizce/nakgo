@@ -2877,13 +2877,13 @@ const nakgoAuth = (() => {
         state.profile = null;
         // Password recovery needs a verified identity, not a successful profile query.
         if (state.recovery) { state.error=''; changed(); return; }
-        let result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).maybeSingle();
+        let result = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).maybeSingle();
         if (result.error) throw result.error;
         if (!result.data) {
             const metadata = user.user_metadata || {};
             const profile = {id:user.id, display_name:String(metadata.display_name || metadata.full_name || '').trim().slice(0,60), account_type:['carrier','owner'].includes(metadata.account_type) ? metadata.account_type : null};
-            result = await client.from('profiles').insert(profile).select('id,display_name,account_type').single();
-            if (result.error?.code === '23505') result = await client.from('profiles').select('id,display_name,account_type').eq('id',user.id).single();
+            result = await client.from('profiles').insert(profile).select('id,display_name,account_type,city,about,phone').single();
+            if (result.error?.code === '23505') result = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).single();
             if (result.error) throw result.error;
         }
         if (current !== revision) return;
@@ -3021,7 +3021,21 @@ const nakgoAuth = (() => {
         if(error)throw error;
         await sync();
     }
-    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile};
+    async function saveProfileDetails(patch) {
+        if(!state.user || !state.profile || state.recovery)throw Error('Profile unavailable');
+        const id=state.user.id, current=revision, values={};
+        for(const [key,max] of [['display_name',60],['city',40],['about',200],['phone',11]]) {
+            if(!Object.prototype.hasOwnProperty.call(patch,key))continue;
+            if(typeof patch[key]!=='string' || patch[key].trim().length>max)throw Error('Invalid profile');
+            values[key]=patch[key].trim();
+        }
+        if(!Object.keys(values).length || (values.phone && !/^05[0-9]{9}$/.test(values.phone)))throw Error('Invalid profile');
+        const result=await requireClient().from('profiles').update(values).eq('id',id).select('id,display_name,account_type,city,about,phone').single();
+        if(result.error)throw result.error;
+        if(current!==revision || state.user?.id!==id)throw Error('Account changed');
+        state.profile=result.data; state.error=''; changed();
+    }
+    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails};
 })();
 
 /**
@@ -3821,15 +3835,25 @@ const phoneOf = x => {
 
 const carrierPhone = u => (carriers[u] && carriers[u].phone) || "";
 
-function savePhone() {
+async function savePhone() {
+    const button=$("#phs2"); if(button?.disabled)return;
     const d = ($("#myph").value || "").replace(/\D/g, ""), n = d.length === 10 ? "0" + d : d;
     if (!/^05\d{9}$/.test(n))
         return toast("Geçerli bir cep numarası gir (05xx xxx xx xx)");
+    if(privateProfile()!==null) {
+        if(button)button.disabled=true;
+        try {await nakgoAuth.saveProfileDetails({phone:n});toast('Numaran hesabına kaydedildi');}
+        catch(error){toast(nakgoAuth.message(error));if(button)button.disabled=false;}
+        return;
+    }
     if (!setCar({ phone: n.slice(0, 4) + " " + n.slice(4, 7) + " " + n.slice(7, 9) + " " + n.slice(9) })) return;
     toast("Numara kaydedildi");
 }
 
-const phoneCard = () => `<div class="load" style="cursor:default"><b>Telefon numaram</b><p style="font-size:12.5px;color:var(--mute);margin:6px 0 10px">Arama ekranı Premium erişimi gerektirir. Demo verileri bu cihazda saklanır.</p><input id="myph" inputmode="tel" placeholder="05xx xxx xx xx" value="${esc(myCar.phone || "")}"><button class="chip on" id="phs2" style="margin-top:10px">Kaydet</button></div>`;
+const phoneCard = () => {
+    const profile=privateProfile(), s=nakgoAuth.snapshot();
+    return `<div class="load" style="cursor:default"><b>Telefon numaram</b><p style="font-size:12.5px;color:var(--mute);margin:6px 0 10px">${profile ? 'Numaran yalnız hesabında saklanır. Telefon doğrulaması yapılmaz.' : 'Arama ekranı Premium erişimi gerektirir. Demo verileri bu cihazda saklanır.'}</p><input id="myph" inputmode="tel" placeholder="05xx xxx xx xx" value="${esc(profile ? profile.phone||"" : myCar.phone||"")}"><button class="chip on" id="phs2" style="margin-top:10px"${s.user && (!s.profile || s.recovery) ? ' disabled' : ''}>Kaydet</button></div>`;
+};
 
 const cOk = c => !!(c.lic && c.src && c.kb && c.ruh);
 
@@ -3951,7 +3975,7 @@ function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
     return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">Hesap bağlantısı gerçektir. İlanlar, mesajlar ve diğer profil alanları henüz cihazdaki demoya aittir.</p>
+        <p class="estimate-note">Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir.</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
@@ -5010,12 +5034,18 @@ function renderOffers(m){
  * Kimlik, günlük araçlar ve iletişim grupları; kayıt davranışı hesap özelliğinde kalır.
  */
 
+// A signed-in account never falls back to another device user's demo fields.
+function privateProfile() {
+    const s=nakgoAuth.snapshot();
+    return s.user ? (s.profile || {}) : null;
+}
 function profileIdentityHTML(own,active,done,name,rating) {
+    const profile=privateProfile();
     return `<div class="profile-cover">
         <div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div>
         <div><span class="profile-eyebrow">NAKGO HESABIM</span>
-            <b>${esc(myCar.displayName||myName||'Profilim')}${vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
-            <div class="profile-caption">${role==='owner'?'Yük sahibi':'Taşıyıcı'}${myCar.city?' · '+esc(myCar.city):''}</div>
+            <b>${esc(profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim')}${profile ? '' : vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
+            <div class="profile-caption">${(profile ? profile.account_type : role)==='owner'?'Yük sahibi':(profile && !profile.account_type ? 'Hesabım' : 'Taşıyıcı')}${(profile ? profile.city : myCar.city)?' · '+esc(profile ? profile.city : myCar.city):''}</div>
             <div class="profile-caption">${rating?'★ '+rating.avg.toFixed(1)+' · '+rating.n+' değerlendirme':'Henüz değerlendirme yok'}</div>
         </div>
     </div>
@@ -5045,14 +5075,16 @@ function profileToolsHTML() {
 }
 
 function profileInfoHTML() {
+    const profile=privateProfile(), info=profile ? {displayName:profile.display_name,city:profile.city,about:profile.about} : myCar;
+    const s=nakgoAuth.snapshot(), disabled=s.user && (!s.profile || s.recovery) ? ' disabled' : '';
     return `<div class="load profile-info">
         <label for="profile-name">Görünen ad / firma</label>
-        <input id="profile-name" maxlength="60" autocomplete="organization" placeholder="Adın veya firma adın" value="${esc(myCar.displayName||'')}">
+        <input id="profile-name" maxlength="60" autocomplete="organization" placeholder="Adın veya firma adın" value="${esc(info.displayName||'')}">
         <label for="profile-city">Bulunduğun şehir</label>
-        <select id="profile-city"><option value="">Şehir seç</option>${opt2(cities,myCar.city)}</select>
+        <select id="profile-city"><option value="">Şehir seç</option>${opt2(cities,info.city)}</select>
         <label for="profile-about">Kısa tanıtım</label>
-        <textarea id="profile-about" maxlength="200" rows="2" placeholder="Çalıştığın güzergâhlar, taşıma deneyimin">${esc(myCar.about||'')}</textarea>
-        <button class="chip on" id="profile-save">Profili kaydet</button>
+        <textarea id="profile-about" maxlength="200" rows="2" placeholder="Çalıştığın güzergâhlar, taşıma deneyimin">${esc(info.about||'')}</textarea>
+        <button class="chip on" id="profile-save"${disabled}>Profili kaydet</button>
     </div>${phoneCard()}`;
 }
 
@@ -5061,8 +5093,8 @@ function renderProfile(main) {
     const jobs=[...offers,...incoming];
     const done=jobs.filter(job=>job.status==='ok'&&jobStage(job)===3).length;
     const active=jobs.filter(job=>job.status==='ok'&&jobStage(job)!==3).length;
-    const name=myCar.displayName||myName||'Profilim',rating=ratingOf(me||'local');
-    main.innerHTML=`${profileIdentityHTML(own.length,active,done,name,rating)}${demoNotice()}${profileToolsHTML()}
+    const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim',rating=profile ? null : ratingOf(me||'local');
+    main.innerHTML=`${profileIdentityHTML(own.length,active,done,name,rating)}${profile ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar, işler ve diğer işlemler cihazdaki demodur.</p>' : demoNotice()}${profileToolsHTML()}
         <div class="profile-grid">
             <section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
             <section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}
@@ -5075,9 +5107,17 @@ function renderProfile(main) {
         </div>`;
     carBind();listBind();
     bindAuthCard();
-    $('#profile-save').onclick=()=>{
-        if (!setCar({displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)})) return;
-        toast('Profilin kaydedildi');
+    $('#profile-save').onclick=async()=>{
+        const button=$('#profile-save'); if(button.disabled)return;
+        const patch={displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)};
+        if(privateProfile()!==null) {
+            button.disabled=true;
+            try {await nakgoAuth.saveProfileDetails({display_name:patch.displayName,city:patch.city,about:patch.about});toast('Profilin hesabına kaydedildi');}
+            catch(error){toast(nakgoAuth.message(error));button.disabled=false;}
+        } else {
+            if(!setCar(patch))return;
+            toast('Profilin kaydedildi');
+        }
     };
     $('#profile-messages').onclick=openInbox;
     $('#profile-fuel').onclick=()=>openCalc();

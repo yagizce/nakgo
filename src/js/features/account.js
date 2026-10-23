@@ -247,15 +247,25 @@ const phoneOf = x => {
 
 const carrierPhone = u => (carriers[u] && carriers[u].phone) || "";
 
-function savePhone() {
+async function savePhone() {
+    const button=$("#phs2"); if(button?.disabled)return;
     const d = ($("#myph").value || "").replace(/\D/g, ""), n = d.length === 10 ? "0" + d : d;
     if (!/^05\d{9}$/.test(n))
         return toast("Geçerli bir cep numarası gir (05xx xxx xx xx)");
+    if(privateProfile()!==null) {
+        if(button)button.disabled=true;
+        try {await nakgoAuth.saveProfileDetails({phone:n});toast('Numaran hesabına kaydedildi');}
+        catch(error){toast(nakgoAuth.message(error));if(button)button.disabled=false;}
+        return;
+    }
     if (!setCar({ phone: n.slice(0, 4) + " " + n.slice(4, 7) + " " + n.slice(7, 9) + " " + n.slice(9) })) return;
     toast("Numara kaydedildi");
 }
 
-const phoneCard = () => `<div class="load" style="cursor:default"><b>Telefon numaram</b><p style="font-size:12.5px;color:var(--mute);margin:6px 0 10px">Arama ekranı Premium erişimi gerektirir. Demo verileri bu cihazda saklanır.</p><input id="myph" inputmode="tel" placeholder="05xx xxx xx xx" value="${esc(myCar.phone || "")}"><button class="chip on" id="phs2" style="margin-top:10px">Kaydet</button></div>`;
+const phoneCard = () => {
+    const profile=privateProfile(), s=nakgoAuth.snapshot();
+    return `<div class="load" style="cursor:default"><b>Telefon numaram</b><p style="font-size:12.5px;color:var(--mute);margin:6px 0 10px">${profile ? 'Numaran yalnız hesabında saklanır. Telefon doğrulaması yapılmaz.' : 'Arama ekranı Premium erişimi gerektirir. Demo verileri bu cihazda saklanır.'}</p><input id="myph" inputmode="tel" placeholder="05xx xxx xx xx" value="${esc(profile ? profile.phone||"" : myCar.phone||"")}"><button class="chip on" id="phs2" style="margin-top:10px"${s.user && (!s.profile || s.recovery) ? ' disabled' : ''}>Kaydet</button></div>`;
+};
 
 const cOk = c => !!(c.lic && c.src && c.kb && c.ruh);
 
@@ -377,7 +387,7 @@ function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
     return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">Hesap bağlantısı gerçektir. İlanlar, mesajlar ve diğer profil alanları henüz cihazdaki demoya aittir.</p>
+        <p class="estimate-note">Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir.</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
