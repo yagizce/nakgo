@@ -72,5 +72,5 @@ def run_forms(page, check):
     check('eski taslakta kaldırılmış seçenekler formu kilitlemez',p.evaluate("cities.includes(document.querySelector('#f').value)&&vehicles.includes(document.querySelector('#v').value)&&bodies.includes(document.querySelector('#b').value)&&document.querySelector('#d').value==='Eski gün'"))
     check('eski taslağın geçerli metinleri korunur',p.input_value('#c')=='Korunan yük' and p.input_value('#n')=='Korunan açıklama')
     p.click('#go');check('geçersiz eski tarih kullanıcı düzeltmeden yayınlanmaz',p.is_visible('#go') and p.evaluate("!loads.some(l=>l.cargo==='Korunan yük')"))
-    p.fill('#d',datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y'));p.click('#go');check('kullanıcının düzelttiği taslak yayınlanabilir',p.evaluate("loads.some(l=>l.cargo==='Korunan yük')&&tab==='list'"))
+    p.click('#post-prev');p.fill('#d',datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y'));p.click('#post-next');p.click('#go');check('kullanıcının düzelttiği taslak yayınlanabilir',p.evaluate("loads.some(l=>l.cargo==='Korunan yük')&&tab==='list'"))
     p.context.close()
