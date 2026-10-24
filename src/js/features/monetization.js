@@ -158,6 +158,7 @@ function statsOf0(l) {
 }
 
 const statLine = l => {
+    if(l._remote)return "";
     const s = statsOf(l);
     return s.views + " görüntülenme · " + s.offers + " talep · " + s.saves + " kayıt" + (s.demo ? " (örnek)" : "");
 };
@@ -178,6 +179,7 @@ function statTips(l, s) {
 }
 
 function openStats(id) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const l = loads.find(x => String(x.id) === String(id));
     if (!l)
         return;

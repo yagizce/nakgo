@@ -17,6 +17,7 @@ module.exports=({run})=>{
   await r('return nakgoMarket.create({from:"İstanbul",to:"Ankara",veh:"Tır",body:"Tenteli",ton:22,cargo:"Test",date:"Bu hafta",img:"data:image/jpeg;base64,/9j/AA=="});');
   ok(r('return loads.length===1 && loads[0].mine && loads[0]._remote && loads[0].img.endsWith("/9j/AA==")'),'verified server row and JPEG survive mapping');
   r('nakgoAuth.updateListing=async (id,p)=>{window.lastPatch=p;return {id,owner_id:"a",owner_label:"A",kind:"load",status:"active",created_at:new Date().toISOString(),from_city:"İstanbul",to_city:"Ankara",vehicle:"Tır",body:"Tenteli",amount:22,cargo:"Test",available_on:loads[0].date,available_until:loads[0].dateEnd,...p};};');
+  ok(r('return statLine(loads[0])')==='', 'real listing never shows fabricated demo statistics');
   const end=r('return loads[0].dateEnd');
   await r('return nakgoMarket.update("l",800,{date:loads[0].date,note:"Edited"});');
   ok(r('return window.lastPatch.available_until')===end,'unchanged weekly date keeps its end');
