@@ -5,11 +5,13 @@
 let postStep = 0, postDrafts = null, postDraftSaved = true;
 function getPostDrafts() {
     if (postDrafts) return postDrafts;
+    if(nakgoMarket.active())return postDrafts={};
     try { const d=JSON.parse(localStorage.getItem("ng-post-drafts") || "{}"); postDrafts=isRecord(d)?d:{}; }
     catch (e) { postDrafts={}; }
     return postDrafts;
 }
 function persistPostDrafts() {
+    if(nakgoMarket.active()){const status=$("#main .draft-state");if(status)status.textContent="Taslak bu oturumda tutuluyor";return true;}
     const previouslySaved = postDraftSaved;
     try { localStorage.setItem("ng-post-drafts", JSON.stringify(getPostDrafts())); postDraftSaved=true; }
     catch (e) {
@@ -31,8 +33,8 @@ function capturePostDraft() {
     const drafts = getPostDrafts(); drafts[postMode] = {fields, items, image: postImg, step: postStep};
     return persistPostDrafts();
 }
-function clearPostDraft() {
-    const drafts=getPostDrafts(); delete drafts[postMode];
+function clearPostDraft(kind=postMode) {
+    const drafts=getPostDrafts(); delete drafts[kind];
     return persistPostDrafts();
 }
 function initPostWizard(m) {

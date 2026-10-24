@@ -63,7 +63,7 @@ function renderProfile(main) {
     const done=jobs.filter(job=>job.status==='ok'&&jobStage(job)===3).length;
     const active=jobs.filter(job=>job.status==='ok'&&jobStage(job)!==3).length;
     const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim',rating=profile ? null : ratingOf(me||'local');
-    main.innerHTML=`${profileIdentityHTML(own.length,active,done,name,rating)}${profile ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar, işler ve diğer işlemler cihazdaki demodur.</p>' : demoNotice()}${profileToolsHTML()}
+    main.innerHTML=`${profileIdentityHTML(own.length,active,done,name,rating)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar, işler ve diğer işlemler cihazdaki demodur.</p>' : demoNotice()}${profileToolsHTML()}
         <div class="profile-grid">
             <section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
             <section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}

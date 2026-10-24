@@ -27,7 +27,7 @@ function openLoad(id) {
       <div class="detail-top"><span>Yük ilanı <span class="detail-id">#${esc(l.id)}</span></span><button class="chip detail-close" id="close" aria-label="İlan detayını kapat">Kapat <span aria-hidden="true">×</span></button></div>
       <div class="detail-scroll" tabindex="0" aria-label="İlan bilgileri">
         <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${esc(dateLabel(l))}</span>${isF(l) ? `<span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span>` : ""}</div></section>
-        ${!cloud ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
+        ${!cloud && !nakgoMarket.active() ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
         ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
         <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", esc(l.cargo)], ["Tonaj", esc(l.ton) + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", esc(dateLabel(l))]])}${l.note ? `<p class="detail-note">${esc(l.note)}</p>` : ""}</section>
         <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p></section>
@@ -78,6 +78,7 @@ function openTruck(id) {
 }
 
 function contactDockHTML(unavailable=false) {
+    if(nakgoMarket.active())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">Telefon ve mesajlaşma bağlantısı hazırlanıyor.</p><button class="btn" id="call" disabled>Ara</button><button class="btn alt" id="mg" disabled>Mesaj gönder</button></div>';
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
     return `<div class="contact-dock dual-contact">${unavailable?'<p class="contact-unavailable" role="status">Bu ilan kapalı veya süresi dolmuş. Yeni görüşme başlatılamaz.</p>':""}<button class="btn contact-call" id="call" ${unavailable?"disabled":""}><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg" ${unavailable?"disabled":""}><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
 }

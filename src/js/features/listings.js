@@ -212,6 +212,7 @@ const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
 
 function postTruck(t) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const error = postError(t, true);
     if (error) { toast(error); return false; }
     Object.assign(t, dateFields(t.date), {ts:Date.now()});
@@ -236,6 +237,7 @@ const mineT = () => trucks.filter(t => cloud ? t.uid === me : t.mine);
 const findIt = (k, id) => (k === "l" ? loads : trucks).find(x => String(x.id) === String(id));
 
 function patchIt(k, id, patch) {
+    if(nakgoMarket.active())return nakgoMarket.update(k,id,patch).catch(e=>{toast(nakgoAuth.message(e));return false;});
     const it = findIt(k, id);
     if (!it)
         return;
@@ -254,7 +256,7 @@ function openEdit(k, id, reopen=false) {
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
     B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
-    $("#es").onclick = () => {
+    $("#es").onclick = async () => {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
@@ -267,7 +269,9 @@ function openEdit(k, id, reopen=false) {
             if (end<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
             Object.assign(patch,{closed:false,ts:Date.now()});
         }
-        if (!patchIt(k, id, patch)) return;
+        const button=$('#es'); if(nakgoMarket.active()){if(button.disabled)return;button.disabled=true;}
+        const result=patchIt(k,id,patch);
+        if (!(result && typeof result.then==='function' ? await result : result)) {button.disabled=false;return;}
         closeSheet();
         toast("İlan güncellendi");
     };
@@ -281,8 +285,13 @@ function askDel(k, id) {
         return;
     const B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">Bu işlem geri alınamaz.</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
-    $("#yes").onclick = () => {
+    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">${nakgoMarket.active()?"İlan yayından kaldırılır ve arşivlenir.":"Bu işlem geri alınamaz."}</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
+    $("#yes").onclick = async () => {
+        if(nakgoMarket.active()) {
+            const button=$("#yes"); if(button.disabled)return; button.disabled=true;
+            if(!await patchIt(k,id,{archived:true})){button.disabled=false;return;}
+            closeSheet();toast("İlan yayından kaldırıldı");return;
+        }
         if (cloud)
             dbw(db.doc((k === "l" ? "loads/" : "trucks/") + id).delete());
         if (k === "l")
@@ -332,10 +341,11 @@ function itemsUI() {
     };
 }
 
-const expired = (x, k) => !!(x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
-const availableListing = (x,isT=false) => !!x && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
+const expired = (x, k) => !!(!x._remote && x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
+const availableListing = (x,isT=false) => !!x && !x.archived && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
 const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||x.who||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
 function contactAllowed(x,isT=false,allowOwn=false) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const current=x&&findIt(isT?"t":"l",x.id);
     if(!availableListing(current,isT)) { toast("Bu ilan artık açık değil. Yeni iletişim başlatılamaz."); return false; }
     if(!allowOwn && ((cloud && current.uid===me)||(!cloud&&current.mine))) { toast("Kendi ilanına mesaj gönderemezsin"); return false; }

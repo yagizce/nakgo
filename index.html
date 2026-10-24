@@ -2627,6 +2627,7 @@ function savePrefs() {
     pt=setTimeout(()=>db.doc("data/users/"+me+"/prefs").set(prefs).then(()=>{lastP=j;}).catch(()=>toast("Tercihler bağlantı nedeniyle eşitlenemedi")),800);
 }
 function save(syncPrefs = true) {
+    if (typeof nakgoMarket !== "undefined" && nakgoMarket.active()) return nakgoMarket.pending();
     try {
         if(recoveryBlocked) throw new Error("recovery");
         const j=JSON.stringify(stateData());
@@ -2845,7 +2846,7 @@ const nakgoAuth = (() => {
     let client = null, revision = 0, started = false;
     const state = {enabled:false, ready:false, user:null, profile:null, recovery:false, error:''};
     const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
-    const changed = () => { if (tab === 'me') render(); };
+    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me') render(); };
     const message = error => ({
         invalid_credentials:'E-posta veya şifre doğru değil.',
         email_not_confirmed:'Giriş yapmadan önce e-postandaki doğrulama bağlantısını aç.',
@@ -2874,7 +2875,7 @@ const nakgoAuth = (() => {
         if (current !== revision) return;
         const user = data.user;
         state.user = {id:user.id, email:user.email || ''};
-        state.profile = null;
+        state.profile = null; changed();
         // Password recovery needs a verified identity, not a successful profile query.
         if (state.recovery) { state.error=''; changed(); return; }
         let result = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).maybeSingle();
@@ -2930,7 +2931,7 @@ const nakgoAuth = (() => {
             if (!response.ok) return;
             const config = await response.json();
             if (!configOK(config)) return;
-            state.enabled = true; changed();
+            state.enabled = true; state.marketplace = config.marketplaceEnabled === true; changed();
             await loadSDK();
             client = window.supabase.createClient(config.url,config.publishableKey, {auth:{
                 flowType:'pkce', persistSession:true, autoRefreshToken:true, detectSessionInUrl:true,
@@ -3035,8 +3036,8 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,items,status,created_at,updated_at';
-    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','items'];
+    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,items,image_data,status,created_at,updated_at';
+    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','items','image_data'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
         return {id:state.user.id, revision};
@@ -3073,6 +3074,87 @@ const nakgoAuth = (() => {
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
     return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing};
+})();
+
+// Real listings are session-scoped; demo state never receives account records.
+const nakgoMarket = (() => {
+    let account='', generation=0, writes=0, demo=null, busy=false, error='', feedBefore=null, ownBefore=null, feedMore=false, ownMore=false;
+    const active=()=>!!account;
+    const token=()=>account+':'+generation;
+    const pending=()=>{toast('Bu özellik gerçek hesaplar için henüz hazır değil.');return false;};
+    function empty() {
+        loads=[]; trucks=[]; offers=[]; incoming=[]; chats={}; favs=[]; alerts=[]; blocked=[]; reports=[]; rates=[]; cdocs={};
+        myCar={lic:'',src:false,kb:false,ruh:false}; prem={until:0,plan:''};
+        carriers={}; names={}; appr={}; events=[]; allO=[]; seen=new Set(); cmp=[]; postDrafts=null; postImg='';
+    }
+    function sync(s) {
+        const next=s.marketplace && s.user && !s.recovery ? s.user.id : '';
+        if(next!==account) {
+            generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
+            if(!account && next) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
+            empty(); account=next;
+            if(!next && demo) {
+                applyState(demo.data); ({incoming,carriers,names,appr,events,allO,seen}=demo); demo=null;
+            }
+            closeSheet(); $('#sheetBody').innerHTML=''; loaded=!next; render();
+        }
+        if(next && s.profile && !loaded && !busy) refresh();
+    }
+    function mapped(r) {
+        return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
+            from:r.from_city,to:r.to_city,veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
+            owner:r.owner_label,who:r.owner_label,date:r.available_on,dateEnd:r.available_until||'',note:r.note,
+            items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active',archived:r.status==='archived',
+            ts:Date.parse(r.created_at),rate:'Yeni'};
+    }
+    function put(rows,replace=false) {
+        const records=new Map((replace?[]:[...loads,...trucks]).map(x=>[x.remoteId,x]));
+        rows.forEach(r=>records.set(r.id,mapped(r)));
+        const all=[...records.values()].filter(x=>!x.archived).sort((a,b)=>b.remoteId-a.remoteId);
+        loads=all.filter(x=>typeof x.id==='number'); trucks=all.filter(x=>typeof x.id==='string');
+    }
+    async function refresh(more=false) {
+        if(!account || busy)return;
+        const owner=token(), startedWrites=writes; busy=true; error=''; if(!more)loaded=false; render();
+        try {
+            const [feed,own]=await Promise.all([
+                !more||feedMore?nakgoAuth.listListings({before:more?feedBefore:null}):Promise.resolve([]),
+                !more||ownMore?nakgoAuth.listListings({own:true,before:more?ownBefore:null}):Promise.resolve([])
+            ]);
+            if(owner!==token() || startedWrites!==writes)return;
+            if(!more||feedMore){feedMore=feed.length===50;feedBefore=feed.at(-1)?.id||null;}
+            if(!more||ownMore){ownMore=own.length===50;ownBefore=own.at(-1)?.id||null;}
+            put([...feed,...own],!more);
+        } catch(e) {if(owner===token())error='İlanlar yüklenemedi. Bağlantını kontrol edip yeniden dene.';}
+        finally {if(owner===token()){busy=false;loaded=true;render();}}
+    }
+    function payload(x,truck) {
+        const dates=dateFields(x.date);
+        return {kind:truck?'truck':'load',from_city:x.from,to_city:x.to,vehicle:x.veh,body:x.body,amount:truck?x.cap:x.ton,
+            cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,
+            items:truck?[]:x.items||[],image_data:truck?'':x.img||''};
+    }
+    async function create(x,truck=false) {
+        const owner=token(), row=await nakgoAuth.createListing(payload(x,truck));
+        if(owner!==token())throw Error('Account changed'); writes++; put([row]); return row;
+    }
+    async function update(k,id,patch) {
+        const x=findIt(k,id); if(!x?._remote || !x.mine)throw Error('Own listing required');
+        const owner=token(), values={};
+        if('note' in patch)values.note=patch.note;
+        if('cap' in patch)values.amount=patch.cap;
+        if('date' in patch){const dates=dateFields(patch.date);values.available_on=dates.date;values.available_until=('dateEnd' in patch?patch.dateEnd:patch.date===x.date?x.dateEnd:dates.dateEnd)||null;}
+        if('closed' in patch)values.status=patch.closed?'closed':'active';
+        if(patch.archived)values.status='archived';
+        const row=await nakgoAuth.updateListing(x.remoteId,values);
+        if(owner!==token())throw Error('Account changed'); writes++; put([row]); render(); return true;
+    }
+    function controls() {
+        if(!active())return '';
+        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar ve fotoğrafları hesabında saklanır. Diğer işlemler henüz kullanıma hazır değil.')+'</p>'+
+            '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
+    }
+    return {active,token,sync,refresh,create,update,pending,controls};
 })();
 
 /**
@@ -3289,6 +3371,7 @@ const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
 
 function postTruck(t) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const error = postError(t, true);
     if (error) { toast(error); return false; }
     Object.assign(t, dateFields(t.date), {ts:Date.now()});
@@ -3313,6 +3396,7 @@ const mineT = () => trucks.filter(t => cloud ? t.uid === me : t.mine);
 const findIt = (k, id) => (k === "l" ? loads : trucks).find(x => String(x.id) === String(id));
 
 function patchIt(k, id, patch) {
+    if(nakgoMarket.active())return nakgoMarket.update(k,id,patch).catch(e=>{toast(nakgoAuth.message(e));return false;});
     const it = findIt(k, id);
     if (!it)
         return;
@@ -3331,7 +3415,7 @@ function openEdit(k, id, reopen=false) {
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
     B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
-    $("#es").onclick = () => {
+    $("#es").onclick = async () => {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
@@ -3344,7 +3428,9 @@ function openEdit(k, id, reopen=false) {
             if (end<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
             Object.assign(patch,{closed:false,ts:Date.now()});
         }
-        if (!patchIt(k, id, patch)) return;
+        const button=$('#es'); if(nakgoMarket.active()){if(button.disabled)return;button.disabled=true;}
+        const result=patchIt(k,id,patch);
+        if (!(result && typeof result.then==='function' ? await result : result)) {button.disabled=false;return;}
         closeSheet();
         toast("İlan güncellendi");
     };
@@ -3358,8 +3444,13 @@ function askDel(k, id) {
         return;
     const B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">Bu işlem geri alınamaz.</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
-    $("#yes").onclick = () => {
+    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">${nakgoMarket.active()?"İlan yayından kaldırılır ve arşivlenir.":"Bu işlem geri alınamaz."}</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
+    $("#yes").onclick = async () => {
+        if(nakgoMarket.active()) {
+            const button=$("#yes"); if(button.disabled)return; button.disabled=true;
+            if(!await patchIt(k,id,{archived:true})){button.disabled=false;return;}
+            closeSheet();toast("İlan yayından kaldırıldı");return;
+        }
         if (cloud)
             dbw(db.doc((k === "l" ? "loads/" : "trucks/") + id).delete());
         if (k === "l")
@@ -3409,10 +3500,11 @@ function itemsUI() {
     };
 }
 
-const expired = (x, k) => !!(x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
-const availableListing = (x,isT=false) => !!x && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
+const expired = (x, k) => !!(!x._remote && x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
+const availableListing = (x,isT=false) => !!x && !x.archived && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
 const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||x.who||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
 function contactAllowed(x,isT=false,allowOwn=false) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const current=x&&findIt(isT?"t":"l",x.id);
     if(!availableListing(current,isT)) { toast("Bu ilan artık açık değil. Yeni iletişim başlatılamaz."); return false; }
     if(!allowOwn && ((cloud && current.uid===me)||(!cloud&&current.mine))) { toast("Kendi ilanına mesaj gönderemezsin"); return false; }
@@ -3483,7 +3575,7 @@ const retHTML=o=>{
     return c.length?`<div class="ret"><b>Dönüş güzergâhındaki yükler</b>${c.map(l=>`<button class="retc" data-rl="${esc(l.id)}"><span>${esc(l.from)} → ${esc(l.to)}</span><span>${esc(l.veh)} · ${esc(l.ton)} ton</span></button>`).join('')}</div>`:'';
 };
 const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(nm(o.bidder))}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'owner'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
-function simulate(id){setTimeout(()=>{const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
+function simulate(id){setTimeout(()=>{if(nakgoMarket.active())return;const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
 
 // ===== Bildirim ve alarm =====
 // Uygulama içi bildirimler, zil, rota alarmı.
@@ -3546,6 +3638,7 @@ function openBell() {
 }
 
 function addAlert() {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const al = { id: Date.now(), from: F.from || "", to: F.to || "", veh: F.veh[0] || "" };
     if (alerts.some(x => x.from === al.from && x.to === al.to && x.veh === al.veh))
         return toast("Bu alarm zaten kurulu");
@@ -3566,6 +3659,7 @@ const alertsCard = () => `<div class="load" style="cursor:default"><b>Rota alarm
 // Teklif sohbeti (gerçek kullanıcılar arasında canlı, örnek ilanlarda hazır cevaplı).
 
 function openChat(key, who, onFirstSend, guard) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
     const live = cloud && /^o\d+_./.test(key), B = $("#sheetBody");
     B.dataset.k = key;
@@ -3905,6 +3999,7 @@ const lvT = t => (t.approved === true || (t.uid && appr[t.uid] === true)) ? 2 : 
 const vbadge = l => l === 2 ? VA : l === 1 ? VB : "";
 
 function docPhoto(k) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     pickImg(u => {
         cdocs[(me || "local") + "/" + k] = u;
         if (cloud)
@@ -3934,6 +4029,7 @@ const adminCard = () => {
 };
 
 function setCar(patch) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     Object.assign(myCar, patch);
     if (!save()) return false;
     const d = { displayName: myCar.displayName || "", city: myCar.city || "", about: myCar.about || "", phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
@@ -3968,6 +4064,7 @@ const carCard = () => {
 // Şikayet, engelleme, yardım ve sık sorulan sorular.
 
 function openReport(kind, id) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const B = $("#sheetBody");
     B.dataset.k = "";
     B.innerHTML = `<b style="font-size:19px">Şikayet et</b><label>Sebep</label><select id="rr">${["Sahte ilan", "Dolandırıcılık şüphesi", "Uygunsuz içerik", "Yanlış bilgi", "Diğer"].map(x => `<option>${x}</option>`).join("")}</select><label>Açıklama (isteğe bağlı)</label><input id="rn" maxlength="200" placeholder="Ne oldu?"><button class="btn" id="rg">Gönder</button><button class="btn alt" id="close">Vazgeç</button>`;
@@ -3986,6 +4083,7 @@ function openReport(kind, id) {
 }
 
 function blockUser(u) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     if (!u || u === me)
         return;
     if (!blocked.includes(u))
@@ -4012,7 +4110,7 @@ function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
     return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir.</p>
+        <p class="estimate-note">${nakgoMarket.active()?"Profil, iletişim ve ilanların hesabında saklanır. İşler, mesajlar, favoriler, belgeler ve ödeme henüz kullanıma hazır değil.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
@@ -4122,6 +4220,7 @@ const isPrem = () => prem.until > Date.now();
 const callChip = a => `<button class="chip" ${a}>Ara${isPrem() ? "" : '<b class="pm">Premium</b>'}</button>`;
 
 function openPaywall(why) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     roadMapDispose(true);
     if (unChat) { unChat(); unChat=null; }
     const B = $("#sheetBody");
@@ -4183,6 +4282,7 @@ const isDemoFeature = x => !cloud && x.id === 8 && !x.uid && !x.mine;
 const isF = x => isDemoFeature(x) || !!x.featUntil && (x.featFrom || 0) <= Date.now() && Date.now() < x.featUntil;
 
 function openFeature(kind, id) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const it = findIt(kind, id);
     if (!it)
         return;
@@ -4379,6 +4479,7 @@ function deep() {
 
 function shareLoad(l) {
     track("sh", l.id);
+    if(l._remote)return toast("Gerçek ilan paylaşımı henüz hazır değil.");
     const url = APPURL + "#l=" + l.id, text = l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton";
     const copy = () => {
         if (navigator.clipboard)
@@ -4464,7 +4565,7 @@ const soft = () => {
 };
 
 
-const demoNotice = () => !cloud ? `<p class="demo-note"><b>Demo modu</b> · Veriler bu cihazda tutulur. Yanıtlar ve test satın almaları simüledir; gerçek işlem yapılmaz.</p>` : "";
+const demoNotice = () => !cloud && !nakgoMarket.active() ? `<p class="demo-note"><b>Demo modu</b> · Veriler bu cihazda tutulur. Yanıtlar ve test satın almaları simüledir; gerçek işlem yapılmaz.</p>` : "";
 const screenHeading = (title, note) => `<div class="screen-heading"><h2>${title}</h2><p>${note}</p></div>`;
 
 /**
@@ -4727,11 +4828,13 @@ function roadMapBind(root,returnToDetail=null,onViewChange=()=>{}) {
 let postStep = 0, postDrafts = null, postDraftSaved = true;
 function getPostDrafts() {
     if (postDrafts) return postDrafts;
+    if(nakgoMarket.active())return postDrafts={};
     try { const d=JSON.parse(localStorage.getItem("ng-post-drafts") || "{}"); postDrafts=isRecord(d)?d:{}; }
     catch (e) { postDrafts={}; }
     return postDrafts;
 }
 function persistPostDrafts() {
+    if(nakgoMarket.active()){const status=$("#main .draft-state");if(status)status.textContent="Taslak bu oturumda tutuluyor";return true;}
     const previouslySaved = postDraftSaved;
     try { localStorage.setItem("ng-post-drafts", JSON.stringify(getPostDrafts())); postDraftSaved=true; }
     catch (e) {
@@ -4753,8 +4856,8 @@ function capturePostDraft() {
     const drafts = getPostDrafts(); drafts[postMode] = {fields, items, image: postImg, step: postStep};
     return persistPostDrafts();
 }
-function clearPostDraft() {
-    const drafts=getPostDrafts(); delete drafts[postMode];
+function clearPostDraft(kind=postMode) {
+    const drafts=getPostDrafts(); delete drafts[kind];
     return persistPostDrafts();
 }
 function initPostWizard(m) {
@@ -4877,13 +4980,14 @@ function renderListings(m) {
         }
         const st = isT ? [[trucks.filter(x=>availableListing(x,true)).length, "boş araç"], [trucks.filter(x => availableListing(x,true)&&dateBucket(x)==="Bugün").length, "bugün müsait"], [Math.round(trucks.filter(x=>availableListing(x,true)).reduce((a, x) => a + (+x.cap||0), 0)), "ton kapasite"]] : [[loads.filter(x => availableListing(x)).length, "açık ilan"], [loads.filter(x => availableListing(x)&&dateBucket(x)==="Bugün").length, "bugün yükleme"], [new Set(loads.filter(x=>availableListing(x)).map(x=>x.from)).size, "çıkış şehri"]];
         const hero = `<div class="hero">${st.map(([a, b]) => `<div><b>${a}</b><span>${b}</span></div>`).join("")}</div>`;
-        m.innerHTML = routeSearch() + SEG + (!cloud ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${esc(q)}" style="margin:0"></div>
+        m.innerHTML = routeSearch() + SEG + (!cloud && !nakgoMarket.active() ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${esc(q)}" style="margin:0"></div>
     ${nearRow()}${ac.length ? `<div class="chips active-filters wrap">${ac.map(c => `<button class="chip on" data-x="${c[0]}" data-v="${esc(c[1])}">${esc(c[2])} ×</button>`).join("")}</div>` : ""}
     <div class="meta listing-count" style="margin:0 2px 10px"><span>${items.length} ${isT ? "boş araç" : "ilan"}${!isT && (F.from || F.to) ? ` <button class="chip" id="al" style="margin-left:6px;padding:4px 10px;font-size:12px">Alarm kur</button>` : ""}</span><span>Yola çıkmaya hazır</span></div>
     <div class="listing-grid">${!loaded ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div><section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section><div class="list-actions" aria-label="İlan araçları">${cmpBar()}<div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option><option value="rate" ${sort === "rate" ? "selected" : ""}>Puan ↓</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
         segBind();
         m.querySelectorAll("[data-fav]").forEach(b => b.onclick = e => {
             e.stopPropagation();
+            if(nakgoMarket.active())return nakgoMarket.pending();
             const f = b.dataset.fav, was = favs.includes(f);
             tog(favs, f);
             if (!save()) return;
@@ -4985,10 +5089,16 @@ function renderPost(m) {
             m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             const publishButton = $("#go");
-            publishButton.onclick = () => {
+            publishButton.onclick = async () => {
                 if (tab !== "post" || $("#go") !== publishButton) return;
-                if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
-                const cleared = clearPostDraft();
+                if(publishButton.disabled)return;
+                if(nakgoMarket.active()) {
+                    const value=postValues(), error=postError(value,true); if(error)return toast(error);
+                    publishButton.disabled=true;
+                    try {await nakgoMarket.create(value,true);} catch(e){publishButton.disabled=false;toast(nakgoAuth.message(e));return;}
+                } else if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
+                const cleared = clearPostDraft('truck');
+                if(nakgoMarket.active() && (tab!=='post'||$('#go')!==publishButton)){toast('Boş araç ilanı yayınlandı');return;}
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
                 tab = "list";
@@ -5012,7 +5122,7 @@ function renderPost(m) {
         pb();
         itemsUI();
         const publishButton = $("#go");
-        publishButton.onclick = () => {
+        publishButton.onclick = async () => {
             if (tab !== "post" || $("#go") !== publishButton) return;
             const l = { ...postValues(), id: Date.now(), note: $("#n").value.trim().slice(0,1000), owner: myCar.displayName || myName || "Ben" };
             if (myCar.phone)
@@ -5024,6 +5134,11 @@ function renderPost(m) {
                 l.items = its;
             const error = postError(l);
             if (error) return toast(error);
+            if(publishButton.disabled)return;
+            if(nakgoMarket.active()) {
+                publishButton.disabled=true;
+                try {await nakgoMarket.create(l);} catch(e){publishButton.disabled=false;toast(nakgoAuth.message(e));return;}
+            } else {
             Object.assign(l,dateFields(l.date),{ts:Date.now()});
             if (cloud) {
                 l.uid = me;
@@ -5035,8 +5150,10 @@ function renderPost(m) {
                 l.mine = true;
             loads.unshift(l);
             if (!save()) return;
+            }
             postImg = "";
-            const cleared = clearPostDraft();
+            const cleared = clearPostDraft('load');
+            if(nakgoMarket.active() && (tab!=='post'||$('#go')!==publishButton)){toast('İlan yayınlandı');return;}
             F = F0(); q = ""; nearOn = false;
             mode = "load";
             tab = "list";
@@ -5131,7 +5248,7 @@ function renderProfile(main) {
     const done=jobs.filter(job=>job.status==='ok'&&jobStage(job)===3).length;
     const active=jobs.filter(job=>job.status==='ok'&&jobStage(job)!==3).length;
     const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim',rating=profile ? null : ratingOf(me||'local');
-    main.innerHTML=`${profileIdentityHTML(own.length,active,done,name,rating)}${profile ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar, işler ve diğer işlemler cihazdaki demodur.</p>' : demoNotice()}${profileToolsHTML()}
+    main.innerHTML=`${profileIdentityHTML(own.length,active,done,name,rating)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar, işler ve diğer işlemler cihazdaki demodur.</p>' : demoNotice()}${profileToolsHTML()}
         <div class="profile-grid">
             <section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
             <section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}
@@ -5288,7 +5405,7 @@ function openLoad(id) {
       <div class="detail-top"><span>Yük ilanı <span class="detail-id">#${esc(l.id)}</span></span><button class="chip detail-close" id="close" aria-label="İlan detayını kapat">Kapat <span aria-hidden="true">×</span></button></div>
       <div class="detail-scroll" tabindex="0" aria-label="İlan bilgileri">
         <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${esc(dateLabel(l))}</span>${isF(l) ? `<span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span>` : ""}</div></section>
-        ${!cloud ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
+        ${!cloud && !nakgoMarket.active() ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
         ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
         <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", esc(l.cargo)], ["Tonaj", esc(l.ton) + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", esc(dateLabel(l))]])}${l.note ? `<p class="detail-note">${esc(l.note)}</p>` : ""}</section>
         <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p></section>
@@ -5339,6 +5456,7 @@ function openTruck(id) {
 }
 
 function contactDockHTML(unavailable=false) {
+    if(nakgoMarket.active())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">Telefon ve mesajlaşma bağlantısı hazırlanıyor.</p><button class="btn" id="call" disabled>Ara</button><button class="btn alt" id="mg" disabled>Mesaj gönder</button></div>';
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
     return `<div class="contact-dock dual-contact">${unavailable?'<p class="contact-unavailable" role="status">Bu ilan kapalı veya süresi dolmuş. Yeni görüşme başlatılamaz.</p>':""}<button class="btn contact-call" id="call" ${unavailable?"disabled":""}><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg" ${unavailable?"disabled":""}><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
 }
@@ -5355,6 +5473,11 @@ function render() {
  else if(tab === "post") renderPost(m);
  else if(tab === "mine") renderOffers(m);
  else if(tab === "me") renderProfile(m);
+ if(nakgoMarket.active() && m.insertAdjacentHTML) {
+    m.insertAdjacentHTML('afterbegin',nakgoMarket.controls());
+    $('#market-refresh').onclick=()=>nakgoMarket.refresh();
+    if($('#market-more'))$('#market-more').onclick=()=>nakgoMarket.refresh(true);
+ }
  if(storageNotice && m.insertAdjacentHTML) m.insertAdjacentHTML("afterbegin",`<p class="demo-note" role="status">${esc(storageNotice)}</p>`);
 }
 

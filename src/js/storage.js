@@ -47,6 +47,7 @@ function savePrefs() {
     pt=setTimeout(()=>db.doc("data/users/"+me+"/prefs").set(prefs).then(()=>{lastP=j;}).catch(()=>toast("Tercihler bağlantı nedeniyle eşitlenemedi")),800);
 }
 function save(syncPrefs = true) {
+    if (typeof nakgoMarket !== "undefined" && nakgoMarket.active()) return nakgoMarket.pending();
     try {
         if(recoveryBlocked) throw new Error("recovery");
         const j=JSON.stringify(stateData());

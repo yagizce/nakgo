@@ -280,6 +280,7 @@ const lvT = t => (t.approved === true || (t.uid && appr[t.uid] === true)) ? 2 : 
 const vbadge = l => l === 2 ? VA : l === 1 ? VB : "";
 
 function docPhoto(k) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     pickImg(u => {
         cdocs[(me || "local") + "/" + k] = u;
         if (cloud)
@@ -309,6 +310,7 @@ const adminCard = () => {
 };
 
 function setCar(patch) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     Object.assign(myCar, patch);
     if (!save()) return false;
     const d = { displayName: myCar.displayName || "", city: myCar.city || "", about: myCar.about || "", phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
@@ -343,6 +345,7 @@ const carCard = () => {
 // Şikayet, engelleme, yardım ve sık sorulan sorular.
 
 function openReport(kind, id) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const B = $("#sheetBody");
     B.dataset.k = "";
     B.innerHTML = `<b style="font-size:19px">Şikayet et</b><label>Sebep</label><select id="rr">${["Sahte ilan", "Dolandırıcılık şüphesi", "Uygunsuz içerik", "Yanlış bilgi", "Diğer"].map(x => `<option>${x}</option>`).join("")}</select><label>Açıklama (isteğe bağlı)</label><input id="rn" maxlength="200" placeholder="Ne oldu?"><button class="btn" id="rg">Gönder</button><button class="btn alt" id="close">Vazgeç</button>`;
@@ -361,6 +364,7 @@ function openReport(kind, id) {
 }
 
 function blockUser(u) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     if (!u || u === me)
         return;
     if (!blocked.includes(u))
@@ -387,7 +391,7 @@ function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
     return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir.</p>
+        <p class="estimate-note">${nakgoMarket.active()?"Profil, iletişim ve ilanların hesabında saklanır. İşler, mesajlar, favoriler, belgeler ve ödeme henüz kullanıma hazır değil.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>

@@ -4,7 +4,7 @@ export function publicAuthConfig(env) {
     const url = env.SUPABASE_URL || '', publishableKey = env.SUPABASE_PUBLISHABLE_KEY || '';
     if (!/^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(url) ||
         !/^sb_publishable_[A-Za-z0-9_-]{16,200}$/.test(publishableKey)) return null;
-    return {enabled:true,url,publishableKey};
+    return {enabled:true,url,publishableKey,marketplaceEnabled:true};
 }
 
 export default function handler(req, res) {

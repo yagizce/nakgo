@@ -26,10 +26,16 @@ function renderPost(m) {
             m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             const publishButton = $("#go");
-            publishButton.onclick = () => {
+            publishButton.onclick = async () => {
                 if (tab !== "post" || $("#go") !== publishButton) return;
-                if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
-                const cleared = clearPostDraft();
+                if(publishButton.disabled)return;
+                if(nakgoMarket.active()) {
+                    const value=postValues(), error=postError(value,true); if(error)return toast(error);
+                    publishButton.disabled=true;
+                    try {await nakgoMarket.create(value,true);} catch(e){publishButton.disabled=false;toast(nakgoAuth.message(e));return;}
+                } else if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
+                const cleared = clearPostDraft('truck');
+                if(nakgoMarket.active() && (tab!=='post'||$('#go')!==publishButton)){toast('Boş araç ilanı yayınlandı');return;}
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
                 tab = "list";
@@ -53,7 +59,7 @@ function renderPost(m) {
         pb();
         itemsUI();
         const publishButton = $("#go");
-        publishButton.onclick = () => {
+        publishButton.onclick = async () => {
             if (tab !== "post" || $("#go") !== publishButton) return;
             const l = { ...postValues(), id: Date.now(), note: $("#n").value.trim().slice(0,1000), owner: myCar.displayName || myName || "Ben" };
             if (myCar.phone)
@@ -65,6 +71,11 @@ function renderPost(m) {
                 l.items = its;
             const error = postError(l);
             if (error) return toast(error);
+            if(publishButton.disabled)return;
+            if(nakgoMarket.active()) {
+                publishButton.disabled=true;
+                try {await nakgoMarket.create(l);} catch(e){publishButton.disabled=false;toast(nakgoAuth.message(e));return;}
+            } else {
             Object.assign(l,dateFields(l.date),{ts:Date.now()});
             if (cloud) {
                 l.uid = me;
@@ -76,8 +87,10 @@ function renderPost(m) {
                 l.mine = true;
             loads.unshift(l);
             if (!save()) return;
+            }
             postImg = "";
-            const cleared = clearPostDraft();
+            const cleared = clearPostDraft('load');
+            if(nakgoMarket.active() && (tab!=='post'||$('#go')!==publishButton)){toast('İlan yayınlandı');return;}
             F = F0(); q = ""; nearOn = false;
             mode = "load";
             tab = "list";

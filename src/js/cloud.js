@@ -171,7 +171,7 @@ const nakgoAuth = (() => {
     let client = null, revision = 0, started = false;
     const state = {enabled:false, ready:false, user:null, profile:null, recovery:false, error:''};
     const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
-    const changed = () => { if (tab === 'me') render(); };
+    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me') render(); };
     const message = error => ({
         invalid_credentials:'E-posta veya şifre doğru değil.',
         email_not_confirmed:'Giriş yapmadan önce e-postandaki doğrulama bağlantısını aç.',
@@ -200,7 +200,7 @@ const nakgoAuth = (() => {
         if (current !== revision) return;
         const user = data.user;
         state.user = {id:user.id, email:user.email || ''};
-        state.profile = null;
+        state.profile = null; changed();
         // Password recovery needs a verified identity, not a successful profile query.
         if (state.recovery) { state.error=''; changed(); return; }
         let result = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).maybeSingle();
@@ -256,7 +256,7 @@ const nakgoAuth = (() => {
             if (!response.ok) return;
             const config = await response.json();
             if (!configOK(config)) return;
-            state.enabled = true; changed();
+            state.enabled = true; state.marketplace = config.marketplaceEnabled === true; changed();
             await loadSDK();
             client = window.supabase.createClient(config.url,config.publishableKey, {auth:{
                 flowType:'pkce', persistSession:true, autoRefreshToken:true, detectSessionInUrl:true,
@@ -361,8 +361,8 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,items,status,created_at,updated_at';
-    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','items'];
+    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,items,image_data,status,created_at,updated_at';
+    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','items','image_data'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
         return {id:state.user.id, revision};
@@ -399,4 +399,85 @@ const nakgoAuth = (() => {
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
     return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing};
+})();
+
+// Real listings are session-scoped; demo state never receives account records.
+const nakgoMarket = (() => {
+    let account='', generation=0, writes=0, demo=null, busy=false, error='', feedBefore=null, ownBefore=null, feedMore=false, ownMore=false;
+    const active=()=>!!account;
+    const token=()=>account+':'+generation;
+    const pending=()=>{toast('Bu özellik gerçek hesaplar için henüz hazır değil.');return false;};
+    function empty() {
+        loads=[]; trucks=[]; offers=[]; incoming=[]; chats={}; favs=[]; alerts=[]; blocked=[]; reports=[]; rates=[]; cdocs={};
+        myCar={lic:'',src:false,kb:false,ruh:false}; prem={until:0,plan:''};
+        carriers={}; names={}; appr={}; events=[]; allO=[]; seen=new Set(); cmp=[]; postDrafts=null; postImg='';
+    }
+    function sync(s) {
+        const next=s.marketplace && s.user && !s.recovery ? s.user.id : '';
+        if(next!==account) {
+            generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
+            if(!account && next) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
+            empty(); account=next;
+            if(!next && demo) {
+                applyState(demo.data); ({incoming,carriers,names,appr,events,allO,seen}=demo); demo=null;
+            }
+            closeSheet(); $('#sheetBody').innerHTML=''; loaded=!next; render();
+        }
+        if(next && s.profile && !loaded && !busy) refresh();
+    }
+    function mapped(r) {
+        return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
+            from:r.from_city,to:r.to_city,veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
+            owner:r.owner_label,who:r.owner_label,date:r.available_on,dateEnd:r.available_until||'',note:r.note,
+            items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active',archived:r.status==='archived',
+            ts:Date.parse(r.created_at),rate:'Yeni'};
+    }
+    function put(rows,replace=false) {
+        const records=new Map((replace?[]:[...loads,...trucks]).map(x=>[x.remoteId,x]));
+        rows.forEach(r=>records.set(r.id,mapped(r)));
+        const all=[...records.values()].filter(x=>!x.archived).sort((a,b)=>b.remoteId-a.remoteId);
+        loads=all.filter(x=>typeof x.id==='number'); trucks=all.filter(x=>typeof x.id==='string');
+    }
+    async function refresh(more=false) {
+        if(!account || busy)return;
+        const owner=token(), startedWrites=writes; busy=true; error=''; if(!more)loaded=false; render();
+        try {
+            const [feed,own]=await Promise.all([
+                !more||feedMore?nakgoAuth.listListings({before:more?feedBefore:null}):Promise.resolve([]),
+                !more||ownMore?nakgoAuth.listListings({own:true,before:more?ownBefore:null}):Promise.resolve([])
+            ]);
+            if(owner!==token() || startedWrites!==writes)return;
+            if(!more||feedMore){feedMore=feed.length===50;feedBefore=feed.at(-1)?.id||null;}
+            if(!more||ownMore){ownMore=own.length===50;ownBefore=own.at(-1)?.id||null;}
+            put([...feed,...own],!more);
+        } catch(e) {if(owner===token())error='İlanlar yüklenemedi. Bağlantını kontrol edip yeniden dene.';}
+        finally {if(owner===token()){busy=false;loaded=true;render();}}
+    }
+    function payload(x,truck) {
+        const dates=dateFields(x.date);
+        return {kind:truck?'truck':'load',from_city:x.from,to_city:x.to,vehicle:x.veh,body:x.body,amount:truck?x.cap:x.ton,
+            cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,
+            items:truck?[]:x.items||[],image_data:truck?'':x.img||''};
+    }
+    async function create(x,truck=false) {
+        const owner=token(), row=await nakgoAuth.createListing(payload(x,truck));
+        if(owner!==token())throw Error('Account changed'); writes++; put([row]); return row;
+    }
+    async function update(k,id,patch) {
+        const x=findIt(k,id); if(!x?._remote || !x.mine)throw Error('Own listing required');
+        const owner=token(), values={};
+        if('note' in patch)values.note=patch.note;
+        if('cap' in patch)values.amount=patch.cap;
+        if('date' in patch){const dates=dateFields(patch.date);values.available_on=dates.date;values.available_until=('dateEnd' in patch?patch.dateEnd:patch.date===x.date?x.dateEnd:dates.dateEnd)||null;}
+        if('closed' in patch)values.status=patch.closed?'closed':'active';
+        if(patch.archived)values.status='archived';
+        const row=await nakgoAuth.updateListing(x.remoteId,values);
+        if(owner!==token())throw Error('Account changed'); writes++; put([row]); render(); return true;
+    }
+    function controls() {
+        if(!active())return '';
+        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar ve fotoğrafları hesabında saklanır. Diğer işlemler henüz kullanıma hazır değil.')+'</p>'+
+            '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
+    }
+    return {active,token,sync,refresh,create,update,pending,controls};
 })();
