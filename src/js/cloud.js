@@ -505,9 +505,9 @@ const nakgoJobs = (() => {
     const reset=()=>{rows=[];busy=false;ready=false;error='';before=null;more=false;version++;pending.clear();};
     const state=()=>({rows:rows.map(r=>({...r,listing_snapshot:{...r.listing_snapshot}})),busy,ready,error,more});
     const put=(list,replace=false)=>{const all=new Map((replace?[]:rows).map(r=>[r.id,r]));list.forEach(r=>all.set(r.id,r));rows=[...all.values()].sort((a,b)=>b.id-a.id);};
-    async function refresh(append=false) {
+    async function refresh(append=false,showBusy=true) {
         if(!nakgoMarket.active()||busy)return;
-        const account=nakgoMarket.token(),revision=version;busy=true;error='';if(tab==='mine')render();
+        const account=nakgoMarket.token(),revision=version;busy=true;error='';if(showBusy&&tab==='mine')render();
         try {
             const data=await nakgoAuth.listJobs(append?before:null);
             if(account!==nakgoMarket.token()||revision!==version)return;

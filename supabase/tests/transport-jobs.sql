@@ -80,6 +80,25 @@ do $$ declare j public.transport_jobs; begin
  if (public.nakgo_transition_transport(j.id,'confirm')).confirmed_at<>j.confirmed_at then raise exception 'FAIL repeated confirm';end if;
 end $$;
 reset role;
+insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
+values(current_setting('nakgo.owner')::uuid,'truck','İstanbul','Ankara','Tır','Tenteli',20,'Test owner',(now() at time zone 'Europe/Istanbul')::date)
+returning set_config('nakgo.truck',id::text,true);
+insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on,status)
+values(current_setting('nakgo.owner')::uuid,'load','İstanbul','Ankara','Tır','Tenteli',20,'Closed test','Test owner',(now() at time zone 'Europe/Istanbul')::date,'closed')
+returning set_config('nakgo.closed',id::text,true);
+select set_config('request.jwt.claim.sub',current_setting('nakgo.carrier'),true);
+set local role authenticated;
+do $$ begin
+ begin perform public.nakgo_request_transport(current_setting('nakgo.truck')::bigint);raise exception 'FAIL truck request';exception when insufficient_privilege then null;end;
+ begin perform public.nakgo_request_transport(current_setting('nakgo.closed')::bigint);raise exception 'FAIL closed request';exception when check_violation then null;end;
+end $$;
+reset role;
+update auth.users set email_confirmed_at=null where id=current_setting('nakgo.carrier')::uuid;
+set local role authenticated;
+do $$ begin
+ begin perform public.nakgo_request_transport(current_setting('nakgo.load')::bigint);raise exception 'FAIL unverified RPC';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
 select set_config('request.jwt.claim.sub','',true);
 set local role anon;
 do $$ begin

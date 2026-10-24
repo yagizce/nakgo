@@ -34,4 +34,14 @@ module.exports=({run})=>{
   r('nakgoAuth.listJobs=async()=>{throw Error("network");};');await r('return nakgoJobs.refresh()');
   ok(r('return nakgoJobs.state().rows[0].stage===1&&!!nakgoJobs.state().error'),'read failure preserves current data with visible error');
  },{win:{}});
+ run('Real jobs expose only the participant actions and escape listing text',async(r,ok)=>{
+  r('nakgoMarket.sync({marketplace:true,user:{id:"owner"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"owner"}});window.job={id:1,owner_id:"owner",carrier_id:"carrier",carrier_label:"<img onerror=bad>",listing_snapshot:{from:"İstanbul",to:"Ankara",cargo:"<script>bad</script>",ton:10,owner:"Owner"},status:"wait",stage:0,expires_at:new Date(Date.now()+864e5).toISOString()};nakgoJobs.state=()=>({rows:[window.job],ready:true,busy:false,error:"",more:false});tab="mine";render();');
+  ok(r(`return main().includes('data-job-action="accept"')&&!main().includes('data-job-action="loaded"')`),'owner sees decisions, not carrier loading action');
+  ok(r('return main().includes("&lt;script&gt;")&&!main().includes("<script>bad")'),'untrusted job text remains escaped');
+  r('nakgoAuth.snapshot=()=>({user:{id:"carrier"}});window.job.status="ok";render();');
+  ok(r(`return main().includes('data-job-action="loaded"')&&!main().includes('data-job-action="confirm"')`),'carrier can report loading but cannot self-confirm');
+  r('nakgoAuth.snapshot=()=>({user:{id:"owner"}});window.job.stage=1;render();');
+  ok(r(`return main().includes('data-job-action="confirm"')`),'owner can confirm reported loading');
+  r('window.job.stage=3;render();');ok(r('return !main().includes("data-job-action=")&&main().includes("Yükleme onaylandı")'),'confirmed job has no repeated mutation controls');
+ },{win:{}});
 };
