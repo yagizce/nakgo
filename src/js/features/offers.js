@@ -55,7 +55,7 @@ const retHTML=o=>{
     return c.length?`<div class="ret"><b>Dönüş güzergâhındaki yükler</b>${c.map(l=>`<button class="retc" data-rl="${esc(l.id)}"><span>${esc(l.from)} → ${esc(l.to)}</span><span>${esc(l.veh)} · ${esc(l.ton)} ton</span></button>`).join('')}</div>`:'';
 };
 const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(nm(o.bidder))}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'owner'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
-function simulate(id){setTimeout(()=>{const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
+function simulate(id){setTimeout(()=>{if(nakgoMarket.active())return;const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
 
 // ===== Bildirim ve alarm =====
 // Uygulama içi bildirimler, zil, rota alarmı.
@@ -118,6 +118,7 @@ function openBell() {
 }
 
 function addAlert() {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const al = { id: Date.now(), from: F.from || "", to: F.to || "", veh: F.veh[0] || "" };
     if (alerts.some(x => x.from === al.from && x.to === al.to && x.veh === al.veh))
         return toast("Bu alarm zaten kurulu");
@@ -138,6 +139,7 @@ const alertsCard = () => `<div class="load" style="cursor:default"><b>Rota alarm
 // Teklif sohbeti (gerçek kullanıcılar arasında canlı, örnek ilanlarda hazır cevaplı).
 
 function openChat(key, who, onFirstSend, guard) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
     const live = cloud && /^o\d+_./.test(key), B = $("#sheetBody");
     B.dataset.k = key;

@@ -20,6 +20,7 @@ function deep() {
 
 function shareLoad(l) {
     track("sh", l.id);
+    if(l._remote)return toast("Gerçek ilan paylaşımı henüz hazır değil.");
     const url = APPURL + "#l=" + l.id, text = l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton";
     const copy = () => {
         if (navigator.clipboard)
@@ -105,5 +106,5 @@ const soft = () => {
 };
 
 
-const demoNotice = () => !cloud ? `<p class="demo-note"><b>Demo modu</b> · Veriler bu cihazda tutulur. Yanıtlar ve test satın almaları simüledir; gerçek işlem yapılmaz.</p>` : "";
+const demoNotice = () => !cloud && !nakgoMarket.active() ? `<p class="demo-note"><b>Demo modu</b> · Veriler bu cihazda tutulur. Yanıtlar ve test satın almaları simüledir; gerçek işlem yapılmaz.</p>` : "";
 const screenHeading = (title, note) => `<div class="screen-heading"><h2>${title}</h2><p>${note}</p></div>`;

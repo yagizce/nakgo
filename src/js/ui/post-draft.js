@@ -5,11 +5,13 @@
 let postStep = 0, postDrafts = null, postDraftSaved = true;
 function getPostDrafts() {
     if (postDrafts) return postDrafts;
+    if(nakgoMarket.active())return postDrafts={};
     try { const d=JSON.parse(localStorage.getItem("ng-post-drafts") || "{}"); postDrafts=isRecord(d)?d:{}; }
     catch (e) { postDrafts={}; }
     return postDrafts;
 }
 function persistPostDrafts() {
+    if(nakgoMarket.active()){const status=$("#main .draft-state");if(status)status.textContent="Taslak bu oturumda tutuluyor";return true;}
     const previouslySaved = postDraftSaved;
     try { localStorage.setItem("ng-post-drafts", JSON.stringify(getPostDrafts())); postDraftSaved=true; }
     catch (e) {
@@ -31,8 +33,8 @@ function capturePostDraft() {
     const drafts = getPostDrafts(); drafts[postMode] = {fields, items, image: postImg, step: postStep};
     return persistPostDrafts();
 }
-function clearPostDraft() {
-    const drafts=getPostDrafts(); delete drafts[postMode];
+function clearPostDraft(kind=postMode) {
+    const drafts=getPostDrafts(); delete drafts[kind];
     return persistPostDrafts();
 }
 function initPostWizard(m) {
@@ -41,7 +43,7 @@ function initPostWizard(m) {
     const savedDraft=getPostDrafts()[postMode], draft=isRecord(savedDraft)?savedDraft:null;
     postStep=draft ? Math.max(0,Math.min(2,+draft.step||0)) : 0;
     if (draft) {
-        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=value; }
+        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=id==='d' && postDateOK(value) ? postDateText(dateFields(value).date) : value; }
         if(postMode==='load') {
             for(const item of (Array.isArray(draft.items)?draft.items:[]).filter(isRecord).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=typeof item.n==='string'?item.n:''; e.querySelector('[data-iq]').value=typeof item.q==='string'||Number.isFinite(item.q)?item.q:''; if(ITEM_UNITS.includes(item.u))e.querySelector('[data-iu]').value=item.u; }
             if(imgOk(draft.image)){postImg=draft.image;$('#phs').innerHTML=`<img class="th" src="${postImg}" alt="Taslak yük fotoğrafı">`;}

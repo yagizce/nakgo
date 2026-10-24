@@ -80,7 +80,7 @@ const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
-    ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>Doğrudan görüş</span><b>Ara veya mesajlaş</b></div></div>
+    ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
     <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
     <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
     <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${favs.includes(String(l.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(l.id))}" class="fav ${favs.includes(String(l.id)) ? "on" : ""}" data-fav="${esc(l.id)}">${favs.includes(String(l.id)) ? "♥" : "♡"}</button></div>
@@ -212,6 +212,7 @@ const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
 
 function postTruck(t) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const error = postError(t, true);
     if (error) { toast(error); return false; }
     Object.assign(t, dateFields(t.date), {ts:Date.now()});
@@ -236,6 +237,7 @@ const mineT = () => trucks.filter(t => cloud ? t.uid === me : t.mine);
 const findIt = (k, id) => (k === "l" ? loads : trucks).find(x => String(x.id) === String(id));
 
 function patchIt(k, id, patch) {
+    if(nakgoMarket.active())return nakgoMarket.update(k,id,patch).catch(e=>{toast(nakgoAuth.message(e));return false;});
     const it = findIt(k, id);
     if (!it)
         return;
@@ -254,7 +256,7 @@ function openEdit(k, id, reopen=false) {
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
     B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
-    $("#es").onclick = () => {
+    $("#es").onclick = async () => {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
@@ -267,7 +269,9 @@ function openEdit(k, id, reopen=false) {
             if (end<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
             Object.assign(patch,{closed:false,ts:Date.now()});
         }
-        if (!patchIt(k, id, patch)) return;
+        const button=$('#es'); if(nakgoMarket.active()){if(button.disabled)return;button.disabled=true;}
+        const result=patchIt(k,id,patch);
+        if (!(result && typeof result.then==='function' ? await result : result)) {button.disabled=false;return;}
         closeSheet();
         toast("İlan güncellendi");
     };
@@ -281,8 +285,13 @@ function askDel(k, id) {
         return;
     const B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">Bu işlem geri alınamaz.</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
-    $("#yes").onclick = () => {
+    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">${nakgoMarket.active()?"İlan yayından kaldırılır ve arşivlenir.":"Bu işlem geri alınamaz."}</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
+    $("#yes").onclick = async () => {
+        if(nakgoMarket.active()) {
+            const button=$("#yes"); if(button.disabled)return; button.disabled=true;
+            if(!await patchIt(k,id,{archived:true})){button.disabled=false;return;}
+            closeSheet();toast("İlan yayından kaldırıldı");return;
+        }
         if (cloud)
             dbw(db.doc((k === "l" ? "loads/" : "trucks/") + id).delete());
         if (k === "l")
@@ -300,7 +309,7 @@ function askDel(k, id) {
 
 const myListHTML = () => {
     const a = [...mineL().map(l => ({ k: "l", id: l.id, r: l.from + " → " + l.to, v: l.ton + " ton", c: l.closed || expired(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: t.from + " → " + t.to, v: t.cap + " ton", c: t.closed || expired(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))];
-    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${esc(x.id)}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
+    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" && !nakgoMarket.active() ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${esc(x.id)}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
 };
 
 const itemsTxt = l => (Array.isArray(l.items) ? l.items : []).slice(0, 6).map(i => esc(i.n) + " " + (+i.q || 0) + " " + esc(i.u)).join(", ");
@@ -332,10 +341,11 @@ function itemsUI() {
     };
 }
 
-const expired = (x, k) => !!(x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
-const availableListing = (x,isT=false) => !!x && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
+const expired = (x, k) => !!(!x._remote && x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
+const availableListing = (x,isT=false) => !!x && !x.archived && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
 const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||x.who||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
 function contactAllowed(x,isT=false,allowOwn=false) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const current=x&&findIt(isT?"t":"l",x.id);
     if(!availableListing(current,isT)) { toast("Bu ilan artık açık değil. Yeni iletişim başlatılamaz."); return false; }
     if(!allowOwn && ((cloud && current.uid===me)||(!cloud&&current.mine))) { toast("Kendi ilanına mesaj gönderemezsin"); return false; }

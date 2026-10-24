@@ -7,7 +7,7 @@ function postValues() {
     const truck = postMode === "truck";
     return {
         from: $("#f").value, to: $("#t").value, veh: $("#v").value,
-        body: $(truck ? "#bd" : "#b").value, date: $("#d").value,
+        body: $(truck ? "#bd" : "#b").value, ...parsePostDate($("#d").value),
         ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
     };
 }
@@ -23,13 +23,19 @@ function renderPost(m) {
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun gün</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" aria-describedby="post-date-hint" required><small id="post-date-hint">Gün.ay.yıl ve istersen saat:dakika yaz.</small><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             const publishButton = $("#go");
-            publishButton.onclick = () => {
+            publishButton.onclick = async () => {
                 if (tab !== "post" || $("#go") !== publishButton) return;
-                if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
-                const cleared = clearPostDraft();
+                if(publishButton.disabled)return;
+                if(nakgoMarket.active()) {
+                    const value=postValues(), error=postError(value,true); if(error)return toast(error);
+                    publishButton.disabled=true;
+                    try {await nakgoMarket.create(value,true);} catch(e){publishButton.disabled=false;toast(nakgoAuth.message(e));return;}
+                } else if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
+                const cleared = clearPostDraft('truck');
+                if(nakgoMarket.active() && (tab!=='post'||$('#go')!==publishButton)){toast('Boş araç ilanı yayınlandı');return;}
                 F = F0(); q = ""; nearOn = false;
                 mode = "truck";
                 tab = "list";
@@ -47,13 +53,13 @@ function renderPost(m) {
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
     </div>
-    <label>Yükleme günü</label><select id="d">${opt(["Bugün", "Yarın", "Bu hafta"])}</select>
+    <label>Yükleme tarihi</label><input id="d" type="text" maxlength="32" aria-describedby="post-date-hint" required><small id="post-date-hint">Gün.ay.yıl ve istersen saat:dakika yaz.</small>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
     <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
         pb();
         itemsUI();
         const publishButton = $("#go");
-        publishButton.onclick = () => {
+        publishButton.onclick = async () => {
             if (tab !== "post" || $("#go") !== publishButton) return;
             const l = { ...postValues(), id: Date.now(), note: $("#n").value.trim().slice(0,1000), owner: myCar.displayName || myName || "Ben" };
             if (myCar.phone)
@@ -65,6 +71,11 @@ function renderPost(m) {
                 l.items = its;
             const error = postError(l);
             if (error) return toast(error);
+            if(publishButton.disabled)return;
+            if(nakgoMarket.active()) {
+                publishButton.disabled=true;
+                try {await nakgoMarket.create(l);} catch(e){publishButton.disabled=false;toast(nakgoAuth.message(e));return;}
+            } else {
             Object.assign(l,dateFields(l.date),{ts:Date.now()});
             if (cloud) {
                 l.uid = me;
@@ -76,8 +87,10 @@ function renderPost(m) {
                 l.mine = true;
             loads.unshift(l);
             if (!save()) return;
+            }
             postImg = "";
-            const cleared = clearPostDraft();
+            const cleared = clearPostDraft('load');
+            if(nakgoMarket.active() && (tab!=='post'||$('#go')!==publishButton)){toast('İlan yayınlandı');return;}
             F = F0(); q = ""; nearOn = false;
             mode = "load";
             tab = "list";
