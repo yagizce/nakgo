@@ -30,7 +30,7 @@ const PLANS = [{ id: "m", name: "Aylık", price: 299, days: 30 }, { id: "y", nam
 
 const TTL = { load: 14, truck: 7, offer: 3 };
 
-const SUPPORT_MAIL = "destek@example.com";
+const SUPPORT_MAIL = "destek@nakgolojistik.com";
 
 const FAQ = [["Premium üyelik nedir?", "Premium üyeler ilan sahiplerini ve taşıyıcıları arayabilir ve uygulama içinden mesajlaşabilir."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Yükleme nasıl onaylanır?", "Taşıyıcı İşlerim bölümünde Yükledim der; yük sahibi yüklemeyi onaylar. Teslim fotoğrafı adımı yoktur."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
 

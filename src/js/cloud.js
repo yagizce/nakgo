@@ -361,5 +361,42 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails};
+    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,items,status,created_at,updated_at';
+    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','items'];
+    function listingAccount() {
+        if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
+        return {id:state.user.id, revision};
+    }
+    function listingResult(result,account) {
+        if(result.error)throw result.error;
+        if(account.revision!==revision || state.user?.id!==account.id)throw Error('Account changed');
+        return result.data;
+    }
+    async function listListings({own=false,before=null}={}) {
+        const account=listingAccount();
+        let query=requireClient().from('listings').select(listingColumns).order('id',{ascending:false}).limit(50);
+        if(own)query=query.eq('owner_id',account.id);
+        else query=query.eq('status','active');
+        if(before!==null) {
+            if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');
+            query=query.lt('id',before);
+        }
+        return listingResult(await query,account);
+    }
+    async function createListing(input) {
+        const account=listingAccount();
+        if(!['load','truck'].includes(input?.kind))throw Error('Invalid kind');
+        const values={kind:input.kind,owner_label:String(state.profile.display_name||'NakGo kullanıcısı').trim().slice(0,60)};
+        for(const key of listingFields)if(Object.prototype.hasOwnProperty.call(input,key))values[key]=input[key];
+        return listingResult(await requireClient().from('listings').insert(values).select(listingColumns).single(),account);
+    }
+    async function updateListing(id,input) {
+        const account=listingAccount();
+        if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
+        const values={};
+        for(const key of [...listingFields,'status'])if(Object.prototype.hasOwnProperty.call(input,key))values[key]=input[key];
+        if(!Object.keys(values).length)throw Error('No editable fields');
+        return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
+    }
+    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing};
 })();
