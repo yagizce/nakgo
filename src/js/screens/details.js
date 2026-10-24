@@ -33,7 +33,7 @@ function openLoad(id) {
         <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
         <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${esc(l.owner || (l.uid ? nm(l.uid) : "Bireysel"))}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button></div></section>
-        <div class="detail-actions"><button class="chip" id="sh">Paylaş</button><button class="chip" id="cp2">${cmp.includes(l.id) ? "Karşılaştırmadan çıkar" : "Karşılaştır"}</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me && !l.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
+        <div class="detail-actions">${l._remote&&!l.mine&&!unavailable?'<button class="chip" id="request-job">Taşıma talebi gönder</button>':""}<button class="chip" id="sh">Paylaş</button><button class="chip" id="cp2">${cmp.includes(l.id) ? "Karşılaştırmadan çıkar" : "Karşılaştır"}</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me && !l.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
       </div>
       ${contactDockHTML(unavailable)}
     </div>`;
@@ -43,6 +43,13 @@ function openLoad(id) {
     roadMapBind($("#sheetBody"),()=>openLoad(id));
     $("#close").onclick = closeSheet;
     $("#sh").onclick = () => shareLoad(l);
+    if(l._remote&&!l.mine&&!unavailable) {
+        const button=$('#request-job');button.onclick=async()=>{
+            if(button.disabled)return;button.disabled=true;const account=nakgoMarket.token();
+            try {const row=await nakgoJobs.request(l.remoteId);if(!row){button.disabled=false;return;}if($('#request-job')===button){closeSheet();tab='mine';setNav();render();}toast('Taşıma talebin İşlerim bölümüne kaydedildi');}
+            catch(e){if(account===nakgoMarket.token()){button.disabled=false;toast('Talep gönderilemedi. İlanları yenileyip tekrar dene.');}}
+        };
+    }
     $("#call").onclick = () => {
         if (!contactAllowed(l,false,true)) return;
         track("c", l.id);
