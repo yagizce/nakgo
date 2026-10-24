@@ -398,7 +398,23 @@ const nakgoAuth = (() => {
         if(!Object.keys(values).length)throw Error('No editable fields');
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
-    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing};
+    const jobColumns='id,listing_id,owner_id,carrier_id,carrier_label,listing_snapshot,status,stage,created_at,updated_at,expires_at,loaded_at,confirmed_at';
+    async function listJobs(before=null) {
+        const account=listingAccount();
+        let q=requireClient().from('transport_jobs').select(jobColumns).order('id',{ascending:false}).limit(50);
+        if(before!==null){if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');q=q.lt('id',before);}
+        return listingResult(await q,account);
+    }
+    async function requestTransport(id) {
+        const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
+        return listingResult(await requireClient().rpc('nakgo_request_transport',{p_listing_id:id}),account);
+    }
+    async function transitionTransport(id,action) {
+        const account=listingAccount();
+        if(!Number.isSafeInteger(id)||id<1||!['accept','reject','withdraw','loaded','confirm'].includes(action))throw Error('Invalid transition');
+        return listingResult(await requireClient().rpc('nakgo_transition_transport',{p_job_id:id,p_action:action}),account);
+    }
+    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,requestTransport,transitionTransport};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -417,7 +433,7 @@ const nakgoMarket = (() => {
         if(next!==account) {
             generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
             if(!account && next) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
-            empty(); account=next;
+            empty(); account=next; nakgoJobs.reset();
             if(!next && demo) {
                 applyState(demo.data); ({incoming,carriers,names,appr,events,allO,seen}=demo); demo=null;
             }
@@ -476,8 +492,37 @@ const nakgoMarket = (() => {
     }
     function controls() {
         if(!active())return '';
-        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar ve fotoğrafları hesabında saklanır. Diğer işlemler henüz kullanıma hazır değil.')+'</p>'+
+        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar, fotoğraflar ve taşıma talepleri hesabında saklanır. Mesajlaşma ve diğer işlemler hazırlanıyor.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
     }
     return {active,token,sync,refresh,create,update,pending,controls};
+})();
+
+// Transport jobs are held only in the verified account session, never the demo store.
+const nakgoJobs = (() => {
+    let rows=[],busy=false,ready=false,error='',before=null,more=false,version=0;
+    const pending=new Set();
+    const reset=()=>{rows=[];busy=false;ready=false;error='';before=null;more=false;version++;pending.clear();};
+    const state=()=>({rows:rows.map(r=>({...r,listing_snapshot:{...r.listing_snapshot}})),busy,ready,error,more});
+    const put=(list,replace=false)=>{const all=new Map((replace?[]:rows).map(r=>[r.id,r]));list.forEach(r=>all.set(r.id,r));rows=[...all.values()].sort((a,b)=>b.id-a.id);};
+    async function refresh(append=false) {
+        if(!nakgoMarket.active()||busy)return;
+        const account=nakgoMarket.token(),revision=version;busy=true;error='';if(tab==='mine')render();
+        try {
+            const data=await nakgoAuth.listJobs(append?before:null);
+            if(account!==nakgoMarket.token()||revision!==version)return;
+            put(data,!append);more=data.length===50;before=data.at(-1)?.id||null;ready=true;
+        } catch(e){if(account===nakgoMarket.token())error='İşler yüklenemedi. Yeniden dene.';}
+        finally {if(account===nakgoMarket.token()){busy=false;if(tab==='mine')render();}}
+    }
+    async function write(key,operation) {
+        if(!nakgoMarket.active())throw Error('Sign in required');
+        if(pending.has(key))return null;
+        pending.add(key);const account=nakgoMarket.token();
+        try {const row=await operation();if(account!==nakgoMarket.token())throw Error('Account changed');version++;put([row]);error='';return row;}
+        finally {if(account===nakgoMarket.token())pending.delete(key);}
+    }
+    const request=id=>write('listing:'+id,()=>nakgoAuth.requestTransport(id));
+    const transition=(id,action)=>write('job:'+id,()=>nakgoAuth.transitionTransport(id,action));
+    return {reset,state,refresh,request,transition};
 })();
