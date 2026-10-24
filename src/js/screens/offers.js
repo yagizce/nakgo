@@ -35,7 +35,7 @@ function renderRemoteJobs(m) {
     m.innerHTML=screenHeading('İşlerim','Taşıma taleplerini takip et. Yüklediğini bildir, onayı burada gör.')+
         '<div class="chips"><button class="chip" id="jobs-refresh" '+(s.busy?'disabled':'')+'>İşleri yenile</button></div>'+
         (s.error?'<p role="alert">'+esc(s.error)+'</p>':'')+
-        (s.busy&&!s.ready?'<p role="status">İşler yükleniyor…</p>':'')+
+        (!s.ready&&!s.error?'<p role="status">İşler yükleniyor…</p>':'')+
         (incomingJobs.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incomingJobs.map(card).join(''):'')+
         (outgoingJobs.length?'<h2 class="jobs-heading">Taşıma taleplerim</h2>'+outgoingJobs.map(card).join(''):'')+
         (s.ready&&!s.rows.length?'<div class="empty">Henüz taşıma talebin yok. Yük ilanının detayından talep gönderebilirsin.</div>':'')+
@@ -47,5 +47,5 @@ function renderRemoteJobs(m) {
         try {const row=await nakgoJobs.transition(+b.dataset.job,b.dataset.jobAction);if(!row){b.disabled=false;return;}if(tab==='mine')render();toast('İş durumu kaydedildi');}
         catch(e){if(account===nakgoMarket.token()){b.disabled=false;toast('İşlem kaydedilemedi. İşleri yenileyip tekrar dene.');}}
     });
-    if(!s.ready&&!s.busy&&!s.error)nakgoJobs.refresh();
+    if(!s.ready&&!s.busy&&!s.error)nakgoJobs.refresh(false,false);
 }
