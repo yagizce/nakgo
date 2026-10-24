@@ -2859,7 +2859,7 @@ const nakgoAuth = (() => {
     let client = null, revision = 0, started = false;
     const state = {enabled:false, ready:false, user:null, profile:null, recovery:false, error:''};
     const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
-    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me') render(); };
+    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'mine') render(); };
     const message = error => ({
         invalid_credentials:'E-posta veya şifre doğru değil.',
         email_not_confirmed:'Giriş yapmadan önce e-postandaki doğrulama bağlantısını aç.',
@@ -3194,7 +3194,8 @@ const nakgoJobs = (() => {
     const state=()=>({rows:rows.map(r=>({...r,listing_snapshot:{...r.listing_snapshot}})),busy,ready,error,more});
     const put=(list,replace=false)=>{const all=new Map((replace?[]:rows).map(r=>[r.id,r]));list.forEach(r=>all.set(r.id,r));rows=[...all.values()].sort((a,b)=>b.id-a.id);};
     async function refresh(append=false,showBusy=true) {
-        if(!nakgoMarket.active()||busy)return;
+        const auth=nakgoAuth.snapshot();
+        if(!nakgoMarket.active()||busy||!auth.user||!auth.profile||auth.recovery)return;
         const account=nakgoMarket.token(),revision=version;busy=true;error='';if(showBusy&&tab==='mine')render();
         try {
             const data=await nakgoAuth.listJobs(append?before:null);
