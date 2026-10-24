@@ -361,8 +361,8 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,items,image_data,status,created_at,updated_at';
-    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','items','image_data'];
+    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,available_time,items,image_data,status,created_at,updated_at';
+    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','available_time','items','image_data'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
         return {id:state.user.id, revision};
@@ -428,7 +428,7 @@ const nakgoMarket = (() => {
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
             from:r.from_city,to:r.to_city,veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
-            owner:r.owner_label,who:r.owner_label,date:r.available_on,dateEnd:r.available_until||'',note:r.note,
+            owner:r.owner_label,who:r.owner_label,date:r.available_on,dateEnd:r.available_until||'',time:r.available_time||'',note:r.note,
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active',archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};
     }
@@ -456,7 +456,7 @@ const nakgoMarket = (() => {
     function payload(x,truck) {
         const dates=dateFields(x.date);
         return {kind:truck?'truck':'load',from_city:x.from,to_city:x.to,vehicle:x.veh,body:x.body,amount:truck?x.cap:x.ton,
-            cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,
+            cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,available_time:x.time||'',
             items:truck?[]:x.items||[],image_data:truck?'':x.img||''};
     }
     async function create(x,truck=false) {

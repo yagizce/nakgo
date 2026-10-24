@@ -7,7 +7,7 @@ function postValues() {
     const truck = postMode === "truck";
     return {
         from: $("#f").value, to: $("#t").value, veh: $("#v").value,
-        body: $(truck ? "#bd" : "#b").value, date: $("#d").value,
+        body: $(truck ? "#bd" : "#b").value, ...parsePostDate($("#d").value),
         ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
     };
 }
@@ -23,7 +23,7 @@ function renderPost(m) {
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="date" min="${localDay()}" value="${localDay()}" required><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" placeholder="Örn. 28.10.2026 14:30" aria-describedby="post-date-hint" required><small id="post-date-hint">Gün.ay.yıl ve istersen saat:dakika yaz.</small><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             const publishButton = $("#go");
             publishButton.onclick = async () => {
@@ -53,7 +53,7 @@ function renderPost(m) {
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
     </div>
-    <label>Yükleme tarihi</label><input id="d" type="date" min="${localDay()}" value="${localDay()}" required>
+    <label>Yükleme tarihi</label><input id="d" type="text" maxlength="32" placeholder="Örn. 28.10.2026 14:30" aria-describedby="post-date-hint" required><small id="post-date-hint">Gün.ay.yıl ve istersen saat:dakika yaz.</small>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
     <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
         pb();

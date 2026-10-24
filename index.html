@@ -2390,6 +2390,18 @@ const localDay = (value = Date.now()) => {
     return Number.isFinite(d.getTime()) ? [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-") : "";
 };
 const validDay = d => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && localDay(d+"T12:00:00") === d;
+const validPostTime = value => typeof value==='string' && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(value);
+function parsePostDate(value) {
+    if(typeof value!=='string')return {date:'',time:''};
+    const text=value.trim();
+    if(validDay(text))return {date:text,time:''};
+    const match=/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/.exec(text);
+    if(!match)return {date:'',time:''};
+    const date=match[3]+'-'+match[2].padStart(2,'0')+'-'+match[1].padStart(2,'0');
+    const time=match[4]===undefined?'':match[4].padStart(2,'0')+':'+match[5];
+    return validDay(date)&&(!time||validPostTime(time))?{date,time}:{date:'',time:''};
+}
+const postDateText = (date=localDay(),time='') => date.split('-').reverse().join('.')+(validPostTime(time)?' '+time:'');
 function dateFields(value, now = Date.now()) {
     if (validDay(value)) return {date:value, dateEnd:""};
     const d = new Date(now); d.setHours(12,0,0,0);
@@ -2400,7 +2412,7 @@ function dateFields(value, now = Date.now()) {
     if (value === "Bu hafta") { d.setDate(d.getDate()+(7-d.getDay())%7); return {date,dateEnd:localDay(d)}; }
     return {date,dateEnd:""};
 }
-function dateLabel(x, now = Date.now()) {
+function dateOnlyLabel(x, now = Date.now()) {
     const d = typeof x === "string" ? x : x.date;
     if (!validDay(d)) return String(d || "Belirtilmedi");
     const end = typeof x === "object" && validDay(x.dateEnd) ? x.dateEnd : "";
@@ -2410,6 +2422,7 @@ function dateLabel(x, now = Date.now()) {
     if (d === dateFields("Yarın",now).date) return "Yarın";
     return format(d);
 }
+const dateLabel = (x,now=Date.now()) => dateOnlyLabel(x,now)+(validPostTime(x?.time)?' · '+x.time:'');
 const dateBucket = x => {
     const d = typeof x === "string" ? x : x.date;
     if (d === "Bugün" || d === "Yarın") return d;
@@ -3036,8 +3049,8 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,items,image_data,status,created_at,updated_at';
-    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','items','image_data'];
+    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,available_time,items,image_data,status,created_at,updated_at';
+    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','available_time','items','image_data'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
         return {id:state.user.id, revision};
@@ -3103,7 +3116,7 @@ const nakgoMarket = (() => {
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
             from:r.from_city,to:r.to_city,veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
-            owner:r.owner_label,who:r.owner_label,date:r.available_on,dateEnd:r.available_until||'',note:r.note,
+            owner:r.owner_label,who:r.owner_label,date:r.available_on,dateEnd:r.available_until||'',time:r.available_time||'',note:r.note,
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active',archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};
     }
@@ -3131,7 +3144,7 @@ const nakgoMarket = (() => {
     function payload(x,truck) {
         const dates=dateFields(x.date);
         return {kind:truck?'truck':'load',from_city:x.from,to_city:x.to,vehicle:x.veh,body:x.body,amount:truck?x.cap:x.ton,
-            cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,
+            cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,available_time:x.time||'',
             items:truck?[]:x.items||[],image_data:truck?'':x.img||''};
     }
     async function create(x,truck=false) {
@@ -4868,7 +4881,7 @@ function initPostWizard(m) {
     const savedDraft=getPostDrafts()[postMode], draft=isRecord(savedDraft)?savedDraft:null;
     postStep=draft ? Math.max(0,Math.min(2,+draft.step||0)) : 0;
     if (draft) {
-        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=id==='d' && e.type==='date' && postDateOK(value) ? dateFields(value).date : value; }
+        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=id==='d' && postDateOK(value) ? postDateText(dateFields(value).date) : value; }
         if(postMode==='load') {
             for(const item of (Array.isArray(draft.items)?draft.items:[]).filter(isRecord).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=typeof item.n==='string'?item.n:''; e.querySelector('[data-iq]').value=typeof item.q==='string'||Number.isFinite(item.q)?item.q:''; if(ITEM_UNITS.includes(item.u))e.querySelector('[data-iu]').value=item.u; }
             if(imgOk(draft.image)){postImg=draft.image;$('#phs').innerHTML=`<img class="th" src="${postImg}" alt="Taslak yük fotoğrafı">`;}
@@ -5072,7 +5085,7 @@ function postValues() {
     const truck = postMode === "truck";
     return {
         from: $("#f").value, to: $("#t").value, veh: $("#v").value,
-        body: $(truck ? "#bd" : "#b").value, date: $("#d").value,
+        body: $(truck ? "#bd" : "#b").value, ...parsePostDate($("#d").value),
         ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
     };
 }
@@ -5088,7 +5101,7 @@ function renderPost(m) {
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="date" min="${localDay()}" value="${localDay()}" required><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" placeholder="Örn. 28.10.2026 14:30" aria-describedby="post-date-hint" required><small id="post-date-hint">Gün.ay.yıl ve istersen saat:dakika yaz.</small><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             const publishButton = $("#go");
             publishButton.onclick = async () => {
@@ -5118,7 +5131,7 @@ function renderPost(m) {
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
     </div>
-    <label>Yükleme tarihi</label><input id="d" type="date" min="${localDay()}" value="${localDay()}" required>
+    <label>Yükleme tarihi</label><input id="d" type="text" maxlength="32" placeholder="Örn. 28.10.2026 14:30" aria-describedby="post-date-hint" required><small id="post-date-hint">Gün.ay.yıl ve istersen saat:dakika yaz.</small>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
     <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
         pb();

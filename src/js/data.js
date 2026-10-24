@@ -8,6 +8,18 @@ const localDay = (value = Date.now()) => {
     return Number.isFinite(d.getTime()) ? [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-") : "";
 };
 const validDay = d => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d) && localDay(d+"T12:00:00") === d;
+const validPostTime = value => typeof value==='string' && /^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(value);
+function parsePostDate(value) {
+    if(typeof value!=='string')return {date:'',time:''};
+    const text=value.trim();
+    if(validDay(text))return {date:text,time:''};
+    const match=/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/.exec(text);
+    if(!match)return {date:'',time:''};
+    const date=match[3]+'-'+match[2].padStart(2,'0')+'-'+match[1].padStart(2,'0');
+    const time=match[4]===undefined?'':match[4].padStart(2,'0')+':'+match[5];
+    return validDay(date)&&(!time||validPostTime(time))?{date,time}:{date:'',time:''};
+}
+const postDateText = (date=localDay(),time='') => date.split('-').reverse().join('.')+(validPostTime(time)?' '+time:'');
 function dateFields(value, now = Date.now()) {
     if (validDay(value)) return {date:value, dateEnd:""};
     const d = new Date(now); d.setHours(12,0,0,0);
@@ -18,7 +30,7 @@ function dateFields(value, now = Date.now()) {
     if (value === "Bu hafta") { d.setDate(d.getDate()+(7-d.getDay())%7); return {date,dateEnd:localDay(d)}; }
     return {date,dateEnd:""};
 }
-function dateLabel(x, now = Date.now()) {
+function dateOnlyLabel(x, now = Date.now()) {
     const d = typeof x === "string" ? x : x.date;
     if (!validDay(d)) return String(d || "Belirtilmedi");
     const end = typeof x === "object" && validDay(x.dateEnd) ? x.dateEnd : "";
@@ -28,6 +40,7 @@ function dateLabel(x, now = Date.now()) {
     if (d === dateFields("Yarın",now).date) return "Yarın";
     return format(d);
 }
+const dateLabel = (x,now=Date.now()) => dateOnlyLabel(x,now)+(validPostTime(x?.time)?' · '+x.time:'');
 const dateBucket = x => {
     const d = typeof x === "string" ? x : x.date;
     if (d === "Bugün" || d === "Yarın") return d;
