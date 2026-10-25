@@ -13,7 +13,7 @@ function profileIdentityHTML(own,active,done,name,rating) {
     return `<div class="profile-cover">
         <div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div>
         <div><span class="profile-eyebrow">NAKGO HESABIM</span>
-            <b>${esc(profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim')}${profile ? '' : vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
+            <b>${esc(profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim')}${profile ? vbadge(nakgoDocuments.isApproved(nakgoAuth.snapshot().user?.id)?2:0) : vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
             <div class="profile-caption">${(profile ? profile.account_type : role)==='owner'?'Yük sahibi':(profile && !profile.account_type ? 'Hesabım' : 'Taşıyıcı')}${(profile ? profile.city : myCar.city)?' · '+esc(profile ? profile.city : myCar.city):''}</div>
             <div class="profile-caption">${rating?'★ '+rating.avg.toFixed(1)+' · '+rating.n+' değerlendirme':'Henüz değerlendirme yok'}</div>
         </div>

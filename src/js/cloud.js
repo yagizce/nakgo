@@ -464,6 +464,36 @@ const nakgoAuth = (() => {
     async function unreadMessages() {
         const account=listingAccount();return messageResult(requireClient().rpc('nakgo_message_unread_count'),account);
     }
+    const applicationColumns='id,owner_id,owner_label,license_class,status,revision,created_at,submitted_at,reviewed_at,reviewed_by,review_note,updated_at';
+    const documentColumns='id,application_id,owner_id,kind,object_path,status,byte_size,created_at,updated_at';
+    const documentUUID=id=>typeof id==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id);
+    const documentPath=f=>f&&documentUUID(f.id)&&documentUUID(f.owner_id)&&messageID(f.application_id)&&f.object_path===f.owner_id+'/'+f.application_id+'/'+f.id+'.jpg';
+    async function documentRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_document_reviewer'),account);}
+    async function documentApplications(review=false,before=null){
+        const account=listingAccount();if(typeof review!=='boolean'||(before!==null&&!messageID(before)))throw Error('Invalid document query');
+        let q=requireClient().from('carrier_applications').select(applicationColumns).order('id',{ascending:false}).limit(20);
+        q=review?q.neq('owner_id',account.id).eq('status','submitted'):q.eq('owner_id',account.id);
+        if(before!==null)q=q.lt('id',before);return messageResult(q,account);
+    }
+    async function documentApplication(id){const account=listingAccount();if(!messageID(id))throw Error('Invalid application');return messageResult(requireClient().from('carrier_applications').select(applicationColumns).eq('id',id).maybeSingle(),account);}
+    async function documentFiles(id){const account=listingAccount();if(!messageID(id))throw Error('Invalid application');return messageResult(requireClient().from('carrier_document_files').select(documentColumns).eq('application_id',id).neq('status','removed').limit(3),account);}
+    async function createDocumentApplication(license){const account=listingAccount();if(!['B','C','CE','D'].includes(license))throw Error('Invalid license');return messageResult(requireClient().rpc('nakgo_create_carrier_application',{p_license:license}),account);}
+    async function reserveDocument(id,kind,fileID){const account=listingAccount();if(!messageID(id)||!['src','kb','ruh'].includes(kind)||!documentUUID(fileID))throw Error('Invalid document');return messageResult(requireClient().rpc('nakgo_reserve_document',{p_application_id:id,p_kind:kind,p_file_id:fileID}),account);}
+    async function finalizeDocument(id){const account=listingAccount();if(!documentUUID(id))throw Error('Invalid document');return messageResult(requireClient().rpc('nakgo_finalize_document',{p_file_id:id}),account);}
+    async function storageDeadline(operation){let timer;try{return await Promise.race([operation,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Storage timeout')),30000);})]);}finally{clearTimeout(timer);}}
+    async function uploadDocument(file,blob){
+        const account=listingAccount();if(!documentPath(file)||file.owner_id!==account.id||file.status!=='reserved'||blob?.type!=='image/jpeg'||!Number.isSafeInteger(blob.size)||blob.size<1||blob.size>1048576)throw Error('Invalid upload');
+        return listingResult(await storageDeadline(requireClient().storage.from('carrier-documents').upload(file.object_path,blob,{contentType:'image/jpeg',upsert:false,cacheControl:'0'})),account);
+    }
+    async function downloadDocument(file){const account=listingAccount();if(!documentPath(file)||file.status!=='ready')throw Error('Invalid document');return listingResult(await storageDeadline(requireClient().storage.from('carrier-documents').download(file.object_path)),account);}
+    async function removeDocument(file){
+        const account=listingAccount();if(!documentPath(file)||file.owner_id!==account.id)throw Error('Invalid document');
+        listingResult(await storageDeadline(requireClient().storage.from('carrier-documents').remove([file.object_path])),account);
+        return messageResult(requireClient().rpc('nakgo_remove_document',{p_file_id:file.id}),account);
+    }
+    async function transitionDocuments(id,action,revision){const account=listingAccount();if(!messageID(id)||!messageID(revision)||!['submit','withdraw'].includes(action))throw Error('Invalid application transition');return messageResult(requireClient().rpc('nakgo_transition_documents',{p_application_id:id,p_action:action,p_revision:revision}),account);}
+    async function reviewDocuments(id,decision,note,revision){const account=listingAccount();if(!messageID(id)||!messageID(revision)||!['approved','rejected'].includes(decision)||typeof note!=='string'||note.trim().length>500||(decision==='rejected'&&note.trim().length<3))throw Error('Invalid review');return messageResult(requireClient().rpc('nakgo_review_documents',{p_application_id:id,p_decision:decision,p_note:note.trim(),p_revision:revision}),account);}
+    async function carrierVerifications(ids){const account=listingAccount();if(!Array.isArray(ids)||ids.length>100||!ids.every(documentUUID))throw Error('Invalid user list');return messageResult(requireClient().rpc('nakgo_carrier_verifications',{p_users:[...new Set(ids)]}),account);}
     async function requestTransport(id) {
         const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
         return listingResult(await requireClient().rpc('nakgo_request_transport',{p_listing_id:id}),account);
@@ -473,7 +503,7 @@ const nakgoAuth = (() => {
         if(!Number.isSafeInteger(id)||id<1||!['accept','reject','withdraw','loaded','confirm'].includes(action))throw Error('Invalid transition');
         return listingResult(await requireClient().rpc('nakgo_transition_transport',{p_job_id:id,p_action:action}),account);
     }
-    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages,requestTransport,transitionTransport};
+    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -492,7 +522,7 @@ const nakgoMarket = (() => {
         if(next!==account) {
             generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
             if(!account && next) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
-            empty(); account=next; nakgoJobs.reset(); nakgoFavorites.reset(); nakgoMessages.reset();
+            empty(); account=next; nakgoJobs.reset(); nakgoFavorites.reset(); nakgoMessages.reset(); nakgoDocuments.reset();
             if(!next && demo) {
                 applyState(demo.data); ({incoming,carriers,names,appr,events,allO,seen}=demo); demo=null;
             }
@@ -526,6 +556,7 @@ const nakgoMarket = (() => {
             if(!more||feedMore){feedMore=feed.length===50;feedBefore=feed.at(-1)?.id||null;}
             if(!more||ownMore){ownMore=own.length===50;ownBefore=own.at(-1)?.id||null;}
             put([...feed,...own],!more);
+            nakgoDocuments.refreshPublic([...new Set([...loads,...trucks].map(x=>x.uid))]);
         } catch(e) {if(owner===token())error='İlanlar yüklenemedi. Bağlantını kontrol edip yeniden dene.';}
         finally {if(owner===token()){busy=false;loaded=true;render();}}
     }

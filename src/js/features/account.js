@@ -269,13 +269,13 @@ const phoneCard = () => {
 
 const cOk = c => !!(c.lic && c.src && c.kb && c.ruh);
 
-const vok = x => !!(x && (x.verified === true || (x.uid && carriers[x.uid] && carriers[x.uid].ok === true)));
+const vok = x => nakgoMarket.active()?!!(x&&nakgoDocuments.isApproved(x.uid)):!!(x && (x.verified === true || (x.uid && carriers[x.uid] && carriers[x.uid].ok === true)));
 
 const bok = u => !!(carriers[u] && carriers[u].ok === true);
 
-const lvU = u => appr[u] === true ? 2 : (carriers[u] && carriers[u].ok === true) ? 1 : 0;
+const lvU = u => nakgoMarket.active()?(nakgoDocuments.isApproved(u)?2:0):appr[u] === true ? 2 : (carriers[u] && carriers[u].ok === true) ? 1 : 0;
 
-const lvT = t => (t.approved === true || (t.uid && appr[t.uid] === true)) ? 2 : vok(t) ? 1 : 0;
+const lvT = t => nakgoMarket.active()?(nakgoDocuments.isApproved(t.uid)?2:0):(t.approved === true || (t.uid && appr[t.uid] === true)) ? 2 : vok(t) ? 1 : 0;
 
 const vbadge = l => l === 2 ? VA : l === 1 ? VB : "";
 
@@ -303,6 +303,7 @@ async function viewDoc(uid, k) {
 }
 
 const adminCard = () => {
+    if(nakgoMarket.active())return "";
     if (!admin)
         return "";
     const P = Object.entries(carriers).filter(([id, c]) => id !== me && c.docs && (c.docs.src || c.docs.kb || c.docs.ruh) && appr[id] !== true);
@@ -323,6 +324,7 @@ function setCar(patch) {
 }
 
 function carBind() {
+    if(nakgoMarket.active())return nakgoDocuments.bind();
     $("#main").querySelectorAll("[data-vc]").forEach(i => i.onchange = () => setCar({ [i.dataset.vc]: i.checked }));
     $("#main").querySelectorAll("[data-dp]").forEach(b => b.onclick = () => docPhoto(b.dataset.dp));
     $("#main").querySelectorAll("[data-av]").forEach(b => {
@@ -337,6 +339,7 @@ function carBind() {
 }
 
 const carCard = () => {
+    if(nakgoMarket.active())return nakgoDocuments.card();
     const c = myCar, n = [c.lic, c.src, c.kb, c.ruh].filter(Boolean).length;
     return `<div class="load" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center"><b>Taşıyıcı belgeleri</b><span class="${n === 4 ? "good" : ""}" style="font-size:13px;font-weight:700">${n}/4</span></div><div class="bar2"><i style="width:${n * 25}%"></i></div><label>Ehliyet sınıfı</label><select id="lic"><option value="">Seç</option>${["B", "C", "CE", "D"].map(v => `<option ${c.lic === v ? "selected" : ""}>${v}</option>`).join("")}</select>${[["src", "SRC belgem var"], ["kb", "K yetki belgem var"], ["ruh", "Araç ruhsatım var"]].map(([k, t]) => `<div class="docrow"><label class="chk"><input type="checkbox" data-vc="${k}" ${c[k] ? "checked" : ""}>${t}</label><button class="chip" data-dp="${k}">${c.docs && c.docs[k] ? "Yüklendi ✓" : "Fotoğraf ekle"}</button></div>`).join("")}<p style="font-size:12.5px;color:var(--mute);margin-top:12px">${appr[me || "local"] === true ? "Belgelerin onaylandı: ✓ Onaylı rozeti profilinde görünüyor." : n === 4 ? "✓ Belgeli rozeti açık. Belge fotoğraflarını yüklersen yönetici onayıyla ✓ Onaylı rozeti alırsın." : "Dördünü tamamlayınca ✓ Belgeli rozeti kazanırsın. Fotoğraf yükleyince yönetici onayına girer."}${cloud ? " Belgelerini yalnızca yönetici görür." : ""}</p></div>`;
 };
@@ -391,7 +394,7 @@ function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
     return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">${nakgoMarket.active()?"Profil, iletişim, ilanların, taşıma taleplerin, favorilerin ve mesajların hesabında saklanır. Belgeler ve ödeme henüz kullanıma hazır değil.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
+        <p class="estimate-note">${nakgoMarket.active()?"Profil, iletişim, ilanların, taşıma taleplerin, favorilerin ve mesajların hesabında saklanır. Belgelerin özel başvuruda saklanır; onayı yetkili inceleyici verir. Ödeme henüz kullanıma hazır değil.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
@@ -486,4 +489,113 @@ function openAuth(kind='signin') {
         }
     };
     $('#sheet').classList.add('open');
+}
+
+// Private document upload and review. No file bytes, URLs or review permissions enter demo storage.
+const nakgoDocuments=(()=>{
+    const labels={src:'SRC belgesi',kb:'K yetki belgesi',ruh:'Araç ruhsatı'},statuses={draft:'Taslak',submitted:'İnceleme bekliyor',approved:'Onaylandı',rejected:'Düzeltme gerekiyor',withdrawn:'Geri çekildi'};
+    let revision=0,publicRevision=0,rows=[],queue=[],reviewer=false,ready=false,busy=false,error='',more=false,reviewMore=false,selected=null,files=[],fileError='',fileBusy=false,working=false,view=0,approved=new Set(),urls=new Set();
+    const allowed=()=>{const s=nakgoAuth.snapshot();return nakgoMarket.active()&&s.user&&s.profile&&!s.recovery;};
+    const state=()=>({rows:rows.map(x=>({...x})),queue:queue.map(x=>({...x})),reviewer,ready,busy,error,more,reviewMore,selected:selected?{...selected}:null,files:files.map(x=>({...x})),fileError,fileBusy,working});
+    const clearURLs=()=>{for(const url of urls)window.URL.revokeObjectURL(url);urls.clear();};
+    function reset(){clearURLs();revision++;publicRevision++;view++;rows=[];queue=[];reviewer=ready=busy=more=reviewMore=fileBusy=working=false;error=fileError='';selected=null;files=[];approved=new Set();}
+    const same=(account,v)=>account===nakgoMarket.token()&&v===revision;
+    const active=()=>$('#sheetBody').dataset.k==='account-documents';
+    const redraw=()=>{if(tab==='me')render();if(active())paint();};
+    async function refresh(append=false,review=false){
+        if(!allowed()||busy)return;const account=nakgoMarket.token(),v=revision;busy=true;error='';
+        try{const isReviewer=await nakgoAuth.documentRole();if(!same(account,v))return;reviewer=isReviewer===true;
+            if(review&&!reviewer)throw Error('Reviewer required');
+            const own=review?rows:await nakgoAuth.documentApplications(false,append?rows.at(-1)?.id||null:null);
+            const pending=reviewer?await nakgoAuth.documentApplications(true,append&&review?queue.at(-1)?.id||null:null):[];
+            if(!same(account,v))return;
+            if(!review){rows=append?[...new Map([...rows,...own].map(x=>[x.id,x])).values()]:own;more=own.length===20;}
+            queue=append&&review?[...new Map([...queue,...pending].map(x=>[x.id,x])).values()]:pending;reviewMore=pending.length===20;ready=true;
+        }catch(e){if(same(account,v))error='Belgeler yüklenemedi. Yeniden dene.';}
+        finally{if(same(account,v)){busy=false;redraw();}}
+    }
+    const ensure=()=>{if(allowed()&&!ready&&!busy&&!error)refresh();};
+    async function refreshPublic(ids){
+        if(!allowed())return;const account=nakgoMarket.token(),v=++publicRevision;const all=[...new Set([...ids,nakgoAuth.snapshot().user.id])].filter(x=>typeof x==='string'&&/^[a-f0-9-]{36}$/i.test(x)),found=new Set();
+        try{for(let i=0;i<all.length;i+=100){const page=await nakgoAuth.carrierVerifications(all.slice(i,i+100));if(account!==nakgoMarket.token()||v!==publicRevision)return;page.forEach(r=>found.add(r.user_id));}approved=found;render();}
+        catch(e){if(account===nakgoMarket.token()&&v===publicRevision){approved=new Set();render();}}
+    }
+    const isApproved=id=>approved.has(id);
+    function card(){
+        const s=state(),enabled=ready&&!working,activeCase=rows.find(a=>['draft','submitted','approved'].includes(a.status));
+        return '<div class="load" style="cursor:default"><b>Taşıyıcı belgeleri</b><p class="estimate-note">Belge fotoğrafların özel saklanır. İncelemeye gönderdiğinde yalnız yetkili belge inceleyicileri görebilir. Yüklemek onay almak anlamına gelmez.</p>'+
+        (error?'<p role="alert">'+esc(error)+'</p>':'')+(!ready&&!error?'<p role="status">Belgeler yükleniyor…</p>':'')+
+        '<button class="chip" id="documents-refresh" '+(busy||working?'disabled':'')+'>Belgeleri yenile</button>'+
+        (!activeCase&&ready?'<label for="document-license">Ehliyet sınıfı</label><select id="document-license"><option value="">Seç</option>'+['B','C','CE','D'].map(x=>'<option>'+x+'</option>').join('')+'</select><button class="chip" id="documents-create" '+(!enabled?'disabled':'')+'>Belge başvurusu oluştur</button>':'')+
+        rows.map(a=>'<button class="conversation" data-own-document="'+a.id+'"><b>Başvuru #'+a.id+' · '+esc(statuses[a.status])+'</b><small>Ehliyet '+esc(a.license_class)+(a.review_note?' · '+esc(a.review_note):'')+'</small></button>').join('')+
+        (more?'<button class="chip" id="documents-more">Önceki başvurular</button>':'')+
+        (reviewer?'<h3>Belge inceleme kuyruğu</h3>'+queue.map(a=>'<button class="conversation" data-review-document="'+a.id+'"><b>'+esc(a.owner_label)+'</b><small>Başvuru #'+a.id+' · '+esc(statuses[a.status])+'</small></button>').join('')+(!queue.length?'<p>İnceleme bekleyen başvuru yok.</p>':'')+(reviewMore?'<button class="chip" id="documents-review-more">Diğer başvurular</button>':''):'')+'</div>';
+    }
+    async function open(id){if(!allowed()||working)return;closeSheet();view++;selected={id};files=[];fileError='';$('#sheetBody').dataset.k='account-documents';paint();syncDetailViewport();$('#sheet').classList.add('open');unChat=clearURLs;await refreshSelected();}
+    async function refreshSelected(){
+        if(!allowed()||!selected||fileBusy)return;const account=nakgoMarket.token(),v=revision,w=view,id=selected.id;fileBusy=true;fileError='';paint();
+        try{const [a,list]=await Promise.all([nakgoAuth.documentApplication(id),nakgoAuth.documentFiles(id)]);if(!same(account,v)||w!==view||!active())return;
+            if(!a)throw Error('Application unavailable');selected=a;files=list;
+        }catch(e){if(same(account,v)&&w===view){files=[];fileError='Başvuru açılamadı veya erişim değişti. Yeniden dene.';}}
+        finally{if(same(account,v)&&w===view){fileBusy=false;if(active())paint();}}
+    }
+    async function write(operation){
+        if(!allowed()||working)return null;const account=nakgoMarket.token(),v=revision,w=view;working=true;error=fileError='';redraw();
+        try{const result=await operation();if(!same(account,v))throw Error('Account changed');await refresh();if(!same(account,v))throw Error('Account changed');if(selected&&w===view&&active())await refreshSelected();if(!same(account,v))throw Error('Account changed');await refreshPublic([...loads,...trucks].map(x=>x.uid));if(!same(account,v))throw Error('Account changed');return result;}
+        catch(e){if(same(account,v)){if(selected&&w===view&&active())await refreshSelected();fileError='İşlem tamamlanamadı. Başvuruyu yenileyip tekrar dene.';error=fileError;}return null;}
+        finally{if(same(account,v)){working=false;redraw();}}
+    }
+    async function upload(kind,file){
+        if(!selected||selected.status!=='draft'||!labels[kind]||working)return;
+        const account=nakgoMarket.token(),v=revision,w=view,id=selected.id;
+        try{const data=new Uint8Array(await file.arrayBuffer()),dimensions=documentImageDimensions(data);if(!['image/jpeg','image/png'].includes(file.type)||file.size>5242880||!dimensions||dimensions.width*dimensions.height>25000000||Math.max(dimensions.width,dimensions.height)>12000)throw Error('Invalid image');
+            shrink(file,async image=>{if(!same(account,v)||w!==view||!active())return;const raw=atob(image.split(',')[1]),bytes=Uint8Array.from(raw,c=>c.charCodeAt(0)),blob=new Blob([bytes],{type:'image/jpeg'});
+                await write(async()=>{const reservation=await nakgoAuth.reserveDocument(id,kind,window.crypto.randomUUID());await nakgoAuth.uploadDocument(reservation,blob);return nakgoAuth.finalizeDocument(reservation.id);});
+            },1600,1000000);
+        }catch(e){if(same(account,v)&&w===view){fileError='JPEG veya PNG fotoğraf seç. Dosya en fazla 5 MB, görüntü en fazla 25 megapiksel olabilir.';paint();}}
+    }
+    async function preview(file){
+        if(!allowed()||working)return;const account=nakgoMarket.token(),v=revision,w=view;
+        try{const blob=await nakgoAuth.downloadDocument(file),bytes=new Uint8Array(await blob.arrayBuffer());if(!same(account,v)||w!==view||!active())return;
+            if(blob.size>1048576||bytes[0]!==255||bytes[1]!==216||!documentImageDimensions(bytes))throw Error('Invalid image');clearURLs();const url=window.URL.createObjectURL(blob);urls.add(url);
+            const B=$('#sheetBody');B.innerHTML='<div class="detail-top"><b>'+esc(labels[file.kind])+'</b><button class="chip" id="close">Kapat ×</button></div><div id="document-photo"></div><button class="chip" id="document-back">Başvuruya dön</button>';const image=new Image();image.src=url;image.alt=labels[file.kind];image.style.cssText='max-width:100%;height:auto';$('#document-photo').appendChild(image);$('#close').onclick=closeSheet;$('#document-back').onclick=()=>{clearURLs();paint();};
+        }catch(e){if(same(account,v)&&w===view&&active()){fileError='Belge fotoğrafı açılamadı. Yeniden dene.';paint();}}
+    }
+    function paint(){
+        if(!active()||!selected)return;const a=selected,own=a.owner_id===nakgoAuth.snapshot().user?.id,editable=own&&a.status==='draft',canRemove=own&&['draft','rejected','withdrawn'].includes(a.status),B=$('#sheetBody');
+        B.innerHTML='<div class="load-detail"><div class="detail-top"><b>Belge başvurusu #'+a.id+'</b><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll">'+
+        (a.status?'<p><b>'+esc(statuses[a.status])+'</b> · '+esc(a.owner_label)+' · Ehliyet '+esc(a.license_class)+'</p>':'')+
+        (a.review_note?'<p class="detail-note">İnceleme notu: '+esc(a.review_note)+'</p>':'')+(fileError?'<p role="alert">'+esc(fileError)+'</p>':'')+
+        '<button class="chip" id="document-case-refresh" '+(working||fileBusy?'disabled':'')+'>Başvuruyu yenile</button>'+(fileBusy?'<p role="status">Dosyalar yükleniyor…</p>':'')+
+        (a.status&&!fileBusy?Object.entries(labels).map(([kind,title])=>{const f=files.find(f=>f.kind===kind);return '<section class="detail-group"><h3>'+title+'</h3>'+(f?'<p>'+esc(f.status==='ready'?'Fotoğraf yüklendi':'Yükleme tamamlanmadı')+'</p>'+(f.status==='ready'?'<button class="chip" data-document-view="'+f.id+'">Fotoğrafı gör</button>':'')+(editable&&f.status==='reserved'?'<button class="chip" data-document-finish="'+f.id+'">Yüklemeyi tamamla</button>':'')+(canRemove?'<button class="chip" data-document-remove="'+f.id+'">Belgeyi kaldır</button>':''):(editable?'<label style="display:block">Fotoğraf seç<input style="max-width:100%;display:block" type="file" accept="image/jpeg,image/png" data-document-upload="'+kind+'"></label>':'<p>Belge eklenmemiş.</p>'))+'</section>';}).join(''):'')+
+        (editable?'<p>Üç fotoğraf yüklendikten sonra incelemeye gönderebilirsin. Gönderilen dosyalar inceleme sırasında değiştirilemez.</p><button class="btn" id="document-submit" '+(working||fileBusy||files.filter(f=>f.status==='ready').length!==3?'disabled':'')+'>İncelemeye gönder</button>':'')+
+        (own&&a.status&&a.status!=='withdrawn'?'<button class="chip" id="document-withdraw" '+(working||fileBusy?'disabled':'')+'>Başvuruyu geri çek</button>':'')+
+        (reviewer&&!own&&a.status==='submitted'?'<label for="document-review-note">İnceleme notu</label><textarea id="document-review-note" maxlength="500"></textarea><button class="btn" id="document-approve" '+(working||fileBusy?'disabled':'')+'>Başvuruyu onayla</button><button class="chip" id="document-reject" '+(working||fileBusy?'disabled':'')+'>Düzeltme iste</button>':'')+'</div></div>';
+        $('#close').onclick=closeSheet;$('#document-case-refresh').onclick=refreshSelected;
+        B.querySelectorAll('[data-document-upload]').forEach(i=>{i.disabled=working;i.onchange=()=>{const f=i.files?.[0];if(f)upload(i.dataset.documentUpload,f);};});
+        B.querySelectorAll('[data-document-view]').forEach(b=>{b.disabled=working;b.onclick=()=>preview(files.find(f=>f.id===b.dataset.documentView));});
+        B.querySelectorAll('[data-document-finish]').forEach(b=>{b.disabled=working;b.onclick=()=>write(()=>nakgoAuth.finalizeDocument(b.dataset.documentFinish));});
+        B.querySelectorAll('[data-document-remove]').forEach(b=>{b.disabled=working;b.onclick=()=>{if(window.confirm('Bu belge fotoğrafı kalıcı olarak kaldırılacak. Devam edilsin mi?'))write(()=>nakgoAuth.removeDocument(files.find(f=>f.id===b.dataset.documentRemove)));};});
+        if($('#document-submit'))$('#document-submit').onclick=()=>write(()=>nakgoAuth.transitionDocuments(a.id,'submit',a.revision));
+        if($('#document-withdraw'))$('#document-withdraw').onclick=()=>{if(window.confirm('Başvuruyu geri çekmek incelemeyi veya mevcut onayı kaldırır. Devam edilsin mi?'))write(()=>nakgoAuth.transitionDocuments(a.id,'withdraw',a.revision));};
+        for(const [id,decision] of [['document-approve','approved'],['document-reject','rejected']])if($('#'+id))$('#'+id).onclick=()=>{const note=$('#document-review-note').value.trim();if(decision==='rejected'&&note.length<3)return toast('Düzeltme gerekçesini yaz');write(()=>nakgoAuth.reviewDocuments(a.id,decision,note,a.revision));};
+    }
+    function bind(){
+        if($('#documents-refresh'))$('#documents-refresh').onclick=()=>refresh();
+        if($('#documents-create'))$('#documents-create').onclick=()=>{const license=$('#document-license').value;if(!['B','C','CE','D'].includes(license))return toast('Ehliyet sınıfını seç');write(()=>nakgoAuth.createDocumentApplication(license));};
+        if($('#documents-more'))$('#documents-more').onclick=()=>refresh(true,false);
+        if($('#documents-review-more'))$('#documents-review-more').onclick=()=>refresh(true,true);
+        $('#main').querySelectorAll('[data-own-document],[data-review-document]').forEach(b=>b.onclick=()=>open(+(b.dataset.ownDocument||b.dataset.reviewDocument)));ensure();
+    }
+    return {state,reset,card,bind,refresh,refreshPublic,isApproved,open,refreshSelected,write,upload,preview};
+})();
+
+function documentImageDimensions(bytes){
+    if(!(bytes instanceof Uint8Array)||bytes.length<24)return null;
+    if(bytes[0]===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71&&bytes[4]===13&&bytes[5]===10&&bytes[6]===26&&bytes[7]===10){const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);const width=view.getUint32(16),height=view.getUint32(20);return width>0&&height>0?{width,height}:null;}
+    if(bytes[0]!==255||bytes[1]!==216||bytes.at(-2)!==255||bytes.at(-1)!==217)return null;
+    let p=2;while(p+8<bytes.length){if(bytes[p++]!==255)return null;while(bytes[p]===255)p++;const marker=bytes[p++];if(marker===217||marker===218)return null;if(marker===1||(marker>=208&&marker<=215))continue;
+        const n=(bytes[p]<<8)|bytes[p+1];if(n<2||p+n>bytes.length)return null;
+        if(marker>=192&&marker<=207&&![196,200,204].includes(marker)){const height=(bytes[p+3]<<8)|bytes[p+4],width=(bytes[p+5]<<8)|bytes[p+6];return width>0&&height>0?{width,height}:null;}p+=n;
+    }return null;
 }
