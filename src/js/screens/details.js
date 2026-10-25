@@ -35,7 +35,7 @@ function openLoad(id) {
         <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${esc(l.owner || (l.uid ? nm(l.uid) : "Bireysel"))}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button></div></section>
         <div class="detail-actions">${l._remote&&!l.mine&&!unavailable?'<button class="chip" id="request-job">Taşıma talebi gönder</button>':""}<button class="chip" id="sh">Paylaş</button><button class="chip" id="cp2">${cmp.includes(l.id) ? "Karşılaştırmadan çıkar" : "Karşılaştır"}</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me && !l.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
       </div>
-      ${contactDockHTML(unavailable)}
+      ${contactDockHTML(unavailable,l.mine)}
     </div>`;
     $("#sheetBody").scrollTop = 0;
     syncDetailViewport();
@@ -61,6 +61,7 @@ function openLoad(id) {
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
     $("#mg").onclick = () => {
+        if(l._remote)return nakgoMessages.openListing(l.remoteId);
         if (!contactAllowed(l)) return;
         openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => offers.some(o=>o.id===l.id&&o.status!=="no"&&!offerExp(o)) || requestLoad(l), () => contactAllowed(l));
     };
@@ -71,12 +72,12 @@ function openTruck(id) {
     const t = findIt("t",id);
     if (!t) return toast("İlan bulunamadı");
     const unavailable = !availableListing(t,true);
-    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", esc(t.who || nm(t.uid)) + (lvT(t) === 2 ? " ✓ Onaylı" : vok(t) ? " ✓ Belgeli" : "") + " · " + starTxt(t)], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me && !t.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable)}</div>`;
+    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", esc(t.who || nm(t.uid)) + (lvT(t) === 2 ? " ✓ Onaylı" : vok(t) ? " ✓ Belgeli" : "") + " · " + starTxt(t)], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me && !t.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openTruck(id));
     $("#close").onclick = closeSheet;
-    $("#mg").onclick = () => { if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
+    $("#mg").onclick = () => { if(t._remote)return nakgoMessages.openListing(t.remoteId); if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
     $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
     $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid), lv: lvT(t), rate: t.rate });
     $("#rp").onclick = () => openReport("t", t.id);
@@ -84,8 +85,8 @@ function openTruck(id) {
         $("#bk2").onclick = () => blockUser(t.uid);
 }
 
-function contactDockHTML(unavailable=false) {
-    if(nakgoMarket.active())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">Telefon ve mesajlaşma bağlantısı hazırlanıyor.</p><button class="btn" id="call" disabled>Ara</button><button class="btn alt" id="mg" disabled>Mesaj gönder</button></div>';
+function contactDockHTML(unavailable=false,mine=false) {
+    if(nakgoMarket.active())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">Telefon bağlantısı hazırlanıyor. Test sürümünde mesajlaşabilirsin.</p><button class="btn" id="call" disabled>Ara</button><button class="btn alt" id="mg" '+(unavailable||mine?'disabled':'')+'>Mesaj gönder</button></div>';
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
     return `<div class="contact-dock dual-contact">${unavailable?'<p class="contact-unavailable" role="status">Bu ilan kapalı veya süresi dolmuş. Yeni görüşme başlatılamaz.</p>':""}<button class="btn contact-call" id="call" ${unavailable?"disabled":""}><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg" ${unavailable?"disabled":""}><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
 }

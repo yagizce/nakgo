@@ -391,7 +391,7 @@ function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
     return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">${nakgoMarket.active()?"Profil, iletişim, ilanların, taşıma taleplerin ve favorilerin hesabında saklanır. Mesajlar, belgeler ve ödeme henüz kullanıma hazır değil.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
+        <p class="estimate-note">${nakgoMarket.active()?"Profil, iletişim, ilanların, taşıma taleplerin, favorilerin ve mesajların hesabında saklanır. Belgeler ve ödeme henüz kullanıma hazır değil.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
@@ -442,7 +442,7 @@ function openAuth(kind='signin') {
             <button type="button" class="auth-provider" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3c-1.4.1-3 1-3.8 2-.7.8-1.2 2-1 3.2 1.5.1 3-.7 3.9-1.8.8-.9 1.2-2.2.9-3.4ZM20 16.3c-.4 1-1 2.3-1.8 3.4-.8 1-1.7 2.1-3 2.1-1.2 0-1.6-.8-3.1-.8-1.6 0-2 .8-3.2.8-1.3 0-2.2-1.1-3-2.2C3.5 16.4 3 11.8 4.5 9.5c1-1.6 2.6-2.5 4.1-2.5 1.3 0 2.4.8 3.2.8.7 0 2-.9 3.5-.8 1.3.1 2.6.8 3.4 1.9-3 1.6-2.5 5.8 1.3 7.4Z"/></svg><span>Apple ile devam et</span><small>Yakında</small></button></div>
             <p class="auth-switch-copy">${kind==='signin'?'Henüz hesabın yok mu?':'Zaten hesabın var mı?'}</p><button class="btn auth-switch" id="${kind==='signin'?'account-register':'account-back'}">${kind==='signin'?'Kayıt ol':'Giriş yap'}</button>`:
             '<p class="auth-switch-copy">Hesabına dönmeye hazır mısın?</p><button class="btn auth-switch" id="account-back">Giriş yap</button>'}
-            <p class="auth-preview-note">Test sürümü · E-posta ve Google ile giriş açık.<br>İlanlar ve mesajlar henüz demo.</p>
+            <p class="auth-preview-note">Test sürümü · E-posta ve Google ile giriş açık.<br>Test hesabınla ilan ve mesajlarını kullanabilirsin.</p>
         </section></div>`:'<button class="btn alt" id="close">Kapat</button>'}`;
     const form=$('#account-form'), feedback=$('#account-feedback'), button=$('#account-submit');
     const google=$('#account-google');
