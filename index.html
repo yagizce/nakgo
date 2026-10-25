@@ -3406,7 +3406,7 @@ const nakgoMessages=(()=>{
             timer=null;if(!active()||generation!==pollGeneration||!same(account,e)||view!==screen)return;
             if(document.visibilityState!=='hidden'){
                 if(key()==='account-inbox')await refreshInbox();else await refreshMessages();
-                pollDelay=(inboxError||messageError)?Math.min(pollDelay*2,60000):8000;
+                pollDelay=(key()==='account-inbox'?inboxError:messageError)?Math.min(pollDelay*2,60000):8000;
             }
             if(generation===pollGeneration&&same(account,e)&&view===screen&&active())schedule();
         },pollDelay);

@@ -51,4 +51,12 @@ module.exports=({run,test,boot})=>{
   ok(r('return el("#msgs").innerHTML==="selection sentinel"&&el("#msgs").scrollTop===70'),'unchanged polls retain DOM selection and scroll anchor');
   r('nakgoAuth.listMessages=async()=>[{id:21,body:"Arrived",sender_id:"owner"},{id:20,body:"Latest",sender_id:"owner"}];');await r('return nakgoMessages.refreshMessages()');ok(r('return el("#msgs").scrollTop===70'),'new arrivals do not move a user reading older messages');
  },{win:{}});
+ test('A previous inbox failure does not slow a healthy conversation',async()=>{
+  const out=[],tasks=new Map();let seq=0;const win={setTimeout:(fn,ms)=>{tasks.set(++seq,{fn,ms});return seq;},clearTimeout:id=>tasks.delete(id)},r=boot({win});
+  r(setup+'nakgoAuth.listConversations=async()=>{throw Error("inbox offline");};nakgoMessages.openInbox();');await settle(r);
+  r('nakgoAuth.listMessages=async()=>[];nakgoMessages.openConversation('+convo+');');await settle(r);
+  const [id,t]=[...tasks][0];tasks.delete(id);await t.fn();
+  out.push([[...tasks.values()][0].ms===8000,'healthy conversation keeps normal polling despite a prior inbox error']);return out;
+ });
+
 };
