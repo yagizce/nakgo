@@ -60,8 +60,10 @@ function profileInfoHTML() {
 function renderProfile(main) {
     const own=[...mineL(),...mineT()].filter(item=>!item.closed&&!expired(item,typeof item.id==='string'?'truck':'load'));
     const jobs=[...offers,...incoming];
-    const done=jobs.filter(job=>job.status==='ok'&&jobStage(job)===3).length;
-    const active=jobs.filter(job=>job.status==='ok'&&jobStage(job)!==3).length;
+    const summary=nakgoMarket.active()?nakgoJobs.summary():null;
+    const unknown=summary?.error?'—':'…';
+    const done=summary?(summary.ready?summary.done:unknown):jobs.filter(job=>job.status==='ok'&&jobStage(job)===3).length;
+    const active=summary?(summary.ready?summary.active:unknown):jobs.filter(job=>job.status==='ok'&&jobStage(job)!==3).length;
     const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim',rating=profile ? null : ratingOf(me||'local');
     main.innerHTML=`${profileIdentityHTML(own.length,active,done,name,rating)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar, işler ve diğer işlemler cihazdaki demodur.</p>' : demoNotice()}${profileToolsHTML()}
         <div class="profile-grid">
@@ -74,6 +76,9 @@ function renderProfile(main) {
                 <details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details>
             </section>
         </div>`;
+    if(summary)main.innerHTML+=(summary.error?'<p role="alert">'+esc(summary.error)+'</p>':'')+'<button class="chip" id="profile-jobs-retry" '+(summary.busy?'disabled':'')+'>İş sayaçlarını yenile</button>';
+    if(summary)$('#profile-jobs-retry').onclick=()=>nakgoJobs.refreshSummary();
+    if(summary&&!summary.ready&&!summary.busy&&!summary.error)nakgoJobs.refreshSummary();
     carBind();listBind();
     bindAuthCard();
     $('#profile-save').onclick=async()=>{

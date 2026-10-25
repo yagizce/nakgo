@@ -405,6 +405,18 @@ const nakgoAuth = (() => {
         if(before!==null){if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');q=q.lt('id',before);}
         return listingResult(await q,account);
     }
+    async function jobCounts() {
+        const account=listingAccount();
+        const count=async(done)=>{
+            let q=requireClient().from('transport_jobs').select('id',{count:'exact',head:true}).eq('status','ok');
+            q=done?q.eq('stage',3):q.lt('stage',3);
+            const result=await q;listingResult(result,account);
+            if(!Number.isSafeInteger(result.count)||result.count<0)throw Error('Job count unavailable');
+            return result.count;
+        };
+        const [active,done]=await Promise.all([count(false),count(true)]);
+        return {active,done};
+    }
     async function requestTransport(id) {
         const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
         return listingResult(await requireClient().rpc('nakgo_request_transport',{p_listing_id:id}),account);
@@ -414,7 +426,7 @@ const nakgoAuth = (() => {
         if(!Number.isSafeInteger(id)||id<1||!['accept','reject','withdraw','loaded','confirm'].includes(action))throw Error('Invalid transition');
         return listingResult(await requireClient().rpc('nakgo_transition_transport',{p_job_id:id,p_action:action}),account);
     }
-    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,requestTransport,transitionTransport};
+    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,requestTransport,transitionTransport};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -501,8 +513,20 @@ const nakgoMarket = (() => {
 // Transport jobs are held only in the verified account session, never the demo store.
 const nakgoJobs = (() => {
     let rows=[],busy=false,ready=false,error='',before=null,more=false,version=0;
+    let counts={active:0,done:0,ready:false,busy:false,error:''};
     const pending=new Set();
-    const reset=()=>{rows=[];busy=false;ready=false;error='';before=null;more=false;version++;pending.clear();};
+    const reset=()=>{rows=[];busy=false;ready=false;error='';before=null;more=false;version++;pending.clear();counts={active:0,done:0,ready:false,busy:false,error:''};};
+    const summary=()=>({...counts});
+    async function refreshSummary() {
+        const auth=nakgoAuth.snapshot();
+        if(!nakgoMarket.active()||counts.busy||!auth.user||!auth.profile||auth.recovery)return;
+        const account=nakgoMarket.token(),revision=version;counts.busy=true;counts.error='';
+        try {
+            const data=await nakgoAuth.jobCounts();
+            if(account===nakgoMarket.token()&&revision===version)counts={...data,ready:true,busy:true,error:''};
+        } catch(e){if(account===nakgoMarket.token()&&revision===version)counts.error='İş sayaçları yüklenemedi. Yeniden dene.';}
+        finally {if(account===nakgoMarket.token()){counts.busy=false;if(tab==='me')render();}}
+    }
     const state=()=>({rows:rows.map(r=>({...r,listing_snapshot:{...r.listing_snapshot}})),busy,ready,error,more});
     const put=(list,replace=false)=>{const all=new Map((replace?[]:rows).map(r=>[r.id,r]));list.forEach(r=>all.set(r.id,r));rows=[...all.values()].sort((a,b)=>b.id-a.id);};
     async function refresh(append=false,showBusy=true) {
@@ -512,7 +536,7 @@ const nakgoJobs = (() => {
         try {
             const data=await nakgoAuth.listJobs(append?before:null);
             if(account!==nakgoMarket.token()||revision!==version)return;
-            put(data,!append);more=data.length===50;before=data.at(-1)?.id||null;ready=true;
+            put(data,!append);more=data.length===50;before=data.at(-1)?.id||null;ready=true;counts.ready=false;
         } catch(e){if(account===nakgoMarket.token())error='İşler yüklenemedi. Yeniden dene.';}
         finally {if(account===nakgoMarket.token()){busy=false;if(tab==='mine')render();}}
     }
@@ -520,10 +544,10 @@ const nakgoJobs = (() => {
         if(!nakgoMarket.active())throw Error('Sign in required');
         if(pending.has(key))return null;
         pending.add(key);const account=nakgoMarket.token();
-        try {const row=await operation();if(account!==nakgoMarket.token())throw Error('Account changed');version++;put([row]);error='';return row;}
+        try {const row=await operation();if(account!==nakgoMarket.token())throw Error('Account changed');version++;put([row]);error='';counts.ready=false;counts.error='';if(tab==='me')render();return row;}
         finally {if(account===nakgoMarket.token())pending.delete(key);}
     }
     const request=id=>write('listing:'+id,()=>nakgoAuth.requestTransport(id));
     const transition=(id,action)=>write('job:'+id,()=>nakgoAuth.transitionTransport(id,action));
-    return {reset,state,refresh,request,transition};
+    return {reset,state,summary,refreshSummary,refresh,request,transition};
 })();
