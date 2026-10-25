@@ -68,15 +68,20 @@ function paintAccountMessages() {
         B.innerHTML='<div class="load-detail chat-detail"><div class="detail-top"><b>'+esc(c.owner_id===account?c.guest_label:c.owner_label)+'</b><button class="chip detail-close" id="close" aria-label="Sohbeti kapat">Kapat ×</button></div><p class="estimate-note">'+esc(c.from_city)+' → '+esc(c.to_city)+' · Hesabında saklanan görüşme</p><div class="chips"><button class="chip" id="messages-back">Görüşmeler</button><button class="chip" id="messages-refresh">Yenile</button><button class="chip" id="message-older">Önceki mesajlar</button></div><p id="message-status" role="status"></p><div id="msgs" role="log" aria-live="polite" aria-label="Mesajlar"></div><p id="message-send-error" role="alert"></p><div class="chat-composer"><label class="sr-only" for="account-message-input">Mesajın</label><input id="account-message-input" placeholder="Mesaj yaz" maxlength="500"><button class="btn" id="account-message-send">Gönder</button></div></div>';
         $('#close').onclick=closeSheet;$('#messages-back').onclick=()=>nakgoMessages.openInbox();
         $('#messages-refresh').onclick=()=>nakgoMessages.refreshMessages();$('#message-older').onclick=()=>nakgoMessages.refreshMessages(true);
-        const input=$('#account-message-input'),sendButton=$('#account-message-send');
+        const input=$('#account-message-input'),sendButton=$('#account-message-send');input.value=s.draft;input.oninput=()=>{nakgoMessages.saveDraft(input.value);$('#message-send-error').textContent=nakgoMessages.state().draftWarning;};$('#msgs').onscroll=()=>nakgoMessages.acknowledge();
         const submit=async()=>{const body=input.value;if(!body.trim())return;try{const row=await nakgoMessages.send(body);if(row&&$('#account-message-input')===input&&input.value===body)input.value='';}catch(e){/* Server-confirmed errors are rendered with the preserved draft. */}};
         sendButton.onclick=submit;input.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();submit();}};
     }
-    const log=$('#msgs'),bottom=log.scrollHeight-log.scrollTop-log.clientHeight<60,oldHeight=log.scrollHeight;
-    log.innerHTML=s.messages.map(m=>'<div class="bub '+(m.sender_id===account?'me':'')+'">'+esc(m.body)+'</div>').join('');
-    if(bottom||!oldHeight)log.scrollTop=log.scrollHeight;else log.scrollTop+=log.scrollHeight-oldHeight;
+    const log=$('#msgs'),bottom=log.scrollHeight-log.scrollTop-log.clientHeight<40,oldHeight=log.scrollHeight,oldTop=log.scrollTop;
+    const first=s.messages[0]?.id||0,signature=s.messages.map(m=>m.id).join(',');
+    if(log.dataset.signature!==signature){
+        const prepended=+log.dataset.first>first&&first>0;
+        log.innerHTML=s.messages.map(m=>'<div class="bub '+(m.sender_id===account?'me':'')+'">'+esc(m.body)+'</div>').join('');
+        log.dataset.signature=signature;log.dataset.first=String(first);
+        if(prepended)log.scrollTop=oldTop+log.scrollHeight-oldHeight;else if(bottom||!oldHeight)log.scrollTop=log.scrollHeight;else log.scrollTop=oldTop;
+    }
     $('#message-status').textContent=s.messageError||(!s.messageReady?'Mesajlar yükleniyor…':'');
-    $('#message-send-error').textContent=s.sendError;
+    $('#message-send-error').textContent=s.sendError||s.draftWarning;
     $('#message-older').hidden=!s.messageMore;$('#message-older').disabled=s.messageBusy||s.sending;
     $('#messages-refresh').disabled=s.messageBusy||s.sending;
     $('#account-message-send').disabled=s.sending||!s.messageReady;$('#account-message-input').disabled=s.sending;

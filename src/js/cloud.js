@@ -429,6 +429,7 @@ const nakgoAuth = (() => {
         const [active,done]=await Promise.all([count(false),count(true)]);
         return {active,done};
     }
+    const messageResult=async(q,account)=>listingResult(await (typeof q.abortSignal==='function'&&typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?q.abortSignal(AbortSignal.timeout(15000)):q),account);
     const conversationColumns='id,listing_id,owner_id,guest_id,owner_label,guest_label,listing_kind,from_city,to_city,last_message_id,last_message_body,last_sender_id,owner_read_id,guest_read_id,unread_count,created_at,updated_at';
     const messageColumns='id,conversation_id,sender_id,client_nonce,body,created_at';
     const messageID=id=>Number.isSafeInteger(id)&&id>0;
@@ -439,29 +440,29 @@ const nakgoAuth = (() => {
             if(!messageID(before.id)||!Number.isSafeInteger(before.activity)||before.activity<0)throw Error('Invalid cursor');
             q=q.or('last_message_id.lt.'+before.activity+',and(last_message_id.eq.'+before.activity+',id.lt.'+before.id+')');
         }
-        return listingResult(await q,account);
+        return messageResult(q,account);
     }
     async function listMessages(id,before=null) {
         const account=listingAccount();if(!messageID(id)||(before!==null&&!messageID(before)))throw Error('Invalid conversation');
         let q=requireClient().from('conversation_messages').select(messageColumns).eq('conversation_id',id).order('id',{ascending:false}).limit(50);
         if(before!==null)q=q.lt('id',before);
-        return listingResult(await q,account);
+        return messageResult(q,account);
     }
     async function openConversation(id) {
         const account=listingAccount();if(!messageID(id))throw Error('Invalid listing');
-        return listingResult(await requireClient().rpc('nakgo_open_conversation',{p_listing_id:id}),account);
+        return messageResult(requireClient().rpc('nakgo_open_conversation',{p_listing_id:id}),account);
     }
     async function sendMessage(id,body,nonce) {
         const account=listingAccount();
         if(!messageID(id)||typeof body!=='string'||!body.trim()||body.trim().length>500||typeof nonce!=='string'||!/^([a-f0-9]{8}-){1}[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(nonce))throw Error('Invalid message');
-        return listingResult(await requireClient().rpc('nakgo_send_message',{p_conversation_id:id,p_body:body.trim(),p_client_nonce:nonce}),account);
+        return messageResult(requireClient().rpc('nakgo_send_message',{p_conversation_id:id,p_body:body.trim(),p_client_nonce:nonce}),account);
     }
     async function readConversation(id,through) {
         const account=listingAccount();if(!messageID(id)||!messageID(through))throw Error('Invalid boundary');
-        return listingResult(await requireClient().rpc('nakgo_read_conversation',{p_conversation_id:id,p_through_id:through}),account);
+        return messageResult(requireClient().rpc('nakgo_read_conversation',{p_conversation_id:id,p_through_id:through}),account);
     }
     async function unreadMessages() {
-        const account=listingAccount();return listingResult(await requireClient().rpc('nakgo_message_unread_count'),account);
+        const account=listingAccount();return messageResult(requireClient().rpc('nakgo_message_unread_count'),account);
     }
     async function requestTransport(id) {
         const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
@@ -675,16 +676,53 @@ const nakgoFavorites = (() => {
 const nakgoMessages=(()=>{
     let epoch=0,version=0,screen=0,timer=null,opening=false,conversations=[],inboxReady=false,inboxBusy=false,inboxError='',inboxBefore=null,inboxMore=false;
     let current=null,messages=[],messageReady=false,messageBusy=false,messageError='',messageMore=false,messageBefore=null,sending=false,sendError='',retry=null;
+    let readBusy=false,lastRead=0,pollGeneration=0,pollDelay=8000,draftAccount='',drafts=new Map(),draftWarning='';
     let summaryChecked=0,unread={count:0,ready:false,busy:false,error:''};
     const allowed=()=>{const a=nakgoAuth.snapshot();return nakgoMarket.active()&&a.user&&a.profile&&!a.recovery;};
-    const state=()=>({conversations:conversations.map(x=>({...x})),inboxReady,inboxBusy,inboxError,inboxMore,current:current?{...current}:null,messages:messages.map(x=>({...x})),messageReady,messageBusy,messageError,messageMore,sending,sendError,unread:{...unread}});
-    const stop=()=>{if(timer!==null&&typeof window?.clearTimeout==='function')window.clearTimeout(timer);timer=null;};
-    function reset(){stop();epoch++;version++;screen++;opening=false;conversations=[];inboxReady=inboxBusy=inboxMore=false;inboxError='';inboxBefore=null;current=null;messages=[];messageReady=messageBusy=messageMore=sending=false;messageError=sendError='';messageBefore=retry=null;summaryChecked=0;unread={count:0,ready:false,busy:false,error:''};}
+    const state=()=>({conversations:conversations.map(x=>({...x})),inboxReady,inboxBusy,inboxError,inboxMore,current:current?{...current}:null,messages:messages.map(x=>({...x})),messageReady,messageBusy,messageError,messageMore,sending,sendError,draft:current?(drafts.get(current.id)?.body||''):'',draftWarning,unread:{...unread}});
+    const stop=()=>{pollGeneration++;if(timer!==null&&typeof window?.clearTimeout==='function')window.clearTimeout(timer);timer=null;};
+    function reset(){stop();if(draftAccount)try{window?.sessionStorage?.removeItem('ng-message-drafts:'+draftAccount);}catch(e){}drafts=new Map();draftAccount='';draftWarning='';readBusy=false;lastRead=0;pollDelay=8000;epoch++;version++;screen++;opening=false;conversations=[];inboxReady=inboxBusy=inboxMore=false;inboxError='';inboxBefore=null;current=null;messages=[];messageReady=messageBusy=messageMore=sending=false;messageError=sendError='';messageBefore=retry=null;summaryChecked=0;unread={count:0,ready:false,busy:false,error:''};}
     const key=()=>$('#sheetBody').dataset.k;
     const active=()=>key()==='account-inbox'||(current&&key()==='account-chat:'+current.id);
     const same=(account,e)=>account===nakgoMarket.token()&&e===epoch;
     const draw=()=>{if(active())paintAccountMessages();};
-    const schedule=()=>{stop();if(!active()||typeof window?.setTimeout!=='function')return;timer=window.setTimeout(async()=>{if(!active())return;if(typeof document.visibilityState!=='string'||document.visibilityState==='visible'){if(key()==='account-inbox')await refreshInbox();else await refreshMessages();}schedule();},8000);};
+    function loadDrafts(){
+        const account=nakgoAuth.snapshot().user?.id;if(!account||account===draftAccount)return;
+        drafts=new Map();draftAccount=account;draftWarning='';
+        try{const data=JSON.parse(window?.sessionStorage?.getItem('ng-message-drafts:'+account)||'[]');
+            if(Array.isArray(data))for(const row of data.slice(0,50))if(Number.isSafeInteger(row.id)&&row.id>0&&typeof row.body==='string'&&row.body.length<=500&&(!row.nonce||/^[a-f0-9-]{36}$/i.test(row.nonce)))drafts.set(row.id,{id:row.id,body:row.body,nonce:row.nonce||null});
+        }catch(e){draftWarning='Taslağı tarayıcıda saklayamadık. Göndermeden önce depolama erişimini kontrol et.';}
+    }
+    function saveDraft(body,nonce=null){
+        if(!allowed()||!current)return false;loadDrafts();
+        const old=drafts.get(current.id),value=String(body).slice(0,500);
+        if(value&&!old&&drafts.size>=50){draftWarning='Önce eski mesaj taslaklarından birini tamamla.';return false;}
+        const record={id:current.id,body:value,nonce:nonce||(old?.body.trim()===value.trim()?old.nonce:null)};
+        if(value)drafts.set(current.id,record);else drafts.delete(current.id);
+        try{window?.sessionStorage?.setItem('ng-message-drafts:'+draftAccount,JSON.stringify([...drafts.values()]));draftWarning='';return true;}
+        catch(e){draftWarning='Taslağı tarayıcıda saklayamadık. Göndermeden önce depolama erişimini kontrol et.';return false;}
+    }
+    const atBottom=()=>{const log=$('#msgs');return Number.isFinite(log.clientHeight)&&log.clientHeight>0&&log.scrollHeight-log.scrollTop-log.clientHeight<40;};
+    async function acknowledge(){
+        if(!allowed()||!current||readBusy||!messageReady||key()!=='account-chat:'+current.id||document.visibilityState==='hidden'||!atBottom())return;
+        const through=messages.at(-1)?.id;if(!through||through<=lastRead)return;
+        const account=nakgoMarket.token(),e=epoch,view=screen,id=current.id;readBusy=true;
+        try{await nakgoAuth.readConversation(id,through);if(same(account,e)&&view===screen){lastRead=Math.max(lastRead,through);version++;unread.ready=false;refreshSummary();}}
+        catch(e1){if(same(account,e)&&view===screen)messageError='Okundu bilgisi kaydedilemedi. Yenile ile tekrar dene.';}
+        finally{if(same(account,e)&&view===screen){readBusy=false;draw();}}
+    }
+    function schedule(){
+        stop();if(!active()||typeof window?.setTimeout!=='function')return;
+        const generation=pollGeneration,account=nakgoMarket.token(),e=epoch,view=screen;
+        timer=window.setTimeout(async()=>{
+            timer=null;if(!active()||generation!==pollGeneration||!same(account,e)||view!==screen)return;
+            if(document.visibilityState!=='hidden'){
+                if(key()==='account-inbox')await refreshInbox();else await refreshMessages();
+                pollDelay=(inboxError||messageError)?Math.min(pollDelay*2,60000):8000;
+            }
+            if(generation===pollGeneration&&same(account,e)&&view===screen&&active())schedule();
+        },pollDelay);
+    }
     async function refreshSummary(){
         if(!allowed()||unread.busy)return;
         const account=nakgoMarket.token(),e=epoch,v=version;unread.busy=true;unread.error='';
@@ -702,7 +740,7 @@ const nakgoMessages=(()=>{
         }catch(e1){if(same(account,e))inboxError='Görüşmeler yüklenemedi. Yeniden dene.';}
         finally{if(same(account,e)){inboxBusy=false;draw();}}
     }
-    function openInbox(){if(!allowed())return;stop();screen++;current=null;messages=[];retry=null;$('#sheetBody').dataset.k='account-inbox';paintAccountMessages();syncDetailViewport();$('#sheet').classList.add('open');unChat=stop;refreshInbox().then(schedule);refreshSummary();}
+    function openInbox(){if(!allowed())return;stop();screen++;current=null;messages=[];retry=null;pollDelay=8000;$('#sheetBody').dataset.k='account-inbox';paintAccountMessages();syncDetailViewport();$('#sheet').classList.add('open');unChat=stop;refreshInbox().then(schedule);refreshSummary();}
     async function openListing(id){
         if(!allowed()||opening)return;const account=nakgoMarket.token(),e=epoch,view=++screen;opening=true;stop();
         $('#sheetBody').dataset.k='account-opening';$('#sheetBody').innerHTML='<div class="detail-top"><b>Görüşme açılıyor…</b><button class="chip" id="close">Kapat ×</button></div>';$('#close').onclick=closeSheet;$('#sheet').classList.add('open');
@@ -711,7 +749,7 @@ const nakgoMessages=(()=>{
         finally{if(same(account,e))opening=false;}
     }
     function openConversation(row){
-        if(!allowed())return;stop();screen++;current={...row};messages=[];messageReady=messageBusy=messageMore=sending=false;messageError=sendError='';messageBefore=retry=null;
+        if(!allowed())return;stop();screen++;loadDrafts();current={...row};messages=[];readBusy=false;lastRead=Number(row.owner_id===nakgoAuth.snapshot().user.id?row.owner_read_id:row.guest_read_id)||0;pollDelay=8000;messageReady=messageBusy=messageMore=sending=false;messageError=sendError='';messageBefore=null;const draft=drafts.get(row.id);retry=draft?.nonce?{id:row.id,body:draft.body.trim(),nonce:draft.nonce}:null;
         $('#sheetBody').dataset.k='account-chat:'+row.id;paintAccountMessages();syncDetailViewport();$('#sheet').classList.add('open');unChat=stop;refreshMessages().then(schedule);
     }
     async function refreshMessages(append=false){
@@ -723,11 +761,7 @@ const nakgoMessages=(()=>{
             const all=new Map((keep?messages:[]).map(m=>[m.id,m]));page.forEach(m=>all.set(m.id,m));messages=[...all.values()].sort((a,b)=>a.id-b.id);
             if(append||!keep){messageMore=page.length===50;messageBefore=messages[0]?.id||null;}messageReady=true;
             draw();
-            const through=messages.at(-1)?.id;
-            if(through&&key()==='account-chat:'+id&&document.visibilityState!=='hidden'){
-                try{await nakgoAuth.readConversation(id,through);if(same(account,e)&&view===screen){version++;unread.ready=false;refreshSummary();}}
-                catch(e1){if(same(account,e)&&view===screen)messageError='Okundu bilgisi kaydedilemedi. Yenile ile tekrar dene.';}
-            }
+            await acknowledge();
         }catch(e1){if(same(account,e)&&view===screen)messageError='Mesajlar yüklenemedi. Yeniden dene.';}
         finally{if(same(account,e)&&view===screen){messageBusy=false;draw();}}
     }
@@ -735,12 +769,12 @@ const nakgoMessages=(()=>{
         if(!allowed()||!current||sending||typeof body!=='string'||!body.trim()||body.trim().length>500)return null;
         const account=nakgoMarket.token(),e=epoch,view=screen,id=current.id,text=body.trim();
         if(!retry||retry.id!==id||retry.body!==text){if(typeof window?.crypto?.randomUUID!=='function')throw Error('Secure message ID unavailable');retry={id,body:text,nonce:window.crypto.randomUUID()};}
-        const request={...retry};sending=true;sendError='';draw();
+        const request={...retry};if(!saveDraft(text,request.nonce)){sendError=draftWarning;draw();throw Error('Message draft storage unavailable');}sending=true;sendError='';draw();
         try{const row=await nakgoAuth.sendMessage(id,text,request.nonce);if(!same(account,e)||view!==screen)throw Error('Account or conversation changed');
             if(row.conversation_id!==id||row.body!==text||row.sender_id!==nakgoAuth.snapshot().user.id||row.client_nonce!==request.nonce)throw Error('Invalid message response');
-            version++;const all=new Map(messages.map(m=>[m.id,m]));all.set(row.id,row);messages=[...all.values()].sort((a,b)=>a.id-b.id);messageReady=true;retry=null;unread.ready=false;return row;
+            version++;const all=new Map(messages.map(m=>[m.id,m]));all.set(row.id,row);messages=[...all.values()].sort((a,b)=>a.id-b.id);messageReady=true;retry=null;saveDraft('');unread.ready=false;return row;
         }catch(e1){if(same(account,e)&&view===screen)sendError='Mesaj gönderilemedi. Yazdığın metin korunuyor; tekrar dene.';throw e1;}
         finally{if(same(account,e)&&view===screen){sending=false;draw();refreshSummary();}}
     }
-    return {reset,state,ensure,refreshSummary,refreshInbox,openInbox,openListing,openConversation,refreshMessages,send,stop};
+    return {reset,state,ensure,refreshSummary,refreshInbox,openInbox,openListing,openConversation,refreshMessages,acknowledge,saveDraft,send,stop};
 })();
