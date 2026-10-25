@@ -15,5 +15,9 @@ function render() {
     $('#market-refresh').onclick=()=>nakgoMarket.refresh();
     if($('#market-more'))$('#market-more').onclick=()=>nakgoMarket.refresh(true);
  }
+ if(nakgoMarket.active()&&(tab==='list'||tab==='me')) {
+    if(m.insertAdjacentHTML)m.insertAdjacentHTML('afterbegin',nakgoFavorites.controls());
+    nakgoFavorites.bind();nakgoFavorites.ensure();
+ }
  if(storageNotice && m.insertAdjacentHTML) m.insertAdjacentHTML("afterbegin",`<p class="demo-note" role="status">${esc(storageNotice)}</p>`);
 }

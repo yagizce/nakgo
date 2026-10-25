@@ -405,6 +405,18 @@ const nakgoAuth = (() => {
         if(before!==null){if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');q=q.lt('id',before);}
         return listingResult(await q,account);
     }
+    async function listFavorites({before=null,details=false}={}) {
+        const account=listingAccount();
+        let q=requireClient().from('listing_favorites').select(details?'listing_id,listing:listings('+listingColumns+')':'listing_id')
+            .order('listing_id',{ascending:false}).limit(details?50:200);
+        if(before!==null){if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');q=q.lt('listing_id',before);}
+        return listingResult(await q,account);
+    }
+    async function setFavorite(id,saved) {
+        const account=listingAccount();
+        if(!Number.isSafeInteger(id)||id<1||typeof saved!=='boolean')throw Error('Invalid favorite');
+        return listingResult(await requireClient().rpc('nakgo_set_favorite',{p_listing_id:id,p_saved:saved}),account);
+    }
     async function jobCounts() {
         const account=listingAccount();
         const count=async(done)=>{
@@ -426,7 +438,7 @@ const nakgoAuth = (() => {
         if(!Number.isSafeInteger(id)||id<1||!['accept','reject','withdraw','loaded','confirm'].includes(action))throw Error('Invalid transition');
         return listingResult(await requireClient().rpc('nakgo_transition_transport',{p_job_id:id,p_action:action}),account);
     }
-    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,requestTransport,transitionTransport};
+    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,requestTransport,transitionTransport};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -445,13 +457,14 @@ const nakgoMarket = (() => {
         if(next!==account) {
             generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
             if(!account && next) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
-            empty(); account=next; nakgoJobs.reset();
+            empty(); account=next; nakgoJobs.reset(); nakgoFavorites.reset();
             if(!next && demo) {
                 applyState(demo.data); ({incoming,carriers,names,appr,events,allO,seen}=demo); demo=null;
             }
             closeSheet(); $('#sheetBody').innerHTML=''; loaded=!next; render();
         }
         if(next && s.profile && !loaded && !busy) refresh();
+        if(next && s.profile)nakgoFavorites.ensure();
     }
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
@@ -500,14 +513,14 @@ const nakgoMarket = (() => {
         if('closed' in patch)values.status=patch.closed?'closed':'active';
         if(patch.archived)values.status='archived';
         const row=await nakgoAuth.updateListing(x.remoteId,values);
-        if(owner!==token())throw Error('Account changed'); writes++; put([row]); render(); return true;
+        if(owner!==token())throw Error('Account changed'); writes++; put([row]); nakgoFavorites.updateListing(row); render(); return true;
     }
     function controls() {
         if(!active())return '';
-        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar, fotoğraflar ve taşıma talepleri hesabında saklanır. Mesajlaşma ve diğer işlemler hazırlanıyor.')+'</p>'+
+        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar, fotoğraflar, taşıma talepleri ve favorilerin hesabında saklanır. Mesajlaşma ve diğer işlemler hazırlanıyor.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
     }
-    return {active,token,sync,refresh,create,update,pending,controls};
+    return {active,token,sync,refresh,create,update,pending,controls,mapped};
 })();
 
 // Transport jobs are held only in the verified account session, never the demo store.
@@ -550,4 +563,76 @@ const nakgoJobs = (() => {
     const request=id=>write('listing:'+id,()=>nakgoAuth.requestTransport(id));
     const transition=(id,action)=>write('job:'+id,()=>nakgoAuth.transitionTransport(id,action));
     return {reset,state,summary,refreshSummary,refresh,request,transition};
+})();
+
+// Private favorite membership and pages never enter the device demo store.
+const nakgoFavorites = (() => {
+    let ids=new Set(),rows=[],ready=false,busy=false,error='',pageReady=false,pageBusy=false,pageError='',before=null,more=false,version=0;
+    const pending=new Set();
+    const allowed=()=>{const s=nakgoAuth.snapshot();return nakgoMarket.active()&&s.user&&s.profile&&!s.recovery;};
+    const reset=()=>{ids=new Set();rows=[];ready=busy=pageReady=pageBusy=more=false;error=pageError='';before=null;version++;pending.clear();};
+    const state=()=>({ready,busy,error,pageReady,pageBusy,pageError,more,count:ids.size});
+    const has=id=>ids.has(id);
+    const disabled=id=>!ready||pending.has(id);
+    const listings=()=>rows.filter(r=>r.listing&&ids.has(r.listing_id)).map(r=>nakgoMarket.mapped(r.listing));
+    const unavailable=()=>rows.filter(r=>ids.has(r.listing_id)&&(!r.listing||!availableListing(nakgoMarket.mapped(r.listing),r.listing.kind==='truck'))).map(r=>r.listing_id);
+    async function refresh() {
+        if(!allowed()||busy)return;
+        const account=nakgoMarket.token(),revision=version;busy=true;error='';
+        render();
+        try {
+            let cursor=null;const found=new Set();
+            for(;;) {
+                const page=await nakgoAuth.listFavorites({before:cursor});
+                if(account!==nakgoMarket.token()||revision!==version)return;
+                page.forEach(r=>found.add(r.listing_id));
+                if(page.length<200)break;
+                const next=page.at(-1)?.listing_id;
+                if(!Number.isSafeInteger(next)||next<1||(cursor!==null&&next>=cursor))throw Error('Invalid favorite cursor');
+                cursor=next;
+            }
+            ids=found;ready=true;rows=[];pageReady=false;pageError='';before=null;more=false;
+        } catch(e){if(account===nakgoMarket.token()&&revision===version)error='Kaydettiklerin yüklenemedi. Yeniden dene.';}
+        finally {if(account===nakgoMarket.token()){busy=false;render();}}
+    }
+    async function refreshPage(append=false) {
+        if(!allowed()||!ready||busy||pageBusy)return;
+        const account=nakgoMarket.token(),revision=version;pageBusy=true;pageError='';render();
+        try {
+            const page=await nakgoAuth.listFavorites({before:append?before:null,details:true});
+            if(account!==nakgoMarket.token()||revision!==version)return;
+            const all=new Map((append?rows:[]).map(r=>[r.listing_id,r]));page.forEach(r=>all.set(r.listing_id,r));
+            rows=[...all.values()];before=page.at(-1)?.listing_id||null;more=page.length===50;pageReady=true;
+        } catch(e){if(account===nakgoMarket.token()&&revision===version)pageError='Kayıtlı ilanlar yüklenemedi. Yeniden dene.';}
+        finally {if(account===nakgoMarket.token()){pageBusy=false;render();}}
+    }
+    function ensure() {
+        if(!allowed())return;
+        if(!ready&&!busy&&!error)refresh();
+        else if(ready&&!busy&&F.fav&&tab==='list'&&!pageReady&&!pageBusy&&!pageError)refreshPage();
+    }
+    async function setSaved(id,saved) {
+        if(!allowed()||!ready||!Number.isSafeInteger(id)||id<1||typeof saved!=='boolean')throw Error('Favorite unavailable');
+        if(pending.has(id))return null;
+        const account=nakgoMarket.token();pending.add(id);render();
+        try {
+            const result=await nakgoAuth.setFavorite(id,saved);
+            if(account!==nakgoMarket.token())throw Error('Account changed');
+            if(result?.listing_id!==id||result.saved!==saved)throw Error('Invalid favorite response');
+            version++;if(saved)ids.add(id);else ids.delete(id);
+            rows=rows.filter(r=>r.listing_id!==id);pageReady=false;pageError='';error='';return result;
+        } finally {if(account===nakgoMarket.token()){pending.delete(id);render();}}
+    }
+    const updateListing=row=>{rows=rows.map(r=>r.listing_id===row.id?{...r,listing:row}:r);};
+    function controls() {
+        const problem=error||pageError;
+        return (problem?'<p role="alert">'+esc(problem)+'</p>':'')+
+            (!ready&&!problem?'<p role="status">Kaydettiklerin yükleniyor…</p>':'')+
+            (F.fav||problem?'<div class="chips"><button class="chip" id="favorites-refresh" '+(busy||pageBusy?'disabled':'')+'>Kaydettiklerimi yenile</button></div>':'');
+    }
+    function bind() {
+        if($('#favorites-refresh'))$('#favorites-refresh').onclick=()=>refresh();
+        if($('#favorites-more'))$('#favorites-more').onclick=()=>refreshPage(true);
+    }
+    return {reset,state,has,disabled,listings,unavailable,refresh,refreshPage,ensure,setSaved,controls,bind,updateListing};
 })();

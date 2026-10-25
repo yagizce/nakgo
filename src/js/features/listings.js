@@ -15,6 +15,15 @@ function routeSearch() {
     return `<section class="route-search" aria-labelledby="route-heading"><div class="route-search-heading"><span class="eyebrow">${mode === "truck" ? "BOŞ ARAÇLARI KEŞFET" : "YÜKLERİ KEŞFET"}</span><h2 id="route-heading">Rotanı seç, <em>yola çık.</em></h2></div><div class="route-fields">${field("from", "Nereden?")}<button class="route-swap" id="route-swap" aria-label="Çıkış ve varış şehirlerini değiştir" title="Güzergâhı ters çevir">⇄</button>${field("to", "Nereye?")}</div></section>`;
 }
 
+const isFavorite=x=>nakgoMarket.active()?nakgoFavorites.has(x.remoteId):favs.includes(String(x.id));
+const favoriteDisabled=x=>nakgoMarket.active()&&nakgoFavorites.disabled(x.remoteId)?' disabled':'';
+const listingSource=isT=>nakgoMarket.active()&&F.fav?nakgoFavorites.listings().filter(x=>(typeof x.id==='string')===isT):(isT?trucks:loads);
+async function changeAccountFavorite(id,saved) {
+    const account=nakgoMarket.token();
+    try {const result=await nakgoFavorites.setSaved(id,saved);if(result)toast(saved?'İlan hesabına kaydedildi':'İlan kaydın kaldırıldı');}
+    catch(e){if(account===nakgoMarket.token())toast('Kaydın değiştirilemedi. Bağlantını kontrol edip tekrar dene.');}
+}
+
 function match(x, isT) {
     if (F.veh.length && !F.veh.includes(x.veh))
         return 0;
@@ -34,7 +43,7 @@ function match(x, isT) {
     const rr = x.uid && ratingOf(x.uid) ? ratingOf(x.uid).avg : x.rate;
     if (F.rate && !(rr >= F.rate))
         return 0;
-    if (F.fav && !favs.includes(String(x.id)))
+    if (F.fav && !isFavorite(x))
         return 0;
     if (F.ok && isT && !vok(x))
         return 0;
@@ -83,14 +92,14 @@ const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc
     ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
     <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
     <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
-    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${favs.includes(String(l.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(l.id))}" class="fav ${favs.includes(String(l.id)) ? "on" : ""}" data-fav="${esc(l.id)}">${favs.includes(String(l.id)) ? "♥" : "♡"}</button></div>
+    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${favs.includes(String(t.id)) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${favs.includes(String(t.id))}" class="fav ${favs.includes(String(t.id)) ? "on" : ""}" data-fav="${esc(t.id)}">${favs.includes(String(t.id)) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
-    const cnt = () => (isT ? trucks : loads).filter(x => visibleListing(x, isT)).length;
+    const cnt = () => listingSource(isT).filter(x => visibleListing(x, isT)).length;
     const grp = (k, t, o) => `<label>${t}</label><div class="chips wrap">${o.map(v => `<button class="chip ${F[k].includes(v) ? "on" : ""}" data-g="${k}" data-v="${v}">${v}</button>`).join("")}</div>`;
     const sel = (k, t, o) => `<div><label>${t}</label><select data-s="${k}"><option value="">Hepsi</option>${o.map(c => `<option ${F[k] === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>`;
     B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Filtrele</b><button class="chip" id="fr">Sıfırla</button></div>`
@@ -189,7 +198,7 @@ function toggleCmp(id) {
 const cmpBar = () => cmp.length ? `<div class="cmpbar"><span>${cmp.length} ilan seçildi</span><span style="display:flex;gap:6px"><button class="chip" id="cmpx">Temizle</button>${cmp.length === 2 ? '<button class="chip on" id="cmpgo">Karşılaştır</button>' : ""}</span></div>` : "";
 
 function openCompare() {
-    const L = cmp.map(id => loads.find(x => x.id === id)).filter(Boolean);
+    const L = cmp.map(id => findIt("l",id)).filter(Boolean);
     if (L.length < 2)
         return toast("İki ilan seç");
     const B = $("#sheetBody");
@@ -234,7 +243,11 @@ const mineL = () => loads.filter(l => cloud ? l.uid === me : l.mine);
 
 const mineT = () => trucks.filter(t => cloud ? t.uid === me : t.mine);
 
-const findIt = (k, id) => (k === "l" ? loads : trucks).find(x => String(x.id) === String(id));
+const findIt = (k, id) => {
+    const saved=nakgoMarket.active()?nakgoFavorites.listings().filter(x=>(typeof x.id==='string')===(k!=="l")):[];
+    const feed=k==='l'?loads:trucks;
+    return (F.fav?[...saved,...feed]:[...feed,...saved]).find(x=>String(x.id)===String(id));
+};
 
 function patchIt(k, id, patch) {
     if(nakgoMarket.active())return nakgoMarket.update(k,id,patch).catch(e=>{toast(nakgoAuth.message(e));return false;});

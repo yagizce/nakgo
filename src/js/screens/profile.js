@@ -26,9 +26,11 @@ function profileIdentityHTML(own,active,done,name,rating) {
 }
 
 function profileToolsHTML() {
+    const saved=nakgoMarket.active()?nakgoFavorites.state():null;
+    const favoriteCaption=saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
     const tools=[
         ['messages','message','Mesajlar','Görüşmelerin'],
-        ['favorites','heart','Kaydettiklerim',favs.length+' kayıtlı ilan'],
+        ['favorites','heart','Kaydettiklerim',favoriteCaption],
         ['fuel','fuel','Mazot hesabı','Yol giderini planla']
     ];
     return `<div class="profile-shortcuts">
@@ -95,7 +97,7 @@ function renderProfile(main) {
     };
     $('#profile-messages').onclick=openInbox;
     $('#profile-fuel').onclick=()=>openCalc();
-    $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();};
+    $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
     $('#profile-map').onclick=()=>openRoadMap();
     if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:myCar.displayName||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
 }
