@@ -1,5 +1,7 @@
 """Form taslağı, açık kayıt sınırı ve mazot hesabı tarayıcı regresyonları."""
 
+from datetime import datetime, timezone, timedelta
+
 def run_forms(page, check):
     p=page()
     # Liste çizimi büyük yy2 kaydını serileştirmemeli.
@@ -17,7 +19,7 @@ def run_forms(page, check):
     check('favori kaldırma hatasında kayıt ve seçili durum korunur',p.evaluate('(id)=>favs.includes(id)',favorite) and p.get_attribute('[data-fav="'+favorite+'"]','aria-pressed')=='true')
     p.evaluate('Storage.prototype.setItem=window.__setItem;void 0')
     p.click('nav [data-t=post]');p.click('[data-pm=load]');p.click('#post-next')
-    p.fill('#c','Taslak yük');p.fill('#w','0.5')
+    p.fill('#c','Taslak yük');p.fill('#w','0.5');p.fill('#d',datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y'))
     check('ondalıklı tonaj formda geçerlidir',p.locator('#w').evaluate('e=>e.validity.valid'))
     p.click('#post-next');p.fill('#n','Korunan not')
     p.click('#addit');p.fill('[data-in]','Palet');p.fill('[data-iq]','-1');p.click('#go')
@@ -67,7 +69,8 @@ def run_forms(page, check):
     p=page()
     p.evaluate("""localStorage.setItem('ng-post-drafts',JSON.stringify({load:{step:2,fields:{f:'Olmayan şehir',t:'Ankara',v:'Eski araç',b:'Eski kasa',d:'Eski gün',c:'Korunan yük',w:'2',n:'Korunan açıklama'},items:[{n:'Koli',q:'2',u:'Eski birim'}]}}))""")
     p.reload();p.click('nav [data-t=post]');p.click('[data-pm=load]')
-    check('eski taslakta kaldırılmış seçenekler formu kilitlemez',p.evaluate("cities.includes(document.querySelector('#f').value)&&vehicles.includes(document.querySelector('#v').value)&&bodies.includes(document.querySelector('#b').value)&&postDateOK(document.querySelector('#d').value)"))
+    check('eski taslakta kaldırılmış seçenekler formu kilitlemez',p.evaluate("cities.includes(document.querySelector('#f').value)&&vehicles.includes(document.querySelector('#v').value)&&bodies.includes(document.querySelector('#b').value)&&document.querySelector('#d').value==='Eski gün'"))
     check('eski taslağın geçerli metinleri korunur',p.input_value('#c')=='Korunan yük' and p.input_value('#n')=='Korunan açıklama')
-    p.click('#go');check('onarılmış taslak yayınlanabilir',p.evaluate("loads.some(l=>l.cargo==='Korunan yük')&&tab==='list'"))
+    p.click('#go');check('geçersiz eski tarih kullanıcı düzeltmeden yayınlanmaz',p.is_visible('#go') and p.evaluate("!loads.some(l=>l.cargo==='Korunan yük')"))
+    p.click('#post-prev');p.fill('#d',datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y'));p.click('#post-next');p.click('#go');check('kullanıcının düzelttiği taslak yayınlanabilir',p.evaluate("loads.some(l=>l.cargo==='Korunan yük')&&tab==='list'"))
     p.context.close()

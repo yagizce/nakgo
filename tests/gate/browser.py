@@ -2,6 +2,9 @@
 import argparse, functools, http.server, json, os, threading, unittest
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from datetime import datetime, timezone, timedelta
+
+def typed_day(): return datetime.now(timezone(timedelta(hours=3))).strftime("%d.%m.%Y")
 
 args=argparse.ArgumentParser();args.add_argument('--root',default=str(Path(__file__).resolve().parents[2]));options=args.parse_args()
 ROOT=Path(options.root).resolve()
@@ -46,6 +49,7 @@ class BrowserGate(unittest.TestCase):
         if p.is_visible('#post-prev'):
             while p.is_visible('#post-prev'):p.click('#post-prev')
         p.select_option('#f','İstanbul');p.select_option('#t','Ankara');p.click('#post-next')
+        if not truck:p.fill('#d',typed_day())
     def visible_box(self,p,selector):
         r=p.locator(selector).bounding_box();v=p.viewport_size
         return bool(r and r['x']>=-1 and r['y']>=-1 and r['x']+r['width']<=v['width']+1 and r['y']+r['height']<=v['height']+1)
@@ -88,10 +92,28 @@ class BrowserGate(unittest.TestCase):
         self.verify(p.evaluate("loads.some(l=>l.mine&&l.cargo==='Bağımsız yük'&&l.ton===.5&&l.note==='Kalıcı not')"),'Yük refresh sonrası korunur')
 
     def test_publish_truck_once_and_refresh(self):
-        p=self.page();self.form(p,True);p.fill('#w','18.5');p.click('#post-next')
+        p=self.page();self.form(p,True);p.fill('#w','18.5');p.click('#post-next');p.fill('#d',typed_day());p.fill('#n','Araç için özel not')
         self.double_click_same_button(p,'#go')
         self.verify(p.evaluate("trucks.filter(t=>t.mine&&t.cap===18.5).length===1"),'Hızlı iki click tek araç ilanı oluşturur')
-        p.reload();self.verify(p.evaluate("trucks.some(t=>t.mine&&t.cap===18.5)"),'Araç refresh sonrası korunur')
+        p.reload();self.verify(p.evaluate("trucks.some(t=>t.mine&&t.cap===18.5&&t.note==='Araç için özel not')"),'Araç ve not refresh sonrası korunur')
+        p.locator('.load[data-tid]').first.click();self.verify(p.inner_text('.detail-note')=='Araç için özel not','Araç notu detayda görünür')
+
+    def test_manual_dates_start_empty_and_require_explicit_input(self):
+        for truck in [False,True]:
+            p=self.page();self.nav(p,'post');p.click('[data-pm="'+('truck' if truck else 'load')+'"]');p.click('#post-next')
+            if truck:p.click('#post-next')
+            else:p.fill('#c','Elle tarih testi')
+            self.verify(p.input_value('#d')=='' and p.get_attribute('#d','type')=='text','Tarih metin alanı boş açılır')
+            self.verify(not p.get_attribute('#d','placeholder') and p.locator('#post-date-hint').count()==0,'Hazır tarih veya alan altı açıklama yok')
+            before=p.evaluate('trucks.length' if truck else 'loads.length')
+            p.click('#go' if truck else '#post-next')
+            self.verify(p.evaluate('trucks.length' if truck else 'loads.length')==before and p.is_visible('#d'),'Boş tarihle ilerlenmez')
+            p.fill('#d',typed_day()+' 25:70');p.click('#go' if truck else '#post-next')
+            self.verify(p.evaluate('trucks.length' if truck else 'loads.length')==before and p.is_visible('#d'),'Geçersiz saatle ilerlenmez')
+            p.fill('#d',typed_day()+' 14:30')
+            if not truck:p.click('#post-next')
+            p.click('#go');p.reload()
+            self.verify(p.evaluate("(truck)=> (truck?trucks:loads).some(x=>x.mine&&x.time==='14:30')",truck),'Kullanıcının yazdığı saat yenilemede korunur')
 
     def test_required_invalid_and_long_inputs(self):
         p=self.page();self.form(p)
