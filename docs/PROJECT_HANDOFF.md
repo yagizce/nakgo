@@ -1,5 +1,19 @@
 # NakGo proje devri
 
+## Güncel aşama — 26 Ekim 2026, Production hesap açılışı
+
+Kullanıcının sıradaki hesap açılışı aşamasına devam talebiyle yalnız Production
+NAKGO_PRODUCTION_AUTH_ENABLED=true yapıldı. Aynı main 6f23563 sürümü yeniden
+yayımlandı: dpl_F66kECX2jtWX1HnkYY3cnJMgEniT READY, nakgo.vercel.app alias bağlı.
+Canlı /api/auth/config HTTP 200, enabled=true, marketplaceEnabled=true,
+URL kesin PROD fimlifldsivecezbxwuo ve private/no-store olarak doğrulandı.
+Main verify ve admin-regression başarılı. Yeni kod veya migration eklenmedi.
+Canlı Kayıt ol ekranı açıldı; kullanıcıdan belirlediği yönetici e-postasıyla
+kayıt ve e-posta doğrulaması bekleniyor. Gerçek oturum testi henüz tamamlanmadı.
+PROD genel yönetici/belge inceleyici yetkisi atanmadı; ayrı işlem-anı onayı gerekir.
+DEV oturumları taşınmaz. Aşağıdaki kapalı Auth ifadeleri önceki yayın aşamasının
+tarihsel kaydıdır; güncel etkinleştirme durumu bu bölümdür.
+
 Son inceleme: **26 Ekim 2026, Europe/Istanbul**. Önce kökteki `AGENTS.md`
 okunur. Bu dosya tarihli bağlamdır; uzak ref, PR, deployment ve veritabanı
 gelecek oturumda yeniden doğrulanır.
