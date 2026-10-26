@@ -1,5 +1,19 @@
 # NakGo proje devri
 
+## Son kabul — Production tek genel yönetici
+
+26 Ekim 2026: Kullanıcının işlem-anı açık onayıyla yalnız belirlediği ve
+Production'da e-postası doğrulanmış hesap private.admin_members üzerinden
+tek aktif genel yönetici yapıldı. Ön kontrolde aktif yönetici 0 ve unique index
+mevcuttu; transaction hedef hesabı doğrulayıp başka aktif yönetici varsa işlemi
+reddedecek şekilde uygulandı. Son aktif yönetici sayısı 1. Gerçek canlı oturumda
+Profil > Yönetici paneli açıldı; sunucudan genel bakış 1 profil, 0 aktif ilan,
+0 bekleyen belge, 0 devam eden iş döndü. Belge inceleyici yetkisi verilmedi.
+Gerçek kullanıcı/ilan üzerinde deneme moderasyonu yapılmadı. Fiziksel dosya,
+iki canlı hesap arasında mesaj/iş ve moderasyon kabulü henüz tamamlanmadı.
+Aşağıdaki yetki atanmamış/kayıt bekleniyor ifadeleri önceki aşamanın kaydıdır.
+Hesap e-postası ve UUID bu herkese açık rehbere yazılmaz.
+
 ## Güncel aşama — 26 Ekim 2026, Production hesap açılışı
 
 Kullanıcının sıradaki hesap açılışı aşamasına devam talebiyle yalnız Production
