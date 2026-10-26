@@ -22,6 +22,8 @@ vermez. Özel sohbet ve belge dosyaları yönetim listelerine dahil edilmez.
   reddedilir; ağ hatasında işlem sonucu varsayılmaz, güncel durum istenir.
 - Kendi hesabını veya başka aktif yöneticiyi askıya alma engellenir.
 
+Yeni taşıma isteği ve kabul, hem yük sahibi hem taşıyıcının aktif olmasını gerektirir.
+Katılımcı kilitleri UUID sırasıyla alınır; önceden kabul edilmiş işin tamamlanması korunur.
 Faaliyet yazmaları ve hesap askıya alma advisory transaction lock ile sıralanır.
 İlan moderasyonu ilan satırını kilitler; durum ve audit aynı transaction içindedir.
 Var olan işler/görüşmeler silinmez. İstemci audit tablosuna doğrudan yazamaz.
@@ -36,6 +38,11 @@ active=false kullanın. Migration'lar hiçbir hesaba otomatik yetki vermez.
 Belge inceleyici atamaları ayrıca yapılır. Service-role anahtarı istemciye konmaz.
 
 ## Doğrulama
+
+`admin-regression.yml` mevcut kontrol workflow'larını değiştirmeden bu PostgreSQL
+ve admin Chromium kontrollerini her PR'da çalıştırır. PGlite test paketi geçici
+klasöre sabit sürümle kurulur; uygulama bağımlılıklarına eklenmez.
+
 
 - npm test ve npm run test:static.
 - NAKGO_BROWSER_CHANNEL=chromium python tests/admin_panel_browser.py: gerçek

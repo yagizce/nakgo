@@ -65,10 +65,14 @@ revoke all on function private.storage_activity_guard() from public,anon,authent
 -- Existing accepted work can still be loaded/confirmed; pending requests can
 -- be rejected/withdrawn. Creating or accepting work is blocked while suspended.
 create function private.job_activity_guard() returns trigger language plpgsql security definer set search_path='' as $$
+declare participant uuid;
 begin
- if tg_op='INSERT' then perform private.require_activity(auth.uid());
- elsif (new.status='ok' and old.status<>'ok') or (new.status='wait' and old.status<>'wait') then
-  perform private.require_activity(auth.uid());
+ if tg_op='INSERT' or (new.status='ok' and old.status<>'ok') or (new.status='wait' and old.status<>'wait') then
+  -- Starting work requires both participants and the actor to remain active.
+  -- Use one UUID order for shared locks, including when their roles are reversed.
+  for participant in select distinct user_id from unnest(array[auth.uid(),new.owner_id,new.carrier_id]) as participants(user_id) order by user_id loop
+   perform private.require_activity(participant);
+  end loop;
  end if;
  return new;
 end $$;
