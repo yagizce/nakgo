@@ -20,13 +20,13 @@ kaynağı kullanılmaz. Bu mobil rehber site/DNS değişikliği yetkisi vermez.
 26 Ekim'de GitHub'dan doğrulandı:
 
 - main: `5b46c28f03528a3ae9e4ada25bb6405a268a8a5a`.
-- Çalışan DEV: `codex/nakgo-email-auth`, `3cb32ba47d4bb68579904d624af41ec5f2ad2c80`.
+- Çalışan DEV: `codex/nakgo-email-auth`, `b0df3bdf987daed91b952ccbd92b3da6313f798f`.
 - [Taslak PR #21](https://github.com/yagizce/nakgo/pull/21) DEV toplamını main'e önerir;
   Production'a taşınmadı.
 - [DEV Preview](https://nakgo-git-codex-nakgo-email-auth-yagizces-projects.vercel.app/).
-- Geceki admin dalı: `codex/nakgo-admin-panel`, `9b3a6109acfdeda057799d5377b796a7265fb9cd`.
-  [Taslak PR #31](https://github.com/yagizce/nakgo/pull/31) hedefi DEV dalıdır;
-  çalışan DEV'e henüz alınmadı.
+- Geceki admin dalı: `codex/nakgo-admin-panel`, `b0df3bdf987daed91b952ccbd92b3da6313f798f`.
+  [PR #31](https://github.com/yagizce/nakgo/pull/31) DEV dalına alındı;
+  main/Production'a alınmadı.
 
 İlk adım yerel status/HEAD/origin ve uzak ref'leri incelemektir. Eski kopyadan
 başlamayın; kullanıcının önceki çalışmalarına reset/temizlik uygulamayın. Bu
@@ -150,19 +150,24 @@ SQL Editor uygulaması CLI migration ledger'ı değildir; tekrar çalıştırmad
 şemayı doğrulayın. RLS kapatmak/tablo silmek çözüm değildir. SQL testleri
 sentetik transaction/rollback'tir, gerçek Auth/Storage servisini kanıtlamaz.
 
-## 7. PR #31 yönetici paneli — kabul bekliyor
+## 7. PR #31 yönetici paneli — tek hesapla DEV’de etkin
 
-src/js/screens/admin.js, profil girişi, API wrapper'ları, iki migration ve
+src/js/screens/admin.js, profil girişi, API wrapper'ları, üç migration ve
 [admin kurulum rehberi](https://github.com/yagizce/nakgo/blob/codex/nakgo-admin-panel/docs/admin-panel.md)
 eklenmiştir. Özet, kullanıcı/ilan arama/sayfalama ve audit listeleri; gerekçeli
 askı/kaldırma, revizyon/audit ve kapalı duruma restore vardır.
 
 private.admin_members her RPC'de kontrol edilir; belge inceleyiciliği vermez.
 Askı Auth ban değildir: giriş/geçmiş ve önceden kabul edilmiş işi bitirme
-korunur; eski ilanlar otomatik kaldırılmaz. Yeni 20261026010000_admin_panel.sql
-ve 20261026020000_admin_moderation.sql canlı DEV'e uygulanmış değildir. Genel
-admin üyeliği provision edilmedi. Kullanıcının dar belge rolü onayı genel
-admin yetkisini kapsamaz.
+korunur; eski ilanlar otomatik kaldırılmaz. 20261026010000_admin_panel.sql,
+20261026020000_admin_moderation.sql ve 20261026030000_single_admin_access.sql
+DEV'e uygulandı. Kullanıcının açık işlem-anı onayıyla yalnız belirlediği doğrulanmış
+hesap genel yönetici yapıldı. Hesap e-postası/UUID kaynakta sabitlenmez.
+Tek aktif yönetici unique index ile korunur. Profil girişi yalnız sunucu rolü
+strict true ise görünür; hesap değişimi ve geç yanıt temizlenir. Canlı SQL
+kabulünde diğer iki mevcut DEV hesabının rol/panel erişimi reddedildi; atanmış
+hesabın gerçek tarayıcı oturumunda panel açıldı ve korumalı yönetici satırı görüldü.
+Deneme moderasyonu veya başka ürün değişikliği yapılmadı.
 
 26 Ekim incelemesindeki askı/kabul açığı PR #31'de düzeltildi. Yeni talep ve
 kabul sırasında aktör, yük sahibi ve taşıyıcının aktif olması gerekiyor;
@@ -172,8 +177,8 @@ her iki katılımcı askıdayken de tamamlanabildiği ayrıca doğrulandı.
 
 İlan kaldırma/restore onayı artık ilan #id ve rotayı gösterir. Yeni read-only
 admin-regression.yml bu PostgreSQL ve Chromium kontrollerini PR'larda çalıştırır.
-Düzeltme commit'i yukarıda kayıtlıdır; canlı DEV kurulumu ve yetkili kabulü
-halen ayrı aşamadır. Genel admin rolü verilmiş veya migration uygulanmış sayılmaz.
+Son erişim CI'ları 40301475019 ve 40301475613 başarılı: 551 uygulama, 407 E2E,
+45 PostgreSQL ve mobil/masaüstü yönetici Chromium kontrolü. DEV aynı commit'te READY.
 
 ## 8. Test ve kalite kapısı
 
@@ -222,9 +227,9 @@ Gerçek kullanıcı verisi üzerinde deneme kararı veya toplu temizlik yapmayı
 Önerilen sıra (kullanıcının verdiği görev kapsamına göre):
 
 1. #31 son commit ve CI sonuçlarını doğrula; canlı DEV eşzamanlılık kabulünü tamamla.
-2. Ayrı DEV Preview/env ve migration planını doğrula. Ortak hesap kimlikleri
-   kullanıcıdan doğrulanmalı; yeni genel admin erişimi ayrıca yetkilendirilmeli.
-3. İki yönetici + normal kullanıcıyla rol iptali, açık oturumda askı, ilan
+2. Gelecek Production geçişinde DEV/PROD migration ve tek yönetici atamasını
+   ayrıca planla; DEV yetkisini PROD'a kendiliğinden taşıma.
+3. Tek yönetici + normal kullanıcıyla rol iptali, açık oturumda askı, ilan
    yeniden yayın engeli, revizyon çatışması ve gerçek Storage kabulünü tamamla.
 4. Korumalı test bakımını güvenilir incelemeyle çöz; fiziksel cihaz kabulü ve
    Production migration/env/rollback planını ayrıca hazırla.
@@ -237,8 +242,8 @@ ve WhatsApp Web otomasyonu etkinleştirilmiş varsayılmaz.
 ## 10. Yeni sohbete verilecek kısa metin
 
 > Bu depoda önce AGENTS.md ve docs/PROJECT_HANDOFF.md oku. Yerel değişiklik,
-> uzak branch/PR ve Preview commit'ini doğrula. Çalışan DEV ile kabul bekleyen
-> admin dalını ayır. Statik mimariyi, boş manuel tarihleri, RLS ve kalite kapısını
+> uzak branch/PR ve Preview commit'ini doğrula. Çalışan DEV admin durumunu ve tek yönetici
+> sınırını doğrula. Statik mimariyi, boş manuel tarihleri, RLS ve kalite kapısını
 > koru. Güncel durumu ve sıradaki somut adımı özetleyip verdiğim görev kapsamında
 > ilerle; main/Production değişikliği varsayma.
 

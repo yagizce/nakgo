@@ -11,7 +11,7 @@ yerine geçmez. Kullanıcıyla Türkçe ve açık iletişim kurun.
 - `git status --short`, branch, HEAD ve origin'i kontrol edin. Yerel kopya
   uzak DEV'den eski olabilir. Kullanıcı çalışmalarını koruyun; toplu reset,
   temizlik veya `git add .` yapmayın.
-- Çalışan DEV PR #21 ile kabul bekleyen admin PR #31'i ayırın. Uzak durumlarını
+- Admin PR #31 DEV PR #21 toplamına alınmıştır; main/Production ayrıdır. Uzak durumlarını
   yeniden doğrulayın. Başarılı eski CI yeni commit için kanıt değildir.
 
 ## Mimari ve ürün
