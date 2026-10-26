@@ -24,7 +24,7 @@ kaynağı kullanılmaz. Bu mobil rehber site/DNS değişikliği yetkisi vermez.
 - [Taslak PR #21](https://github.com/yagizce/nakgo/pull/21) DEV toplamını main'e önerir;
   Production'a taşınmadı.
 - [DEV Preview](https://nakgo-git-codex-nakgo-email-auth-yagizces-projects.vercel.app/).
-- Geceki admin dalı: `codex/nakgo-admin-panel`, `adad3ab7df22ed709a38a3ee75d3bbcc99a2b6f3`.
+- Geceki admin dalı: `codex/nakgo-admin-panel`, `53cfca56222bd803b784e69c6d40a1d3a8bac90d`.
   [Taslak PR #31](https://github.com/yagizce/nakgo/pull/31) hedefi DEV dalıdır;
   çalışan DEV'e henüz alınmadı.
 
@@ -164,17 +164,16 @@ ve 20261026020000_admin_moderation.sql canlı DEV'e uygulanmış değildir. Gene
 admin üyeliği provision edilmedi. Kullanıcının dar belge rolü onayı genel
 admin yetkisini kapsamaz.
 
-26 Ekim incelemesinde **kabul engeli**: job_activity_guard yalnız auth.uid()
-denetliyor. Taşıyıcı talep oluşturup askıya alınınca, askıda olmayan yük sahibi
-bekleyen talebi kabul edebiliyor. Yerel PostgreSQL probe sonucu status=ok;
-mevcut 34 kontrol bunu yakalamıyor. Yeni iş başlatırken ilgili tarafların
-askısını, kararlı kilit sırasını ve eşzamanlı askıyı kontrol edin; önceden
-kabul edilmiş işi tamamlama hakkını bozmayın.
+26 Ekim incelemesindeki askı/kabul açığı PR #31'de düzeltildi. Yeni talep ve
+kabul sırasında aktör, yük sahibi ve taşıyıcının aktif olması gerekiyor;
+katılımcı kilitleri UUID sırasıyla alınıyor. Ek regression testi eski kodda
+başarısız oldu, düzeltmeden sonra geçti. Askıdan önce kabul edilmiş işin
+her iki katılımcı askıdayken de tamamlanabildiği ayrıca doğrulandı.
 
-İkinci bulgu: ilan kaldırma/restore onay formu yalnız firma/ad gösteriyor;
-ilan #id ve rota eksik. Aynı sahibin birden çok ilanında hedef karışabilir.
-Onay ekranına somut ilan kimliğini ekleyin. Bu rehber yazılırken uygulama kodu
-düzeltilmiş veya canlı kurulmuş sayılmamalıdır.
+İlan kaldırma/restore onayı artık ilan #id ve rotayı gösterir. Yeni read-only
+admin-regression.yml bu PostgreSQL ve Chromium kontrollerini PR'larda çalıştırır.
+Düzeltme commit'i yukarıda kayıtlıdır; canlı DEV kurulumu ve yetkili kabulü
+halen ayrı aşamadır. Genel admin rolü verilmiş veya migration uygulanmış sayılmaz.
 
 ## 8. Test ve kalite kapısı
 
@@ -197,9 +196,10 @@ testi değiştirip geçirmeyin; erişimle tekrar doğrulayın veya sınırlamay�
 - [DEV belge CI](https://github.com/yagizce/nakgo/actions/runs/40222583797):
   542 uygulama, 407 E2E ve mobile geçti. Bağımsız browser 197 kontrol/11 senaryo.
   DEV baseline guard 57/57; main gate başarısı değildir.
-- [Admin CI](https://github.com/yagizce/nakgo/actions/runs/40258999042) verify başarılı.
+- [Admin CI](https://github.com/yagizce/nakgo/actions/runs/40297886525) ve
+  [admin regression CI](https://github.com/yagizce/nakgo/actions/runs/40297886535) son düzeltme commit'ini sınar; yeni oturumda sonuçlarını kontrol edin.
   26 Ekim yeniden çalıştırma: 545/545 uygulama, 53/53 statik, HTML 0 hata,
-  34 PGlite kontrolü geçti. Ek askı/kabul probe'u yukarıdaki açığı gösterdi.
+  41 PGlite kontrolü, 407 mevcut E2E ve mobil/masaüstü admin Chromium kontrolleri geçti.
 - tools/admin-db-check.cjs isteğe bağlı @electric-sql/pglite kullanır. Runtime
   bağımlılığı değildir. Sentetik Auth/Storage şeması gerçek servis veya çok
   bağlantılı eşzamanlılık testi değildir.
@@ -221,7 +221,7 @@ Gerçek kullanıcı verisi üzerinde deneme kararı veya toplu temizlik yapmayı
 
 Önerilen sıra (kullanıcının verdiği görev kapsamına göre):
 
-1. #31 bulgularını gider; ilişkili regression ve eşzamanlılık kontrolü ekle.
+1. #31 son commit ve CI sonuçlarını doğrula; canlı DEV eşzamanlılık kabulünü tamamla.
 2. Ayrı DEV Preview/env ve migration planını doğrula. Ortak hesap kimlikleri
    kullanıcıdan doğrulanmalı; yeni genel admin erişimi ayrıca yetkilendirilmeli.
 3. İki yönetici + normal kullanıcıyla rol iptali, açık oturumda askı, ilan
