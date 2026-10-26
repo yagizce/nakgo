@@ -14,9 +14,9 @@ const root=path.resolve(__dirname,'..');
  await db.exec(`create role anon;create role authenticated;create schema auth;create schema storage;
  create table auth.users(id uuid primary key,email_confirmed_at timestamptz);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
- grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;
+ grant usage on schema auth,storage to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;
  create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
- create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,metadata jsonb);
+ create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner_id text,metadata jsonb);
  alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;`);
  for(const f of fs.readdirSync(path.join(root,'supabase/migrations')).sort())await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',f),'utf8'));
  for(const id of ids){await query('insert into auth.users values($1,$2)',[id,id===unverified?null:new Date().toISOString()]);await as(id,"insert into public.profiles(id,display_name,account_type) values($1,$2,'carrier')",[id,id===owner?'Test Owner':'Test User']);}
@@ -94,5 +94,28 @@ const root=path.resolve(__dirname,'..');
  await denied(()=>page(admin),'42501','revoked administrator denied on next request');
  await denied(()=>moderate(admin,'user',owner,'suspend'),'42501','revoked administrator mutation denied');
  check((await as(admin,'select public.nakgo_admin_role() authorized'))[0].authorized===false,'revoked administrator role false');
+ await query('update private.admin_members set active=true where user_id=$1',[admin]);
+ // Execute the repository SQL fixtures against the complete migrated schema.
+ // Counts must match after every fixture's ROLLBACK; sequences may advance.
+ const inventory=async()=>JSON.stringify((await query(`select
+  (select count(*) from auth.users) users,
+  (select count(*) from public.profiles) profiles,
+  (select count(*) from public.listings) listings,
+  (select count(*) from public.transport_jobs) jobs,
+  (select count(*) from public.listing_favorites) favorites,
+  (select count(*) from public.listing_conversations) conversations,
+  (select count(*) from public.conversation_messages) messages,
+  (select count(*) from public.carrier_applications) applications,
+  (select count(*) from public.carrier_document_files) files,
+  (select count(*) from storage.objects) objects,
+  (select count(*) from private.admin_members where active) active_admins`))[0]);
+ for(const fixture of fs.readdirSync(path.join(root,'supabase/tests')).filter(f=>f.endsWith('.sql')).sort()){
+  await db.exec('reset role');await query("select set_config('request.jwt.claim.sub','',false)");
+  const before=await inventory();
+  try{await db.exec(fs.readFileSync(path.join(root,'supabase/tests',fixture),'utf8'));}
+  catch(error){await db.exec('rollback;reset role');throw Error(fixture+': '+error.message,{cause:error});}
+  assert.equal(await inventory(),before,fixture+' must roll back its fixtures');
+  console.log('SQL fixture PASS: '+fixture+'; rows unchanged after rollback');
+ }
  console.log(checks+' PostgreSQL moderation checks passed (synthetic auth/storage; not live Supabase).');await db.close();
 })().catch(error=>{console.error(error);process.exitCode=1;});

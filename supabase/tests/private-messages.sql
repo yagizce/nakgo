@@ -2,6 +2,8 @@
 begin;
 select set_config('nakgo.msg_owner',gen_random_uuid()::text,true),set_config('nakgo.msg_guest',gen_random_uuid()::text,true),set_config('nakgo.msg_out',gen_random_uuid()::text,true),set_config('nakgo.msg_unverified',gen_random_uuid()::text,true),set_config('nakgo.msg_nonce',gen_random_uuid()::text,true);
 insert into auth.users(id,email_confirmed_at) values(current_setting('nakgo.msg_owner')::uuid,now()),(current_setting('nakgo.msg_guest')::uuid,now()),(current_setting('nakgo.msg_out')::uuid,now()),(current_setting('nakgo.msg_unverified')::uuid,null);
+-- Fixture writes use a synthetic actor under the current moderation guards.
+select set_config('request.jwt.claim.sub',current_setting('nakgo.msg_owner'),true);
 insert into public.profiles(id,display_name,account_type) values(current_setting('nakgo.msg_owner')::uuid,'Message owner','owner'),(current_setting('nakgo.msg_guest')::uuid,'Message guest','carrier'),(current_setting('nakgo.msg_out')::uuid,'Outsider','carrier'),(current_setting('nakgo.msg_unverified')::uuid,'Unverified','carrier') on conflict(id) do nothing;
 insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
  values(current_setting('nakgo.msg_owner')::uuid,'load','İstanbul','Ankara','Tır','Tenteli',10,'Rollback conversation load','Message owner',(now() at time zone 'Europe/Istanbul')::date) returning set_config('nakgo.msg_load',id::text,true);
