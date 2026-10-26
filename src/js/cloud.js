@@ -503,7 +503,8 @@ const nakgoAuth = (() => {
         if(!Number.isSafeInteger(id)||id<1||!['accept','reject','withdraw','loaded','confirm'].includes(action))throw Error('Invalid transition');
         return listingResult(await requireClient().rpc('nakgo_transition_transport',{p_job_id:id,p_action:action}),account);
     }
-    return {init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
+    async function adminPage(section,offset=0,search=''){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_page',{p_section:section,p_offset:offset,p_search:search}),account);}
+    return {adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
