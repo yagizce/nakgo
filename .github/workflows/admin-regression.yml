@@ -28,7 +28,7 @@ jobs:
       - name: Check moderation and suspension regressions
         run: NODE_PATH="$RUNNER_TEMP/nakgo-admin-db/node_modules" node tools/admin-db-check.cjs
       - run: python -m pip install -r tests/requirements.txt
-      - run: python -m playwright install --with-deps chromium
+      - run: python -m playwright install chromium
       - name: Check admin confirmation and account isolation
         run: |
           mkdir -p work
