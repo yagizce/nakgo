@@ -1,5 +1,6 @@
 """Denetimde bulunan hatalar: gerçek form, yenileme, depolama hatası ve kontrast."""
 import json, os
+from datetime import datetime, timezone, timedelta
 
 def run_reliability(browser, url, check, errors, root):
     def page(storage=None):
@@ -12,7 +13,7 @@ def run_reliability(browser, url, check, errors, root):
         p=ctx.new_page();p.on('pageerror',lambda e:errors.append(str(e)));p.goto(url,wait_until='domcontentloaded');p.wait_for_selector('nav')
         return p
     def form(p,cargo):
-        p.click('nav [data-t=post]');p.click('[data-pm=load]');p.click('#post-next');p.fill('#c',cargo);p.click('#post-next')
+        p.click('nav [data-t=post]');p.click('[data-pm=load]');p.click('#post-next');p.fill('#c',cargo);p.fill('#d',datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y'));p.click('#post-next')
     p=page()
     p.click('[data-md=truck]')
     payload='<img src="missing-test-image" onerror="window.__unsafe=1">'

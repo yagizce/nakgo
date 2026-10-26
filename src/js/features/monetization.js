@@ -11,6 +11,7 @@ const isPrem = () => prem.until > Date.now();
 const callChip = a => `<button class="chip" ${a}>Ara${isPrem() ? "" : '<b class="pm">Premium</b>'}</button>`;
 
 function openPaywall(why) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     roadMapDispose(true);
     if (unChat) { unChat(); unChat=null; }
     const B = $("#sheetBody");
@@ -72,6 +73,7 @@ const isDemoFeature = x => !cloud && x.id === 8 && !x.uid && !x.mine;
 const isF = x => isDemoFeature(x) || !!x.featUntil && (x.featFrom || 0) <= Date.now() && Date.now() < x.featUntil;
 
 function openFeature(kind, id) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const it = findIt(kind, id);
     if (!it)
         return;
@@ -156,6 +158,7 @@ function statsOf0(l) {
 }
 
 const statLine = l => {
+    if(l._remote)return "";
     const s = statsOf(l);
     return s.views + " görüntülenme · " + s.offers + " talep · " + s.saves + " kayıt" + (s.demo ? " (örnek)" : "");
 };
@@ -176,6 +179,7 @@ function statTips(l, s) {
 }
 
 function openStats(id) {
+    if(nakgoMarket.active())return nakgoMarket.pending();
     const l = loads.find(x => String(x.id) === String(id));
     if (!l)
         return;

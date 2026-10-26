@@ -4,6 +4,9 @@ Gereken: pip install playwright && playwright install chromium
 Ekran görüntüsü:  npm run test:shots   (390x844 görüntüleri tests/shots/ içine yazar, git dışındadır)"""
 import os, sys, threading, http.server, socketserver, functools
 from playwright.sync_api import sync_playwright
+from datetime import datetime, timezone, timedelta
+
+def typed_day(): return datetime.now(timezone(timedelta(hours=3))).strftime("%d.%m.%Y")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -100,7 +103,7 @@ with sync_playwright() as p:
     check("simüle yanıt gelir", "Yanıt bekleniyor" not in pg.inner_text("#main"))
 
     # 7) İlan verme ve istatistik
-    nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.click("#go"); pg.wait_for_timeout(300)
+    nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); pg.fill("#d", typed_day()); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.click("#go"); pg.wait_for_timeout(300)
     check("ilan yayınlanır", "İlan yayınlandı" in toast())
     nav("me"); pg.wait_for_timeout(300)
     check("İlanlarım'da yeni ilan ve istatistik satırı var", "görüntülenme" in pg.inner_text("#main") and pg.locator("[data-st2]").count() >= 1)
@@ -194,7 +197,7 @@ with sync_playwright() as p:
             page.fill('#mi','Test mesajı');page.click('#ms')
             check(prefix+"mesaj yazılır ve demo açıklaması görünür","Test mesajı" in page.inner_text('#msgs') and 'Demo sohbet' in page.inner_text('#sheetBody'))
             page.keyboard.press('Escape');page.click('nav [data-t=post]');page.click('[data-pm=load]')
-            page.click('#post-next');page.fill('#c','Uzun şehir adlarıyla hassas test yükü');page.fill('#w','18');page.click('#post-next')
+            page.click('#post-next');page.fill('#c','Uzun şehir adlarıyla hassas test yükü');page.fill('#w','18');page.fill('#d',typed_day());page.click('#post-next')
             page.fill('#n','Uzun not. '*40)
             page.click('#addit');page.fill('[data-in]','Palet');page.fill('[data-iq]','12')
             if width==390:
@@ -233,7 +236,7 @@ with sync_playwright() as p:
             check(prefix+"pencere kapanınca profil ve odak geri gelir",page.evaluate("!document.querySelector('#main').inert&&document.activeElement.id==='profile-map'"))
             page.locator('summary',has_text='Taşıyıcı belgeleri ve güven').click()
             check(prefix+"belge formu erişilir",page.is_visible('#lic'))
-            page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.click('#go')
+            page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.fill('#d',typed_day());page.click('#go')
             check(prefix+"boş araç yayınlanır ve filtre arkasında kalmaz",page.evaluate("trucks.some(t=>t.mine&&t.from==='Afyonkarahisar'&&t.to==='Kahramanmaraş'&&t.cap===20)&&document.querySelectorAll('.load[data-tid]').length===trucks.length"))
             page.locator('.load[data-tid]').first.click();check(prefix+"araç detayını kapatmak erişilir",page.is_visible('.detail-top #close'))
             message=page.locator('#mg').bounding_box();page.locator('.detail-scroll').evaluate('e=>e.scrollTop=e.scrollHeight')

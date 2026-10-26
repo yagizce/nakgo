@@ -21,3 +21,21 @@ GitHub Actions `checks.yml`, her PR ve main güncellemesinde bundle/lint/birim t
 `tests/reliability.py` gerçek formdan güvenli metin, depo dolması, bozuk kayıt, belge fotoğrafı, tarih, filtre, iletişim durumu ve iki temada kontrast senaryolarını kapsar; ana E2E komutu tarafından çağrılır. `tests/forms.py` taslak geçişleri, gecikmeli fotoğraf, geçersiz miktar/seçimler, favori/iş kaydı ve mazot hesabında hata sonrası tutarlılığı denetler. Geçici rapor ve ekran görüntüleri tests/shots altında tutulur.
 
 Bundle satır sonlarını LF olarak sabitler; aynı kaynaklar Windows ve Linux’ta aynı index.html üretir. Yerel HTTP sunucusu tools/serve.js içindedir, dış ağa açılmaz; PORT ortam değişkeni ile port değiştirilebilir.
+
+## SQL fixture kabulü — 26 Ekim 2026
+
+`tools/admin-db-check.cjs`, 45 moderasyon kontrolünün ardından `supabase/tests/`
+altındaki tüm SQL gruplarını migration'ların tamamı üzerinde çalıştırır. On grup
+profil/iletişim, ilan/fotoğraf/saat, işler, favoriler, mesajlar, özel belgeler ve
+tek yönetici moderasyonunu kapsar. Her gruptan sonra kullanıcı/ürün/Storage
+kayıt toplamları ve aktif yönetici sayısı aynı kalmalıdır; PostgreSQL sequence
+numaralarının rollback ile geri alınmadığı hesaba katılır.
+
+Fixture kurulum yazmaları sentetik bir aktör kimliği kullanır. Moderasyon
+korumaları kapatılmaz; eski güvenlik assertion'ları korunur. Yerel Storage
+şeması yalnız gerçek servisin gereken sütun/izin sınırını taklit eder. Bu
+PGlite testi fiziksel dosya servisi veya çok bağlantılı eşzamanlılık kanıtı değildir.
+
+On SQL grubu, gerçek DEV şemasında da tek tek BEGIN/ROLLBACK sınırlarıyla
+çalıştırıldı. Test öncesi/sonrası toplamlar aynı, mevcut tek yönetici korunmuştu.
+Yeni rol, migration veya ürün davranışı bu test bakımıyla devreye alınmaz.
