@@ -233,14 +233,34 @@ yönetici kayıt sayıları korundu. Bağımsız browser 197 kontrol/11 senaryo,
 kalite otomasyonu 16/16 ve production npm audit 0 bulgu. PGlite Storage/Auth
 şeması gerçek servis veya eşzamanlı bağlantı kabulünün yerine geçmez.
 
-Production kullanıcı yetkisiyle mevcut FREE planda yeniden başlatıldı ve yalnız
-okundu. Main/Production uygulaması hâlâ `5b46c28f03528a3ae9e4ada25bb6405a268a8a5a`.
-PROD'da ilk `20261014000000_profiles.sql` ile yapısal olarak eşleşen profiles
-şeması/own RLS/sütun izinleri mevcut; profiles boş, auth.users sayısı 1.
-Migration ledger bulunmuyor. Diğer NakGo tabloları/RPC'ler ve Storage bucket'ları
-yok. Tüm migration'ları baştan körlemesine çalıştırmayın; önce mevcut ilk
-migration baseline'ını doğrulayarak benimseyin, sonra kalan 12 migration'ı
-sırasıyla uygulama planı hazırlayın. Bu incelemede migration veya veri yazılmadı.
+26 Ekim Production şema kurulumu tamamlandı. Kullanıcı, 12 migration'ın
+kurulumunu açıkça istedi. Mevcut FREE plan korundu. İlk profiles migration'ının
+sütunları, constraint/RLS/policy ve sütun izinleri doğrulanıp yeniden çalıştırılmadan
+baseline olarak benimsendi. DEV `a450ab889511be07311c823d768f5489eeea71a0`
+kaynağındaki kalan 12 migration sırayla tek transaction içinde uygulandı.
+Önce aynı batch Production'da ROLLBACK ile prova edildi; ardından COMMIT edildi.
+
+`supabase_migrations.schema_migrations` artık 13 sürümü/name/source statements
+ile izler. İlk sürüm benimsenmiş baseline, diğerleri uygulanmış migration'lardır.
+Son sürüm `20261026030000_single_admin_access`. Migration kaynak checksum'ları
+CRLF/LF farkı normalize edilerek 13/13 eşleşti. Gelecek ajan tüm migration'ları tekrar çalıştırmamalıdır.
+14 public/private uygulama tablosunda RLS açık; anonim tablo/RPC erişimi yok.
+carrier-documents bucket private, JPEG ve 1 MiB sınırında; fiziksel nesne yok.
+
+Production'da 9 mevcut SQL paketi sentetik fixture + BEGIN/ROLLBACK ile geçti.
+Genel yönetici üyeliği bulunmadığından admin-moderation.sql pozitif rol paketi
+Production'da çalıştırılmadı; yetkisiz admin rolü/dashboard/moderasyon reddi
+ayrıca doğrulandı. Mevcut Auth hesabı sayısı 1 korundu; bütün uygulama tabloları
+boş kaldı. Kalıcı test verisi, genel yönetici veya belge inceleyici ataması yok.
+Sequence değerleri rollback ile geri alınmaz; ID'lerin 1'den başlayacağı varsayılmaz.
+Fiziksel Storage upload/indirme veya gerçek hesapla admin kabulü yapılmış sayılmaz.
+
+Production uygulaması hâlâ main `5b46c28f03528a3ae9e4ada25bb6405a268a8a5a`.
+Uygulama/env/Auth koruması bu veritabanı kurulumuyla değiştirilmedi. Kurulum
+başarısızlığında transaction rollback korur; commit sonrası otomatik tablo/drop
+veya veri silen down migration çalıştırmayın. Yeni veri geldiyse önce yedek ve
+ayrı düzeltme planı gerekir. Yerel outputs içindeki preflight/manifest/kurulum ve
+kabul kanıtları şema kurulumunu kaydeder; Auth sırları veya kullanıcı verisi dump'ı değildir.
 
 PROD Email ve Google sağlayıcıları, e-posta doğrulaması ve özel SMTP etkin;
 SMTP host smtp.resend.com, port 465. Kimlik bilgileri okunmadı/yayımlanmadı.
@@ -254,9 +274,8 @@ PROD'da yok; DEV UUID/üyelikleri taşınmaz. PROD rol ataması yapılmadı.
 
 1. Main guard 35/40: dört tarih testinin yanında `tools/project.js` de korumalı
    farktır. Beş farkı güvenilir bakım incelemesiyle çözün; guard'ı gevşetmeyin.
-2. PROD backup/rollback, mevcut profiles baseline'ı, kalan migration sırası,
-   private Storage ve ortam/Auth açılışı için somut uygulama planı hazırlayın.
-   Yeniden başlatma/okuma yetkisi migration, Production yayını veya rol izni değildir.
+2. PROD migration geçmişini ve şemayı tekrar okuyun; 12 migration artık kurulu.
+   Production env/Auth açılışı ve uygulama yayını ayrı kapsamdır; otomatik açmayın.
 3. Ayrı PROD kayıt/doğrulama sonrası tek yönetici atamasını açık kapsamla yapın;
    rol iptali, askı, revision conflict ve gerçek dosya kabulünü doğrulayın.
 4. Fiziksel cihaz, SMTP teslimi, Google callback ve Production smoke kabulünü
