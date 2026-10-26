@@ -24,7 +24,7 @@ kaynağı kullanılmaz. Bu mobil rehber site/DNS değişikliği yetkisi vermez.
 - [Taslak PR #21](https://github.com/yagizce/nakgo/pull/21) DEV toplamını main'e önerir;
   Production'a taşınmadı.
 - [DEV Preview](https://nakgo-git-codex-nakgo-email-auth-yagizces-projects.vercel.app/).
-- Geceki admin dalı: `codex/nakgo-admin-panel`, `53cfca56222bd803b784e69c6d40a1d3a8bac90d`.
+- Geceki admin dalı: `codex/nakgo-admin-panel`, `9b3a6109acfdeda057799d5377b796a7265fb9cd`.
   [Taslak PR #31](https://github.com/yagizce/nakgo/pull/31) hedefi DEV dalıdır;
   çalışan DEV'e henüz alınmadı.
 
@@ -196,8 +196,8 @@ testi değiştirip geçirmeyin; erişimle tekrar doğrulayın veya sınırlamay�
 - [DEV belge CI](https://github.com/yagizce/nakgo/actions/runs/40222583797):
   542 uygulama, 407 E2E ve mobile geçti. Bağımsız browser 197 kontrol/11 senaryo.
   DEV baseline guard 57/57; main gate başarısı değildir.
-- [Admin CI](https://github.com/yagizce/nakgo/actions/runs/40297886525) ve
-  [admin regression CI](https://github.com/yagizce/nakgo/actions/runs/40297886535) son düzeltme commit'ini sınar; yeni oturumda sonuçlarını kontrol edin.
+- [Admin CI](https://github.com/yagizce/nakgo/actions/runs/40299402263) ve
+  [admin regression CI](https://github.com/yagizce/nakgo/actions/runs/40299402277) son düzeltme commit'inde başarılı; yeni oturumda güncel sonuçları doğrulayın.
   26 Ekim yeniden çalıştırma: 545/545 uygulama, 53/53 statik, HTML 0 hata,
   41 PGlite kontrolü, 407 mevcut E2E ve mobil/masaüstü admin Chromium kontrolleri geçti.
 - tools/admin-db-check.cjs isteğe bağlı @electric-sql/pglite kullanır. Runtime
