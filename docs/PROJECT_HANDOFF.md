@@ -233,6 +233,23 @@ yönetici kayıt sayıları korundu. Bağımsız browser 197 kontrol/11 senaryo,
 kalite otomasyonu 16/16 ve production npm audit 0 bulgu. PGlite Storage/Auth
 şeması gerçek servis veya eşzamanlı bağlantı kabulünün yerine geçmez.
 
+Production bağlantısı hazırlığı PR #34 ile DEV'e alındı. Güncel DEV
+`ae39bec912078baa1c88e87815ed792fcac03304`. Production Auth yalnız
+NAKGO_AUTH_ENABLED=true + NAKGO_PRODUCTION_AUTH_ENABLED=true ve kesin PROD
+proje URL'siyle açılır. Preview/Development PROD URL'sini reddeder; Production
+DEV URL'sini reddeder. Yeni regresyon paketiyle 578/578 uygulama, 16/16 otomasyon,
+53/53 statik ve HTML 0 hata. PR #34 verify 40340704583 ve admin-regression
+40340704538 başarılı; READY Preview gerçek config endpoint'inde HTTP 200,
+enabled=false ve private/no-store doğrulandı.
+
+Vercel'de dört değişken yalnız Production kapsamına eklendi. Ayrı Production
+etkinleştirme anahtarı false; uygulama yayını/promote veya yetki ataması yapılmadı.
+Main'e geçiş gate'i aynı beş korumalı farkta 35/40: 40346471555. GitHub classic
+main kuralı PR, güncel dal, GitHub Actions kaynaklı quality-gate + verify ister;
+"Do not allow bypassing the above settings" açık. Bu ayar değiştirilmedi.
+Kontrollü bakım geçişi için açık kullanıcı kararı gerekir; eski genel devam
+isteğini güvenlik korumasını azaltma izni saymayın.
+
 26 Ekim Production şema kurulumu tamamlandı. Kullanıcı, 12 migration'ın
 kurulumunu açıkça istedi. Mevcut FREE plan korundu. İlk profiles migration'ının
 sütunları, constraint/RLS/policy ve sütun izinleri doğrulanıp yeniden çalıştırılmadan
@@ -266,8 +283,8 @@ PROD Email ve Google sağlayıcıları, e-posta doğrulaması ve özel SMTP etki
 SMTP host smtp.resend.com, port 465. Kimlik bilgileri okunmadı/yayımlanmadı.
 Site URL ve görünen redirect allowlist `https://nakgo.vercel.app/`.
 E-posta teslimi ve gerçek Google callback'i ayrıca uçtan uca doğrulanmalıdır.
-Vercel hesap bağlantısı değişkenleri yalnız Preview dallarında; config kaynak
-kodu Production Auth'u ayrıca kapatır. DEV yöneticisinin doğrulanmış hesabı
+Vercel hesap bağlantısı değişkenleri Preview ve Production'da ayrı kapsamlardadır;
+Production etkinleştirme anahtarı kapalıdır. DEV yöneticisinin doğrulanmış hesabı
 PROD'da yok; DEV UUID/üyelikleri taşınmaz. PROD rol ataması yapılmadı.
 
 Önerilen sıra (kullanıcının verdiği görev kapsamına göre):
