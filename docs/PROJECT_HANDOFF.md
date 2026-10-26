@@ -224,15 +224,43 @@ favori test kayıtları temiz, iki açıkça test işaretli sohbet mesajı geçm
 Tarihleri geçmiş olabilir; yeni kabul için ayrı sentetik fixture kullanın.
 Gerçek kullanıcı verisi üzerinde deneme kararı veya toplu temizlik yapmayın.
 
+26 Ekim canlıya hazırlık kabulü: PR #33 test bakımı DEV'e fast-forward ile
+alındı. Güncel DEV `a450ab889511be07311c823d768f5489eeea71a0`; uygulama runtime
+kaynakları değişmedi. verify 40305515816 ve admin-regression 40305515989 başarılı.
+45 yerel PostgreSQL kontrolü ve 10 SQL paketi geçti; aynı 10 paket canlı DEV'de
+BEGIN/ROLLBACK ile çalıştı. Kullanıcı/profil/ilan/iş/mesaj/belge/Storage ve aktif
+yönetici kayıt sayıları korundu. Bağımsız browser 197 kontrol/11 senaryo,
+kalite otomasyonu 16/16 ve production npm audit 0 bulgu. PGlite Storage/Auth
+şeması gerçek servis veya eşzamanlı bağlantı kabulünün yerine geçmez.
+
+Production kullanıcı yetkisiyle mevcut FREE planda yeniden başlatıldı ve yalnız
+okundu. Main/Production uygulaması hâlâ `5b46c28f03528a3ae9e4ada25bb6405a268a8a5a`.
+PROD'da ilk `20261014000000_profiles.sql` ile yapısal olarak eşleşen profiles
+şeması/own RLS/sütun izinleri mevcut; profiles boş, auth.users sayısı 1.
+Migration ledger bulunmuyor. Diğer NakGo tabloları/RPC'ler ve Storage bucket'ları
+yok. Tüm migration'ları baştan körlemesine çalıştırmayın; önce mevcut ilk
+migration baseline'ını doğrulayarak benimseyin, sonra kalan 12 migration'ı
+sırasıyla uygulama planı hazırlayın. Bu incelemede migration veya veri yazılmadı.
+
+PROD Email ve Google sağlayıcıları, e-posta doğrulaması ve özel SMTP etkin;
+SMTP host smtp.resend.com, port 465. Kimlik bilgileri okunmadı/yayımlanmadı.
+Site URL ve görünen redirect allowlist `https://nakgo.vercel.app/`.
+E-posta teslimi ve gerçek Google callback'i ayrıca uçtan uca doğrulanmalıdır.
+Vercel hesap bağlantısı değişkenleri yalnız Preview dallarında; config kaynak
+kodu Production Auth'u ayrıca kapatır. DEV yöneticisinin doğrulanmış hesabı
+PROD'da yok; DEV UUID/üyelikleri taşınmaz. PROD rol ataması yapılmadı.
+
 Önerilen sıra (kullanıcının verdiği görev kapsamına göre):
 
-1. #31 son commit ve CI sonuçlarını doğrula; canlı DEV eşzamanlılık kabulünü tamamla.
-2. Gelecek Production geçişinde DEV/PROD migration ve tek yönetici atamasını
-   ayrıca planla; DEV yetkisini PROD'a kendiliğinden taşıma.
-3. Tek yönetici + normal kullanıcıyla rol iptali, açık oturumda askı, ilan
-   yeniden yayın engeli, revizyon çatışması ve gerçek Storage kabulünü tamamla.
-4. Korumalı test bakımını güvenilir incelemeyle çöz; fiziksel cihaz kabulü ve
-   Production migration/env/rollback planını ayrıca hazırla.
+1. Main guard 35/40: dört tarih testinin yanında `tools/project.js` de korumalı
+   farktır. Beş farkı güvenilir bakım incelemesiyle çözün; guard'ı gevşetmeyin.
+2. PROD backup/rollback, mevcut profiles baseline'ı, kalan migration sırası,
+   private Storage ve ortam/Auth açılışı için somut uygulama planı hazırlayın.
+   Yeniden başlatma/okuma yetkisi migration, Production yayını veya rol izni değildir.
+3. Ayrı PROD kayıt/doğrulama sonrası tek yönetici atamasını açık kapsamla yapın;
+   rol iptali, askı, revision conflict ve gerçek dosya kabulünü doğrulayın.
+4. Fiziksel cihaz, SMTP teslimi, Google callback ve Production smoke kabulünü
+   tamamlayıp ondan sonra main/Production geçişini değerlendirin.
 
 Ödeme/Premium entitlement, push, mesaj eki, Apple giriş, gerçek telefon
  doğrulaması ve WhatsApp aktivasyonu tamamlanmış değildir. WhatsApp V1 imza

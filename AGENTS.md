@@ -56,8 +56,8 @@ yerine geçmez. Kullanıcıyla Türkçe ve açık iletişim kurun.
   hatayı gizlemeyin. Gerekli test bakımı ayrı ve insan incelemeli iştir.
 - `npm test` ve alana uygun browser/SQL kontrollerini çalıştırın. Mock, yerel
   PostgreSQL, canlı Supabase kabulü ve fiziksel cihaz testini ayırın.
-- DEV tabanında geçen guard main kapısının başarısı değildir. #25 kaynaklı
-  dört korumalı test farkı güvenilir taban/insan incelemesi bekler.
+- DEV tabanında geçen guard main kapısının başarısı değildir. #25 kaynaklı dört tarih testi ve tools/project.js olmak üzere
+  beş korumalı fark güvenilir taban/insan incelemesi bekler.
 - İnceleme istendiyse bulguyu tetikleyici, etkisi ve dosya/satırıyla bildirin.
   Doğrulanmamış migration/deploy'u tamamlanmış saymayın.
 - Görev sonunda değişiklik, doğrulama, engel ve DEV/Production durumunu belirtin.
