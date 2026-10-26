@@ -17,16 +17,15 @@ kaynağı kullanılmaz. Bu mobil rehber site/DNS değişikliği yetkisi vermez.
 
 ## 2. Git ve yayın durumu
 
-26 Ekim'de GitHub'dan doğrulandı:
+26 Ekim'de GitHub ve Vercel'den doğrulandı:
 
-- main: `5b46c28f03528a3ae9e4ada25bb6405a268a8a5a`.
-- Çalışan DEV: `codex/nakgo-email-auth`, `b0df3bdf987daed91b952ccbd92b3da6313f798f`.
-- [Taslak PR #21](https://github.com/yagizce/nakgo/pull/21) DEV toplamını main'e önerir;
-  Production'a taşınmadı.
+- main: `6f23563a52e4bc5894b9ae1e9ee31e432589df55`.
+- DEV: `codex/nakgo-email-auth`, `ae39bec912078baa1c88e87815ed792fcac03304`.
+- [PR #21](https://github.com/yagizce/nakgo/pull/21) bu kesin DEV sürümünden squash ile main'e alındı.
+- Production deployment `dpl_8BcxG4DqWTDDQDNnibMcBueMFgxH` aynı main SHA ile READY.
+- https://nakgo.vercel.app/api/auth/config HTTP 200, `{"enabled":false}`, private/no-store.
+- PR #31 ve #34 kodları bu sürümdedir. Production hesap bağlantısı ve rol ataması açılmadı.
 - [DEV Preview](https://nakgo-git-codex-nakgo-email-auth-yagizces-projects.vercel.app/).
-- Geceki admin dalı: `codex/nakgo-admin-panel`, `b0df3bdf987daed91b952ccbd92b3da6313f798f`.
-  [PR #31](https://github.com/yagizce/nakgo/pull/31) DEV dalına alındı;
-  main/Production'a alınmadı.
 
 İlk adım yerel status/HEAD/origin ve uzak ref'leri incelemektir. Eski kopyadan
 başlamayın; kullanıcının önceki çalışmalarına reset/temizlik uygulamayın. Bu
@@ -60,7 +59,8 @@ eski cache'den güncelleme davranışı doğrulanır.
 ## 4. Gerçek hesap ve demo ayrımı
 
 Production/yerel statik uygulama ile DEV bağlantısı aynı mod değildir.
-`api/auth/config.mjs` VERCEL_ENV=production iken Auth bağlantısını kapatır.
+`api/auth/config.mjs` Production'da iki açık etkinleştirme anahtarı ve kesin PROD URL'si ister.
+NAKGO_PRODUCTION_AUTH_ENABLED=false olduğu için bağlantı kapalıdır.
 Bu güvenceyi yanlış env değerlerini telafi etmek için kaldırmayın.
 
 Demo ilan/iş/sohbet/belge/favori/üyelik `yy2` gibi yerel kayıtlarda, gerçek
@@ -211,11 +211,12 @@ testi değiştirip geçirmeyin; erişimle tekrar doğrulayın veya sınırlamay�
 - UI değişince 360/390/430 px, iki tema, masaüstü, sheet/klavye, uzun metin,
   boş/hata durumu, hesap değişimi ve reload kontrol edilir.
 
-Ana kalite engeli: #25 tarih testi bakımı DEV'e alındı; tests/e2e.py,
-tests/forms.py, tests/reliability.py, tests/gate/browser.py main tabanından
-farklıdır. Main guard korumalı farkları bilerek engeller. Güvenilir taban/insan
-incelemesi olmadan korumayı kaldırmayın, base-ref'i keyfi değiştirmeyin veya
-feature CI'ını tüm main kapıları geçti diye sunmayın.
+Tarihsel kalite engeli: dört tarih testi ve tools/project.js eski main tabanından
+farklı olduğu için quality-gate 35/40 kaldı. Beş fark incelendi ve kullanıcı
+kesin ae39bec sürümü için tek seferlik yönetici istisnasını açıkça onayladı.
+26 Ekim'de PR #21 birleştirildi; bypass engeli hemen geri açılıp yeniden okundu.
+Eski gate başarısızlığı başarılı diye sunulmaz; guard/workflow gevşetilmedi.
+Bu istisna sonraki işlemlere izin değildir.
 
 ## 9. Korunacak kayıtlar ve kalan işler
 
@@ -242,13 +243,14 @@ DEV URL'sini reddeder. Yeni regresyon paketiyle 578/578 uygulama, 16/16 otomasyo
 40340704538 başarılı; READY Preview gerçek config endpoint'inde HTTP 200,
 enabled=false ve private/no-store doğrulandı.
 
-Vercel'de dört değişken yalnız Production kapsamına eklendi. Ayrı Production
-etkinleştirme anahtarı false; uygulama yayını/promote veya yetki ataması yapılmadı.
-Main'e geçiş gate'i aynı beş korumalı farkta 35/40: 40346471555. GitHub classic
-main kuralı PR, güncel dal, GitHub Actions kaynaklı quality-gate + verify ister;
-"Do not allow bypassing the above settings" açık. Bu ayar değiştirilmedi.
-Kontrollü bakım geçişi için açık kullanıcı kararı gerekir; eski genel devam
-isteğini güvenlik korumasını azaltma izni saymayın.
+Vercel'de dört değişken yalnız Production kapsamındadır. Production etkinleştirme
+anahtarı false kalır. Kullanıcının açık tek seferlik onayıyla ae39bec sürümü
+PR #21 üzerinden main'e alındı. verify 40346471224 ve admin-regression
+40346471743 başarılıydı; quality-gate 40346471555 beş korumalı farkta 35/40 kaldı.
+Yalnız "Do not allow bypassing the above settings" geçici kapatıldı ve merge
+sonrasında hemen tekrar açıldı; kaydedilmiş değer yeniden okunarak doğrulandı.
+PR, güncel dal, GitHub Actions kaynaklı quality-gate + verify gereksinimleri
+korundu. Force push ve dal silme kapalı kaldı. Production READY; Auth hâlâ kapalı.
 
 26 Ekim Production şema kurulumu tamamlandı. Kullanıcı, 12 migration'ın
 kurulumunu açıkça istedi. Mevcut FREE plan korundu. İlk profiles migration'ının
@@ -272,8 +274,8 @@ boş kaldı. Kalıcı test verisi, genel yönetici veya belge inceleyici atamas�
 Sequence değerleri rollback ile geri alınmaz; ID'lerin 1'den başlayacağı varsayılmaz.
 Fiziksel Storage upload/indirme veya gerçek hesapla admin kabulü yapılmış sayılmaz.
 
-Production uygulaması hâlâ main `5b46c28f03528a3ae9e4ada25bb6405a268a8a5a`.
-Uygulama/env/Auth koruması bu veritabanı kurulumuyla değiştirilmedi. Kurulum
+Production uygulaması main `6f23563a52e4bc5894b9ae1e9ee31e432589df55` ile READY.
+Hesap bağlantısının kapalı olduğu canlı endpoint'ten doğrulandı. Kurulum
 başarısızlığında transaction rollback korur; commit sonrası otomatik tablo/drop
 veya veri silen down migration çalıştırmayın. Yeni veri geldiyse önce yedek ve
 ayrı düzeltme planı gerekir. Yerel outputs içindeki preflight/manifest/kurulum ve
@@ -289,14 +291,13 @@ PROD'da yok; DEV UUID/üyelikleri taşınmaz. PROD rol ataması yapılmadı.
 
 Önerilen sıra (kullanıcının verdiği görev kapsamına göre):
 
-1. Main guard 35/40: dört tarih testinin yanında `tools/project.js` de korumalı
-   farktır. Beş farkı güvenilir bakım incelemesiyle çözün; guard'ı gevşetmeyin.
-2. PROD migration geçmişini ve şemayı tekrar okuyun; 12 migration artık kurulu.
-   Production env/Auth açılışı ve uygulama yayını ayrı kapsamdır; otomatik açmayın.
-3. Ayrı PROD kayıt/doğrulama sonrası tek yönetici atamasını açık kapsamla yapın;
-   rol iptali, askı, revision conflict ve gerçek dosya kabulünü doğrulayın.
-4. Fiziksel cihaz, SMTP teslimi, Google callback ve Production smoke kabulünü
-   tamamlayıp ondan sonra main/Production geçişini değerlendirin.
+1. Production Auth açılışını ayrıca kapsamlandırın; mevcut anahtar false kalır.
+2. PROD migration geçmişini okuyun; 12 migration zaten kurulu, tekrar uygulamayın.
+3. Ayrı PROD kayıt/doğrulama sonrası tek yönetici atamasını açık onayla yapın;
+   DEV UUID veya üyeliklerini taşımayın.
+4. SMTP teslimi, Google callback, fiziksel cihaz, gerçek dosya ve Production
+   hesap/moderasyon kabulünü tamamlayın. READY yayını bu testlerin yerine geçmez.
+5. Rehber PR #32 hâlâ taslaktır; eski tabanını incelemeden birleştirmeyin.
 
 Ödeme/Premium entitlement, push, mesaj eki, Apple giriş, gerçek telefon
  doğrulaması ve WhatsApp aktivasyonu tamamlanmış değildir. WhatsApp V1 imza

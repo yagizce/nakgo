@@ -11,7 +11,7 @@ yerine geçmez. Kullanıcıyla Türkçe ve açık iletişim kurun.
 - `git status --short`, branch, HEAD ve origin'i kontrol edin. Yerel kopya
   uzak DEV'den eski olabilir. Kullanıcı çalışmalarını koruyun; toplu reset,
   temizlik veya `git add .` yapmayın.
-- Admin PR #31 DEV PR #21 toplamına alınmıştır; main/Production ayrıdır. Uzak durumlarını
+- PR #21 onaylı ae39bec sürümünden main'e alındı; Production Auth kapalıdır. Uzak durumlarını
   yeniden doğrulayın. Başarılı eski CI yeni commit için kanıt değildir.
 
 ## Mimari ve ürün
@@ -56,8 +56,9 @@ yerine geçmez. Kullanıcıyla Türkçe ve açık iletişim kurun.
   hatayı gizlemeyin. Gerekli test bakımı ayrı ve insan incelemeli iştir.
 - `npm test` ve alana uygun browser/SQL kontrollerini çalıştırın. Mock, yerel
   PostgreSQL, canlı Supabase kabulü ve fiziksel cihaz testini ayırın.
-- DEV tabanında geçen guard main kapısının başarısı değildir. #25 kaynaklı dört tarih testi ve tools/project.js olmak üzere
-  beş korumalı fark güvenilir taban/insan incelemesi bekler.
+- DEV tabanında geçen guard main kapısının başarısı değildir. PR #21 için incelenmiş beş korumalı fark
+  tek seferlik açık kullanıcı onayıyla geçti; eski gate 35/40 olarak kaldı.
+  Yönetici bypass engeli geri açıldı. Bu istisna sonraki işlemlere izin değildir.
 - İnceleme istendiyse bulguyu tetikleyici, etkisi ve dosya/satırıyla bildirin.
   Doğrulanmamış migration/deploy'u tamamlanmış saymayın.
 - Görev sonunda değişiklik, doğrulama, engel ve DEV/Production durumunu belirtin.
