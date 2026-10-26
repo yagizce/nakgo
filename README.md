@@ -39,6 +39,10 @@ npm run mobile:prepare # www/ çıktısı; native derleme değildir
 
 www/, tests/shots/ ve docs/CODEMAP.md yerel üretilen çıktılardır, Git dışında kalır. Kaynak değişikliğinde bundle çalıştırın.
 
+## Ajanlar ve yeni sohbetler
+
+Yeni çalışma öncesinde [AGENTS.md](AGENTS.md) ve [güncel proje devir rehberi](docs/PROJECT_HANDOFF.md) okunmalıdır. DEV ile Production ve kabul bekleyen yönetici dalı ayrıdır.
+
 ## Belgeler
 
 - [Mimari ve veri saklama](docs/architecture.md)
