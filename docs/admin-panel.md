@@ -1,6 +1,6 @@
-# Ortakların yönetici paneli
+# Tek genel yönetici paneli
 
-Profil > Yönetici paneli. Her ortak kendi doğrulanmış hesabıyla giriş yapar.
+Profil > Yönetici paneli. Yalnız atanmış tek doğrulanmış hesap genel yönetici olarak giriş yapar.
 Sunucuda private.admin_members üyeliği her istekte kontrol edilir; kullanıcı
 metadata/profil alanları yetki vermez. Yönetici üyeliği belge inceleyiciliği
 vermez. Özel sohbet ve belge dosyaları yönetim listelerine dahil edilmez.
@@ -31,9 +31,11 @@ Var olan işler/görüşmeler silinmez. İstemci audit tablosuna doğrudan yazam
 ## DEV kurulumu
 
 Sırayla 20261026010000_admin_panel.sql ve 20261026020000_admin_moderation.sql
-migration'larını yalnız doğrulanmış DEV projesine uygulayın. Her ortağın hesabını
+migration'larını yalnız doğrulanmış DEV projesine uygulayın. Ardından 20261026030000_single_admin_access.sql uygulanır. Hedef hesabı
 ve doğrulanmış e-postasını teyit ettikten sonra güvenilir SQL yönetim konsolundan
-private.admin_members tablosuna gerçek auth.users UUID'sini ekleyin. İptal için
+private.admin_members tablosuna yalnız hedef auth.users UUID'sini ekleyin.
+Tek aktif yönetici unique index ile korunur. Diğer hesaplarda profil düğmesi
+gizlidir; RPC'ler istemcinin görünürlüğünden bağımsız yetki denetler. İptal için
 active=false kullanın. Migration'lar hiçbir hesaba otomatik yetki vermez.
 Belge inceleyici atamaları ayrıca yapılır. Service-role anahtarı istemciye konmaz.
 
@@ -55,7 +57,6 @@ klasöre sabit sürümle kurulur; uygulama bağımlılıklarına eklenmez.
   askı/kaldırma, eski revizyon, yeniden yayın, mevcut işi tamamlama ve audit sınanır.
   Gerçek Auth/Storage servisi veya eşzamanlı çok bağlantılı test değildir.
 
-Canlı DEV kabulü halen gereklidir: iki ortak + normal kullanıcıyla giriş, rol
-iptali, askıya alınmış açık oturumdan yeni faaliyet, Storage işlemleri, iki
-ortak aynı kayda işlem yaptığında revizyon çatışması ve mevcut taşıma işi akışı.
+Canlı DEV kabulü halen gereklidir: tek yönetici + normal kullanıcıyla giriş, rol
+iptali, askıya alınmış açık oturumdan yeni faaliyet, Storage işlemleri, eski revizyonla aynı kayda işlem yapıldığında revizyon çatışması ve mevcut taşıma işi akışı.
 Hiçbir canlı migration veya rol ataması bu değişiklikle otomatik uygulanmaz.

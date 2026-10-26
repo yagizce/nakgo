@@ -2,6 +2,20 @@
  * Yönetici paneli
  * Ortak erişimi her istekte sunucu tarafından doğrulanır.
  */
+const nakgoAdminAccess=(()=>{
+    let generation=0,account='',ready=false,busy=false,authorized=false;
+    const isAdmin=()=>nakgoMarket.active()&&ready&&authorized&&account===nakgoMarket.token();
+    function reset(){generation++;account='';ready=busy=authorized=false;}
+    async function refresh(){
+        if(!nakgoMarket.active()||busy)return;
+        const current=nakgoMarket.token(),ticket=++generation;busy=true;authorized=false;
+        try{const role=await nakgoAuth.adminRole();if(ticket!==generation||current!==nakgoMarket.token())return;account=current;authorized=role===true;ready=true;}
+        catch(error){if(ticket===generation&&current===nakgoMarket.token()){account=current;authorized=false;ready=true;}}
+        finally{if(ticket===generation&&current===nakgoMarket.token()){busy=false;if(tab==='me')render();}}
+    }
+    function ensure(){if(nakgoMarket.active()&&!busy&&(!ready||account!==nakgoMarket.token()))refresh();}
+    return {isAdmin,reset,refresh,ensure};
+})();
 let adminPanelGeneration=0;
 async function openAdminPanel() {
     if(!nakgoMarket.active())return;

@@ -76,7 +76,7 @@ function renderProfile(main) {
                 <details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>
                 ${rating?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}
             </section>
-            <section class="profile-group"><h2>Üyelik ve destek</h2>${authCardHTML()}${premCard()}${nakgoMarket.active()?'<button class="chip" id="profile-admin">Yönetici paneli</button>':''}
+            <section class="profile-group"><h2>Üyelik ve destek</h2>${authCardHTML()}${premCard()}${nakgoAdminAccess.isAdmin()?'<button class="chip" id="profile-admin">Yönetici paneli</button>':''}
                 <details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details>
             </section>
         </div>`;
@@ -85,6 +85,7 @@ function renderProfile(main) {
     if(summary&&!summary.ready&&!summary.busy&&!summary.error)nakgoJobs.refreshSummary();
     carBind();listBind();
     bindAuthCard();
+    nakgoAdminAccess.ensure();
     if($('#profile-admin'))$('#profile-admin').onclick=openAdminPanel;
     $('#profile-save').onclick=async()=>{
         const button=$('#profile-save'); if(button.disabled)return;
