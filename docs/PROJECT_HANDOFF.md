@@ -1,5 +1,37 @@
 # NakGo proje devri
 
+## Açık hata — 27 Ekim 2026, Production özel belge yüklemesi
+
+Gerçek sentetik JPEG upload testi BAŞARISIZ: başvuru #2, SRC rezervasyonu reserved,
+Storage nesnesi oluşmadı. Servis kaydı AccessDenied / Sign in required hatasını
+private.storage_activity_guard -> require_activity(auth.uid()) çağrısında gösterdi.
+Supabase uploader tamamlamayı asSuperUser transaction'ında yapar; sub bulunmayabilir.
+Bu aşama fiziksel dosya kabulü geçti olarak sunulmaz. Başvuru taslak ve yetkisizdir;
+incelemeye gönderilmedi, onay/rozet verilmedi. Kullanılan görsel sentetiktir.
+
+Düzeltme taslak PR #35: https://github.com/yagizce/nakgo/pull/35
+Kesin head 913d87b0fa2aaf67cb7f7fbfd2c17ee4976c2cdb, taban main 6f23563.
+Yeni 20261027010000_storage_service_activity migration'ı yalnız auth.uid yokken
+service_role/supabase_storage_admin için mevcut rezervasyon sahibini çözer;
+doğrulanmış hesap, askı, başvuru durumu, 24 saatlik süre ve değişmez dosya kimliği
+kontrollerini korur. RLS/bucket/hesap yetkileri değişmez.
+15 yeni test eski hatayı yeniden üretip düzeltmeyi kontrol eder; mevcut CI DB
+runner'ına eklendi. 45 eski DB kontrolü ve 10 SQL fixture da geçti. quality-gate
+40496082186 ve admin-regression 40496082205 başarılı; verify 40496082204 Chromium
+kurulumu aşamasında sürüyordu. Yerel npm test 571/572: tek hata sandbox EACCES
+127.0.0.1 bağlantısıdır; testi gevşetmeyin.
+
+Production'da hem iç servis completion hem migration ledger + veri/rol/bucket/RLS
+karşılaştırması BEGIN/ROLLBACK ile prova edildi; PASS. KALICI MIGRATION UYGULANMADI.
+Production hâlâ 13 migration, eski guard hash d9f18a137eca76b0d0c163a7c5f4c2cf,
+0 fiziksel belge nesnesi. Yerel outputs/production-storage-fix-apply.sql
+beklenen eski hash ve ledger sayısını doğrular, 14. sürümü kaynak metniyle kaydeder,
+veri/rol/bucket/policy farkında rollback eder. Uygulama için açık işlem-anı onayı
+alın; PR CI'larını doğrulayın. Önceki ae39bec tek seferlik bypass onayı bu PR için
+geçerli değildir; korumayı tekrar gevşetmeyin.
+Sonra fiziksel upload/download testini tekrar yapın; dosyası oluşmamış SRC
+rezervasyonunu normal owner akışıyla ele alın. Test hesabına admin/reviewer vermeyin.
+
 ## Son kabul — 27 Ekim 2026, Production sunucu erişim reddi
 
 Gerçek ve e-postası doğrulanmış normal test hesabının UUID'si auth.users'tan
