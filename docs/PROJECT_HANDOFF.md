@@ -1,5 +1,25 @@
 # NakGo proje devri
 
+## Son kabul — 27 Ekim 2026, iki canlı hesap
+
+Kullanıcı isteğiyle geçici e-posta kullanan normal taşıyıcı test hesabı oluşturuldu;
+şifreyi kullanıcı girdi. Gerçek NakGo doğrulama e-postası teslim edildi, bağlantı
+Production'a döndü ve doğrulanmış oturum açıldı. Bu hesaba yönetici veya belge
+inceleyici yetkisi VERİLMEDİ; profilinde yönetici girişi görünmedi.
+Yönetici ayrı Production deployment origin'inde e-posta/şifreyle giriş yaptı.
+Sentetik İstanbul-Ankara 10 ton boş araç ilanı, elle girilen 27.10.2026 tarihi
+ve açık test açıklamasıyla oluşturuldu. Reload sonrası ilan/not korundu.
+Yönetici hesabının favorisi reload sonrası kaldı; taşıyıcı favorileri 0 kaldı.
+İki açıkça test işaretli mesaj karşılıklı teslim edildi; ilk mesaj alıcıda
+1 okunmamış gösterildi, okunduktan sonra profil sayacı temizlendi.
+Kendi ilanına mesaj gönderme düğmesi kapalıydı.
+Test sonunda ilan sahibi ilanı KAPATTI (silmedi); aktif ilan sayacı 0 oldu.
+Yönetici hesabındaki test favorisi kaldırıldı. İki test mesajı geçmişte kaldı.
+Normal hesabın UI kısıtı doğrulandı; bu turda doğrudan RPC erişim reddi,
+iş talebi/kabul/teslim veya moderasyon mutasyonu test edilmedi.
+Yeni kod/migration/deploy yapılmadı; önceki hazır sürüm üzerinde kabul yapıldı.
+Geçici posta hesabına gerçek veri eklemeyin; sonraki testte oturum durumunu doğrulayın.
+
 ## Son kabul — Production tek genel yönetici
 
 26 Ekim 2026: Kullanıcının işlem-anı açık onayıyla yalnız belirlediği ve
