@@ -1,5 +1,21 @@
 # NakGo proje devri
 
+## Son kabul — 27 Ekim 2026, canlı taşıma işi
+
+Aynı iki gerçek Production oturumuyla yalnız sentetik yük ilanı #14 kullanıldı.
+Başlık NAKGO TEST — gerçek yük değildir; açıklama gerçek yük/taşıma/teslim/ödeme
+olmadığını belirtir. İstanbul-Ankara, 10 ton, elle girilen 27.10.2026 tarihi.
+Normal taşıyıcı talep gönderdi; yük sahibi gelen talebi kabul etti; taşıyıcı
+Yükledim bildirdi; yük sahibi Yüklemeyi onayla işlemini tamamladı. İki hesaptaki
+sayfa reload sonrasında Yükleme onaylandı durumu korundu. Her iki profil
+1 onaylanan iş / 0 devam eden iş gösterdi. Yük sahibi test ilanını kapattı;
+aktif ilan sayacı 0 oldu. İlan/iş geçmişi silinmedi.
+Bu akış fiziksel teslim doğrulaması veya ödeme değildir; mevcut son adım
+YÜKLEME ONAYIDIR. Önceki sohbetlerde teslim denmesi ayrı özellik var anlamına gelmez.
+Yeni kod, migration, deployment veya yetki ataması yapılmadı. Test taşıyıcısı
+normal hesap olarak kaldı. Gerçek belge yükleme, doğrudan yetkisiz RPC reddi,
+moderasyon mutasyonu ve fiziksel cihaz kabulü bu turda yapılmadı.
+
 ## Son kabul — 27 Ekim 2026, iki canlı hesap
 
 Kullanıcı isteğiyle geçici e-posta kullanan normal taşıyıcı test hesabı oluşturuldu;
