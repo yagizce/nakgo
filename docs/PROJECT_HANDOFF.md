@@ -1,36 +1,52 @@
 # NakGo proje devri
 
-## Açık hata — 27 Ekim 2026, Production özel belge yüklemesi
+## Son düzeltme ve kabul — 27 Ekim 2026, özel belge Storage
 
-Gerçek sentetik JPEG upload testi BAŞARISIZ: başvuru #2, SRC rezervasyonu reserved,
-Storage nesnesi oluşmadı. Servis kaydı AccessDenied / Sign in required hatasını
-private.storage_activity_guard -> require_activity(auth.uid()) çağrısında gösterdi.
-Supabase uploader tamamlamayı asSuperUser transaction'ında yapar; sub bulunmayabilir.
-Bu aşama fiziksel dosya kabulü geçti olarak sunulmaz. Başvuru taslak ve yetkisizdir;
-incelemeye gönderilmedi, onay/rozet verilmedi. Kullanılan görsel sentetiktir.
+Production upload testinde bulunan AccessDenied / Sign in required hatası kapatıldı.
+PR #35, incelenen 913d87b0fa2aaf67cb7f7fbfd2c17ee4976c2cdb sürümünden main'e
+bcf6c837afddd951ed6c4c614fab86dc69a0a946 olarak alındı. quality-gate (iki koşu),
+verify 40496082204 ve admin-regression 40496082205 başarılı. Koruma istisnası
+kullanılmadı. Production dpl_4Fmkj8NN3tAGFaJWhqMR9CWWFnTb READY; canlı config
+HTTP 200, enabled=true, doğru PROD URL'si ve private/no-store doğrulandı.
 
-Düzeltme taslak PR #35: https://github.com/yagizce/nakgo/pull/35
-Kesin head 913d87b0fa2aaf67cb7f7fbfd2c17ee4976c2cdb, taban main 6f23563.
-Yeni 20261027010000_storage_service_activity migration'ı yalnız auth.uid yokken
-service_role/supabase_storage_admin için mevcut rezervasyon sahibini çözer;
-doğrulanmış hesap, askı, başvuru durumu, 24 saatlik süre ve değişmez dosya kimliği
-kontrollerini korur. RLS/bucket/hesap yetkileri değişmez.
-15 yeni test eski hatayı yeniden üretip düzeltmeyi kontrol eder; mevcut CI DB
-runner'ına eklendi. 45 eski DB kontrolü ve 10 SQL fixture da geçti. quality-gate
-40496082186 ve admin-regression 40496082205 başarılı; verify 40496082204 Chromium
-kurulumu aşamasında sürüyordu. Yerel npm test 571/572: tek hata sandbox EACCES
-127.0.0.1 bağlantısıdır; testi gevşetmeyin.
+20261027010000_storage_service_activity.sql yalnız Storage iç servis completion
+adımında eksik kullanıcı sub durumunu düzeltir. Eksik aktör sadece service_role /
+supabase_storage_admin için var olan rezervasyon sahibi ve tam dosya yolundan
+çözülür. Doğrulanmış hesap, askı, başvuru durumu, rezervasyon süresi ve değişmez
+kimlik kontrolleri korunur. RLS politikaları, private bucket/JPEG/1 MiB sınırları,
+tek genel yönetici ve belge inceleyici üyelikleri değiştirilmedi.
 
-Production'da hem iç servis completion hem migration ledger + veri/rol/bucket/RLS
-karşılaştırması BEGIN/ROLLBACK ile prova edildi; PASS. KALICI MIGRATION UYGULANMADI.
-Production hâlâ 13 migration, eski guard hash d9f18a137eca76b0d0c163a7c5f4c2cf,
-0 fiziksel belge nesnesi. Yerel outputs/production-storage-fix-apply.sql
-beklenen eski hash ve ledger sayısını doğrular, 14. sürümü kaynak metniyle kaydeder,
-veri/rol/bucket/policy farkında rollback eder. Uygulama için açık işlem-anı onayı
-alın; PR CI'larını doğrulayın. Önceki ae39bec tek seferlik bypass onayı bu PR için
-geçerli değildir; korumayı tekrar gevşetmeyin.
-Sonra fiziksel upload/download testini tekrar yapın; dosyası oluşmamış SRC
-rezervasyonunu normal owner akışıyla ele alın. Test hesabına admin/reviewer vermeyin.
+Kullanıcının PR #35 / DEV+Production migration sorusuna verdiği 'en mantıklısı
+olması gerekeni yap' yanıtıyla bu dar düzeltme için kapsam sağlandı. Önce eski
+hata yeniden üretildi; 15 yeni kontrol, 45 eski DB kontrolü ve 10 SQL suite geçti.
+Yeni test mevcut admin CI runner'ına bağlandı. Production ve DEV geçiş dosyaları
+önce ROLLBACK ile prova edildi. DEV prova dosyasındaki ayırıcı hatası giderildi;
+hiçbir kalıcı değişiklik oluşmadan başarılı prova tekrarlandı. Ardından önce DEV,
+sonra Production atomik COMMIT edildi. Sayı/rol/bucket/RLS karşılaştırmaları geçti.
+
+Production migration ledger artık 14 kayıt içerir. DEV'de ledger önceden yoktu;
+RLS ve özel izinlerle oluşturuldu, yalnız yeni 20261027010000 kaydı içerir.
+Önceki 13 DEV migration kurulu olsa da ledger'da benimsenmiş sayılmaz; tekrar
+uygulamayın. DEV kaynak dalı ae39bec olabilir; yeni migration'ın güvenilir kaynağı
+main bcf6c83/PR #35'tir. Sırf geçmiş eşitlensin diye schema'yı yeniden kurmayın.
+
+Gerçek fiziksel kabul: normal test hesabı başvuru #2'ye sentetik K-belgesi JPEG
+fotoğrafı yükledi; finalize ready oldu ve sahibi auth download ile görseli açtı.
+Diğer mevcut Production hesabı aynı nesneyi ve dosya metadata'sını SQL'de
+SET LOCAL ROLE authenticated altında göremedi. Bu test ayrı bir tarayıcı HTTP
+saldırı testi diye sunulmaz. İlk başarısız SRC rezervasyonu dosyasız reserved
+metadata olarak kaldı. Başvuru test sonunda owner RPC ile withdrawn, revision 5
+oldu; onay/rozet veya reviewer yetkisi verilmedi. Tarayıcı geri çekme confirm'i
+sonrasında yanıt vermediğinden önce sunucu durumu okunup hâlâ draft/revision 4
+olduğu doğrulandı; sonra aynı authenticated owner transition RPC'si güvenilir
+SQL konsolundan yalnız bu sentetik başvuruya uygulandı. Fiziksel sentetik JPEG
+private Storage'da kaldı; gerçek kişisel veri içermez. Kalıcı dosya silme yapılmadı.
+
+Üç belgeyle submit/review ve özel belge onayı bu Production turunda denenmedi;
+reviewer ataması ayrı açık onay gerektirir. Sonraki açık işler: moderasyon
+mutasyonlarının Production kabulü, fiziksel cihaz ve Google callback doğrulaması.
+Yerel npm testte sandbox EACCES nedeniyle 571/572 görülmüştü; aynı PR'ın GitHub
+verify işi başarılıdır. Guard/test/workflow gevşetilmedi.
 
 ## Son kabul — 27 Ekim 2026, Production sunucu erişim reddi
 

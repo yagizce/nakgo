@@ -11,7 +11,7 @@ yerine geçmez. Kullanıcıyla Türkçe ve açık iletişim kurun.
 - `git status --short`, branch, HEAD ve origin'i kontrol edin. Yerel kopya
   uzak DEV'den eski olabilir. Kullanıcı çalışmalarını koruyun; toplu reset,
   temizlik veya `git add .` yapmayın.
-- PR #21 onaylı ae39bec sürümünden main'e alındı; Production Auth kapalıdır. Uzak durumlarını
+- PR #21 ve Storage düzeltmesi PR #35 main'e alındı; Production Auth açıktır. Uzak durumlarını
   yeniden doğrulayın. Başarılı eski CI yeni commit için kanıt değildir.
 
 ## Mimari ve ürün
