@@ -1,5 +1,20 @@
 # NakGo proje devri
 
+## Son kabul — 27 Ekim 2026, Production sunucu erişim reddi
+
+Gerçek ve e-postası doğrulanmış normal test hesabının UUID'si auth.users'tan
+SQL içinde alındı; BEGIN READ ONLY + SET LOCAL ROLE authenticated + yerel
+request.jwt.claim.sub ile sunucu yetki sınırları sınandı. nakgo_admin_role ve
+nakgo_document_reviewer false döndü. overview/users/listings/audit/moderation
+bölümlerinin tamamı insufficient_privilege ile reddedildi. private.admin_members
+ve private.document_reviewers doğrudan okuması da reddedildi. Sonuç PASS;
+ROLLBACK tamamlandı. Tek aktif yönetici ön koşulu kontrol edildi.
+Bu, canlı PostgreSQL rol/RPC kontrolüdür; tarayıcı HTTP isteğiyle yapılmış saldırı
+testi olarak sunulmaz. Hiçbir veri veya yetki değiştirilmedi. Önceki 'doğrudan
+RPC reddi henüz test edilmedi' notu bu tarihli SQL kontrolüyle güncellenmiştir.
+Sonraki açık kabul alanları: fiziksel belge upload/indirme, Production belge
+inceleme yetkisi (henüz verilmedi), moderasyon mutasyonları ve fiziksel cihaz.
+
 ## Son kabul — 27 Ekim 2026, canlı taşıma işi
 
 Aynı iki gerçek Production oturumuyla yalnız sentetik yük ilanı #14 kullanıldı.
