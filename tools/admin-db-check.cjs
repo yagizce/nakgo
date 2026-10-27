@@ -117,5 +117,5 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await inventory(),before,fixture+' must roll back its fixtures');
   console.log('SQL fixture PASS: '+fixture+'; rows unchanged after rollback');
  }
- console.log(checks+' PostgreSQL moderation checks passed (synthetic auth/storage; not live Supabase).');await db.close();
+ console.log(checks+' PostgreSQL moderation checks passed (synthetic auth/storage; not live Supabase).');await db.close();await require('./storage-service-check.cjs');
 })().catch(error=>{console.error(error);process.exitCode=1;});
