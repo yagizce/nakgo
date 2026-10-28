@@ -197,3 +197,5 @@ güzergâh, `İzmr` yazımı ve `Çorlu Tekirdağ İstanbul` ilçe/il sıralamas
 Ayrı başlık satırı fazladan belirsiz taslak üretebilir. Bunlar bu doğrulamada
 ölçüldü, yeni parser geliştirmesi yapılmadı. Kaynak ve zorunlu insan incelemesi
 korunur; otomatik yayın veya hatasız ayrıştırma iddiası yoktur.
+
+29 Ekim hazırlığı: [Meta test bağlantısı ve ayrı DEV Cron yapılandırması](whatsapp-meta-dev-setup.md). Zamanlayıcı kapalıdır; gerçek Meta kabulü henüz yapılmadı.

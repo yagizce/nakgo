@@ -1,6 +1,6 @@
 # NakGo proje devir rehberi
 
-Son güncelleme: **28 Ekim 2026 — Europe/Istanbul**.
+Son güncelleme: **29 Ekim 2026 — Europe/Istanbul**.
 Önce [AGENTS.md](../AGENTS.md), sonra bu rehber okunur. Bu dosya mevcut ürünü,
 kararları ve kabul kanıtlarını yeni ajana devreder; yeni özellik veya yetki
 vermez. Yeni kapsam: WhatsApp V2 GitHub/Preview ve DEV kabulü.
@@ -316,3 +316,12 @@ Canlı kabuk v44, Preview v45. Kalıcı scheduler ve gerçek Meta bağlantısı 
 manuel Meta adımları [WhatsApp rehberinde](whatsapp-review.md). Yeni özellik
 isteği olmadan parser refactor veya ortak yetkisi eklemeyin. Kullanıcı ileride
 Cloudflare'e geçiş düşünüyor; bu görevde taşıma/Production yayını yapılmadı.
+
+### 29 Ekim: Meta test bağlantısı hazırlığı
+
+Kullanıcının Cloudflare hesabı var; Meta uygulaması/test numarası henüz yok.
+[Kurulum sırası ve kabul listesi](whatsapp-meta-dev-setup.md) hazır. Ayrı DEV
+Cron adapteri kapalı varsayılanla eklendi; 4 yerel güvenlik/yanıt testi geçti.
+Cloudflare deploy veya gerçek Cron/Meta mesaj kabulü yapılmadı. Vercel Preview
+koruması harici webhook/cron erişimi için çözülmesi gereken bağımlılık; genel
+koruma kapatılmaz. Uygulama/refactor, yeni yetki ve Production değişikliği yok.
