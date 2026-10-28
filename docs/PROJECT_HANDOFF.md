@@ -1,5 +1,39 @@
 # NakGo proje devri
 
+## Uygulama — 28 Ekim 2026, PR #37 yayın kimlik doğrulaması bekliyor
+
+Kullanıcı c6269597b90f7958d45457173cae84aac3b49ad4 sürümü için üç test
+bakımını, tek seferlik merge istisnasını, korumanın hemen geri açılmasını ve
+DEV/Production migration + yayını onayladı: 'en mantıklısı hangisiyse yap'.
+Bu kapsam için tekrar yayın izni sorulmaz; yeni kapsam izni değildir.
+
+20261028010000_load_timing_text DEV ve Production'a UYGULANDI ve ledger'da
+birer kez kaydedildi. Tekrar çalıştırmayın. İki ortamda rollback rehearsal ve
+sentetik RLS/talep/favori/mesaj/snapshot SQL kabulü PASS. Tüm fixture rollback.
+DEV: 5 ilan, eski sütun hash ab2a1ba32a05fae8b63b153f539f8b21, 1 admin/1 reviewer.
+PROD: 3 ilan, eski sütun hash 9cc2368d4b32bb2657b1f0425a6ffc95, 1 admin/0 reviewer.
+İlanların önceki verisi, roller, özel Storage bucket/policies ve kayıtlar aynı.
+Kullanıcının kendi yayımladığı ilana dokunulmadı.
+
+PR #37 ready; verify/admin-regression başarılı. quality-gate 61/64 yalnız üç
+korumalı test bakımı (forms.py, gate/browser.py, reliability.py). Yeni davranış
+testleri ayrıca geçti; guard/workflow değiştirilmedi. main hâlâ c11f8c17b4e995e1e89a56f76f2fbbff20fadfc2.
+Production frontend hâlâ eski v43; yeni dateText davranışı YAYINLANMADI.
+
+GitHub klasik kural 84676621, enforce_all_for_admins kapatılıp Save denenince
+sudo doğrulaması istedi; ayar KAYDEDİLMEDİ. GitHub Mobile isteği zaman aşımına
+uğradı. Yeni GET ile enforce_all_for_admins=1, PR/status/up-to-date=1,
+quality-gate+verify GitHub Actions kaynaklı, force/deletions=0 doğrulandı.
+Korumalar hâlâ AÇIK. Kullanıcıdan GitHub'ın kendi UI'sinde doğrulama bekleniyor;
+şifre/kod sohbete istenmez. Doğrulamadan sonra gerçek kural durumunu yeniden
+okuyun: yalnız exact PR37 merge süresince admin bypass engelini kaldırın,
+expected_head_sha ile squash merge edip HEMEN korumayı geri açın ve GET ile
+kanıtlayın. Sonra main commit'in Vercel Production READY/v44 olduğunu doğrulayın,
+normal test hesabıyla sentetik yükü serbest metinle oluştur/yenile/detay/edit
+kontrolünden geçirip kapatın; gerçek kullanıcı ilanına dokunmayın.
+Yerel kanıt: outputs/load-timing-text-result.md ve load-timing-production-migration.jpg.
+
+
 ## Son düzeltme — 28 Ekim 2026, yükleme tarihi serbest metin
 
 Kullanıcı Google girişinde yönetici panelinin artık göründüğünü doğruladı.
