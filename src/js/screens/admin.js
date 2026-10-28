@@ -21,7 +21,7 @@ async function openAdminPanel() {
     if(!nakgoMarket.active())return;
     const generation=++adminPanelGeneration,account=nakgoMarket.token(), body=$('#sheetBody');
     let section='overview',offset=0,search='',request=0;
-    const titles={overview:'Genel bakış',users:'Kullanıcılar',listings:'İlanlar',audit:'Belge işlem geçmişi',moderation:'Yönetim işlem geçmişi'};
+    const titles={overview:'Genel bakış',whatsapp:'WhatsApp ilanları',users:'Kullanıcılar',listings:'İlanlar',audit:'Belge işlem geçmişi',moderation:'Yönetim işlem geçmişi'};
     const valid=()=>generation===adminPanelGeneration&&account===nakgoMarket.token()&&body.dataset.k==='admin';
     const date=value=>new Date(value).toLocaleString('tr-TR');
     body.dataset.k='admin';$('#sheet').classList.add('open');
@@ -35,6 +35,7 @@ async function openAdminPanel() {
     async function load(){
         const ticket=++request;frame('<p role="status">Yönetici erişimi kontrol ediliyor…</p>');
         try{
+            if(section==='whatsapp'){await whatsappPage(ticket);return;}
             const data=await nakgoAuth.adminPage(section,offset,search);
             if(!valid()||ticket!==request)return;
             if(section==='overview'){
@@ -57,6 +58,40 @@ async function openAdminPanel() {
             $('#admin-prev').onclick=()=>{offset=Math.max(0,offset-20);load();};$('#admin-next').onclick=()=>{offset+=20;load();};$('#admin-refresh').onclick=load;
             if($('#admin-search'))$('#admin-search').onsubmit=event=>{event.preventDefault();search=$('#admin-term').value.trim();offset=0;load();};
         }catch(error){if(valid()&&ticket===request){frame('<p role="alert">Yönetici paneli açılamadı. Yetkini ve bağlantını kontrol et.</p><button class="chip" id="admin-retry">Tekrar dene</button>');$('#admin-retry').onclick=load;}}
+    }
+    const waStatus=value=>({draft:'Taslak',published:'Yayında',rejected:'Reddedildi',withdrawn:'Yayından kaldırıldı',purged:'Saklama süresi doldu'})[value]||value;
+    const waIssue=value=>({kind_unknown:'İlan türü belirsiz',route_incomplete:'Güzergâh eksik',origin_missing:'Yükleme noktası eksik',route_order_review:'Güzergâh yönünü doğrula',location_alias_review:'Kısaltılmış yer adını doğrula',weight_review:'Tonajı tamamla veya doğrula',vehicle_review:'Araç ve kasa tipini doğrula',cargo_missing:'Yük cinsi eksik',timing_missing:'Yükleme zamanı eksik',contact_review:'İletişim bilgisi eksik veya belirsiz',message_overflow_review:'Mesajda 30’dan fazla bölüm var; tüm kaynağı incele'})[value]||'Manuel inceleme gerekiyor';
+    async function whatsappPage(ticket){
+        const data=await nakgoAuth.whatsappRPC('page',{p_offset:offset});
+        if(!valid()||ticket!==request)return;
+        const rows=data.drafts.slice(0,20);
+        frame('<h2>WhatsApp ilanları</h2><p>Bekleyen mesaj: '+esc(String(data.pending))+' · İşleme hatası: '+esc(String(data.failed))+'</p><button class="chip" id="wa-retry">Hatalı mesajları tekrar sıraya al</button>'+rows.map(r=>'<article class="load"><b>#'+esc(String(r.id))+' · '+esc(r.fields.from?.city||'Yükleme belirsiz')+' → '+esc(r.fields.destinations?.map(p=>p.city||'?').join(' + ')||'Teslimat belirsiz')+'</b><p>'+esc(waStatus(r.status))+' · Güven '+esc(String(Math.round(r.confidence*100)))+'%</p><p>'+esc(String(r.issues.length))+' inceleme işareti · '+esc(String(r.similar_count))+' benzer aday</p><button class="chip" data-wa-open="'+r.id+'">İncele / düzenle</button></article>').join('')+'<div class="admin-tabs"><button class="chip" id="wa-prev" '+(offset===0?'disabled':'')+'>Önceki</button><button class="chip" id="wa-next" '+(data.drafts.length<=20?'disabled':'')+'>Sonraki</button><button class="chip" id="wa-refresh">Yenile</button></div>',true);
+        body.querySelectorAll('[data-wa-open]').forEach(b=>b.onclick=()=>whatsappDetail(Number(b.dataset.waOpen)));
+        $('#wa-prev').onclick=()=>{offset=Math.max(0,offset-20);load();};$('#wa-next').onclick=()=>{offset+=20;load();};$('#wa-refresh').onclick=load;
+        $('#wa-retry').onclick=async()=>{try{await nakgoAuth.whatsappRPC('retry');if(valid())load();}catch{if(valid())frame('<p role="alert">Tekrar sıraya alma doğrulanamadı. Paneli yeniden aç.</p>');}};
+    }
+    async function whatsappDetail(id){
+        const ticket=++request;frame('<p role="status">Taslak yükleniyor…</p>');
+        try{
+            const d=await nakgoAuth.whatsappRPC('detail',{p_id:id});if(!valid()||ticket!==request)return;
+            const f=d.fields;
+            const fields=[['kind','İlan türü'],['from','Yükleme ili | ilçesi'],['destinations','Teslimat ili | ilçesi — her nokta ayrı satır'],['vehicle','Araç tipi'],['body','Kasa tipi'],['weightMin','En az tonaj'],['weightMax','En çok tonaj'],['amount','Yayımlanacak kesin tonaj / araç kapasitesi'],['cargo','Yük cinsi'],['timing','Yükleme metni'],['availableOn','Boş araç günü (YYYY-MM-DD)'],['availableUntil','Boş araç bitiş günü'],['availableTime','Boş araç saati'],['vehicleCount','Araç adedi'],['conditions','Özel şartlar'],['company','Firma / kişi (özel)'],['contactPhone','İletişim telefonu (özel)'],['description','Ayrıştırılan açıklama (özel)'],['publicNote','Yayımlanacak açıklama: tüm duraklar ve gerekli şartlar'],['ownerLabel','Yayımlanacak ilan masası adı'],['items','Yük kalemleri — her satır: ad | miktar | birim']];
+            const formatPoint=p=>[p?.city,p?.district].filter(Boolean).join(' | ');
+            const fieldValue=key=>key==='from'?formatPoint(f.from):key==='destinations'?(f.destinations||[]).map(formatPoint).join('\n'):key==='items'?(f.items||[]).map(x=>[x.n,x.q,x.u].join(' | ')).join('\n'):String(f[key]??'');
+            const numbers=['weightMin','weightMax','amount','vehicleCount'];
+            frame('<h2>WhatsApp taslağı #'+esc(String(id))+'</h2><p>'+esc(waStatus(d.status))+' · Güven '+esc(String(Math.round(d.confidence*100)))+'% — yayın izni değildir.</p><div class="wa-review"><section><h3>Değişmez kaynak mesaj</h3><pre class="wa-source">'+esc(d.source.text||'Kaynak saklama süresi dolmuş.')+'</pre><small>Alındı: '+esc(date(d.source.receivedAt))+'</small><p>Benzer adaylar: '+esc(d.similar.join(', ')||'Yok')+'</p></section><form id="wa-form"><h3>Düzenlenebilir ilan</h3><p class="wa-uncertain">İnceleme işaretleri: '+esc(d.issues.map(waIssue).join(' · ')||'Yok')+'</p>'+fields.map(([key,label])=>'<label class="'+(!f[key]?'wa-uncertain':'')+'" for="wa-'+key+'">'+label+'</label>'+(key==='kind'?'<select id="wa-kind"><option value="">Belirsiz</option><option value="load" '+(f.kind==='load'?'selected':'')+'>Yük</option><option value="truck" '+(f.kind==='truck'?'selected':'')+'>Boş araç</option></select>':'<textarea id="wa-'+key+'" maxlength="6000">'+esc(fieldValue(key))+'</textarea>')).join('')+'<label for="wa-basis">Yayın izni / hukuki dayanak kaydı (zorunlu)</label><textarea id="wa-basis" maxlength="1000">'+esc(d.legal_basis||'')+'</textarea><label><input type="checkbox" id="wa-reviewed"> Yayımlanacak alanları, kişisel veri iznini, tüm teslimat noktalarını ve şartları kontrol ettim.</label><p>Özel telefon, firma ve kaynak metin otomatik yayımlanmaz. İlan sahibi NakGo ilan masasıdır; görüşmeler bu hesaba gelir.</p><p id="wa-error" role="alert"></p><div class="admin-tabs">'+[['save','Taslak kaydet'],['publish',d.status==='published'?'Değişiklikleri onayla ve yayımla':'Onayla ve yayımla'],['reject','Reddet'],['withdraw','Yayından kaldır']].map(([a,l])=>'<button type="button" class="chip" data-wa-action="'+a+'" '+(a==='save'&&d.status==='published'?'disabled':'')+'>'+l+'</button>').join('')+'<button type="button" class="chip" id="wa-back">Listeye dön</button></div></form></div><details><summary>İşlem geçmişi (son 50)</summary>'+d.audit.map(a=>'<article><b>'+esc(a.action)+' · '+esc(date(a.created_at))+'</b><p>İşlemi yapan: '+esc(a.actor||'Silinmiş hesap')+'</p><pre class="wa-source">'+esc(JSON.stringify({eski:a.before_value,yeni:a.after_value},null,2))+'</pre></article>').join('')+'</details>');
+            $('#wa-back').onclick=load;let sending=false;
+            body.querySelectorAll('[data-wa-action]').forEach(b=>b.onclick=async()=>{
+                if(sending||!valid())return;const action=b.dataset.waAction,next={};
+                try{
+                    for(const [key] of fields){const value=$('#wa-'+key).value.trim();const point=s=>{const [city,district]=s.split('|').map(x=>x.trim());return {city:city||null,district:district||null};};next[key]=key==='from'?point(value):key==='destinations'?value.split('\n').filter(Boolean).map(point):key==='items'?value.split('\n').filter(Boolean).map(s=>{const [n,q,u]=s.split('|').map(x=>x.trim());return {n,q:Number(q),u};}):numbers.includes(key)?(value===''?null:Number(value)):(value||null);}
+                    if(action==='publish'&&!$('#wa-reviewed').checked)throw Error('Yayın alanlarını ve izin kaydını kontrol edip kutuyu işaretle.');
+                }catch(e){$('#wa-error').textContent=e.message||'Alan biçimini kontrol et.';return;}
+                next.imageData=f.imageData||null;const basis=$('#wa-basis').value.trim();sending=true;body.querySelectorAll('button').forEach(button=>button.disabled=true);
+                try{await nakgoAuth.whatsappRPC('change',{p_id:id,p_revision:d.revision,p_action:action,p_fields:next,p_basis:basis});if(valid())await whatsappDetail(id);}
+                catch(e){if(!valid())return;frame('<p role="alert">'+esc(e.code==='40001'?'Kayıt değişmiş. Güncel kaydı yükle.':'İşlem doğrulanamadı. Zorunlu alanları ve yayın izin kaydını kontrol etmek için güncel kaydı yükle.')+'</p><button class="chip" id="wa-reload">Güncel kaydı yükle</button>');$('#wa-reload').onclick=()=>whatsappDetail(id);}
+            });
+        }catch{if(valid()&&ticket===request){frame('<p role="alert">Taslak açılamadı. Yetkini ve bağlantını kontrol et.</p><button class="chip" id="wa-back">Listeye dön</button>');$('#wa-back').onclick=load;}}
     }
     function confirmAction(row){
         if(!valid())return;

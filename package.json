@@ -21,7 +21,9 @@
     "test:browser": "python tests/gate/browser.py",
     "whatsapp:test": "node --test tests/whatsapp/*.test.cjs",
     "whatsapp:parse": "node tools/whatsapp-parse.js",
-    "build:vercel": "node tools/bundle.js && node tools/whatsapp-web-output.js"
+    "build:vercel": "node tools/bundle.js && node tools/whatsapp-web-output.js",
+    "whatsapp:test:db": "node tests/whatsapp/database.cjs",
+    "whatsapp:test:browser": "python tests/whatsapp/browser.py"
   },
   "engines": {
     "node": ">=18"

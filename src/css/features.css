@@ -910,3 +910,9 @@
   letter-spacing:.2px;
   animation:rise .55s .5s both;
 }
+/* WhatsApp review remains inside the existing mobile shell. */
+.wa-review{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.wa-source{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-height:320px;overflow:auto}
+.wa-review textarea{display:block;width:100%;min-height:48px;box-sizing:border-box;margin:4px 0 12px}
+.wa-uncertain{border-left:3px solid #e6b800;padding:8px;overflow-wrap:anywhere}
+@media(min-width:760px){.wa-review{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
