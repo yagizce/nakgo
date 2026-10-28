@@ -1,5 +1,36 @@
 # NakGo proje devri
 
+## Son düzeltme — 28 Ekim 2026, yükleme tarihi serbest metin
+
+Kullanıcı Google girişinde yönetici panelinin artık göründüğünü doğruladı.
+Açık takvim tarihiyle ilan yayınladığını da söyledi; bu kullanıcı ilanına dokunulmaz.
+Asıl istek: YÜK ilanında yükleme tarihine istediği metin yazılabilsin ve yalnız
+boş olması engellensin. Not ve ekler adımına geçiş aynı kalacak. Erken adım
+doğrulaması veya yalnız takvim formatı dayatması İSTENMİYOR.
+
+PR #37 (draft), head c6269597b90f7958d45457173cae84aac3b49ad4:
+loading_text nullable sütunu; yeni metinli yükte available_on=null, metin aynen
+saklanır/gösterilir. Boş/whitespace yayınlanmaz. Mevcut 32 karakter sınırı aynı.
+Otomatik gün veya bitiş tarihi uydurulmaz; metinli yük owner closure/arşiv/moderasyon
+ile kapanır. Eski takvim kayıtları ve boş araç tarih kuralları korunur. Yeni
+metinli yüklerin düzenlemesi de serbest metindir; legacy takvim düzenlemesi mevcut
+haliyle kalır. Taslakta yük metni çevrilmez. Kart/detay kaçışlama korunur.
+RPC transport snapshot metni taşır, admin overview metinli ilanları sayar.
+
+Yerel npm test 603/603, Chromium BrowserGate 198 kontrol/11 senaryo,
+tam E2E 407/407, PGlite 45 moderasyon + 15 Storage + 11 SQL fixture geçti.
+Yeni SQL fixture boş/metin/32 sınırı, truck kısıtı, RLS sahibi/diğer hesap,
+favori/mesaj/taşıma snapshot ve kapatma akışını rollback ile doğrular.
+Üç mevcut korumalı test dosyası ürünün yeni davranışı için bakım gerektirdi:
+tests/gate/browser.py, tests/forms.py, tests/reliability.py. Guard/workflow
+değişmedi. quality-gate bu farkları insan incelemesi için durdurabilir; eski
+tek seferlik bypass izni kullanılmaz. CI nihai sonucu ayrıca doğrulanmalı.
+Henüz DEV/Production migration uygulanmadı ve main merge edilmedi.
+Migration 20261028010000_load_timing_text.sql önce, frontend sonra uygulanmalı.
+Production/main için açık yeni kapsam gerekiyor; PR #36 izni yalnız Google içindi.
+Geçici belge reviewer yetkisi kapalı, test hesabında yetki yok.
+
+
 ## Güncel aşama — 28 Ekim 2026, son üç kabul testi
 
 Üç belge submit/review kabulü TAMAMLANDI. Normal taşıyıcı #5 için üç sentetik JPEG
@@ -27,7 +58,7 @@ Tüm GitHub quality-gate (iki koşu), verify ve admin-regression başarılı.
 Kullanıcı kesin 7405b508361e4533a2a62eb3280125383519234e için yayını onayladı;
 PR #36 main c11f8c17b4e995e1e89a56f76f2fbbff20fadfc2 olarak birleşti.
 Production dpl_BNKN6zv4j85BbyKkDimvXFBNYYsC READY; canlı sw.js HTTP 200 v43.
-Yeni Google girişinde panelin reload olmadan görünmesi kullanıcıdan teyit bekler.
+Yeni Google girişinde panelin göründüğü kullanıcı tarafından doğrulandı.
 
 Telefon ilan denemesinde kullanıcı tarih alanına 'bugün' yazdı; mevcut parsePostDate
 28.10.2026 gibi açık tarih beklediğinden reddetti. Kullanıcı türün gerçekten boş
