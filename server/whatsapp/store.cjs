@@ -7,7 +7,9 @@ function createStore({env=process.env,fetchImpl=fetch}={}){
  if(url!==`https://${expected}.supabase.co`)throw Error('store_environment_mismatch');
  async function rpc(name,args){
   const response=await fetchImpl(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:key,...(key.startsWith('sb_secret_')?{}:{Authorization:'Bearer '+key}),'Content-Type':'application/json'},body:JSON.stringify(args),signal:AbortSignal.timeout(6000),redirect:'error'});
-  if(!response.ok)throw Error('store_unavailable');return response.json();
+  if(!response.ok)throw Error('store_unavailable');
+  if(response.status===204)return null;
+  const text=await response.text();return text?JSON.parse(text):null;
  }
  return {enqueue:messages=>rpc('nakgo_wa_ingest',{p_messages:messages}),claim:()=>rpc('nakgo_wa_claim',{}),complete:(id,lease,drafts)=>rpc('nakgo_wa_finish',{p_id:id,p_lease:lease,p_drafts:drafts}),fail:(id,lease)=>rpc('nakgo_wa_fail',{p_id:id,p_lease:lease}),purge:()=>rpc('nakgo_wa_purge',{})};
 }
