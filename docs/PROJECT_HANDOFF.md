@@ -1,5 +1,35 @@
 # NakGo proje devri
 
+## Son kabul — 27–28 Ekim 2026, Production moderasyon
+
+Mevcut supabase/tests/admin-moderation.sql Production'da sentetik kayıtlarla
+BEGIN/ROLLBACK içinde çalıştı. Askı/kaldırma, askıdan önce kabul edilmiş işin
+tamamlanması, askıdaki katılımcıyla yeni talep/kabulün reddi, Storage kısıtları,
+ilan remove/restore, eski revision reddi, audit, self/other-admin koruması ve
+geçici yetki iptali kontrolleri geçti. Fixture hiçbir yeni yönetici atamaz;
+geçici değişikliklerin tamamı ROLLBACK edildi. Gerçek kişilere işlem yapılmadı.
+
+İlk ek sayım kontrolü, transaction dışında tutulduğu varsayılan set_config
+anlık görüntüsünün aynı batch ROLLBACK'iyle silinmesi nedeniyle hata verdi.
+Kayıtlı anlık görüntü uzunluğu 0 ve mevcut sayımlar doğrulandı. Anlık görüntü
+haricen alınıp SQL'e sabit jsonb olarak verildi; paket tekrar çalıştı ve tam
+veri/rol/bucket/policy karşılaştırması PASS döndü. Sequence ilerlemesi rollback
+olmaz; sayım eşitliği kesintisiz ID dizisi anlamına gelmez.
+Son sayımlar: 3 Auth hesabı, 2 profil, 2 kapalı test ilanı, 1 iş, 1 görüşme,
+2 test mesajı, 1 geri çekilmiş belge başvurusu, 2 belge metadata kaydı,
+1 fiziksel sentetik JPEG, 1 aktif genel yönetici, 0 reviewer,
+0 account/listing moderation kaydı ve 0 admin audit. Kişisel veri kaydedilmedi.
+
+Gerçek yönetici tarayıcısında normal test hesabı Aktif hesap, yönetici hesabı
+Korumalı göründü. Askıya alma onay formu doğru test hesabının adını ve duracak
+faaliyetleri gösterdi. Boş gerekçeyle gönderim HTML required doğrulamasıyla
+engellendi. Vazgeç ile çıkıldı; test hesabı aktif ve audit boş kaldı. Bu UI
+kontrolü kalıcı askıya alma/geri açma tıklamaları yapılmış gibi sunulmaz;
+mutasyon kontrolleri canlı SQL rollback paketinde gerçekleştirildi.
+Yeni uygulama kodu, migration, yetki veya deployment değişikliği yapılmadı.
+Fiziksel cihaz ve gerçek Google callback doğrulaması açık kalır; Production
+belge reviewer ataması/üç belge submit-review kabulü ayrıca kapsam gerektirir.
+
 ## Son düzeltme ve kabul — 27 Ekim 2026, özel belge Storage
 
 Production upload testinde bulunan AccessDenied / Sign in required hatası kapatıldı.
