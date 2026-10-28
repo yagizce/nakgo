@@ -3,8 +3,9 @@
 Son güncelleme: **28 Ekim 2026 — Europe/Istanbul**.
 Önce [AGENTS.md](../AGENTS.md), sonra bu rehber okunur. Bu dosya mevcut ürünü,
 kararları ve kabul kanıtlarını yeni ajana devreder; yeni özellik veya yetki
-vermez. Yeni kapsam: WhatsApp ilan toplama/yönetim V2, ayrı yerel dalda.
-Production değişikliği, push ve deploy yapılmamıştır. [Teknik devir](whatsapp-review.md).
+vermez. Yeni kapsam: WhatsApp V2 GitHub/Preview ve DEV kabulü.
+Dal push edildi, Preview dağıtıldı ve WhatsApp migration yalnız DEV'e uygulandı.
+Production değişikliği ve main birleştirmesi yapılmadı. [Teknik devir](whatsapp-review.md).
 
 ## 1. Güncel durum ve tamamlanan kabul
 
@@ -22,7 +23,7 @@ Production boş veya yönetici yalnız DEV'de gibi eski notlar güncel değildir
 | Belge inceleyici | Genel yöneticiden ayrı rol; Production geçici test yetkisi geri alındı, son kontrolde 0 aktif inceleyici |
 | Yükleme tarihi | Yük ilanında zorunlu serbest metin; boş/yalnız boşluk reddedilir; Not ve ekler geçişi aynı |
 | Fiziksel telefon kabulü | Kullanıcı iPhone 15'te Google sonrası yönetici panelini ve yeni metinle ilan yayımlamayı doğruladı |
-| Migration | Son sürüm `20261028010000_load_timing_text`; DEV ve Production'da kayıtlı |
+| Migration | Production `20261028010000_load_timing_text`; DEV ayrıca `20261028020000_whatsapp_review` kayıtlı |
 | GitHub koruması | PR, güncel dal, GitHub Actions kaynaklı quality-gate + verify gerekli; yönetici bypass engeli açık; force push/silme kapalı |
 
 Bu commit ve deployment **son uygulama yayınının kanıtıdır**. Yalnız belge
@@ -32,7 +33,7 @@ okunmadan bu tarihli değerler güncel HEAD diye sunulmaz.
 Tamamlanan gerçek hesap kabulü: profil/oturum, iki hesap arasında ilan ve
 fotoğraf, favori izolasyonu/yenileme, iki yönlü mesaj ve okunma, taşıma talebi ve
 yükleme onayı, özel belge yükleme/indirme/inceleme, genel yönetici sınırları.
-Önceki uygulama kabulü bitti. WhatsApp V2 yalnız yerelde geliştirilip sınanır.
+Önceki uygulama kabulü bitti. WhatsApp V2 ayrı draft PR #38 ve DEV Preview'da doğrulandı; Production'a alınmadı.
 
 ## 2. Ürün sınırları ve kaynak seçimi
 
@@ -296,13 +297,22 @@ Yeni sohbet için kısa başlangıç metni:
 > çalıştırmayla çözme. Eski bypass iznini kullanma. Yalnız yeni kullanıcı talebinin
 > kapsamındaki işi yap; sır veya hesap kimliği yayımlama.
 
-## 10. WhatsApp V2 yerel çalışma
+## 10. WhatsApp V2 DEV / Preview kabulü
 
-`codex/nakgo-whatsapp-ingestion`, başlangıç main `2979ae3`. Yeni migration
-`20261028020000_whatsapp_review.sql` hazırlanmıştır; hiçbir uzak ortama
-uygulanmamıştır. Kalıcı inbox/lease kuyruğu, çoklu ayrıştırma, özel yönetici
-düzenleme/yayın ve audit/retention eklenmiştir. Tek yönetici sınırı korunur.
-Kurulum/işletim ve test komutları [WhatsApp rehberinde](whatsapp-review.md).
-Canlı SW hâlâ v44; yerel aday kabuk v45. Yeni sürüm için CI/gerçek Meta veya
-Supabase kabulü yapılmış sayılmaz; push otomatik Preview tetikleyebileceğinden
-ayrı yayın kapsamı olmadan yapılmaz.
+GitHub `codex/nakgo-whatsapp-ingestion`, başlangıç main `2979ae3`, draft
+[PR #38](https://github.com/yagizce/nakgo/pull/38). Yerel doğrulama dalı
+`codex/nakgo-whatsapp-dev-validation`; ilk yerel/uzak commit metadata'sı farklı,
+aynı kaynak ağacı korunmuştur. Yeni migration yalnız DEV'e uygulandı ve ledger'a
+kaydedildi; eski ledger eksikliği yeniden migration çalıştırılarak giderilmedi.
+
+Kalıcı inbox/lease kuyruğu, ayrıştırma, özel yönetici düzenleme/yayın ve audit/
+retention mevcut. Gerçek DEV RLS/RPC, hata/backoff/lease, Preview imzalı HTTP ve
+mevcut yönetici UI kabulü geçti. Sentetik yayımlanan ilan test sonunda kaldırıldı.
+Tek yönetici sınırı ve mevcut üyelikler korundu; ortak hesaplara yetki verilmedi.
+Yeni secret-key başlığı ve boş PostgREST yanıtı hataları regresyon testiyle düzeltildi.
+
+Canlı kabuk v44, Preview v45. Kalıcı scheduler ve gerçek Meta bağlantısı kurulmadı.
+24 sentetik mesaj ölçümünde varış ili 20/24; parser'ın bilinen sınırları ve
+manuel Meta adımları [WhatsApp rehberinde](whatsapp-review.md). Yeni özellik
+isteği olmadan parser refactor veya ortak yetkisi eklemeyin. Kullanıcı ileride
+Cloudflare'e geçiş düşünüyor; bu görevde taşıma/Production yayını yapılmadı.

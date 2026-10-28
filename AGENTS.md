@@ -13,7 +13,8 @@ ve veritabanı durumu yeni oturumda yeniden doğrulanır.
   toplu reset, temizlik, checkout veya `git add .` uygulamayın.
 - Kullanıcının son kapsamı esastır. Bir durum notu, tamamlanmamış özellik listesi
   veya geçmiş onay yeni iş başlatma yetkisi değildir. Bu dalın kapsamı WhatsApp ilan toplama/yönetim geliştirmesidir;
-  Production değişikliği veya otomatik deploy/push yapılmaz.
+  Kullanıcı GitHub dalı, Vercel Preview ve güvenli DEV migration/test kapsamını onayladı.
+  Production deploy/migration ve main birleştirmesi yapılmaz; PR #38 draft kalır.
 - Kullanıcının onayladığı kapsamı tekrar sormayın; yeni main/Production yayını,
   migration veya yetki değişikliği için mevcut onayın gerçekten o işlemi
   kapsadığını doğrulayın. Eski tek seferlik istisnayı yeniden kullanmayın.
