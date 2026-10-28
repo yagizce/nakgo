@@ -7,7 +7,7 @@ function postValues() {
     const truck = postMode === "truck";
     return {
         from: $("#f").value, to: $("#t").value, veh: $("#v").value,
-        body: $(truck ? "#bd" : "#b").value, ...parsePostDate($("#d").value), note: $("#n").value.trim().slice(0,1000),
+        body: $(truck ? "#bd" : "#b").value, ...(truck ? parsePostDate($('#d').value) : {date:'',time:'',dateText:$('#d').value.trim()}), note: $("#n").value.trim().slice(0,1000),
         ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
     };
 }
@@ -76,7 +76,7 @@ function renderPost(m) {
                 publishButton.disabled=true;
                 try {await nakgoMarket.create(l);} catch(e){publishButton.disabled=false;toast(nakgoAuth.message(e));return;}
             } else {
-            Object.assign(l,dateFields(l.date),{ts:Date.now()});
+            Object.assign(l,{ts:Date.now()});
             if (cloud) {
                 l.uid = me;
                 l.ts = Date.now();

@@ -112,15 +112,19 @@ class BrowserGate(unittest.TestCase):
             p.click('#go')
             self.verify(p.evaluate('trucks.length' if truck else 'loads.length')==before and p.is_visible('#go'),'Boş tarihle ilan yayınlanmaz')
             if not truck:p.click('#post-prev')
-            p.fill('#d',typed_day()+' 25:70')
-            if not truck:p.click('#post-next')
-            p.click('#go')
-            self.verify(p.evaluate('trucks.length' if truck else 'loads.length')==before and p.is_visible('#go'),'Geçersiz saatle ilan yayınlanmaz')
-            if not truck:p.click('#post-prev')
-            p.fill('#d',typed_day()+' 14:30')
-            if not truck:p.click('#post-next')
-            p.click('#go');p.reload()
-            self.verify(p.evaluate("(truck)=> (truck?trucks:loads).some(x=>x.mine&&x.time==='14:30')",truck),'Kullanıcının yazdığı saat yenilemede korunur')
+            if truck:
+                p.fill('#d',typed_day()+' 25:70');p.click('#go')
+                self.verify(p.evaluate('trucks.length')==before and p.is_visible('#go'),'Geçersiz araç saati yayınlanmaz')
+                p.fill('#d',typed_day()+' 14:30');p.click('#go');p.reload()
+                self.verify(p.evaluate("trucks.some(x=>x.mine&&x.time==='14:30')"),'Araç saati yenilemede korunur')
+            else:
+                p.fill('#d','   ');p.click('#post-next');p.click('#go')
+                self.verify(p.evaluate('loads.length')==before and p.is_visible('#go'),'Yalnız boşluk yükleme tarihi sayılmaz')
+                p.click('#post-prev');p.fill('#d','yarın sabah');p.click('#post-next');p.click('#go');p.reload()
+                self.verify(p.evaluate("loads.some(x=>x.mine&&x.dateText==='yarın sabah'&&x.date==='')"),'Serbest yükleme metni yenilemede aynen korunur')
+                saved_id=p.evaluate("loads.find(x=>x.mine&&x.dateText==='yarın sabah').id")
+                p.locator('[data-id="'+str(saved_id)+'"]').click()
+                self.verify('yarın sabah' in p.inner_text('#sheetBody'),'Serbest metin ilan detayında görünür')
 
     def test_required_invalid_and_long_inputs(self):
         p=self.page();self.form(p)
