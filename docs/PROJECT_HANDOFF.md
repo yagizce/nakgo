@@ -1,5 +1,44 @@
 # NakGo proje devri
 
+## Güncel aşama — 28 Ekim 2026, son üç kabul testi
+
+Üç belge submit/review kabulü TAMAMLANDI. Normal taşıyıcı #5 için üç sentetik JPEG
+fiziksel olarak yüklendi/finalize edildi, ayrı inceleyici oturumunda üçü de auth
+download ile açıldı. Submit revision 8 -> approved revision 9 -> owner withdraw
+revision 10. Ayrı #7 başvurusu üç sentetik JPEG ile submit revision 8 -> gerekçeli
+rejected revision 9 -> owner withdraw revision 10. Onay/ret sonuçları her iki
+hesaba yansıdı. Kullanıcı işlem-anı onayıyla yalnız belirlediği genel yöneticiye
+geçici document_reviewers yetkisi verildi; test sonunda active=false yapıldı.
+Son sorgu: 0 aktif reviewer, 1 genel yönetici, iki withdrawn test başvurusu,
+#5 için bir approved audit, #7 için bir rejected audit. Test hesabına admin veya
+reviewer verilmedi. Gerçek belge yok; sentetik dosyalar private Storage'da kaldı.
+Kullanıcının kendi #6 taslağına dokunulmadı. Geçici rol tekrar açık varsayılmaz.
+
+Kullanıcının gerçek iPhone 15 Google girişinde doğru hesap ve mail görünürken
+ilk profil açılışında Yönetici paneli yoktu; yenileyince göründü. Production'da
+hedef doğrulanmış Auth hesabı, Google identity ve aktif admin üyeliği 1/1/1 idi.
+Kök neden profil hydration sırası: renderProfile, profile=null iken adminRole
+çağırıyor; listingAccount hata veriyor ve ilk denied sonucu hesap için cache'leniyordu.
+Yeni test eski kodda hatayı üretti. PR #36 yalnız profil hazırken ensure çağırır;
+server role/strict boolean/account isolation kuralları aynı kalır. Bundle üretildi,
+SW nakgo-v43-google-profile-readiness oldu. Dört dosya; protected test/workflow
+farkı yok. Yeni test geçti; yerel 576/577, tek EACCES local socket sandbox sınırı.
+Tüm GitHub quality-gate (iki koşu), verify ve admin-regression başarılı.
+Kullanıcı kesin 7405b508361e4533a2a62eb3280125383519234e için yayını onayladı;
+PR #36 main c11f8c17b4e995e1e89a56f76f2fbbff20fadfc2 olarak birleşti.
+Production dpl_BNKN6zv4j85BbyKkDimvXFBNYYsC READY; canlı sw.js HTTP 200 v43.
+Yeni Google girişinde panelin reload olmadan görünmesi kullanıcıdan teyit bekler.
+
+Telefon ilan denemesinde kullanıcı tarih alanına 'bugün' yazdı; mevcut parsePostDate
+28.10.2026 gibi açık tarih beklediğinden reddetti. Kullanıcı türün gerçekten boş
+araca dönmediğini, yalnız uyarıdaki müsaitlik kelimesinden öyle düşündüğünü açıkladı.
+Tarih giriş davranışı değiştirilmedi. Canlı formda boş tarihle son adıma geçilip
+uyarının gizli önceki adım alanına ait olması ayrıca gözlendi; bu UX notu PR #36
+ile çözülmüş sayılmaz. Kullanıcıdan yeni Google girişindeki panel ve açık tarih
+ile Not ve ekler adımına geçiş sonucunun tamamlanması bekleniyor. Son yanıt
+henüz eksik olduğundan üç testin tamamı geçti denmez. Telefon tarayıcısı 'Google'
+olarak tarif edildi; Chrome/Google uygulaması ayrımı kesinleştirilmedi.
+
 ## Son kabul — 27–28 Ekim 2026, Production moderasyon
 
 Mevcut supabase/tests/admin-moderation.sql Production'da sentetik kayıtlarla
