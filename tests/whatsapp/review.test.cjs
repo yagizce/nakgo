@@ -32,3 +32,10 @@ test('worker fails safely; lease completion and retry use only IDs',async()=>{
 test('server environment isolation and no database secrets needed for fixtures',()=>{
  assert.throws(()=>createStore({env:{}}));assert.throws(()=>createStore({env:{SUPABASE_URL:'https://fimlifldsivecezbxwuo.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'test',VERCEL_ENV:'preview'}}));
 });
+test('modern secret keys use apikey only; legacy JWT keeps bearer compatibility',async()=>{
+ for(const key of ['sb_secret_synthetic_only','eyJsynthetic.jwt.signature']){
+  let headers;
+  const store=createStore({env:{SUPABASE_URL:'https://axkotffqrsddbrazhcwj.supabase.co',SUPABASE_SERVICE_ROLE_KEY:key,VERCEL_ENV:'preview'},fetchImpl:async(url,options)=>{headers=options.headers;assert.match(url,/nakgo_wa_claim$/);return Response.json(null);}});
+  await store.claim();assert.equal(headers.apikey,key);assert.equal(headers.Authorization,key.startsWith('sb_secret_')?undefined:'Bearer '+key);
+ }
+});
