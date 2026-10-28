@@ -5794,7 +5794,7 @@ function renderProfile(main) {
     if(summary&&!summary.ready&&!summary.busy&&!summary.error)nakgoJobs.refreshSummary();
     carBind();listBind();
     bindAuthCard();
-    nakgoAdminAccess.ensure();
+    if(nakgoAuth.snapshot().profile)nakgoAdminAccess.ensure();
     if($('#profile-admin'))$('#profile-admin').onclick=openAdminPanel;
     $('#profile-save').onclick=async()=>{
         const button=$('#profile-save'); if(button.disabled)return;
