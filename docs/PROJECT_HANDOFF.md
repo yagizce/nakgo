@@ -1,5 +1,42 @@
 # NakGo proje devri
 
+## TAMAMLANDI — 28 Ekim 2026, zorunlu serbest yükleme metni canlıda
+
+Kullanıcı GitHub Mobile doğrulamasını tamamladı. Onaylanan exact head
+c6269597b90f7958d45457173cae84aac3b49ad4, PR #37 ile main
+**d9764131ce431710ae1cb8c3ff49a721f94a14e1** olarak squash merge edildi.
+Tek seferlik admin bypass istisnası merge ardından HEMEN kapatıldı. Yeniden
+GET: enforce_all_for_admins=true; PR/status/up-to-date=true; quality-gate ve
+verify GitHub Actions kaynaklı zorunlu; force pushes/deletions=false.
+Bu istisna yeni işler için izin değildir.
+
+Vercel Production **dpl_C9dme3Am3brNuKV1A2TEL2CYuAzg** READY; nakgo.vercel.app
+alias doğru main commit'e bağlı. Canlı sw.js HTTP200 **v44-free-text-loading**.
+DEV ve PROD 20261028010000 migration daha önce birer kez kaydedildi; tekrar
+uygulamayın. Kullanıcının YÜK ilanında yükleme tarihi zorunlu serbest metin:
+boş/whitespace reddedilir, Not ve ekler geçişi aynı, metin takvim gününe çevrilmez.
+Araç takvim kuralı ve eski takvim kayıtları aynı. Yeni metinli yüklerde otomatik
+bitiş tarihi uydurulmaz; sahibi kapatabilir/arşivleyebilir, moderasyon uygulanır.
+
+Normal Production test hesabıyla gerçek UI kabulü:
+boşlukla son adım açıldı, publish 'Yükleme tarihini yaz' ile engellendi.
+Sentetik **#22** yük, 'yarın sabah' ile kaydedildi. Reload sonrası kart/detay
+metni aynen gösterdi. Düzenlemede 'uygun olduğunda' kaydedildi ve yalnız #22
+UI'dan kapatıldı. Son SQL: original_listings_unchanged=true,
+synthetic_edit_and_close_pass=true, active_admins=1, active_reviewers=0,
+migration_recorded=1. Kullanıcının gerçek ilanı değişmedi. #22 sentetik kapalı
+kayıttır; kalıcı silme yapılmadı. Belge reviewer yetkisi yeniden açılmadı.
+
+Önceki yerel doğrulamalar: npm 603/603, E2E 407/407, bağımsız Chromium 198/198,
+45 moderasyon + 15 Storage, 11 rollback SQL fixture. DEV/PROD gerçek SQL kabulü
+ayrıca PASS. GitHub verify/admin-regression başarılı; quality-gate'deki 61/64
+korumalı üç test bakımı için bu sürüme açık insan istisnası verildi; tüm CI
+yeşil diye anlatmayın. Guard/workflow değiştirilmedi.
+Kanıtlar outputs/load-timing-text-result.md, load-timing-production-literal.jpg,
+load-timing-final-checks.jpg ve load-timing-main-protection-restored.jpg.
+Aşağıdaki 'yayın/kimlik doğrulaması bekliyor' notları tarihsel; bu başlık günceldir.
+
+
 ## Uygulama — 28 Ekim 2026, PR #37 yayın kimlik doğrulaması bekliyor
 
 Kullanıcı c6269597b90f7958d45457173cae84aac3b49ad4 sürümü için üç test
