@@ -6,6 +6,10 @@
     "api/whatsapp/webhook.mjs": {
       "includeFiles": "src/js/config.js",
       "maxDuration": 10
+    },
+    "api/whatsapp/worker.mjs": {
+      "includeFiles": "src/js/config.js",
+      "maxDuration": 60
     }
   },
   "headers": [

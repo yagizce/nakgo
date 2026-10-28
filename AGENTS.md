@@ -12,8 +12,8 @@ ve veritabanı durumu yeni oturumda yeniden doğrulanır.
   inceleyin. Eski DEV dalını güncel uygulama sanmayın. Kullanıcı çalışmalarına
   toplu reset, temizlik, checkout veya `git add .` uygulamayın.
 - Kullanıcının son kapsamı esastır. Bir durum notu, tamamlanmamış özellik listesi
-  veya geçmiş onay yeni iş başlatma yetkisi değildir. Bu belge tesliminin kapsamı
-  yalnız proje devir belgeleridir; uygulama veya entegrasyon işi başlatılmaz.
+  veya geçmiş onay yeni iş başlatma yetkisi değildir. Bu dalın kapsamı WhatsApp ilan toplama/yönetim geliştirmesidir;
+  Production değişikliği veya otomatik deploy/push yapılmaz.
 - Kullanıcının onayladığı kapsamı tekrar sormayın; yeni main/Production yayını,
   migration veya yetki değişikliği için mevcut onayın gerçekten o işlemi
   kapsadığını doğrulayın. Eski tek seferlik istisnayı yeniden kullanmayın.

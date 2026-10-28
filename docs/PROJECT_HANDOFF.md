@@ -3,8 +3,8 @@
 Son güncelleme: **28 Ekim 2026 — Europe/Istanbul**.
 Önce [AGENTS.md](../AGENTS.md), sonra bu rehber okunur. Bu dosya mevcut ürünü,
 kararları ve kabul kanıtlarını yeni ajana devreder; yeni özellik veya yetki
-vermez. Kullanıcının en son talebi yalnız bu devir belgelerini tamamlamaktır.
-Bir sonraki ürün/entegrasyon işini kullanıcı ayrıca belirleyecektir.
+vermez. Yeni kapsam: WhatsApp ilan toplama/yönetim V2, ayrı yerel dalda.
+Production değişikliği, push ve deploy yapılmamıştır. [Teknik devir](whatsapp-review.md).
 
 ## 1. Güncel durum ve tamamlanan kabul
 
@@ -32,7 +32,7 @@ okunmadan bu tarihli değerler güncel HEAD diye sunulmaz.
 Tamamlanan gerçek hesap kabulü: profil/oturum, iki hesap arasında ilan ve
 fotoğraf, favori izolasyonu/yenileme, iki yönlü mesaj ve okunma, taşıma talebi ve
 yükleme onayı, özel belge yükleme/indirme/inceleme, genel yönetici sınırları.
-Uygulama kabulü bitti; devir belgesi işi dışında yeni iş başlatılmayacak.
+Önceki uygulama kabulü bitti. WhatsApp V2 yalnız yerelde geliştirilip sınanır.
 
 ## 2. Ürün sınırları ve kaynak seçimi
 
@@ -263,10 +263,9 @@ quality-gate **61/64** kaldı. Bu sonucu tüm CI yeşil diye anlatmayın. Geçic
 admin bypass istisnası merge ardından hemen kapatılıp yeni GET ile doğrulandı.
 Bu izinler sonraki işe taşınmaz; koruma/guard/workflow kalıcı gevşetilmedi.
 
-Bu rehberin eski PR #32 tabanı DEV idi. Belge tesliminde dal güncel main
-kaynaklarıyla eşitlenip PR main'e yönlendirilir; yalnız AGENTS.md, README.md ve
-bu rehberin farkı kalmalıdır. Uygulama/env/veritabanı/yetki değişikliği bu
-belge tesliminin kapsamında değildir.
+Tarihsel PR #32 belge teslimi main'e alındı; yalnız AGENTS.md, README.md ve
+bu rehber değişti. Bu yerel dal sonraki, ayrıca istenmiş WhatsApp V2 çalışmasıdır;
+önceki belge teslimi kapsamı yeni kullanıcı isteğini geçersiz kılmaz.
 
 ## 9. Korunacak veriler ve yeni ajan için kapanış
 
@@ -279,8 +278,7 @@ ve belge taslağına dokunmayın. Private sentetik dosyaları izinsiz kalıcı s
 
 Ödeme/Premium entitlement, push, mesaj ekleri, Apple girişi veya gerçek telefon
 numarası doğrulaması tamamlanmış kabul edilmez. Bu liste backlog yetkisi veya
-sonraki adım talimatı değildir; kullanıcı kapsamını bekleyin. Bu oturumda başka
-özellik/entegrasyon işi yapılmayacak.
+sonraki adım talimatı değildir; kullanıcı kapsamını bekleyin. WhatsApp dışındaki backlog bu göreve dahil değildir.
 
 Eski [mimari](architecture.md), [ürün](product.md),
 [ilk Supabase kurulumu](supabase-setup.md) ve yönetici kurulum belgeleri demo/ilk
@@ -297,3 +295,14 @@ Yeni sohbet için kısa başlangıç metni:
 > kabulünü tamamladı. Son iki migration kurulu; ledger eksikliğini yeniden
 > çalıştırmayla çözme. Eski bypass iznini kullanma. Yalnız yeni kullanıcı talebinin
 > kapsamındaki işi yap; sır veya hesap kimliği yayımlama.
+
+## 10. WhatsApp V2 yerel çalışma
+
+`codex/nakgo-whatsapp-ingestion`, başlangıç main `2979ae3`. Yeni migration
+`20261028020000_whatsapp_review.sql` hazırlanmıştır; hiçbir uzak ortama
+uygulanmamıştır. Kalıcı inbox/lease kuyruğu, çoklu ayrıştırma, özel yönetici
+düzenleme/yayın ve audit/retention eklenmiştir. Tek yönetici sınırı korunur.
+Kurulum/işletim ve test komutları [WhatsApp rehberinde](whatsapp-review.md).
+Canlı SW hâlâ v44; yerel aday kabuk v45. Yeni sürüm için CI/gerçek Meta veya
+Supabase kabulü yapılmış sayılmaz; push otomatik Preview tetikleyebileceğinden
+ayrı yayın kapsamı olmadan yapılmaz.
