@@ -268,18 +268,21 @@ function openEdit(k, id, reopen=false) {
         return;
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label><select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label>${L && 'dateText' in it ? `<input id="ed" type="text" maxlength="32" required value="${esc(it.dateText)}">` : `<select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>`}${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#es").onclick = async () => {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
         const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 1000) } : { cap: v, date: $("#ed").value };
         const selectedDate=$("#ed").value;
-        if (!postDateOK(selectedDate)) return toast("Geçerli bir tarih seç");
-        if (selectedDate !== it.date) Object.assign(patch,dateFields(selectedDate));
+        if (L && 'dateText' in it) {
+            if (!loadingTextOK(selectedDate)) return toast('Yükleme tarihini yaz');
+            delete patch.date; Object.assign(patch,{dateText:selectedDate.trim(),date:'',dateEnd:'',time:''});
+        } else if (!postDateOK(selectedDate)) return toast("Geçerli bir tarih seç");
+        if (!('dateText' in patch) && selectedDate !== it.date) Object.assign(patch,dateFields(selectedDate));
         if (reopen) {
             const end = selectedDate === it.date ? (it.dateEnd||it.date) : (patch.dateEnd||patch.date);
-            if (end<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
+            if (!('dateText' in patch) && end<localDay()) return toast("Yeniden açmak için güncel bir yükleme tarihi seç");
             Object.assign(patch,{closed:false,ts:Date.now()});
         }
         const button=$('#es'); if(nakgoMarket.active()){if(button.disabled)return;button.disabled=true;}
