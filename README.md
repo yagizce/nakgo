@@ -1,6 +1,6 @@
 # NakGo
 
-Telefon düzeninde yük ve boş araç pazarı; turkuaz/sarı marka, açık/koyu tema ve altta ana işlemler. Büyük ekranlarda da tek sütunlu mobil görünüm korunur. Bağımlılıksız HTML/CSS/JavaScript + PWA kullanır. Ücret alanı bulunmaz; taraflar telefon veya mesajla görüşür. İşlerim iki aşamalı yükleme takibidir; profilden mesajlar, kayıtlılar ve mazot hesabı açılır. Normal web yayınında **yerel demo** çalışır: örnek ilanlar ve otomatik yanıtlar gerçek taşıma talebi değildir; test üyelikleri ödeme almaz.
+Telefon düzeninde yük ve boş araç pazarı; turkuaz/sarı marka, açık/koyu tema ve altta ana işlemler. Büyük ekranlarda da tek sütunlu mobil görünüm korunur. Bağımlılıksız HTML/CSS/JavaScript + PWA kullanır. Ücret alanı bulunmaz; taraflar telefon veya mesajla görüşür. İşlerim iki aşamalı yükleme takibidir; profilden mesajlar, kayıtlılar ve mazot hesabı açılır. Production'da **gerçek hesap bağlantısı açıktır**: ilanlar, favoriler, mesajlar ve işler hesaba bağlı saklanır. Oturumsuz/yerel demo örnekleri gerçek taşıma talebi değildir; demo üyelikler ödeme almaz. Güncel ortam ve kabul durumu [proje devir rehberinde](docs/PROJECT_HANDOFF.md) tutulur.
 
 ## Çalıştırma
 
@@ -34,14 +34,14 @@ npm run mobile:prepare # www/ çıktısı; native derleme değildir
 | manifest.webmanifest, sw.js, vercel.json | PWA, önbellek ve statik yayın ayarları |
 | capacitor.config.json | Mobil kabuk başlangıç ayarı |
 | api/whatsapp/, server/whatsapp/ | WhatsApp V1 backend giriş noktası ve saf parser; frontend'e eklenmez |
-| api/auth/, supabase/ | Önizlemeye özel açık Auth yapılandırması, profil migration'ı ve RLS testi |
+| api/auth/, supabase/ | DEV/Production açık istemci yapılandırması; migration, RLS/RPC ve SQL kontrolleri |
 | public/ | Vercel için üretilen statik allowlist çıktısı; Git dışında |
 
 www/, tests/shots/ ve docs/CODEMAP.md yerel üretilen çıktılardır, Git dışında kalır. Kaynak değişikliğinde bundle çalıştırın.
 
 ## Ajanlar ve yeni sohbetler
 
-Yeni çalışma öncesinde [AGENTS.md](AGENTS.md) ve [güncel proje devir rehberi](docs/PROJECT_HANDOFF.md) okunmalıdır. DEV ile Production ve kabul bekleyen yönetici dalı ayrıdır.
+Yeni çalışma öncesinde [AGENTS.md](AGENTS.md) ve [proje devir rehberi](docs/PROJECT_HANDOFF.md) okunmalıdır. Rehber, güncel uygulama durumu, kaynak haritası, DEV/Production ayrımı, migration geçmişi, kabul sonuçları ve korunacak kuralları açıklar. Tarihli kayıtlar yeni oturumdaki uzak kaynak/ortam doğrulamasının yerine geçmez.
 
 ## Belgeler
 
@@ -56,4 +56,4 @@ Yeni çalışma öncesinde [AGENTS.md](AGENTS.md) ve [güncel proje devir rehber
 
 [GitHub deposu](https://github.com/yagizce/nakgo) · [Vercel projesi](https://vercel.com/yagizces-projects/nakgo) · [Canlı site](https://nakgo.vercel.app). Marka NakGo, resmi Production adresi https://nakgo.vercel.app olarak esas alınır. Aktif GitHub repo kimliği `yagizce/nakgo`, origin adresi `https://github.com/yagizce/nakgo.git` olmalıdır. Yeni değişiklikler ayrı dal ve önizleme üzerinden ilerler. Kullanıcının yetkilendirdiği codex/* otomatik birleşme koşulları [kalite kapısı belgesindedir](docs/quality-gate.md); kapsam dışındaki PR'lar inceleme bekler.
 
-Yol haritası ve doğrulanacak mola/bakım noktalarının veri biçimi için [mimari belgesi](docs/architecture.md) içindeki harita bölümüne bak. Arama ve uygulama içi mesajlaşma Premium üyelik gerektirir.
+Yol haritası ve doğrulanacak mola/bakım noktalarının veri biçimi için [mimari belgesi](docs/architecture.md) içindeki harita bölümüne bak. Demo Premium ekranları gerçek ödeme veya sunucudan doğrulanmış üyelik değildir; gerçek hesap erişim kuralları güncel kaynak ve devir rehberinden doğrulanır.

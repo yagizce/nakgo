@@ -19,6 +19,7 @@ function parsePostDate(value) {
     const time=match[4]===undefined?'':match[4].padStart(2,'0')+':'+match[5];
     return validDay(date)&&(!time||validPostTime(time))?{date,time}:{date:'',time:''};
 }
+const loadingTextOK = value => typeof value==='string' && value.trim().length>0 && value.length<=32;
 const postDateText = (date=localDay(),time='') => date.split('-').reverse().join('.')+(validPostTime(time)?' '+time:'');
 function dateFields(value, now = Date.now()) {
     if (validDay(value)) return {date:value, dateEnd:""};
@@ -31,6 +32,7 @@ function dateFields(value, now = Date.now()) {
     return {date,dateEnd:""};
 }
 function dateOnlyLabel(x, now = Date.now()) {
+    if (typeof x === 'object' && typeof x.dateText === 'string') return x.dateText;
     const d = typeof x === "string" ? x : x.date;
     if (!validDay(d)) return String(d || "Belirtilmedi");
     const end = typeof x === "object" && validDay(x.dateEnd) ? x.dateEnd : "";
@@ -62,7 +64,9 @@ function postError(x, isTruck = false, step = 2) {
     if (!isTruck && !String(x.cargo || "").trim()) return "Yük cinsini gir";
     if (!vehicles.includes(x.veh) || !bodies.includes(x.body)) return "Araç ve kasa tipini seç";
     if (step < 2) return "";
-    if (!postDateOK(x.date) || dateFields(x.date).date < localDay()) return "Güncel bir yükleme veya müsaitlik tarihi seç";
+    if (!isTruck && 'dateText' in x) {
+        if (!loadingTextOK(x.dateText)) return 'Yükleme tarihini yaz';
+    } else if (!postDateOK(x.date) || dateFields(x.date).date < localDay()) return isTruck ? 'Güncel bir müsaitlik tarihi seç' : 'Güncel bir yükleme tarihi seç';
     if (Array.isArray(x.items) && x.items.some(i => !positiveAmount(i.q) || !ITEM_UNITS.includes(i.u))) return "Yük kalemlerine geçerli, sıfırdan büyük miktar ve birim gir";
     return "";
 }
@@ -85,7 +89,8 @@ function normalizeListing(v) {
         const old=Number(String(x.id).replace(/^t/,""));
         x.ts=Number.isFinite(old)&&old>1e12?old:Date.now();
     }
-    if ((x.mine || x.uid || x.ts) && !validDay(x.date)) Object.assign(x,dateFields(x.date,x.ts||Date.now()));
+    if ('dateText' in x) x.dateText=String(x.dateText??'');
+    if (!('dateText' in x) && (x.mine || x.uid || x.ts) && !validDay(x.date)) Object.assign(x,dateFields(x.date,x.ts||Date.now()));
     if (!validDay(x.dateEnd) || x.dateEnd < x.date) delete x.dateEnd;
     if(Array.isArray(x.featWin)) x.featWin=x.featWin.filter(w=>Array.isArray(w)&&Number.isFinite(+w[0])&&Number.isFinite(+w[1]));
     if (x.status && !["wait","ok","counter","no"].includes(x.status)) x.status="wait";

@@ -1,484 +1,227 @@
-# NakGo proje devri
+# NakGo proje devir rehberi
 
-## TAMAMLANDI — 28 Ekim 2026, zorunlu serbest yükleme metni canlıda
+Son güncelleme: **28 Ekim 2026 — Europe/Istanbul**.
+Önce [AGENTS.md](../AGENTS.md), sonra bu rehber okunur. Bu dosya mevcut ürünü,
+kararları ve kabul kanıtlarını yeni ajana devreder; yeni özellik veya yetki
+vermez. Kullanıcının en son talebi yalnız bu devir belgelerini tamamlamaktır.
+Bir sonraki ürün/entegrasyon işini kullanıcı ayrıca belirleyecektir.
 
-Kullanıcı GitHub Mobile doğrulamasını tamamladı. Onaylanan exact head
-c6269597b90f7958d45457173cae84aac3b49ad4, PR #37 ile main
-**d9764131ce431710ae1cb8c3ff49a721f94a14e1** olarak squash merge edildi.
-Tek seferlik admin bypass istisnası merge ardından HEMEN kapatıldı. Yeniden
-GET: enforce_all_for_admins=true; PR/status/up-to-date=true; quality-gate ve
-verify GitHub Actions kaynaklı zorunlu; force pushes/deletions=false.
-Bu istisna yeni işler için izin değildir.
+## 1. Güncel durum ve tamamlanan kabul
 
-Vercel Production **dpl_C9dme3Am3brNuKV1A2TEL2CYuAzg** READY; nakgo.vercel.app
-alias doğru main commit'e bağlı. Canlı sw.js HTTP200 **v44-free-text-loading**.
-DEV ve PROD 20261028010000 migration daha önce birer kez kaydedildi; tekrar
-uygulamayın. Kullanıcının YÜK ilanında yükleme tarihi zorunlu serbest metin:
-boş/whitespace reddedilir, Not ve ekler geçişi aynı, metin takvim gününe çevrilmez.
-Araç takvim kuralı ve eski takvim kayıtları aynı. Yeni metinli yüklerde otomatik
-bitiş tarihi uydurulmaz; sahibi kapatabilir/arşivleyebilir, moderasyon uygulanır.
+Mobil uygulama Production'da gerçek hesaplarla çalışmaktadır. Auth kapalı,
+Production boş veya yönetici yalnız DEV'de gibi eski notlar güncel değildir.
 
-Normal Production test hesabıyla gerçek UI kabulü:
-boşlukla son adım açıldı, publish 'Yükleme tarihini yaz' ile engellendi.
-Sentetik **#22** yük, 'yarın sabah' ile kaydedildi. Reload sonrası kart/detay
-metni aynen gösterdi. Düzenlemede 'uygun olduğunda' kaydedildi ve yalnız #22
-UI'dan kapatıldı. Son SQL: original_listings_unchanged=true,
-synthetic_edit_and_close_pass=true, active_admins=1, active_reviewers=0,
-migration_recorded=1. Kullanıcının gerçek ilanı değişmedi. #22 sentetik kapalı
-kayıttır; kalıcı silme yapılmadı. Belge reviewer yetkisi yeniden açılmadı.
-
-Önceki yerel doğrulamalar: npm 603/603, E2E 407/407, bağımsız Chromium 198/198,
-45 moderasyon + 15 Storage, 11 rollback SQL fixture. DEV/PROD gerçek SQL kabulü
-ayrıca PASS. GitHub verify/admin-regression başarılı; quality-gate'deki 61/64
-korumalı üç test bakımı için bu sürüme açık insan istisnası verildi; tüm CI
-yeşil diye anlatmayın. Guard/workflow değiştirilmedi.
-Kanıtlar outputs/load-timing-text-result.md, load-timing-production-literal.jpg,
-load-timing-final-checks.jpg ve load-timing-main-protection-restored.jpg.
-Aşağıdaki 'yayın/kimlik doğrulaması bekliyor' notları tarihsel; bu başlık günceldir.
-
-
-## Uygulama — 28 Ekim 2026, PR #37 yayın kimlik doğrulaması bekliyor
-
-Kullanıcı c6269597b90f7958d45457173cae84aac3b49ad4 sürümü için üç test
-bakımını, tek seferlik merge istisnasını, korumanın hemen geri açılmasını ve
-DEV/Production migration + yayını onayladı: 'en mantıklısı hangisiyse yap'.
-Bu kapsam için tekrar yayın izni sorulmaz; yeni kapsam izni değildir.
-
-20261028010000_load_timing_text DEV ve Production'a UYGULANDI ve ledger'da
-birer kez kaydedildi. Tekrar çalıştırmayın. İki ortamda rollback rehearsal ve
-sentetik RLS/talep/favori/mesaj/snapshot SQL kabulü PASS. Tüm fixture rollback.
-DEV: 5 ilan, eski sütun hash ab2a1ba32a05fae8b63b153f539f8b21, 1 admin/1 reviewer.
-PROD: 3 ilan, eski sütun hash 9cc2368d4b32bb2657b1f0425a6ffc95, 1 admin/0 reviewer.
-İlanların önceki verisi, roller, özel Storage bucket/policies ve kayıtlar aynı.
-Kullanıcının kendi yayımladığı ilana dokunulmadı.
-
-PR #37 ready; verify/admin-regression başarılı. quality-gate 61/64 yalnız üç
-korumalı test bakımı (forms.py, gate/browser.py, reliability.py). Yeni davranış
-testleri ayrıca geçti; guard/workflow değiştirilmedi. main hâlâ c11f8c17b4e995e1e89a56f76f2fbbff20fadfc2.
-Production frontend hâlâ eski v43; yeni dateText davranışı YAYINLANMADI.
-
-GitHub klasik kural 84676621, enforce_all_for_admins kapatılıp Save denenince
-sudo doğrulaması istedi; ayar KAYDEDİLMEDİ. GitHub Mobile isteği zaman aşımına
-uğradı. Yeni GET ile enforce_all_for_admins=1, PR/status/up-to-date=1,
-quality-gate+verify GitHub Actions kaynaklı, force/deletions=0 doğrulandı.
-Korumalar hâlâ AÇIK. Kullanıcıdan GitHub'ın kendi UI'sinde doğrulama bekleniyor;
-şifre/kod sohbete istenmez. Doğrulamadan sonra gerçek kural durumunu yeniden
-okuyun: yalnız exact PR37 merge süresince admin bypass engelini kaldırın,
-expected_head_sha ile squash merge edip HEMEN korumayı geri açın ve GET ile
-kanıtlayın. Sonra main commit'in Vercel Production READY/v44 olduğunu doğrulayın,
-normal test hesabıyla sentetik yükü serbest metinle oluştur/yenile/detay/edit
-kontrolünden geçirip kapatın; gerçek kullanıcı ilanına dokunmayın.
-Yerel kanıt: outputs/load-timing-text-result.md ve load-timing-production-migration.jpg.
-
-
-## Son düzeltme — 28 Ekim 2026, yükleme tarihi serbest metin
-
-Kullanıcı Google girişinde yönetici panelinin artık göründüğünü doğruladı.
-Açık takvim tarihiyle ilan yayınladığını da söyledi; bu kullanıcı ilanına dokunulmaz.
-Asıl istek: YÜK ilanında yükleme tarihine istediği metin yazılabilsin ve yalnız
-boş olması engellensin. Not ve ekler adımına geçiş aynı kalacak. Erken adım
-doğrulaması veya yalnız takvim formatı dayatması İSTENMİYOR.
-
-PR #37 (draft), head c6269597b90f7958d45457173cae84aac3b49ad4:
-loading_text nullable sütunu; yeni metinli yükte available_on=null, metin aynen
-saklanır/gösterilir. Boş/whitespace yayınlanmaz. Mevcut 32 karakter sınırı aynı.
-Otomatik gün veya bitiş tarihi uydurulmaz; metinli yük owner closure/arşiv/moderasyon
-ile kapanır. Eski takvim kayıtları ve boş araç tarih kuralları korunur. Yeni
-metinli yüklerin düzenlemesi de serbest metindir; legacy takvim düzenlemesi mevcut
-haliyle kalır. Taslakta yük metni çevrilmez. Kart/detay kaçışlama korunur.
-RPC transport snapshot metni taşır, admin overview metinli ilanları sayar.
-
-Yerel npm test 603/603, Chromium BrowserGate 198 kontrol/11 senaryo,
-tam E2E 407/407, PGlite 45 moderasyon + 15 Storage + 11 SQL fixture geçti.
-Yeni SQL fixture boş/metin/32 sınırı, truck kısıtı, RLS sahibi/diğer hesap,
-favori/mesaj/taşıma snapshot ve kapatma akışını rollback ile doğrular.
-Üç mevcut korumalı test dosyası ürünün yeni davranışı için bakım gerektirdi:
-tests/gate/browser.py, tests/forms.py, tests/reliability.py. Guard/workflow
-değişmedi. quality-gate bu farkları insan incelemesi için durdurabilir; eski
-tek seferlik bypass izni kullanılmaz. CI nihai sonucu ayrıca doğrulanmalı.
-Henüz DEV/Production migration uygulanmadı ve main merge edilmedi.
-Migration 20261028010000_load_timing_text.sql önce, frontend sonra uygulanmalı.
-Production/main için açık yeni kapsam gerekiyor; PR #36 izni yalnız Google içindi.
-Geçici belge reviewer yetkisi kapalı, test hesabında yetki yok.
-
-
-## Güncel aşama — 28 Ekim 2026, son üç kabul testi
-
-Üç belge submit/review kabulü TAMAMLANDI. Normal taşıyıcı #5 için üç sentetik JPEG
-fiziksel olarak yüklendi/finalize edildi, ayrı inceleyici oturumunda üçü de auth
-download ile açıldı. Submit revision 8 -> approved revision 9 -> owner withdraw
-revision 10. Ayrı #7 başvurusu üç sentetik JPEG ile submit revision 8 -> gerekçeli
-rejected revision 9 -> owner withdraw revision 10. Onay/ret sonuçları her iki
-hesaba yansıdı. Kullanıcı işlem-anı onayıyla yalnız belirlediği genel yöneticiye
-geçici document_reviewers yetkisi verildi; test sonunda active=false yapıldı.
-Son sorgu: 0 aktif reviewer, 1 genel yönetici, iki withdrawn test başvurusu,
-#5 için bir approved audit, #7 için bir rejected audit. Test hesabına admin veya
-reviewer verilmedi. Gerçek belge yok; sentetik dosyalar private Storage'da kaldı.
-Kullanıcının kendi #6 taslağına dokunulmadı. Geçici rol tekrar açık varsayılmaz.
-
-Kullanıcının gerçek iPhone 15 Google girişinde doğru hesap ve mail görünürken
-ilk profil açılışında Yönetici paneli yoktu; yenileyince göründü. Production'da
-hedef doğrulanmış Auth hesabı, Google identity ve aktif admin üyeliği 1/1/1 idi.
-Kök neden profil hydration sırası: renderProfile, profile=null iken adminRole
-çağırıyor; listingAccount hata veriyor ve ilk denied sonucu hesap için cache'leniyordu.
-Yeni test eski kodda hatayı üretti. PR #36 yalnız profil hazırken ensure çağırır;
-server role/strict boolean/account isolation kuralları aynı kalır. Bundle üretildi,
-SW nakgo-v43-google-profile-readiness oldu. Dört dosya; protected test/workflow
-farkı yok. Yeni test geçti; yerel 576/577, tek EACCES local socket sandbox sınırı.
-Tüm GitHub quality-gate (iki koşu), verify ve admin-regression başarılı.
-Kullanıcı kesin 7405b508361e4533a2a62eb3280125383519234e için yayını onayladı;
-PR #36 main c11f8c17b4e995e1e89a56f76f2fbbff20fadfc2 olarak birleşti.
-Production dpl_BNKN6zv4j85BbyKkDimvXFBNYYsC READY; canlı sw.js HTTP 200 v43.
-Yeni Google girişinde panelin göründüğü kullanıcı tarafından doğrulandı.
-
-Telefon ilan denemesinde kullanıcı tarih alanına 'bugün' yazdı; mevcut parsePostDate
-28.10.2026 gibi açık tarih beklediğinden reddetti. Kullanıcı türün gerçekten boş
-araca dönmediğini, yalnız uyarıdaki müsaitlik kelimesinden öyle düşündüğünü açıkladı.
-Tarih giriş davranışı değiştirilmedi. Canlı formda boş tarihle son adıma geçilip
-uyarının gizli önceki adım alanına ait olması ayrıca gözlendi; bu UX notu PR #36
-ile çözülmüş sayılmaz. Kullanıcıdan yeni Google girişindeki panel ve açık tarih
-ile Not ve ekler adımına geçiş sonucunun tamamlanması bekleniyor. Son yanıt
-henüz eksik olduğundan üç testin tamamı geçti denmez. Telefon tarayıcısı 'Google'
-olarak tarif edildi; Chrome/Google uygulaması ayrımı kesinleştirilmedi.
-
-## Son kabul — 27–28 Ekim 2026, Production moderasyon
-
-Mevcut supabase/tests/admin-moderation.sql Production'da sentetik kayıtlarla
-BEGIN/ROLLBACK içinde çalıştı. Askı/kaldırma, askıdan önce kabul edilmiş işin
-tamamlanması, askıdaki katılımcıyla yeni talep/kabulün reddi, Storage kısıtları,
-ilan remove/restore, eski revision reddi, audit, self/other-admin koruması ve
-geçici yetki iptali kontrolleri geçti. Fixture hiçbir yeni yönetici atamaz;
-geçici değişikliklerin tamamı ROLLBACK edildi. Gerçek kişilere işlem yapılmadı.
-
-İlk ek sayım kontrolü, transaction dışında tutulduğu varsayılan set_config
-anlık görüntüsünün aynı batch ROLLBACK'iyle silinmesi nedeniyle hata verdi.
-Kayıtlı anlık görüntü uzunluğu 0 ve mevcut sayımlar doğrulandı. Anlık görüntü
-haricen alınıp SQL'e sabit jsonb olarak verildi; paket tekrar çalıştı ve tam
-veri/rol/bucket/policy karşılaştırması PASS döndü. Sequence ilerlemesi rollback
-olmaz; sayım eşitliği kesintisiz ID dizisi anlamına gelmez.
-Son sayımlar: 3 Auth hesabı, 2 profil, 2 kapalı test ilanı, 1 iş, 1 görüşme,
-2 test mesajı, 1 geri çekilmiş belge başvurusu, 2 belge metadata kaydı,
-1 fiziksel sentetik JPEG, 1 aktif genel yönetici, 0 reviewer,
-0 account/listing moderation kaydı ve 0 admin audit. Kişisel veri kaydedilmedi.
-
-Gerçek yönetici tarayıcısında normal test hesabı Aktif hesap, yönetici hesabı
-Korumalı göründü. Askıya alma onay formu doğru test hesabının adını ve duracak
-faaliyetleri gösterdi. Boş gerekçeyle gönderim HTML required doğrulamasıyla
-engellendi. Vazgeç ile çıkıldı; test hesabı aktif ve audit boş kaldı. Bu UI
-kontrolü kalıcı askıya alma/geri açma tıklamaları yapılmış gibi sunulmaz;
-mutasyon kontrolleri canlı SQL rollback paketinde gerçekleştirildi.
-Yeni uygulama kodu, migration, yetki veya deployment değişikliği yapılmadı.
-Fiziksel cihaz ve gerçek Google callback doğrulaması açık kalır; Production
-belge reviewer ataması/üç belge submit-review kabulü ayrıca kapsam gerektirir.
-
-## Son düzeltme ve kabul — 27 Ekim 2026, özel belge Storage
-
-Production upload testinde bulunan AccessDenied / Sign in required hatası kapatıldı.
-PR #35, incelenen 913d87b0fa2aaf67cb7f7fbfd2c17ee4976c2cdb sürümünden main'e
-bcf6c837afddd951ed6c4c614fab86dc69a0a946 olarak alındı. quality-gate (iki koşu),
-verify 40496082204 ve admin-regression 40496082205 başarılı. Koruma istisnası
-kullanılmadı. Production dpl_4Fmkj8NN3tAGFaJWhqMR9CWWFnTb READY; canlı config
-HTTP 200, enabled=true, doğru PROD URL'si ve private/no-store doğrulandı.
-
-20261027010000_storage_service_activity.sql yalnız Storage iç servis completion
-adımında eksik kullanıcı sub durumunu düzeltir. Eksik aktör sadece service_role /
-supabase_storage_admin için var olan rezervasyon sahibi ve tam dosya yolundan
-çözülür. Doğrulanmış hesap, askı, başvuru durumu, rezervasyon süresi ve değişmez
-kimlik kontrolleri korunur. RLS politikaları, private bucket/JPEG/1 MiB sınırları,
-tek genel yönetici ve belge inceleyici üyelikleri değiştirilmedi.
-
-Kullanıcının PR #35 / DEV+Production migration sorusuna verdiği 'en mantıklısı
-olması gerekeni yap' yanıtıyla bu dar düzeltme için kapsam sağlandı. Önce eski
-hata yeniden üretildi; 15 yeni kontrol, 45 eski DB kontrolü ve 10 SQL suite geçti.
-Yeni test mevcut admin CI runner'ına bağlandı. Production ve DEV geçiş dosyaları
-önce ROLLBACK ile prova edildi. DEV prova dosyasındaki ayırıcı hatası giderildi;
-hiçbir kalıcı değişiklik oluşmadan başarılı prova tekrarlandı. Ardından önce DEV,
-sonra Production atomik COMMIT edildi. Sayı/rol/bucket/RLS karşılaştırmaları geçti.
-
-Production migration ledger artık 14 kayıt içerir. DEV'de ledger önceden yoktu;
-RLS ve özel izinlerle oluşturuldu, yalnız yeni 20261027010000 kaydı içerir.
-Önceki 13 DEV migration kurulu olsa da ledger'da benimsenmiş sayılmaz; tekrar
-uygulamayın. DEV kaynak dalı ae39bec olabilir; yeni migration'ın güvenilir kaynağı
-main bcf6c83/PR #35'tir. Sırf geçmiş eşitlensin diye schema'yı yeniden kurmayın.
-
-Gerçek fiziksel kabul: normal test hesabı başvuru #2'ye sentetik K-belgesi JPEG
-fotoğrafı yükledi; finalize ready oldu ve sahibi auth download ile görseli açtı.
-Diğer mevcut Production hesabı aynı nesneyi ve dosya metadata'sını SQL'de
-SET LOCAL ROLE authenticated altında göremedi. Bu test ayrı bir tarayıcı HTTP
-saldırı testi diye sunulmaz. İlk başarısız SRC rezervasyonu dosyasız reserved
-metadata olarak kaldı. Başvuru test sonunda owner RPC ile withdrawn, revision 5
-oldu; onay/rozet veya reviewer yetkisi verilmedi. Tarayıcı geri çekme confirm'i
-sonrasında yanıt vermediğinden önce sunucu durumu okunup hâlâ draft/revision 4
-olduğu doğrulandı; sonra aynı authenticated owner transition RPC'si güvenilir
-SQL konsolundan yalnız bu sentetik başvuruya uygulandı. Fiziksel sentetik JPEG
-private Storage'da kaldı; gerçek kişisel veri içermez. Kalıcı dosya silme yapılmadı.
-
-Üç belgeyle submit/review ve özel belge onayı bu Production turunda denenmedi;
-reviewer ataması ayrı açık onay gerektirir. Sonraki açık işler: moderasyon
-mutasyonlarının Production kabulü, fiziksel cihaz ve Google callback doğrulaması.
-Yerel npm testte sandbox EACCES nedeniyle 571/572 görülmüştü; aynı PR'ın GitHub
-verify işi başarılıdır. Guard/test/workflow gevşetilmedi.
-
-## Son kabul — 27 Ekim 2026, Production sunucu erişim reddi
-
-Gerçek ve e-postası doğrulanmış normal test hesabının UUID'si auth.users'tan
-SQL içinde alındı; BEGIN READ ONLY + SET LOCAL ROLE authenticated + yerel
-request.jwt.claim.sub ile sunucu yetki sınırları sınandı. nakgo_admin_role ve
-nakgo_document_reviewer false döndü. overview/users/listings/audit/moderation
-bölümlerinin tamamı insufficient_privilege ile reddedildi. private.admin_members
-ve private.document_reviewers doğrudan okuması da reddedildi. Sonuç PASS;
-ROLLBACK tamamlandı. Tek aktif yönetici ön koşulu kontrol edildi.
-Bu, canlı PostgreSQL rol/RPC kontrolüdür; tarayıcı HTTP isteğiyle yapılmış saldırı
-testi olarak sunulmaz. Hiçbir veri veya yetki değiştirilmedi. Önceki 'doğrudan
-RPC reddi henüz test edilmedi' notu bu tarihli SQL kontrolüyle güncellenmiştir.
-Sonraki açık kabul alanları: fiziksel belge upload/indirme, Production belge
-inceleme yetkisi (henüz verilmedi), moderasyon mutasyonları ve fiziksel cihaz.
-
-## Son kabul — 27 Ekim 2026, canlı taşıma işi
-
-Aynı iki gerçek Production oturumuyla yalnız sentetik yük ilanı #14 kullanıldı.
-Başlık NAKGO TEST — gerçek yük değildir; açıklama gerçek yük/taşıma/teslim/ödeme
-olmadığını belirtir. İstanbul-Ankara, 10 ton, elle girilen 27.10.2026 tarihi.
-Normal taşıyıcı talep gönderdi; yük sahibi gelen talebi kabul etti; taşıyıcı
-Yükledim bildirdi; yük sahibi Yüklemeyi onayla işlemini tamamladı. İki hesaptaki
-sayfa reload sonrasında Yükleme onaylandı durumu korundu. Her iki profil
-1 onaylanan iş / 0 devam eden iş gösterdi. Yük sahibi test ilanını kapattı;
-aktif ilan sayacı 0 oldu. İlan/iş geçmişi silinmedi.
-Bu akış fiziksel teslim doğrulaması veya ödeme değildir; mevcut son adım
-YÜKLEME ONAYIDIR. Önceki sohbetlerde teslim denmesi ayrı özellik var anlamına gelmez.
-Yeni kod, migration, deployment veya yetki ataması yapılmadı. Test taşıyıcısı
-normal hesap olarak kaldı. Gerçek belge yükleme, doğrudan yetkisiz RPC reddi,
-moderasyon mutasyonu ve fiziksel cihaz kabulü bu turda yapılmadı.
-
-## Son kabul — 27 Ekim 2026, iki canlı hesap
-
-Kullanıcı isteğiyle geçici e-posta kullanan normal taşıyıcı test hesabı oluşturuldu;
-şifreyi kullanıcı girdi. Gerçek NakGo doğrulama e-postası teslim edildi, bağlantı
-Production'a döndü ve doğrulanmış oturum açıldı. Bu hesaba yönetici veya belge
-inceleyici yetkisi VERİLMEDİ; profilinde yönetici girişi görünmedi.
-Yönetici ayrı Production deployment origin'inde e-posta/şifreyle giriş yaptı.
-Sentetik İstanbul-Ankara 10 ton boş araç ilanı, elle girilen 27.10.2026 tarihi
-ve açık test açıklamasıyla oluşturuldu. Reload sonrası ilan/not korundu.
-Yönetici hesabının favorisi reload sonrası kaldı; taşıyıcı favorileri 0 kaldı.
-İki açıkça test işaretli mesaj karşılıklı teslim edildi; ilk mesaj alıcıda
-1 okunmamış gösterildi, okunduktan sonra profil sayacı temizlendi.
-Kendi ilanına mesaj gönderme düğmesi kapalıydı.
-Test sonunda ilan sahibi ilanı KAPATTI (silmedi); aktif ilan sayacı 0 oldu.
-Yönetici hesabındaki test favorisi kaldırıldı. İki test mesajı geçmişte kaldı.
-Normal hesabın UI kısıtı doğrulandı; bu turda doğrudan RPC erişim reddi,
-iş talebi/kabul/teslim veya moderasyon mutasyonu test edilmedi.
-Yeni kod/migration/deploy yapılmadı; önceki hazır sürüm üzerinde kabul yapıldı.
-Geçici posta hesabına gerçek veri eklemeyin; sonraki testte oturum durumunu doğrulayın.
-
-## Son kabul — Production tek genel yönetici
-
-26 Ekim 2026: Kullanıcının işlem-anı açık onayıyla yalnız belirlediği ve
-Production'da e-postası doğrulanmış hesap private.admin_members üzerinden
-tek aktif genel yönetici yapıldı. Ön kontrolde aktif yönetici 0 ve unique index
-mevcuttu; transaction hedef hesabı doğrulayıp başka aktif yönetici varsa işlemi
-reddedecek şekilde uygulandı. Son aktif yönetici sayısı 1. Gerçek canlı oturumda
-Profil > Yönetici paneli açıldı; sunucudan genel bakış 1 profil, 0 aktif ilan,
-0 bekleyen belge, 0 devam eden iş döndü. Belge inceleyici yetkisi verilmedi.
-Gerçek kullanıcı/ilan üzerinde deneme moderasyonu yapılmadı. Fiziksel dosya,
-iki canlı hesap arasında mesaj/iş ve moderasyon kabulü henüz tamamlanmadı.
-Aşağıdaki yetki atanmamış/kayıt bekleniyor ifadeleri önceki aşamanın kaydıdır.
-Hesap e-postası ve UUID bu herkese açık rehbere yazılmaz.
-
-## Güncel aşama — 26 Ekim 2026, Production hesap açılışı
-
-Kullanıcının sıradaki hesap açılışı aşamasına devam talebiyle yalnız Production
-NAKGO_PRODUCTION_AUTH_ENABLED=true yapıldı. Aynı main 6f23563 sürümü yeniden
-yayımlandı: dpl_F66kECX2jtWX1HnkYY3cnJMgEniT READY, nakgo.vercel.app alias bağlı.
-Canlı /api/auth/config HTTP 200, enabled=true, marketplaceEnabled=true,
-URL kesin PROD fimlifldsivecezbxwuo ve private/no-store olarak doğrulandı.
-Main verify ve admin-regression başarılı. Yeni kod veya migration eklenmedi.
-Canlı Kayıt ol ekranı açıldı; kullanıcıdan belirlediği yönetici e-postasıyla
-kayıt ve e-posta doğrulaması bekleniyor. Gerçek oturum testi henüz tamamlanmadı.
-PROD genel yönetici/belge inceleyici yetkisi atanmadı; ayrı işlem-anı onayı gerekir.
-DEV oturumları taşınmaz. Aşağıdaki kapalı Auth ifadeleri önceki yayın aşamasının
-tarihsel kaydıdır; güncel etkinleştirme durumu bu bölümdür.
-
-Son inceleme: **26 Ekim 2026, Europe/Istanbul**. Önce kökteki `AGENTS.md`
-okunur. Bu dosya tarihli bağlamdır; uzak ref, PR, deployment ve veritabanı
-gelecek oturumda yeniden doğrulanır.
-
-## 1. İki ayrı ürün ve kaynak
-
-| Ürün | Repo | Yayın |
-| --- | --- | --- |
-| Mobil web/PWA | yagizce/nakgo | https://nakgo.vercel.app |
-| Kurumsal statik site | yagizce/nakgo-website | https://nakgolojistik.com |
-
-Kurumsal sitenin DNS/yayın bağlantısı Cloudflare üzerinden ayrıca doğrulanır.
-Eski adres https://nakgo-website.vercel.app. Deneysel nakgo-corporate/Next.js
-kaynağı kullanılmaz. Bu mobil rehber site/DNS değişikliği yetkisi vermez.
-
-## 2. Git ve yayın durumu
-
-26 Ekim'de GitHub ve Vercel'den doğrulandı:
-
-- main: `6f23563a52e4bc5894b9ae1e9ee31e432589df55`.
-- DEV: `codex/nakgo-email-auth`, `ae39bec912078baa1c88e87815ed792fcac03304`.
-- [PR #21](https://github.com/yagizce/nakgo/pull/21) bu kesin DEV sürümünden squash ile main'e alındı.
-- Production deployment `dpl_8BcxG4DqWTDDQDNnibMcBueMFgxH` aynı main SHA ile READY.
-- https://nakgo.vercel.app/api/auth/config HTTP 200, `{"enabled":false}`, private/no-store.
-- PR #31 ve #34 kodları bu sürümdedir. Production hesap bağlantısı ve rol ataması açılmadı.
-- [DEV Preview](https://nakgo-git-codex-nakgo-email-auth-yagizces-projects.vercel.app/).
-
-İlk adım yerel status/HEAD/origin ve uzak ref'leri incelemektir. Eski kopyadan
-başlamayın; kullanıcının önceki çalışmalarına reset/temizlik uygulamayın. Bu
-SHA'lar tarihli kanıttır, yeni oturumda güncel olduklarını varsaymayın.
-
-## 3. Mimari ve kaynak haritası
-
-Bağımlılıksız modüler HTML/CSS/klasik JS ve PWA. React/Next.js/React Native
-kullanılmaz. Betikler ortak kapsamda çalışır; isim ve sıra çakışmaları önemlidir.
-
-| Yol | Görev |
+| Konu | 28 Ekim 2026 durumu |
 | --- | --- |
-| tools/project.js | Tek JS/CSS yükleme sırası |
-| src/index.template.html, src/js/, src/css/ | Düzenlenecek kaynaklar |
-| src/js/cloud.js | Eski host ile ayrı Supabase Auth/market/jobs/favorites/messages API ve state katmanları |
-| src/js/features/account.js | Hesap akışları ve nakgoDocuments özel belge durumu |
-| src/js/features/listings.js, offers.js | İlan ve taşıma davranışları |
-| src/js/screens/ | Ekranlar; main.js yönlendirir, profile.js profil |
-| src/js/ui/dialog.js | Sheet odağı, inert arka plan, kapatma |
-| api/auth/config.mjs | Açık istemci yapılandırması; Production Auth bağlantısı kapalı |
-| supabase/migrations/, supabase/tests/ | Şema, RLS/RPC, sentetik SQL kontrolleri |
-| api/whatsapp/, server/whatsapp/ | Etkinleştirilmemiş WhatsApp V1 temeli |
-| assets/brand/, tools/brand.js | Logo kaynakları ve ikon üretimi |
-| index.html, public/, www/ | Üretilen bundle/yayın/mobil kabuk çıktıları |
+| Repo / canlı adres | `yagizce/nakgo` / https://nakgo.vercel.app/ |
+| Son uygulama değişikliği | [PR #37](https://github.com/yagizce/nakgo/pull/37), uygulama commit'i `d9764131ce431710ae1cb8c3ff49a721f94a14e1` |
+| Doğrulanmış Production yayını | `dpl_C9dme3Am3brNuKV1A2TEL2CYuAzg`, READY, canlı alias aynı uygulama commit'inde |
+| Uygulama kabuğu | `nakgo-v44-free-text-loading`; canlı sw.js HTTP 200 |
+| E-posta / Google | Production bağlantısı açık; kayıt, e-posta doğrulama ve gerçek Google girişi kabulü tamamlandı |
+| Yönetici | Sunucudan korunan tek aktif genel yönetici; diğer hesaplar panel/RPC erişimi alamaz |
+| Belge inceleyici | Genel yöneticiden ayrı rol; Production geçici test yetkisi geri alındı, son kontrolde 0 aktif inceleyici |
+| Yükleme tarihi | Yük ilanında zorunlu serbest metin; boş/yalnız boşluk reddedilir; Not ve ekler geçişi aynı |
+| Fiziksel telefon kabulü | Kullanıcı iPhone 15'te Google sonrası yönetici panelini ve yeni metinle ilan yayımlamayı doğruladı |
+| Migration | Son sürüm `20261028010000_load_timing_text`; DEV ve Production'da kayıtlı |
+| GitHub koruması | PR, güncel dal, GitHub Actions kaynaklı quality-gate + verify gerekli; yönetici bypass engeli açık; force push/silme kapalı |
 
-Kaynak değişince `npm run bundle`; yeni modül varsa project.js güncellenir.
-index.html elle düzenlenmez. SW yalnız uygulama kabuğunu önbellekler; kişisel
-API/dosya ve harita istekleri önbelleklenmez. Kabuk değişiminde SW sürümü ve
-eski cache'den güncelleme davranışı doğrulanır.
+Bu commit ve deployment **son uygulama yayınının kanıtıdır**. Yalnız belge
+commit'leri de main SHA'sını değiştirebilir. Yeni oturumda uzak ref/deployment
+okunmadan bu tarihli değerler güncel HEAD diye sunulmaz.
 
-## 4. Gerçek hesap ve demo ayrımı
+Tamamlanan gerçek hesap kabulü: profil/oturum, iki hesap arasında ilan ve
+fotoğraf, favori izolasyonu/yenileme, iki yönlü mesaj ve okunma, taşıma talebi ve
+yükleme onayı, özel belge yükleme/indirme/inceleme, genel yönetici sınırları.
+Uygulama kabulü bitti; devir belgesi işi dışında yeni iş başlatılmayacak.
 
-Production/yerel statik uygulama ile DEV bağlantısı aynı mod değildir.
-`api/auth/config.mjs` Production'da iki açık etkinleştirme anahtarı ve kesin PROD URL'si ister.
-NAKGO_PRODUCTION_AUTH_ENABLED=false olduğu için bağlantı kapalıdır.
-Bu güvenceyi yanlış env değerlerini telafi etmek için kaldırmayın.
+## 2. Ürün sınırları ve kaynak seçimi
 
-Demo ilan/iş/sohbet/belge/favori/üyelik `yy2` gibi yerel kayıtlarda, gerçek
-Supabase oturumu ayrı SDK kaydındadır. Gerçek kayıt demo deposuna taşınmaz.
-account_type ürün tercihidir; yönetici/Premium rolü değildir.
+| Ürün | Kaynak | Kapsam |
+| --- | --- | --- |
+| Mobil web/PWA | `yagizce/nakgo` | Bu rehberin konusu |
+| Kurumsal site | `yagizce/nakgo-website` | Ayrı repo; site/DNS değişikliği bu görevden çıkarılamaz |
+| Deneysel kurumsal kaynak | `nakgo-corporate` / Next.js | Mobil ürünün temeli değildir |
 
-Auth: e-posta/şifre, doğrulama, Google PKCE ve recovery. Kullanıcının önceki
-teslimine göre Resend SMTP kuruldu ve gerçek e-posta teslimi doğrulandı.
-Eski supabase-setup.md içindeki SMTP kurulmadı notu tarihsel kalmıştır.
-Google izinli dönüş adresi farklı Preview'dan sabit origin'e döndürebilir:
-kabul testinde URL, hesap ve commit birlikte doğrulanır. İki originin
-oturumları ayrı olabilir; sadece giriş bildirimi doğru sekme kanıtı değildir.
+Eski yerel kopya veya `codex/nakgo-email-auth` dalı güncel main'den geride
+olabilir. Önce yerel status/HEAD/origin ve uzak main/ilgili PR karşılaştırılır.
+Kullanıcının değişiklikleri korunur; toplu reset, temizlik ve staging yapılmaz.
 
-Eski architecture.md/product.md/supabase-setup.md demo veya ilk Auth aşamasını
-da anlatır. İlan/mesaj hâlâ demo, ilk mesaj işi oluşturur veya belge checkbox'ı
-rozet verir ifadeleri gerçek DEV hesap akışı için esas alınmaz. Güncel
-kaynak/RPC ve bu tarihli durum birlikte incelenir.
+Modüler HTML/CSS/klasik JavaScript + PWA kullanılır. React/Next.js/React Native
+geçişi yoktur. Tek ortak JS kapsamı nedeniyle yükleme sırası ve ad çakışmaları
+önemlidir. Marka turkuaz/sarı, iki tema, en fazla 430 px tek sütun ve alt menüdür.
+Logo/splash/ikonları veya ürün alanları sebepsiz değiştirilmez.
 
-## 5. Çalışan DEV özellikleri
+## 3. Kaynak haritası
 
-### Profil, ilan ve işler
+| Yol | Sorumluluk |
+| --- | --- |
+| [tools/project.js](../tools/project.js) | Tek JS/CSS modül yükleme sırası |
+| [src/index.template.html](../src/index.template.html), [src/js](../src/js/), [src/css](../src/css/) | Düzenlenecek kaynaklar |
+| [src/js/cloud.js](../src/js/cloud.js) | Eski host adaptörü, Supabase Auth/API; market/jobs/favorites/messages oturum durumları |
+| [src/js/data.js](../src/js/data.js) | Veri normalizasyonu, tarih/metin ve form kuralları |
+| [src/js/screens/post.js](../src/js/screens/post.js), [src/js/ui/post-draft.js](../src/js/ui/post-draft.js) | İlan formu, adımlar ve hesaba göre taslak |
+| [src/js/features/listings.js](../src/js/features/listings.js) | Kart, düzenleme, kapatma/arşiv, süre ve ilan davranışı |
+| [src/js/features/offers.js](../src/js/features/offers.js), [src/js/screens/offers.js](../src/js/screens/offers.js) | Demo iş davranışı ve gerçek hesap iş ekranı |
+| [src/js/features/account.js](../src/js/features/account.js) | Hesap, özel belge başvuruları ve nakgoDocuments durumu |
+| [src/js/screens/profile.js](../src/js/screens/profile.js), [src/js/screens/admin.js](../src/js/screens/admin.js) | Profil, rol görünürlüğü ve yönetici paneli |
+| [src/js/screens/inbox.js](../src/js/screens/inbox.js) | Görüşme/mesaj arayüzü |
+| [src/js/screens/main.js](../src/js/screens/main.js) | Ekran yönlendirme |
+| [src/js/ui/dialog.js](../src/js/ui/dialog.js) | Sheet, odak, inert arka plan ve kapatma |
+| [api/auth/config.mjs](../api/auth/config.mjs) | Ortama bağlı açık istemci yapılandırması |
+| [supabase/migrations](../supabase/migrations/), [supabase/tests](../supabase/tests/) | Şema/RLS/RPC ve rollback SQL kontrolleri |
+| [assets/brand](../assets/brand/), [tools/brand.js](../tools/brand.js) | Logo kaynakları ve ikon üretimi |
+| [index.html](../index.html), public/, www/ | Üretilen uygulama/yayın/mobil kabuk çıktıları |
 
-Özel profil/iletişim; sahiplik korumalı ilan/fotoğraf/düzenleme/kapatma/arşivleme
-bağlıdır. Yükleme/müsaitlik alanları boş başlayan manuel metindir. Otomatik
-tarih/date picker eklenmez. Görünür metin ile sunucudaki normalize tarih/saat
-alanları karıştırılmaz. Taşıma ücret alanları geri getirilmez.
+Kaynak değişince `npm run bundle` çalışır; index.html elle düzenlenmez.
+Sadece belge değişikliğinde bundle/SW değiştirilmez. public/ ve www/ Git dışı
+çıktılardır. SW yalnız kabuğu önbellekler; kişisel API/dosya ve harita istekleri
+önbelleklenmez. Kabuk değişirse SW sürümü ve eski cache'den geçiş doğrulanır.
 
-Gerçek yük akışı: aktif başkasının yüküne talep → sahibi kabul/ret → taşıyıcı
-bekleyen talebi geri çekebilir → kabul edilmiş işte taşıyıcı Yükledim → yük
-sahibi onaylar. transport_jobs yalnız iki katılımcıya açıktır; yazma RPC'den
-geçer. İlan özeti iş geçmişinde kalır. Profil sayaçları hesap genelindeki gerçek
-toplamdır. İş onayı ödeme veya hukuki teslim sistemi olarak sunulmaz.
+## 4. Gerçek hesap, demo ve oturum güvenliği
+
+Demo ilan/iş/mesaj/favori/üyelik yerel `yy2` gibi kayıtlardadır. Gerçek Supabase
+SDK oturumu ve hesap verileri ayrıdır. Gerçek kaydı demo deposuna taşımayın.
+`account_type` ürün tercihidir; yönetici, belge onayı veya Premium yetkisi vermez.
+
+Auth; e-posta/şifre, e-posta doğrulama, Google PKCE ve recovery içerir. Resend
+SMTP kurulumu/e-posta teslimi kabul edilmiştir; credential bu rehberde tutulmaz.
+Google dönüşünde URL, hesap ve uygulama sürümü birlikte kontrol edilir. Farklı
+originlerin oturumları farklı olabilir; bir sekmede giriş diğerini doğrulamaz.
+
+Production config iki etkinleştirme anahtarı ve kesin Production URL'si ister.
+Preview/Development, Production Supabase URL'sini; Production, DEV URL'sini
+reddeder. Bu ortam denetimini yanlış env değerini telafi etmek için kaldırmayın.
+Config yanıtı açık istemci ayarıdır; secret/service-role/OAuth anahtarı içermez.
+
+Hesap değişimi sırasında geç yanıtlar, eski polling, rol, taslak ve blob URL'leri
+temizlenir/reddedilir. Gerçek ilan oluşturulunca yalnız doğrulanmış sunucu yanıtı
+listeye girer. Ağ hatasında yerel hayalet ilan veya sahte başarı üretilmez.
+
+## 5. Çalışan ürün davranışları
+
+### İlan, serbest yükleme metni ve işler
+
+Profil/özel iletişim, sahiplik kontrollü ilan, fotoğraf, düzenleme, kapatma ve
+arşivleme bağlıdır. İlanlar public anonim veri olarak açılmaz.
+
+**Yük ilanı yükleme tarihi:** başlangıçta boş manuel alan, mevcut sınır 32
+karakter. `bugün`, `yarın sabah`, `uygun olduğunda` gibi dolu metinler kabul
+edilir. Yalnız boş/whitespace yayınlanmaz. Son adıma geçiş tarih için kesilmez.
+Yeni metin `loading_text` içinde aynen saklanır ve çizim sınırında kaçışlanır;
+`available_on` null, otomatik gün/bitiş tarihi yoktur. Metinli yük sahibi
+kapatana/arşivleyene veya moderasyon kaldırana kadar açık kalabilir. Takvim günü
+bilinmeyen metni bugün/yarın filtresine uydurmayın.
+
+Eski takvim kayıtları değiştirilmemiştir; onların mevcut takvim düzenleme akışı
+korunur. Yeni metinli yükün düzenlemesi de serbest metindir. Boş araç ilanının
+müsaitlik tarihi/saat doğrulaması ayrı ve geçerlidir. Otomatik tarih/date picker,
+varsayılan seçim veya alan altı açıklama eklemeyin. Ücret alanlarını geri getirmeyin.
+
+Gerçek yük akışı: başkasının aktif yüküne talep → sahip kabul/ret → bekleyen
+talebi geri çekme → taşıyıcının Yükledim işlemi → yük sahibinin yükleme onayı.
+Bu, ödeme veya fiziksel teslimat takibi değildir. transport_jobs yalnız iki
+katılımcıya açıktır; yazma RPC üzerinden geçer, ilan özeti geçmişte korunur.
+Sayaçlar gerçek hesap toplamıdır. Yeni metinli yükün snapshot'ı da metni taşır.
 
 ### Favoriler ve mesajlar
 
-Favoriler hesap bazında kalıcı; feed'den bağımsız kaydedilenler ve erişilemeyen
-ilan yer tutucusu vardır. İki hesap izolasyonu/yenileme/kaldırma gerçek oturumda
-denenmiştir. Sohbet yalnız ilan sahibi ile konuk arasındadır. Mesaj, geçmiş,
-okunmamış toplamı ve okuma sınırı sunucudadır. Uygun olmayan ilandan yeni
-sohbet açılamaz; mevcut geçmiş korunur.
+Favoriler hesap bazında kalıcıdır; feed dışında kaydedilen ilanlar ve artık
+ulaşılamayan ilan yer tutucusu desteklenir. Gerçek iki hesap izolasyonu,
+yenileme ve kaldırma kabulü tamamlanmıştır.
 
-Idempotent nonce ile gönderim ve hesaba özel session taslağı reload/aç-kapa
-sonrası korunur. Taslak saklanamazsa gönderim başlamaz. Görünen mesajlar okunur;
-DOM gereksiz kurulmaz, eski geçmiş okuma kaydırması korunur. Normal görünür
-polling 8 saniye, hata backoff en fazla 60 saniye, ağ sınırı 15 saniyedir.
-Hesap/ekran değişiminde geç yanıt ve eski döngü geri dönmemelidir.
+Sohbet ilan sahibi ve konuk arasındadır. Mesaj/geçmiş/okunmamış toplamı/okuma
+sınırı sunucudadır. Uygun olmayan ilandan yeni sohbet açılamaz; katılımcı geçmişi
+korunur. Gönderim nonce ile idempotenttir; hesaba özel session taslağı reload ve
+aç/kapa sonrasında korunur. Taslak saklanamazsa gönderim başlamaz. Görünür
+mesajlar okunur; geçmiş okuma kaydırması korunur. Normal görünür polling 8 sn,
+hata backoff en fazla 60 sn, ağ sınırı 15 sn'dir. Değişiklikte kaynakla doğrulayın.
 
-### Belgeler ve bağımsız inceleme
+### Özel belgeler ve bağımsız inceleme
 
-carrier_applications/files/audit tabloları ve private carrier-documents bucket.
-Kaynak JPEG/PNG boyut/piksel sınırıyla JPEG'e normalize edilir; Storage JPEG,
-en fazla 1 MiB kabul eder. Türler SRC, K yetki, ruhsat. Rezervasyon/finalize
-akışı yarım yüklemeyi kurtarır. Yollar sunucuda türetilir; overwrite yoktur.
-Metadata kaldırılmadan önce Storage sonucu doğrulanır. Storage mutasyonları
-başvuru satırıyla kilitlenir. Özel görüntüleme auth indirme ve yerel blob URL'dir.
+carrier_applications, carrier_document_files/audit ve private carrier-documents
+bucket kullanılır. JPEG/PNG kaynak boyut/piksel sınırıyla JPEG'e normalize edilir;
+Storage JPEG ve en fazla 1 MiB kabul eder. SRC, K yetki, ruhsat türleri vardır.
+Yollar sunucuda türetilir; overwrite yoktur. Reservation/finalize, yarım yükleme,
+revizyon ve satır kilitleri korunur. Görüntüleme auth download + yerel blob URL'dir.
 
-draft → submitted → approved/rejected; withdraw onayı kaldırır. Gönderilmiş
-dosya değiştirilemez; revizyon eskiyse reddedilir. Yükleme tek başına rozet
-vermez. Minimal rozet yanıtı yalnız sunucu onaylı kullanıcı kimliklerini döndürür.
-private.document_reviewers ayrı üyeliktir; istemci atayamaz, kişi kendini
-onaylayamaz. Kullanıcının belirlediği doğrulanmış hesaba yalnız DEV belge
-inceleme yetkisi açık onayla verildi; e-postası/UUID'si kaynakta sabitlenmez.
-Bu üyelik PR #31'in genel admin rolü değildir.
+Akış draft → submitted → approved/rejected; withdraw onayı kaldırır. Gönderilmiş
+dosya değiştirilemez. Dosya yükleme tek başına rozet vermez. Public minimal rozet
+sonucu yalnız sunucu onayını taşır; özel dosyaya erişim vermez.
 
-Gerçek owner/reviewer kabulü üç sentetik yükleme, özel önizleme, gönderme,
-reload, bağımsız onay ve ilanda rozetle geçti. Başvuru #3 sonra server transition
-ile geri çekildi; rozet kalktı, bir onay/bir withdraw audit'i kaldı. Üç küçük
-sentetik dosya private DEV'de kaldı. Gerçek kişisel belge kullanılmadı.
+Son Production kabulünde normal test hesabının #5/#7 başvurularına üçer sentetik
+JPEG yüklendi, ayrı inceleyici oturumunda indirilip açıldı; onay ve gerekçeli ret
+iki hesaba yansıdı. İkisi de owner withdraw ile geri çekildi. Geçici inceleme
+üyeliği test bitince kapatıldı; gerçek kişisel belge kullanılmadı. Gönderilmiş
+belgelere erişim için yeni, ayrı yetki kapsamı gerekir.
 
-## 6. Ortam ve migration
+### Tek genel yönetici
 
-| Ortam | Supabase project ref |
-| --- | --- |
-| DEV / nakgo-dev | axkotffqrsddbrazhcwj |
-| PROD / nakgo-production | fimlifldsivecezbxwuo |
+Profil → Yönetici paneli; `private.admin_members` her RPC'de doğrulanır. Tek
+aktif üye unique index ile korunur. Rol yalnız strict true sunucu yanıtıyla
+arayüzde görünür. Google sonrası profil hazır olmadan rol sorgulama hatası
+[PR #36](https://github.com/yagizce/nakgo/pull/36) ile düzeltildi; kullanıcı
+telefonda panelin ilk girişte göründüğünü doğruladı.
 
-main/PROD migration/promotion ayrı kullanıcı kapsamı gerektirir. Preview env
-adları NAKGO_AUTH_ENABLED, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Değerleri
-belgeye/loga eklemeyin. Yeni branch'e Preview env otomatik taşınmış sayılmaz.
-Service-role/OAuth secret/frontend anahtarı aynı şey değildir; secret frontend'e
-konmaz. Yönetici hesap kimliklerini public rehbere sabitlemeyin.
+Sayım, kullanıcı/ilan arama/sayfalama, gerekçeli faaliyet askısı ve kaldırılması,
+ilan kaldırma/kapalı duruma restore ve işlem geçmişi vardır. Askı Auth ban veya
+oturum iptali değildir. Geçmiş ve önceden kabul edilmiş işi tamamlama korunur;
+yeni faaliyet, talep ve kabul sunucuda engellenir. Eski ilanlar otomatik kaldırılmaz.
+Kendi hesabına/aktif yöneticiye askı yapılamaz. Revizyon/audit ve atomik yazmalar
+korunur; istemci aktör/audit oluşturamaz. Yönetici özel sohbet veya belge dosyası
+listesi yetkisi almaz. [Yönetici teknik rehberi](admin-panel.md) ilk kurulum
+adımlarını da içerir; mevcut ortama migration'ları yeniden uygulamayın.
 
-DEV'de uygulanan migration dizisi 20261014000000_profiles.sql ile başlayıp
-20261025230000_private_carrier_documents.sql ile biter: profil detayları,
-ilan/fotoğraf/saat, işler, favoriler, mesajlar ve sender index dahildir.
-SQL Editor uygulaması CLI migration ledger'ı değildir; tekrar çalıştırmadan
-şemayı doğrulayın. RLS kapatmak/tablo silmek çözüm değildir. SQL testleri
-sentetik transaction/rollback'tir, gerçek Auth/Storage servisini kanıtlamaz.
+## 6. Ortam ve migration kaydı
 
-## 7. PR #31 yönetici paneli — tek hesapla DEV’de etkin
+| Ortam | Supabase project ref | Son doğrulanan durum |
+| --- | --- | --- |
+| DEV / nakgo-dev | `axkotffqrsddbrazhcwj` | Son iki migration ledger'da kayıtlı; eski 13 sürümün ledger geçmişi tamamlanmış değildir |
+| Production / nakgo-production | `fimlifldsivecezbxwuo` | 15 kaynak sürümüne ulaşan kurulum; son migration tek kayıtla doğrulandı |
 
-src/js/screens/admin.js, profil girişi, API wrapper'ları, üç migration ve
-[admin kurulum rehberi](https://github.com/yagizce/nakgo/blob/codex/nakgo-admin-panel/docs/admin-panel.md)
-eklenmiştir. Özet, kullanıcı/ilan arama/sayfalama ve audit listeleri; gerekçeli
-askı/kaldırma, revizyon/audit ve kapalı duruma restore vardır.
+Üç önemli son sürüm:
 
-private.admin_members her RPC'de kontrol edilir; belge inceleyiciliği vermez.
-Askı Auth ban değildir: giriş/geçmiş ve önceden kabul edilmiş işi bitirme
-korunur; eski ilanlar otomatik kaldırılmaz. 20261026010000_admin_panel.sql,
-20261026020000_admin_moderation.sql ve 20261026030000_single_admin_access.sql
-DEV'e uygulandı. Kullanıcının açık işlem-anı onayıyla yalnız belirlediği doğrulanmış
-hesap genel yönetici yapıldı. Hesap e-postası/UUID kaynakta sabitlenmez.
-Tek aktif yönetici unique index ile korunur. Profil girişi yalnız sunucu rolü
-strict true ise görünür; hesap değişimi ve geç yanıt temizlenir. Canlı SQL
-kabulünde diğer iki mevcut DEV hesabının rol/panel erişimi reddedildi; atanmış
-hesabın gerçek tarayıcı oturumunda panel açıldı ve korumalı yönetici satırı görüldü.
-Deneme moderasyonu veya başka ürün değişikliği yapılmadı.
+- `20261026030000_single_admin_access`: tek aktif genel yönetici sınırı.
+- `20261027010000_storage_service_activity`: Supabase'in iç Storage tamamlamasında
+  eksik kullanıcı sub durumunu, yalnız güvenilir servis rolü ve tam rezervasyon
+  eşleşmesiyle ele alır; RLS/bucket veya çağıran hesabın kurallarını genişletmez.
+- `20261028010000_load_timing_text`: serbest yükleme metni, uyumlu ilan okuma,
+  taşıma snapshot'ı ve yönetici sayımı. DEV/Production'a uygulandı; tekrarlanmaz.
 
-26 Ekim incelemesindeki askı/kabul açığı PR #31'de düzeltildi. Yeni talep ve
-kabul sırasında aktör, yük sahibi ve taşıyıcının aktif olması gerekiyor;
-katılımcı kilitleri UUID sırasıyla alınıyor. Ek regression testi eski kodda
-başarısız oldu, düzeltmeden sonra geçti. Askıdan önce kabul edilmiş işin
-her iki katılımcı askıdayken de tamamlanabildiği ayrıca doğrulandı.
+Önceki şema; profil/profil detayları, ilan/fotoğraf/saat, işler, favoriler,
+mesajlar/sender index, özel belgeler, admin panel/moderasyon migration'larını
+kapsar. Tam sıralı kaynak [supabase/migrations](../supabase/migrations/) içindedir.
+İlk Production profiles şeması doğrulanarak baseline olarak benimsenmiştir.
+DEV'de ledger eksik diye bütün geçmişi yeniden çalıştırmayın veya geçmişi
+incelemeden adopted saymayın. Gerçek şema, ledger ve kaynak birlikte karşılaştırılır.
 
-İlan kaldırma/restore onayı artık ilan #id ve rotayı gösterir. Yeni read-only
-admin-regression.yml bu PostgreSQL ve Chromium kontrollerini PR'larda çalıştırır.
-Son erişim CI'ları 40301475019 ve 40301475613 başarılı: 551 uygulama, 407 E2E,
-45 PostgreSQL ve mobil/masaüstü yönetici Chromium kontrolü. DEV aynı commit'te READY.
+Env **adları**: NAKGO_AUTH_ENABLED, NAKGO_PRODUCTION_AUTH_ENABLED,
+SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Değer/sırları belgeye veya loga koymayın.
+Preview env her yeni branch'e taşınmış varsayılmaz. Production/DEV hesapları,
+UUID'leri ve rol üyelikleri birbirine taşınmaz.
 
-## 8. Test ve kalite kapısı
+Migration yazma/uygulama, main yayını ve rol değişikliği için güncel kullanıcı
+kapsamını doğrulayın. Canlı uygulamadan önce rollback provası, sonra postcheck
+ve ledger kaydı gerekir. RLS kapatma/tablo silme/veri kaybeden down migration
+çözüm değildir. Rollback sequence numaralarını geri almaz; kesintisiz ID beklenmez.
+
+## 7. Doğrulama ve kanıtın sınırı
+
+Son uygulama değişikliğinin kabulü:
+
+- Yerel `npm test` **603/603**, tam Chromium E2E **407/407**, bağımsız browser
+  **198 kontrol / 11 senaryo** başarılı.
+- PGlite **45 moderasyon + 15 Storage kontrolü**, **11 rollback SQL fixture**
+  başarılı. PGlite sentetik Auth/Storage motorudur; gerçek servis/eşzamanlı
+  çok bağlantı testi değildir.
+- DEV ve Production'da son migration rollback provası ve gerçek SQL RLS,
+  favori/mesaj/taşıma snapshot kabulü başarılı; sentetik kayıtlar rollback edildi.
+- Gerçek Production test hesabıyla boş/whitespace publish reddi, `yarın sabah`
+  ile oluşturma, reload/kart/detayda literal metin, `uygun olduğunda` ile düzenleme
+  ve yalnız sentetik #22 kapatma geçti. Önceki kullanıcı ilanları değişmedi.
+- Kullanıcı son mesajında **iPhone 15'te yeni yükleme metniyle ilanı
+  yayımlayabildiğini doğruladı**. Bu telefon kontrolü artık beklemiyor.
+
+Normal komutlar (Node 18+, sabit Python/Playwright gereksinimleri):
 
 ```sh
 npm run bundle
@@ -488,129 +231,69 @@ npm run test:gate
 npm run test:guard
 npm run test:e2e
 npm run test:browser
-npm run mobile:prepare
 ```
 
-Node 18+, Python, tests/requirements.txt sabit Playwright sürümü ve Chromium
-gerekir. npm start dış ağa açılmayan yerel demodur. Windows python alias'ı
-yoksa kurulu Python'ın tam yolunu kullanın. Sandbox yerel portu engellerse
-testi değiştirip geçirmeyin; erişimle tekrar doğrulayın veya sınırlamayı bildirin.
+`tools/admin-db-check.cjs` isteğe bağlı PGlite bağımlılığıyla SQL paketlerini;
+`tests/admin_panel_browser.py` yönetici browser regresyonlarını çalıştırır.
+Kurulum için [geliştirme rehberi](development.md) ve
+[kalite kapısı rehberi](quality-gate.md) okunur. npm start yerel statik sunucudur;
+gerçek backend/Auth ortamı yerine geçmez. Port/sandbox hatasında testi değiştirip
+geçirmeyin; uygun erişimle doğrulayın veya sınırlamayı açıkça kaydedin.
 
-- [DEV belge CI](https://github.com/yagizce/nakgo/actions/runs/40222583797):
-  542 uygulama, 407 E2E ve mobile geçti. Bağımsız browser 197 kontrol/11 senaryo.
-  DEV baseline guard 57/57; main gate başarısı değildir.
-- [Admin CI](https://github.com/yagizce/nakgo/actions/runs/40299402263) ve
-  [admin regression CI](https://github.com/yagizce/nakgo/actions/runs/40299402277) son düzeltme commit'inde başarılı; yeni oturumda güncel sonuçları doğrulayın.
-  26 Ekim yeniden çalıştırma: 545/545 uygulama, 53/53 statik, HTML 0 hata,
-  41 PGlite kontrolü, 407 mevcut E2E ve mobil/masaüstü admin Chromium kontrolleri geçti.
-- tools/admin-db-check.cjs isteğe bağlı @electric-sql/pglite kullanır. Runtime
-  bağımlılığı değildir. Sentetik Auth/Storage şeması gerçek servis veya çok
-  bağlantılı eşzamanlılık testi değildir.
-- UI değişince 360/390/430 px, iki tema, masaüstü, sheet/klavye, uzun metin,
-  boş/hata durumu, hesap değişimi ve reload kontrol edilir.
+UI değişikliklerinde mobil genişlikler, iki tema, sheet/klavye, uzun metin,
+boş/hata durumu, hesap değişimi ve reload sınanır. Belge değişikliğinde link,
+kaynak doğruluğu ve yalnız beklenen dosyaların değiştiği denetlenir. Başarılı
+eski CI yeni commit için kanıt değildir; yeni PR'ın gerekli kontrolleri beklenir.
 
-Tarihsel kalite engeli: dört tarih testi ve tools/project.js eski main tabanından
-farklı olduğu için quality-gate 35/40 kaldı. Beş fark incelendi ve kullanıcı
-kesin ae39bec sürümü için tek seferlik yönetici istisnasını açıkça onayladı.
-26 Ekim'de PR #21 birleştirildi; bypass engeli hemen geri açılıp yeniden okundu.
-Eski gate başarısızlığı başarılı diye sunulmaz; guard/workflow gevşetilmedi.
-Bu istisna sonraki işlemlere izin değildir.
+## 8. GitHub teslim ve güvenlik kuralları
 
-## 9. Korunacak kayıtlar ve kalan işler
+Main'e doğrudan yazmayın. Ayrı dal/PR ve son main tabanını kullanın; var olan
+PR'ın eski base'ini incelemeden değiştirmeyin veya eski uygulama dosyalarını
+main'e taşımayın. Docs-only teslimde fark yalnız Markdown olmalıdır.
 
-DEV orijinal test yükü #16 ve tamamlanan iş #9 korunur. Sentetik araç kapalı,
-favori test kayıtları temiz, iki açıkça test işaretli sohbet mesajı geçmiştedir.
-Tarihleri geçmiş olabilir; yeni kabul için ayrı sentetik fixture kullanın.
-Gerçek kullanıcı verisi üzerinde deneme kararı veya toplu temizlik yapmayın.
+Koruma: PR + güncel dal + GitHub Actions kaynaklı `quality-gate` ve `verify`;
+yöneticiler de kurallara tabi. Force push ve dal silme kapalıdır. Olağan kod
+işinde korumalı test/guard/workflow değiştirilerek hata gizlenmez. Gerekli test
+bakımı ayrı ve insan incelemeli iştir.
 
-26 Ekim canlıya hazırlık kabulü: PR #33 test bakımı DEV'e fast-forward ile
-alındı. Güncel DEV `a450ab889511be07311c823d768f5489eeea71a0`; uygulama runtime
-kaynakları değişmedi. verify 40305515816 ve admin-regression 40305515989 başarılı.
-45 yerel PostgreSQL kontrolü ve 10 SQL paketi geçti; aynı 10 paket canlı DEV'de
-BEGIN/ROLLBACK ile çalıştı. Kullanıcı/profil/ilan/iş/mesaj/belge/Storage ve aktif
-yönetici kayıt sayıları korundu. Bağımsız browser 197 kontrol/11 senaryo,
-kalite otomasyonu 16/16 ve production npm audit 0 bulgu. PGlite Storage/Auth
-şeması gerçek servis veya eşzamanlı bağlantı kabulünün yerine geçmez.
+Tarihsel istisnalar: PR #21'de beş korumalı fark; PR #37'de serbest metin ürün
+kararı nedeniyle üç mevcut test beklentisi incelendi ve yalnız kesin sürüme
+kullanıcı istisnası verildi. PR #37 `verify` ve `admin-regression` geçti;
+quality-gate **61/64** kaldı. Bu sonucu tüm CI yeşil diye anlatmayın. Geçici
+admin bypass istisnası merge ardından hemen kapatılıp yeni GET ile doğrulandı.
+Bu izinler sonraki işe taşınmaz; koruma/guard/workflow kalıcı gevşetilmedi.
 
-Production bağlantısı hazırlığı PR #34 ile DEV'e alındı. Güncel DEV
-`ae39bec912078baa1c88e87815ed792fcac03304`. Production Auth yalnız
-NAKGO_AUTH_ENABLED=true + NAKGO_PRODUCTION_AUTH_ENABLED=true ve kesin PROD
-proje URL'siyle açılır. Preview/Development PROD URL'sini reddeder; Production
-DEV URL'sini reddeder. Yeni regresyon paketiyle 578/578 uygulama, 16/16 otomasyon,
-53/53 statik ve HTML 0 hata. PR #34 verify 40340704583 ve admin-regression
-40340704538 başarılı; READY Preview gerçek config endpoint'inde HTTP 200,
-enabled=false ve private/no-store doğrulandı.
+Bu rehberin eski PR #32 tabanı DEV idi. Belge tesliminde dal güncel main
+kaynaklarıyla eşitlenip PR main'e yönlendirilir; yalnız AGENTS.md, README.md ve
+bu rehberin farkı kalmalıdır. Uygulama/env/veritabanı/yetki değişikliği bu
+belge tesliminin kapsamında değildir.
 
-Vercel'de dört değişken yalnız Production kapsamındadır. Production etkinleştirme
-anahtarı false kalır. Kullanıcının açık tek seferlik onayıyla ae39bec sürümü
-PR #21 üzerinden main'e alındı. verify 40346471224 ve admin-regression
-40346471743 başarılıydı; quality-gate 40346471555 beş korumalı farkta 35/40 kaldı.
-Yalnız "Do not allow bypassing the above settings" geçici kapatıldı ve merge
-sonrasında hemen tekrar açıldı; kaydedilmiş değer yeniden okunarak doğrulandı.
-PR, güncel dal, GitHub Actions kaynaklı quality-gate + verify gereksinimleri
-korundu. Force push ve dal silme kapalı kaldı. Production READY; Auth hâlâ kapalı.
+## 9. Korunacak veriler ve yeni ajan için kapanış
 
-26 Ekim Production şema kurulumu tamamlandı. Kullanıcı, 12 migration'ın
-kurulumunu açıkça istedi. Mevcut FREE plan korundu. İlk profiles migration'ının
-sütunları, constraint/RLS/policy ve sütun izinleri doğrulanıp yeniden çalıştırılmadan
-baseline olarak benimsendi. DEV `a450ab889511be07311c823d768f5489eeea71a0`
-kaynağındaki kalan 12 migration sırayla tek transaction içinde uygulandı.
-Önce aynı batch Production'da ROLLBACK ile prova edildi; ardından COMMIT edildi.
+Gerçek kullanıcı ilanı, mesajı, işi veya özel dosyası temizlik için silinmez.
+DEV'deki orijinal kabul kayıtları ve geçmiş işler korunur. Production'daki
+sentetik kapalı araç, tamamlanmış yükleme onayı/iki test mesajı, geri çekilmiş
+belge başvuruları ve kapalı sentetik #22 kayıtları geçmişte kalabilir. Bunları
+gerçek taşıma veya aktif doğrulama olarak sunmayın. Kullanıcının kendi ilanına
+ve belge taslağına dokunmayın. Private sentetik dosyaları izinsiz kalıcı silmeyin.
 
-`supabase_migrations.schema_migrations` artık 13 sürümü/name/source statements
-ile izler. İlk sürüm benimsenmiş baseline, diğerleri uygulanmış migration'lardır.
-Son sürüm `20261026030000_single_admin_access`. Migration kaynak checksum'ları
-CRLF/LF farkı normalize edilerek 13/13 eşleşti. Gelecek ajan tüm migration'ları tekrar çalıştırmamalıdır.
-14 public/private uygulama tablosunda RLS açık; anonim tablo/RPC erişimi yok.
-carrier-documents bucket private, JPEG ve 1 MiB sınırında; fiziksel nesne yok.
+Ödeme/Premium entitlement, push, mesaj ekleri, Apple girişi veya gerçek telefon
+numarası doğrulaması tamamlanmış kabul edilmez. Bu liste backlog yetkisi veya
+sonraki adım talimatı değildir; kullanıcı kapsamını bekleyin. Bu oturumda başka
+özellik/entegrasyon işi yapılmayacak.
 
-Production'da 9 mevcut SQL paketi sentetik fixture + BEGIN/ROLLBACK ile geçti.
-Genel yönetici üyeliği bulunmadığından admin-moderation.sql pozitif rol paketi
-Production'da çalıştırılmadı; yetkisiz admin rolü/dashboard/moderasyon reddi
-ayrıca doğrulandı. Mevcut Auth hesabı sayısı 1 korundu; bütün uygulama tabloları
-boş kaldı. Kalıcı test verisi, genel yönetici veya belge inceleyici ataması yok.
-Sequence değerleri rollback ile geri alınmaz; ID'lerin 1'den başlayacağı varsayılmaz.
-Fiziksel Storage upload/indirme veya gerçek hesapla admin kabulü yapılmış sayılmaz.
+Eski [mimari](architecture.md), [ürün](product.md),
+[ilk Supabase kurulumu](supabase-setup.md) ve yönetici kurulum belgeleri demo/ilk
+kurulum aşamalarına ait ifadeler de içerir. Güncel davranış için önce bu tarihli
+rehber, ardından uzak main kaynakları/RPC, gerçek ortam ve son kullanıcı kararı
+birlikte incelenir. Eski kurulum adımı mevcut sisteme körlemesine uygulanmaz.
 
-Production uygulaması main `6f23563a52e4bc5894b9ae1e9ee31e432589df55` ile READY.
-Hesap bağlantısının kapalı olduğu canlı endpoint'ten doğrulandı. Kurulum
-başarısızlığında transaction rollback korur; commit sonrası otomatik tablo/drop
-veya veri silen down migration çalıştırmayın. Yeni veri geldiyse önce yedek ve
-ayrı düzeltme planı gerekir. Yerel outputs içindeki preflight/manifest/kurulum ve
-kabul kanıtları şema kurulumunu kaydeder; Auth sırları veya kullanıcı verisi dump'ı değildir.
+Yeni sohbet için kısa başlangıç metni:
 
-PROD Email ve Google sağlayıcıları, e-posta doğrulaması ve özel SMTP etkin;
-SMTP host smtp.resend.com, port 465. Kimlik bilgileri okunmadı/yayımlanmadı.
-Site URL ve görünen redirect allowlist `https://nakgo.vercel.app/`.
-E-posta teslimi ve gerçek Google callback'i ayrıca uçtan uca doğrulanmalıdır.
-Vercel hesap bağlantısı değişkenleri Preview ve Production'da ayrı kapsamlardadır;
-Production etkinleştirme anahtarı kapalıdır. DEV yöneticisinin doğrulanmış hesabı
-PROD'da yok; DEV UUID/üyelikleri taşınmaz. PROD rol ataması yapılmadı.
-
-Önerilen sıra (kullanıcının verdiği görev kapsamına göre):
-
-1. Production Auth açılışını ayrıca kapsamlandırın; mevcut anahtar false kalır.
-2. PROD migration geçmişini okuyun; 12 migration zaten kurulu, tekrar uygulamayın.
-3. Ayrı PROD kayıt/doğrulama sonrası tek yönetici atamasını açık onayla yapın;
-   DEV UUID veya üyeliklerini taşımayın.
-4. SMTP teslimi, Google callback, fiziksel cihaz, gerçek dosya ve Production
-   hesap/moderasyon kabulünü tamamlayın. READY yayını bu testlerin yerine geçmez.
-5. Rehber PR #32 hâlâ taslaktır; eski tabanını incelemeden birleştirmeyin.
-
-Ödeme/Premium entitlement, push, mesaj eki, Apple giriş, gerçek telefon
- doğrulaması ve WhatsApp aktivasyonu tamamlanmış değildir. WhatsApp V1 imza
-kontrol/parser temelidir; gerçek mesaj göndermez/ilan yayımlamaz. AI, scraping
-ve WhatsApp Web otomasyonu etkinleştirilmiş varsayılmaz.
-
-## 10. Yeni sohbete verilecek kısa metin
-
-> Bu depoda önce AGENTS.md ve docs/PROJECT_HANDOFF.md oku. Yerel değişiklik,
-> uzak branch/PR ve Preview commit'ini doğrula. Çalışan DEV admin durumunu ve tek yönetici
-> sınırını doğrula. Statik mimariyi, boş manuel tarihleri, RLS ve kalite kapısını
-> koru. Güncel durumu ve sıradaki somut adımı özetleyip verdiğim görev kapsamında
-> ilerle; main/Production değişikliği varsayma.
-
-Rehberin bulunduğu branch'i veya GitHub dosya bağlantısını yeni ajana verin.
-Main'e alınmamış dosyanın yalnız main'i açan araçça otomatik okunacağı
-varsayılmaz. Kalıcı aşama sonunda rehberi tarih/commit/PR/migration/kabul ve
-engellerle güncelleyin; özel hesap bilgisi veya geçici log eklemeyin.
+> NakGo için önce AGENTS.md ve docs/PROJECT_HANDOFF.md oku. Yerel değişiklikleri
+> koruyup uzak main/PR/CI ve hedef ortamı doğrula. Production Auth açık; tek
+> genel yönetici ile belge inceleyici ayrı. Yükleme tarihi yükte zorunlu serbest
+> metin; Not ve ekler geçişi aynı, araç takvim doğrulaması ayrı. Kullanıcı iPhone
+> kabulünü tamamladı. Son iki migration kurulu; ledger eksikliğini yeniden
+> çalıştırmayla çözme. Eski bypass iznini kullanma. Yalnız yeni kullanıcı talebinin
+> kapsamındaki işi yap; sır veya hesap kimliği yayımlama.

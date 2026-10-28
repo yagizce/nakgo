@@ -2,6 +2,8 @@
 begin;
 select set_config('nakgo.fav_owner',gen_random_uuid()::text,true),set_config('nakgo.fav_a',gen_random_uuid()::text,true),set_config('nakgo.fav_b',gen_random_uuid()::text,true);
 insert into auth.users(id,email_confirmed_at) values(current_setting('nakgo.fav_owner')::uuid,now()),(current_setting('nakgo.fav_a')::uuid,now()),(current_setting('nakgo.fav_b')::uuid,now());
+-- Fixture writes use a synthetic actor under the current moderation guards.
+select set_config('request.jwt.claim.sub',current_setting('nakgo.fav_owner'),true);
 insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
  values(current_setting('nakgo.fav_owner')::uuid,'load','İstanbul','Ankara','Tır','Tenteli',10,'Favorite rollback load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date)
  returning set_config('nakgo.fav_load',id::text,true);

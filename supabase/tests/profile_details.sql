@@ -3,6 +3,8 @@ begin;
 select set_config('nakgo.test_a', gen_random_uuid()::text, true);
 select set_config('nakgo.test_b', gen_random_uuid()::text, true);
 insert into auth.users(id) values (current_setting('nakgo.test_a')::uuid),(current_setting('nakgo.test_b')::uuid);
+-- Fixture writes use a synthetic actor under the current moderation guards.
+select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
 insert into public.profiles(id,display_name) values (current_setting('nakgo.test_a')::uuid,'A'),(current_setting('nakgo.test_b')::uuid,'B');
 select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
 set local role authenticated;

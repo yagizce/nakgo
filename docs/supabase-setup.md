@@ -75,8 +75,8 @@ Vercel'de yalnız `codex/nakgo-email-auth` dalının Preview ortamına:
 | `SUPABASE_PUBLISHABLE_KEY` | Projenin `sb_publishable_...` açık istemci anahtarı |
 
 `api/auth/config.mjs` yalnız bu açık yapılandırmayı döndürür, önbelleklemez.
-`VERCEL_ENV=production` olduğunda değişkenler yanlışlıkla eklense bile bağlantı
-kapalıdır. Service role, secret key, veritabanı şifresi ve erişim tokenı bu
+`VERCEL_ENV=production` olduğunda ayrıca `NAKGO_PRODUCTION_AUTH_ENABLED=true`
+ve kesin Production proje URL'si gerekir; aşağıdaki Production bölümüne bakın. Service role, secret key, veritabanı şifresi ve erişim tokenı bu
 endpoint'e veya bundle'a konmaz. `npm start` statik sunucusunda endpoint yoktur;
 uygulama demo olarak çalışır.
 
@@ -136,3 +136,33 @@ tarayıcı testinin geçmesi bunların doğrulandığı anlamına gelmez.
 Kaynaklar: [Supabase kullanıcı verisi](https://supabase.com/docs/guides/auth/managing-user-data),
 [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security),
 [SMTP kurulumu ve varsayılan servis sınırları](https://supabase.com/docs/guides/auth/auth-smtp).
+
+## Production bağlantısı — 26 Ekim 2026
+
+Production şeması ilk profiles baseline'ı korunarak kuruldu; migration geçmişi
+13 sürümü, son olarak `20261026030000_single_admin_access` sürümünü içerir.
+Migration'ları yeniden çalıştırmayın. 9 SQL kabul paketi rollback ile geçti;
+14 uygulama tablosunda RLS, private belge bucket'ı ve anonim erişim reddi doğrulandı.
+
+Hesap bağlantısı yalnız **Production** ortamında şu dört ayarla açılır:
+
+| Değişken | Değer |
+| --- | --- |
+| `NAKGO_AUTH_ENABLED` | `true` |
+| `NAKGO_PRODUCTION_AUTH_ENABLED` | Yayın kabulü tamamlandığında `true`; hazırlıkta `false` |
+| `SUPABASE_URL` | `https://fimlifldsivecezbxwuo.supabase.co` |
+| `SUPABASE_PUBLISHABLE_KEY` | Yalnız bu Production projesinin `sb_publishable_...` anahtarı |
+
+Anahtar buraya yazılmaz. DEV anahtarı/URL'si Production'a kopyalanmaz. Endpoint
+Production'da farklı proje URL'sini, Preview/Development'ta Production URL'sini
+reddeder. Eksik veya yanlış anahtar/URL HTTP 503 ve kapalı config döndürür.
+Anahtarlama değerleri tam `true` olmadıkça Production bağlantısı kapalıdır.
+Vercel env güncellemesi mevcut deployment'ı değiştirmez; yeni deployment gerekir.
+
+Yayın öncesi main kalite kapısındaki korumalı farklar ayrı güvenilir bakım
+incelemesiyle çözülür. Başarılı feature CI bunların yerine geçmez. Production
+build'ini alan adı atamadan hazırlayıp gerçek endpoint, giriş, SMTP/Google dönüşü
+ve Storage akışlarını doğrulayın; test edilen build'i kontrollü olarak yayınlayın.
+Production yönetici hesabı kendi ortamında kayıt/doğrulama gerektirir; DEV üyeliği
+ve UUID taşınmaz, bu config değişikliği rol atamaz. Acil geri dönüşte önce önceki
+çalışan deployment'a dönülür; yeni kullanıcı verisi içeren tablolar silinmez.

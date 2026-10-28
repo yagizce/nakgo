@@ -24,7 +24,7 @@ def run_reliability(browser, url, check, errors, root):
     check('not detayda metindir',p.evaluate("!window.__unsafe") and '<svg onload=' in p.inner_text('.detail-note'))
     p.click('#close');p.reload();p.wait_for_selector('[data-id="'+str(own)+'"]')
     check('yenilemeden sonra da saklanan HTML çalışmaz',p.evaluate("!window.__unsafe") and payload in p.inner_text('#main'))
-    check('yeni ilanın zamanı ve takvim tarihi kalıcıdır',p.evaluate("loads.find(l=>l.mine).ts>0&&validDay(loads.find(l=>l.mine).date)"))
+    check('yeni ilanın zamanı ve yazılan yükleme metni kalıcıdır',p.evaluate("expected=>loads.find(l=>l.mine).ts>0&&loads.find(l=>l.mine).dateText===expected&&loads.find(l=>l.mine).date===''",datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y')))
     check('30 gün sonra kullanıcı ilanı bugün sayılmaz ve kapanır',p.evaluate("(()=>{const now=Date.now;Date.now=()=>now()+30*864e5;try{const l=loads.find(l=>l.mine);return expired(l,'load')&&dateLabel(l)!=='Bugün'}finally{Date.now=now}})()"))
     p.fill('#q','" autofocus onfocus="window.__unsafe=3');check('arama öznitelikleri güvenli',p.evaluate('!window.__unsafe'));p.fill('#q','')
     p.click('nav [data-t=me]');p.fill('#myph','05551234567');p.click('#phs2');p.click('nav [data-t=list]');p.locator('[data-id="'+str(own)+'"]').click();p.click('#call');p.click('#buy')

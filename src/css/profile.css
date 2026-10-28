@@ -94,3 +94,5 @@
   .auth-bottom { padding-inline:22px; }
   .auth-brand>span { font-size:23px; }
 }
+
+.admin-tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}

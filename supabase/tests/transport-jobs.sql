@@ -2,6 +2,8 @@
 begin;
 select set_config('nakgo.owner',gen_random_uuid()::text,true),set_config('nakgo.carrier',gen_random_uuid()::text,true),set_config('nakgo.other',gen_random_uuid()::text,true);
 insert into auth.users(id,email_confirmed_at) values(current_setting('nakgo.owner')::uuid,now()),(current_setting('nakgo.carrier')::uuid,now()),(current_setting('nakgo.other')::uuid,now());
+-- Fixture writes use a synthetic actor under the current moderation guards.
+select set_config('request.jwt.claim.sub',current_setting('nakgo.owner'),true);
 insert into public.profiles(id,display_name) values(current_setting('nakgo.owner')::uuid,'Test owner'),(current_setting('nakgo.carrier')::uuid,'Test carrier'),(current_setting('nakgo.other')::uuid,'Test other');
 select set_config('request.jwt.claim.sub',current_setting('nakgo.owner'),true);
 set local role authenticated;

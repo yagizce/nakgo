@@ -6,6 +6,8 @@ select set_config('nakgo.test_b', gen_random_uuid()::text, true);
 insert into auth.users (id) values
     (current_setting('nakgo.test_a')::uuid),
     (current_setting('nakgo.test_b')::uuid);
+-- Fixture writes use a synthetic actor under the current moderation guards.
+select set_config('request.jwt.claim.sub',current_setting('nakgo.test_b'),true);
 insert into public.profiles (id, display_name, account_type)
     values (current_setting('nakgo.test_b')::uuid, 'Test B', 'owner');
 select set_config('request.jwt.claim.sub', current_setting('nakgo.test_a'), true);

@@ -2,6 +2,8 @@
 begin;
 select set_config('nakgo.doc_owner',gen_random_uuid()::text,true),set_config('nakgo.doc_other',gen_random_uuid()::text,true),set_config('nakgo.doc_admin',gen_random_uuid()::text,true),set_config('nakgo.doc_second_admin',gen_random_uuid()::text,true),set_config('nakgo.doc_unverified',gen_random_uuid()::text,true);
 insert into auth.users(id,email_confirmed_at) values(current_setting('nakgo.doc_owner')::uuid,now()),(current_setting('nakgo.doc_other')::uuid,now()),(current_setting('nakgo.doc_admin')::uuid,now()),(current_setting('nakgo.doc_second_admin')::uuid,now()),(current_setting('nakgo.doc_unverified')::uuid,null);
+-- Fixture writes use a synthetic actor under the current moderation guards.
+select set_config('request.jwt.claim.sub',current_setting('nakgo.doc_owner'),true);
 insert into public.profiles(id,display_name,account_type) values(current_setting('nakgo.doc_owner')::uuid,'Document rollback owner','carrier'),(current_setting('nakgo.doc_other')::uuid,'Document rollback outsider','carrier'),(current_setting('nakgo.doc_admin')::uuid,'Document rollback reviewer','owner');
 insert into private.document_reviewers(user_id) values(current_setting('nakgo.doc_admin')::uuid),(current_setting('nakgo.doc_second_admin')::uuid);
 select set_config('request.jwt.claim.sub',current_setting('nakgo.doc_owner'),true);

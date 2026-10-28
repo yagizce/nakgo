@@ -44,3 +44,21 @@ PR #9, iki workflow başarılı olduktan sonra squash ile birleştirildi. Kayded
 Kurulum sürümünde npm test 309/309, mevcut E2E 406/406, bağımsız browser 184 kontrol/10 senaryo, guard 29/29, statik 50/50 ve otomasyon 16/16 geçti. HTML ve actionlint temiz; npm audit sıfır bulgu. Bağımsız testler 390×844 ve 393×852, iki temada çalıştı. Çift yayın click sonrasında eski formun yeniden okunması testte yakalandı ve iki küçük düğme korumasıyla düzeltildi.
 
 Bu belge güncellemesi, kontrol kodunu değiştirmeden kurulum sonrası main tabanlı kalite kapısı ve otomatik birleşmenin gerçek PR akışını doğrular.
+
+## Güncel DEV geçiş engeli — 26 Ekim 2026
+
+DEV `b0df3bdf987daed91b952ccbd92b3da6313f798f`, main
+`5b46c28f03528a3ae9e4ada25bb6405a268a8a5a` tabanına karşı 35/40 guard sonucu
+verdi. Ayrı güvenilir inceleme gereken beş fark: `tests/e2e.py`, `tests/forms.py`,
+`tests/reliability.py`, `tests/gate/browser.py` ve `tools/project.js`.
+Son dosya yönetici ekranını yükleme sırasına ekler. Başarılı uygulama/admin CI
+bu engeli kaldırmaz. Kontrol tabanını değiştirerek veya guard/workflow'u
+gevşeterek main'e geçilmez.
+
+Aynı tarihte Production Vercel yayını yukarıdaki main commit'inde READY idi;
+Supabase Production projesi duraklatılmıştı. Hesap bağlantısı değişkenleri yalnız
+Preview dallarında vardı; kaynak Auth config'i Production'da bağlantıyı kapatır.
+Geçişten önce PROD şeması/migration geçmişi, Auth/SMTP/OAuth dönüş adresleri,
+private Storage, tek yönetici ataması ve geri dönüş planı ayrı doğrulanmalıdır.
+DEV verileri/üyelikleri PROD'a otomatik taşınmaz. Bu kayıt yayıma geçiş onayı
+değildir; yeni oturumda ortam durumu tekrar kontrol edilir.
