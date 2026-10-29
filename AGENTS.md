@@ -15,7 +15,8 @@ ve veritabanı durumu yeni oturumda yeniden doğrulanır.
   veya geçmiş onay yeni iş başlatma yetkisi değildir. Bu dalın kapsamı PR #38 temelli
   Cloudflare Workers + Static Assets için yerel DEV uyarlaması ve testlerdir.
   [Cloudflare devir notunu](docs/cloudflare-dev-migration.md) okuyun. Cloudflare
-  DEV yayını için yetki/sır gerektiğinde kullanıcıdan isteyin. Production, canlı
+  DEV yayını kullanıcı tarafından onaylandı ve yalnız `nakgo-app-dev` yayımlandı.
+  Eksik sırları kullanıcı güvenli ayarlara girer; değerleri sohbete istemeyin. Production, canlı
   DNS ve migration kapsam dışıdır; main birleştirilmez, PR #38 draft kalır.
 - Kullanıcının onayladığı kapsamı tekrar sormayın; yeni main/Production yayını,
   migration veya yetki değişikliği için mevcut onayın gerçekten o işlemi

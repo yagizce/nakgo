@@ -317,7 +317,7 @@ Canlı kabuk v44, Preview v45. Kalıcı scheduler ve gerçek Meta bağlantısı 
 24 sentetik mesaj ölçümünde varış ili 20/24; parser'ın bilinen sınırları ve
 manuel Meta adımları [WhatsApp rehberinde](whatsapp-review.md). Yeni özellik
 isteği olmadan parser refactor veya ortak yetkisi eklemeyin. Cloudflare yerel DEV uyarlaması ayrı `codex/nakgo-cloudflare-dev` dalında hazırlandı;
-uzak Cloudflare yayını ve Production değişikliği yapılmadı.
+ilk uzak Cloudflare DEV yayını yapıldı, Production değişikliği yapılmadı.
 
 ### 29 Ekim: Meta test bağlantısı hazırlığı
 
@@ -333,5 +333,6 @@ koruma kapatılmaz. Uygulama/refactor, yeni yetki ve Production değişikliği y
 Ayrı dalda küçük Fetch adapteri, build zamanı katalog paketi ve kapalı varsayılanlı
 Cron hazırlandı. Vercel kaynakları ve veritabanı değiştirilmedi. Yerel workerd,
 Static Assets, ilan/yönetici/WhatsApp ve Auth kontrolleri yapıldı. Gerçek Cloudflare
-DEV deploy ve yeni hostta gerçek hesap/Meta kabulü tamamlanmadı; yayın izni ve
-güvenli secret girişi bekleniyor. [Tam rapor](cloudflare-dev-migration.md).
+DEV deploy kullanıcı onayıyla tamamlandı: `https://nakgo-app-dev.yagizyedek8.workers.dev/`.
+Yeni hostta gerçek hesap/Meta kabulü tamamlanmadı; güvenli DEV secret girişi
+bekleniyor. Auth ve kuyruk işleme flagleri kapalı. [Tam rapor](cloudflare-dev-migration.md).

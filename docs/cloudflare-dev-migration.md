@@ -4,7 +4,8 @@
 WhatsApp draft [PR #38](https://github.com/yagizce/nakgo/pull/38) kaynakları esas
 alındı (uzak başlık `afeb690`, yerel eşdeğer doğrulama tabanı `3a99121`).
 PR #38 birleştirilmedi. Bu aşama yerel geliştirme ve runtime kabulüdür;
-Cloudflare hesabına deploy, gerçek Cron, DB migration veya DNS değişikliği yapılmadı.
+İlk Cloudflare DEV yayını kullanıcı onayıyla yapıldı; gerçek DEV veri bağlantısı ve
+Meta kabulü henüz tamamlanmadı. DB migration veya DNS değişikliği yapılmadı.
 
 ## Uyumluluk ve değişiklik sınırı
 
@@ -97,8 +98,8 @@ tarihtir. Daha ileri tarih verilmesi yerel runtime tarafından reddedildi.
 
 ## DEV yayını için kullanıcıdan gerekenler
 
-Kullanıcı yayın yetkisi veya sır gerektiğinde durulmasını istedi. Yerel çalışma
-hazırlandı; aşağıdaki adımlar ayrıca onay ve güvenli secret girişi bekliyor:
+Kullanıcı yalnız Cloudflare DEV yayınını açıkça onayladı; ilk yayın tamamlandı.
+Aşağıdaki liste kurulum sırasıdır; 1 ve 2 tamamlandı, secret girişi bekleniyor:
 
 1. Yalnız yeni `nakgo-app-dev` Worker'ının ücretsiz Workers planında `workers.dev`
    alt alanına DEV yayınına izin ver. `nakgo-website`, özel domain, canlı DNS,
@@ -135,3 +136,25 @@ eder. Yeni Worker testinden vazgeçilirse önce Cron flag'i kapatılır ve Cron
 silinir; Meta callback tekrar önceki doğrulanmış test adresine alınır. DB rollback
 ve DNS taşıması gerekmez. Yeni origin'deki tarayıcı oturumu Vercel oturumundan
 ayrıdır. Bu dalı main'e almak veya Production'a taşımak ayrı karardır.
+
+## 29 Ekim: ilk uzak DEV yayını
+
+- URL: https://nakgo-app-dev.yagizyedek8.workers.dev/
+- Kaynak: `3d75d80`; Cloudflare sürümü `d40f2048-bc80-4be0-97a0-e253f1dd88a0`.
+- Hesabın Workers Free ($0) planı UI üzerinde doğrulandı; plan değişmedi.
+- Yalnız `nakgo-app-dev` oluşturuldu. Kurumsal `nakgo-website`, Vercel Production,
+  canlı DNS ve Supabase Production değiştirilmedi. PR #38 birleştirilmedi.
+- Uzak HTTP kabulü: `/` ve `/sw.js` 200, auth config `{enabled:false}`;
+  bilinmeyen API, server kaynak yolu ve `.env` 404. Anahtarsız webhook/worker 503.
+- Cron her dakika tanımlı fakat `WHATSAPP_CRON_ENABLED=false`: DB işleme yok.
+  Gerçek batch CPU ölçümü ve DEV RLS/Meta kabulü henüz yapılmadı.
+- Wrangler OAuth cihaz akışıyla açıldı: user/account read, workers_scripts write,
+  offline_access. DNS/ödeme yazma kapsamı alınmadı. Windows keyring kayıt girişimi
+  erişim reddi verdi; standart oturum dosyası ignored `cloudflare/.wrangler/`
+  altındadır. İçeriği loga/Git'e kopyalanmaz. Sonraki CLI çağrılarında aynı
+  `XDG_CONFIG_HOME` kullanılmalıdır.
+- DEV Worker Settings ekranındaki **Production** etiketi bu ayrı Worker'ın
+  ana sürümünü ifade eder; NakGo Production uygulaması veya Supabase Production
+  değildir. Hedef Worker adı ve DEV Supabase URL birlikte doğrulanmalıdır.
+- `SUPABASE_SERVICE_ROLE_KEY` için Secret alanı kullanıcıya hazırlandı. Henüz
+  bir Supabase/Meta gizli anahtarı alınmadı veya Cloudflare'a girilmedi.
