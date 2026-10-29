@@ -158,3 +158,36 @@ ayrıdır. Bu dalı main'e almak veya Production'a taşımak ayrı karardır.
   değildir. Hedef Worker adı ve DEV Supabase URL birlikte doğrulanmalıdır.
 - `SUPABASE_SERVICE_ROLE_KEY` için Secret alanı kullanıcıya hazırlandı. Henüz
   bir Supabase/Meta gizli anahtarı alınmadı veya Cloudflare'a girilmedi.
+
+## 29 Ekim: gerçek DEV bağlantısı ve hesap kabulü
+
+Kullanıcı DEV service secret'ını Cloudflare'a kendisi ekledi; değer açılmadı.
+`WHATSAPP_WORKER_SECRET` rastgele üretildi, yalnız server secret olarak yüklendi.
+DEV publishable key ve `NAKGO_AUTH_ENABLED=true` yapılandırıldı; ardından
+`WHATSAPP_CRON_ENABLED=true` yayımlandı (sürüm `bbc2afb0-f853-4f6b-93d1-37c45c700692`,
+son secret işlemleri ayrıca sürüm oluşturabilir). Bu iki flag artık açıktır;
+yukarıdaki kapalı durum ilk yayının tarihsel kaydıdır.
+
+Gerçek uzaktan kabul: yetkili worker 200 ve boş kuyrukta 0 tamamlanan/0 hata;
+anahtarsız worker 401. Anonim `nakgo_wa_page`, `nakgo_wa_claim`, `nakgo_wa_purge`
+401 ile reddedildi. Auth config yalnız DEV URL ve public alanları döndürüyor.
+Kullanıcı mevcut DEV yöneticisiyle giriş yaptı; profil, yönetici genel bakış ve
+mevcut WhatsApp taslakları yeni hostta görüldü. Yeni sekmede oturum korundu.
+Normal kullanıcıyla yeni host kabulü ve gerçek Google dönüşü henüz yapılmadı.
+
+Geçici rastgele HMAC anahtarıyla imzalanan `nakgo-cf-dev-synthetic-20261029-01`
+mesajı webhook'tan 200 aldı, panelde bekleyen mesaj sayısı 1 oldu.
+Metin açıkça SENTETİK CLOUDFLARE TESTİ / YAYIMLAMA olarak işaretli; ilan yayımlanmadı.
+Geçici `META_APP_SECRET` test gönderiminden sonra silindi. Gerçek Meta uygulaması,
+verify token ve messages aboneliği henüz yok; Meta bağlantısı tamamlandı denmez.
+Cron'un gerçek işleme sonucu ayrıca doğrulanmalıdır; HTTP worker testi tek başına
+Cron kabulü değildir. Cloudflare yeni Worker olaylarının görünmesinin 30 dakika
+sürebileceğini belirtiyor. Ham request/mesaj loglaması kapalı kalır.
+
+Gerçek Cron kabulü tamamlandı: HTTP worker elle çağrılmadan bekleyen 1 mesaj
+0'a indi, hata 0 kaldı ve #6 İzmir → Ankara taslağı oluştu. Detayda sentetik
+kaynak metni aynen görüldü; 18 ton / tenteli / yarın girdisi inceleme işaretleriyle
+hazırlandı. Bu, gerçek Cloudflare→DEV kuyruk→zamanlayıcı→yönetici akışı kabulüdür;
+gerçek Meta mesajı veya maksimum batch CPU ölçümü değildir. Sentetik taslak test
+sonunda Reddet ile kapatıldı, ilan yayımlanmadı. Geçici Meta secret silindikten
+sonra webhook POST yeniden 503 ile kapalı doğrulandı.

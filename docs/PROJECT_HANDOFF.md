@@ -334,5 +334,10 @@ Ayrı dalda küçük Fetch adapteri, build zamanı katalog paketi ve kapalı var
 Cron hazırlandı. Vercel kaynakları ve veritabanı değiştirilmedi. Yerel workerd,
 Static Assets, ilan/yönetici/WhatsApp ve Auth kontrolleri yapıldı. Gerçek Cloudflare
 DEV deploy kullanıcı onayıyla tamamlandı: `https://nakgo-app-dev.yagizyedek8.workers.dev/`.
-Yeni hostta gerçek hesap/Meta kabulü tamamlanmadı; güvenli DEV secret girişi
-bekleniyor. Auth ve kuyruk işleme flagleri kapalı. [Tam rapor](cloudflare-dev-migration.md).
+DEV secret kullanıcı tarafından eklendi. Auth ve kuyruk işleme flagleri açık.
+Yeni hostta gerçek DEV yönetici/WhatsApp paneli ve yetkili HTTP worker kabulü geçti;
+normal hesap, Google ve gerçek Meta kabulü henüz tamamlanmadı. [Tam rapor](cloudflare-dev-migration.md).
+
+Cloudflare sentetik imzalı webhook→gerçek DEV kuyruk→Cron→#6 taslak kabulü geçti;
+bekleyen/hata 0. Sentetik taslak reddedildi; geçici Meta secret kaldırıldı.
+Gerçek Meta bağlantısı ve yeni host Google dönüşü bekliyor.

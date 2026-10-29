@@ -1,12 +1,34 @@
 {
- "name":"nakgo-app-dev",
- "main":"dist/worker.mjs",
- "compatibility_date":"2026-10-23",
- "workers_dev":true,
- "preview_urls":false,
- "build":{"command":"node tools/cloudflare-build.cjs","cwd":"."},
- "assets":{"directory":"../public","binding":"ASSETS","run_worker_first":["/api/*"],"not_found_handling":"none"},
- "triggers":{"crons":["* * * * *"]},
- "vars":{"NAKGO_ENV":"dev","SUPABASE_URL":"https://axkotffqrsddbrazhcwj.supabase.co","NAKGO_AUTH_ENABLED":"false","WHATSAPP_CRON_ENABLED":"false"},
- "observability":{"enabled":false}
+  "name": "nakgo-app-dev",
+  "main": "dist/worker.mjs",
+  "compatibility_date": "2026-10-23",
+  "workers_dev": true,
+  "preview_urls": false,
+  "build": {
+    "command": "node tools/cloudflare-build.cjs",
+    "cwd": "."
+  },
+  "assets": {
+    "directory": "../public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ],
+    "not_found_handling": "none"
+  },
+  "triggers": {
+    "crons": [
+      "* * * * *"
+    ]
+  },
+  "vars": {
+    "NAKGO_ENV": "dev",
+    "SUPABASE_URL": "https://axkotffqrsddbrazhcwj.supabase.co",
+    "NAKGO_AUTH_ENABLED": "true",
+    "WHATSAPP_CRON_ENABLED": "true",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_oca2dXffv23myBM7dZfOZA_KC9qL_Ki"
+  },
+  "observability": {
+    "enabled": false
+  }
 }
