@@ -341,3 +341,10 @@ normal hesap, Google ve gerçek Meta kabulü henüz tamamlanmadı. [Tam rapor](c
 Cloudflare sentetik imzalı webhook→gerçek DEV kuyruk→Cron→#6 taslak kabulü geçti;
 bekleyen/hata 0. Sentetik taslak reddedildi; geçici Meta secret kaldırıldı.
 Gerçek Meta bağlantısı ve yeni host Google dönüşü bekliyor.
+
+### Cloudflare kalan kabul işleri
+
+Google gerçek DEV giriş/çıkış, normal hesap UI izolasyonu, beş uzun mesajın
+duplicate/eşzamanlı worker kabulü ve DEV CPU metrikleri kaydedildi. Sonuç kısmen
+hazır: [güncel kabul ve açık sınırlar](cloudflare-dev-acceptance.md). Eski test
+sonuçlarını yeni normal hesap HTTP matrisi veya fiziksel veri silme diye sunmayın.
