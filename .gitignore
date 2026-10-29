@@ -11,3 +11,6 @@ docs/CODEMAP.md
 public
 .env
 .env.*
+
+# Local Cloudflare runtime state
+.wrangler/

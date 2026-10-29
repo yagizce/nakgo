@@ -12,9 +12,11 @@ ve veritabanı durumu yeni oturumda yeniden doğrulanır.
   inceleyin. Eski DEV dalını güncel uygulama sanmayın. Kullanıcı çalışmalarına
   toplu reset, temizlik, checkout veya `git add .` uygulamayın.
 - Kullanıcının son kapsamı esastır. Bir durum notu, tamamlanmamış özellik listesi
-  veya geçmiş onay yeni iş başlatma yetkisi değildir. Bu dalın kapsamı WhatsApp ilan toplama/yönetim geliştirmesidir;
-  Kullanıcı GitHub dalı, Vercel Preview ve güvenli DEV migration/test kapsamını onayladı.
-  Production deploy/migration ve main birleştirmesi yapılmaz; PR #38 draft kalır.
+  veya geçmiş onay yeni iş başlatma yetkisi değildir. Bu dalın kapsamı PR #38 temelli
+  Cloudflare Workers + Static Assets için yerel DEV uyarlaması ve testlerdir.
+  [Cloudflare devir notunu](docs/cloudflare-dev-migration.md) okuyun. Cloudflare
+  DEV yayını için yetki/sır gerektiğinde kullanıcıdan isteyin. Production, canlı
+  DNS ve migration kapsam dışıdır; main birleştirilmez, PR #38 draft kalır.
 - Kullanıcının onayladığı kapsamı tekrar sormayın; yeni main/Production yayını,
   migration veya yetki değişikliği için mevcut onayın gerçekten o işlemi
   kapsadığını doğrulayın. Eski tek seferlik istisnayı yeniden kullanmayın.
