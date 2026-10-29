@@ -52,5 +52,10 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "codex/nakgo-cloudflare-dev": false
+    }
+  }
 }
