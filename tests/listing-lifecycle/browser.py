@@ -33,6 +33,25 @@ with sync_playwright() as p:
         assert page.locator('[data-id="'+str(item_id)+'"]').count()==0
         page.click('nav [data-t=me]')
         assert page.locator('#profile-messages').count()==0
+        # Synthetic admin UI only; actual authorization is asserted in PostgreSQL tests.
+        page.evaluate("""() => {
+            window.permissionCalls=[];nakgoMarket.active=()=>true;nakgoMarket.token=()=>"synthetic-admin";
+            nakgoAuth.adminPage=async()=>({users:1,listings:0,documents:0,jobs:0});
+            nakgoAuth.whatsappRPC=async(name,args)=>{if(name==='page')return {drafts:[],pending:0,failed:0};if(name==='permission'){permissionCalls.push(args);await new Promise(r=>setTimeout(r,100));return 0;}throw Error('unexpected');};
+            return openAdminPanel();
+        }""")
+        page.get_by_role('button',name='WhatsApp ilanları',exact=True).click()
+        for active in [True,False]:
+            page.locator('#wa-permission').click()
+            page.fill('#permission-message','synthetic-permission-ui')
+            page.fill('#permission-phone','0532 123 45 67')
+            page.fill('#permission-basis','Synthetic documented consent reference')
+            until=page.evaluate("new Date(Date.now()+86400000).toISOString().slice(0,16)")
+            page.fill('#permission-until',until)
+            if not active:page.uncheck('#permission-active')
+            page.locator('#wa-permission-form button[type=submit]').evaluate('e=>{e.click();e.click()}')
+            expect(page.locator('#wa-permission')).to_be_visible()
+        assert page.evaluate("permissionCalls.length===2&&permissionCalls.every(x=>x.p_phone==='+905321234567')&&permissionCalls[0].p_active===true&&permissionCalls[1].p_active===false")
         assert not errors,errors
         page.close()
     browser.close()

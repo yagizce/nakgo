@@ -40,6 +40,7 @@ const {parseListings}=require('../../server/whatsapp/review-parser.cjs');
  const until=new Date(Date.now()+86400000).toISOString();
  ok(await rpc('permission',[msg.messageId,'05329999999','Synthetic documented permission',until,true])===0,'mismatched phone cannot publish');
  ok(await rpc('permission',[msg.messageId,'05321234567','Synthetic documented permission',until,true])===1,'matching documented permission publishes');
+ ok(await rpc('permission',[msg.messageId,'05321234567','Synthetic documented permission',until,true])===0,'permission retry does not duplicate publication or require second approval');
  const draft=await rpc('detail',[(await rpc('page',[0])).drafts[0].id]);
  const published=(await as('authenticated',user,'select id,note,contact_phone from public.listings where id=$1',[draft.listing_id]))[0];
  ok(published&&published.contact_phone==='+905321234567'&&published.note==='','public contact from body only, raw text private');
@@ -63,17 +64,29 @@ const {parseListings}=require('../../server/whatsapp/review-parser.cjs');
  const shortUntil=new Date(Date.now()+3600000).toISOString();
  await rpc('permission',[second.messageId,'05321234567','Synthetic shortened permission',shortUntil,true]);
  ok((await rpc('page',[0])).drafts.find(d=>d.source_id===job.id).status==='withdrawn','shorter permission cannot leave publication beyond permission');
+
+ const expiryMessage={...msg,messageId:'synthetic-wa-expiry'};
+ await rpc('permission',[expiryMessage.messageId,'05321234567','Synthetic six hour permission',until,true]);
+ await service('ingest',[JSON.stringify([expiryMessage])]);const expiryJob=await service('claim');await service('finish',[expiryJob.id,expiryJob.lease,JSON.stringify(candidates)]);
+ const waListing=(await q('select listing_id from private.wa_drafts where source_id=$1',[expiryJob.id]))[0].listing_id;
+ ok((await q("select expires_at-published_at=interval '6 hours' exact from public.listings where id=$1",[waListing]))[0].exact,'WhatsApp publication lifetime exactly six hours');
+ ok((await as('authenticated',user,'select id from public.listings where id=$1',[waListing])).length===1,'WhatsApp visible before deadline');
  // Time travel is confined to this disposable fixture, never a remote database.
  await db.exec('alter table public.listings disable trigger listing_lifecycle');
- await q("update public.listings set expires_at=now()-interval '1 second' where id=$1",[manual.id]);
+ await q("update public.listings set expires_at=now()-interval '1 second' where id in ($1,$2)",[manual.id,waListing]);
  await db.exec('alter table public.listings enable trigger listing_lifecycle');
- ok((await as('authenticated',admin,'select id from public.listings where id=$1',[manual.id])).length===0,'expired row hidden before cron');
- await fail(()=>as('authenticated',admin,'select public.nakgo_listing_contact($1)',[manual.id]),'42501');
- await fail(()=>as('authenticated',admin,'select public.nakgo_request_transport($1)',[manual.id]));
+ for(const [id,reader,label] of [[manual.id,admin,'manual'],[waListing,user,'WhatsApp']]){
+  ok((await as('authenticated',reader,'select id from public.listings where id=$1',[id])).length===0,label+' hidden by RLS before Cron');
+  await fail(()=>as('authenticated',reader,'select public.nakgo_listing_contact($1)',[id]),'42501');
+  await fail(()=>as('authenticated',reader,'select public.nakgo_request_transport($1)',[id]));
+  await fail(()=>as('authenticated',reader,'select public.nakgo_set_favorite($1,true)',[id]),'42501');
+ }
  await fail(()=>as('authenticated',user,'select public.nakgo_expire_listings()'),'42501');
  await q('insert into private.account_moderation(user_id,suspended) values($1,true)',[user]);
- ok((await as('service_role',null,'select public.nakgo_expire_listings() n'))[0].n===1,'service archives expired record');
- ok((await q('select status from public.listings where id=$1',[manual.id]))[0].status==='archived','listing retained');
- ok((await q('select count(*)::int n from private.listing_lifecycle_audit'))[0].n===1,'expiry audit retained');
+ ok((await as('service_role',null,'select public.nakgo_expire_listings() n'))[0].n===2,'service archives manual and WhatsApp records including suspended owner');
+ for(const id of [manual.id,waListing])ok((await q('select status from public.listings where id=$1',[id]))[0].status==='archived','archived listing retained');
+ ok((await as('service_role',null,'select public.nakgo_expire_listings() n'))[0].n===0,'repeated Cron is idempotent');
+ ok((await q('select count(*)::int n from private.listing_lifecycle_audit'))[0].n===2,'one expiry audit per archived listing');
+ ok((await q('select count(*)::int n from private.wa_drafts where source_id=$1',[expiryJob.id]))[0].n===1,'source-linked WhatsApp history retained');
  console.log(checks+' listing lifecycle PostgreSQL checks passed');await db.close();
 })().catch(e=>{console.error(e.stack,e.code);process.exitCode=1;});

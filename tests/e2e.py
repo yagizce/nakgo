@@ -125,7 +125,10 @@ with sync_playwright() as p:
     pg.click("#pm1"); pg.wait_for_selector("#buy"); pg.click("#buy"); pg.wait_for_timeout(300)
     check("test modunda üyelik açılır", "Aktif" in pg.inner_text("#main"))
     nav("list"); pg.locator('.load[data-id="1"]').click(); pg.wait_for_selector("#sheet.open"); pg.click("#call"); pg.wait_for_timeout(250)
-    check("örnek telefon gerçek arama sunmaz", "Örnek telefon" in pg.inner_text("#sheetBody")); pg.evaluate('callTo("0555 123 45 67")'); check("Premium gerçek numara için tel bağlantısı verir", pg.locator('#sheetBody a[href^="tel:"]').count()==1)
+    check("numarasız örnek ilan arama başlatmaz", "İletişim numarası kullanılamıyor" in toast())
+    pg.evaluate('prem.until=0')
+    check("Ara ve WhatsApp üyelik olmadan görünür", pg.is_visible('#call') and pg.is_visible('#wa'))
+    pg.evaluate('prem.until=Date.now()+86400000;save()')
     pg.keyboard.press("Escape")
 
     # 9) Tema düğmesi üst barda ve kalıcı

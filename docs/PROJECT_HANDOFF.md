@@ -4,6 +4,10 @@
 
 `codex/nakgo-listing-lifecycle` dalında altı saat, izinli telefon, doğrudan iletişim
 ve WhatsApp izin kaydı geliştirildi. Yayın veya uzak migration yapılmadı.
+Yerel HTTP ortam hatası giderildi; 630 birim/HTTP, 397 E2E, 198 tarayıcı kapısı
+ve 54 yaşam döngüsü veritabanı kontrolü geçti. Cloudflare yerel runtime ve
+Static Assets kabulü geçti. Korumalı test değişiklikleri insan incelemesi bekliyor.
+DEV migration/deploy için yeni kullanıcı onayı ve eşleşen istemci/şema planı gerekir.
 [Güncel kapsam, test sonuçları ve eksik kabul](listing-lifecycle.md).
 Aşağıdaki tarihli Cloudflare/WhatsApp kayıtları önceki aşamanın durumudur.
 
