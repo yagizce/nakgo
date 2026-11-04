@@ -11,6 +11,6 @@ function createStore({env=process.env,fetchImpl=fetch}={}){
   if(response.status===204)return null;
   const text=await response.text();return text?JSON.parse(text):null;
  }
- return {enqueue:messages=>rpc('nakgo_wa_ingest',{p_messages:messages}),claim:()=>rpc('nakgo_wa_claim',{}),complete:(id,lease,drafts)=>rpc('nakgo_wa_finish',{p_id:id,p_lease:lease,p_drafts:drafts}),fail:(id,lease)=>rpc('nakgo_wa_fail',{p_id:id,p_lease:lease}),purge:()=>rpc('nakgo_wa_purge',{}),expire:()=>rpc('nakgo_expire_listings',{})};
+ return {enqueue:messages=>rpc('nakgo_wa_ingest',{p_messages:messages}),claim:()=>rpc('nakgo_wa_claim',{}),complete:(id,lease,drafts)=>rpc('nakgo_wa_finish',{p_id:id,p_lease:lease,p_drafts:drafts}),fail:(id,lease)=>rpc('nakgo_wa_fail',{p_id:id,p_lease:lease}),purge:()=>rpc('nakgo_wa_purge',{}),expire:()=>rpc('nakgo_expire_listings',{}),redact:()=>rpc('nakgo_redact_listings',{})};
 }
 module.exports={createStore};
