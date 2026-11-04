@@ -1,76 +1,105 @@
-# Cloudflare DEV kabulü — 29 Ekim 2026
+# Cloudflare DEV kabulü — 4 Kasım 2026
 
-Durum: **kısmen hazır**. Meta bağlantısı kapsam dışı; Production geçiş izni yok.
-Taban yerel commit `4683484`, dal `codex/nakgo-cloudflare-dev`.
+Durum: **kısmen hazır; Production geçişi önerilmiyor**. PR #38 ve #39 Draft kalır.
+Yalnız nakgo-app-dev ve Supabase axkotffqrsddbrazhcwj kullanıldı. Main, Production,
+Vercel yayını, DNS, roller ve şema değiştirilmedi.
 
-## Google OAuth
+## Gerçek HTTP güvenlik kabulü
 
-DEV Supabase URL Configuration listesine yalnız
-`https://nakgo-app-dev.yagizyedek8.workers.dev/` eklendi; kullanıcı Save URLs ile
-kaydetti. Site URL ve mevcut Vercel redirect korunuyor. DEV provider zaten açıktı;
-Google callback `https://axkotffqrsddbrazhcwj.supabase.co/auth/v1/callback` aynı.
-Google Cloud Console erişimi kullanılmadı ve Production OAuth değiştirilmedi.
-Kullanıcı gerçek Google hesabını seçerek giriş yaptı; Cloudflare hostunda yönetici
-profili ve oturum yenileme görüldü. Gerçek çıkışta panel ve hesap ilanları temizlendi.
-Hesap seçiminde var olan Google oturumu etkiliydi; uygulama refactor edilmedi.
+Normal DEV hesabının mevcut oturumuyla, aynı hostta geçici bir kabul sayfasından
+35/35 kontrol geçti. Oturum yalnız tarayıcı belleğinde kullanıldı; JWT, yanıt
+içerikleri ve özel dosyalar rapora/loga/Git'e çıkarılmadı.
+- Admin ve belge inceleyici rolü: 200/false.
+- Admin page/moderate; WhatsApp page/detail/change/retry/ingest/claim/finish/fail/purge;
+  belge review/reserve/finalize/remove/transition: 403.
+- Olmayan negatif görüşme/iş kimliklerinde send_message 400, read_conversation ve
+  transition_transport 403. Bunlar gerçek başka hesaba ait nesneyle IDOR kanıtı değildir.
+- Başka kullanıcı filtresiyle profiles, listing_favorites, carrier_applications,
+  carrier_document_files, listing_conversations ve transport_jobs: 200/boş dizi.
+  RLS'nin boş sonuç döndürmesi beklenir; her özel sorgunun 403 vermesi gerekmez.
+- Normal JWT ile Cloudflare worker: 401; sunucu/secret kaynak yolları: 404.
+- Mevcut kendi özel dosyası: authenticated 200, anonymous 400; gövde okunmadı.
+  Storage kök listesi yalnız oturum sahibinin klasörünü gösterdi.
 
-## Normal hesap ve güvenlik
+**Kalan sınır:** DEV'de normal test hesabı dışında hazır ve Storage nesnesi bulunan
+belge sayısı 0. Dolayısıyla mevcut yabancı dosyaya doğrudan indirme/signed URL ve
+yazma girişimi doğrulanmadı. Bilinmeyen/gerçek dosya oluşturulmadı veya değiştirilmedi.
+Mesaj gövdeleri ve bütün owner RPC'leri için iki kontrollü hesaplı, gerçek mevcut
+nesne matrisi hâlâ gereklidir. 35 kontrol tam özel API envanteri kapsamı değildir.
 
-Gerçek DEV normal test hesabı Cloudflare hostunda açıldı. Profil yönetici düğmesi
-ve WhatsApp taslağı göstermedi; yönetici hesabının kapalı ilanı yerine normal
-hesabın kendi iki kapalı ilanı görüldü. Gerçek ilanlar değiştirilmedi.
-Anonim doğrudan DEV RPC `nakgo_wa_page`, `nakgo_wa_claim`, `nakgo_wa_purge`: 401;
-Cloudflare worker yetkisiz HTTP: 401; sunucu/secret dosya yolları: 404.
-42 izole PostgreSQL kontrolü normal kullanıcı, RLS, izin, lease, stale worker,
-retry/backoff ve audit sınırlarını geçti. Bunlar gerçek HTTP kabulünün yerine geçmez.
+## Gerçek hata, backoff ve retry
 
-**Eksik:** normal hesabın gerçek JWT'si ile doğrudan WhatsApp/admin/özel dosya
-HTTP RPC saldırı matrisi ve başka hesaba ait özel dosya/favori/mesaj erişim testi
-bu turda çalıştırılmadı. Tarayıcı aracı oturumdan bağımsız yetkili HTTP istemcisi
-sunmuyor; oturum token'ı çıkarılmadı veya yeni erişim token'ı üretilmedi. Sonraki
-kabulde aynı normal oturumdan çalıştırılan güvenli test harness veya yetkili
-Playwright test oturumu gerekir. UI gizliliği sunucu testi diye sunulmaz.
+Kuyruk boşken yalnız bir sentetik kaynak null metinle eklendi. Cron parser hatası
+sonrasında kaydı pending/attempts=1 durumuna aldı; kalan retry süresi 35 saniye
+ölçüldü, taslak sayısı 0 idi. Bekleme sırasında iki HTTP worker 200 ve 0/0 döndü.
+Yalnız sentetik metin düzeltildi, next_attempt değiştirilmedi. Doğal Cron retry
+sonrasında done/attempts=2, tam bir taslak ve sıfır yayımlanmış ilan doğrulandı.
+Dakika sınırına zamanlanan iki HTTP worker yine 0/0 döndü (wall 990/910 ms).
+Cron ile HTTP aynı dönemde etkin olsa da aynı milisaniyede DB claim çakışması
+trace edilmedi; kesin eşzamanlı Cron yarış testi diye sunulmaz.
 
-## Kontrollü kuyruk / CPU
+Gerçek DEV PostgreSQL transaction/rollback içinde üç ek kontrol geçti:
+sekizinci hatada failed ve 60 dakika backoff tavanı; stale lease completion reddi;
+terminal kaydın claim dışında kalması. Transaction tamamen geri alındı.
+Önceki beş mesaj duplicate + iki eşzamanlı HTTP worker kabulü 29 Ekim'de geçti.
 
-Gerçek DEV'e tek sentetik pakette 5 adet 4096 karakterlik mesaj gönderildi; aynı
-paket tekrar teslim edildi. İki yetkili worker eşzamanlı çağrıldı: sonuçlar
-5 tamamlanan/0 hata ve 0 tamamlanan/0 hata. Tam olarak 5 taslak oluştu; bekleyen
-mesaj 0, hata 0. Duplicate ve eşzamanlı claim sınırı gerçek DEV'de doğrulandı.
-Cron ile bir önceki tek mesaj kabulü geçti. Yeni deneyde tam Cron/HTTP çakışması
-zamanı zorlanmadı. Gerçek backoff/hata enjeksiyonu uygulanmadı; 42 DB fixture ve
-workerd hata testleri bu davranışı izole ortamda doğruluyor.
-131073 bayt gövde 413 aldı. Gerçek WhatsApp mesajı veya ilan yayını yapılmadı.
+Veri kaybı: bu deneyde kaynak kaybolmadı, retry tek taslak üretti ve otomatik ilan
+yayını olmadı. Kalıcı kesintide sekizinci denemeden sonra yönetici retry gerekir.
+Mevcut retention 30 gün sonra kaynak metnini temizler; uzun süre işlenmeyen kuyruk
+için alarm/operasyon müdahalesi şarttır. Her kesinti koşulunda sıfır kayıp garantisi yok.
 
-İstemciden ölçülen wall time: webhook ilk/tekrar 1264/892 ms; iki worker
-962/1112 ms; büyük gövde reddi 288 ms. Bu değerler ağ dahil uçtan uca süredir.
-Cloudflare DEV son 24 saat metrikleri: CPU P50 1,73 / P90 3,05 / P99 4,21 ms;
-wall P50 659 ms, P90/P99 yaklaşık 2 s; bellek P50 2,63 / P90 2,66 / P99 2,72 MB.
-CPU/bellek aşımı ve uncaught exception 0. Ölçümler tüm dönem trafiğinin dağılımı,
-yalnız beş mesajlık çağrının kesin CPU maliyeti değildir; request bazlı trace kapalı.
+## Temizlik
 
-[Resmi sınırlar](https://developers.cloudflare.com/workers/platform/limits/):
-Free 100000 istek/gün, 10 ms CPU/çağrı, 128 MB. Ücretli kaynak/limit değişmedi.
-Şimdiki P99 limitin altında; bu bir maksimum yük garantisi değildir. CPU P99
-7 ms'yi aşarsa veya limit aşımı oluşursa ilk güvenli öneri batch'i 5'ten 2'ye
-indirmek ve aynı kontrollü testi tekrar etmektir; otomatik ücretli plana geçilmez.
-Bu öneri mevcut ortak Vercel worker'ını değiştirecek şekilde uygulanmadı.
+Yalnız daha önce kaydedilmiş altı sentetik message_id ve bu turun tek retry kaydı
+transaction içinde silindi; bağlı taslak/audit hedefleri bu yedi kaynakla sınırlandı.
+Kaynak sayısı ve yayımlanmamış taslak şartı kontrol edildi. Sonuç: 0 test kaynağı,
+2 diğer kaynak korundu; diğer kaynakların satır hash'leri değişmedi.
+Gerçek kullanıcı ilanı, mesajı, belgesi ve bilinmeyen kaynaklar silinmedi.
+Geçici rollback fixture kalıcı değildi. Bu tur yeni imza anahtarı oluşturulmadı.
 
-## Temizlik ve teslim sınırları
+Geçici kabul sayfası kaldırıldı: /dev-acceptance HTTP 404; /api/auth/config 200.
+Asıl repo build'i yeniden DEV'e yayımlandı:
+577686f1-6023-4ad0-8edb-2acd5545a1b2. Ürün kodu değişmedi.
+Kabul HTML'i yalnız yerel outputs dizininde; dağıtım veya Git dosyası değildir.
 
-Beş sentetik taslak UI üzerinden kaynak metni doğrulanarak reddedildi; önceki
-tek taslak da reddedilmiş durumda. Kaynak/audit kayıtları DB retention kapsamında
-kaldı, fiziksel silme yapılmadı. Dolayısıyla temizlik yayın kuyruğunu kapatma
-seviyesindedir; tüm test satırlarının fiziksel silinmesi tamamlandı denmez.
-Geçici META_APP_SECRET kaldırıldı. Kalıcı DEV service/worker secret'ları çalışmayı
-sürdürmek için gerekli; sırlar, geçici dosyalar, resimler ve raw sonuçlar Git'e girmez.
+## CPU ve hata değerlendirmesi
 
-Git dalı için `vercel.json` içinde yalnız bu dalın `git.deploymentEnabled=false`
-kuralı eklendi; push/PR mevcut Vercel yayını başlatmamalı. Main, PR #38, canlı DNS,
-Production ve mevcut Vercel deployment ayarlarına uzak yazma yapılmadı.
-GitHub teslimi ayrı Draft PR, base WhatsApp dalı olacak; PR #38 merge edilmez.
+4 Kasım son 24 saat dashboard: CPU P50 1.67/P90 2.77/P99 3.55 ms,
+wall P50 732 ms/P99 yaklaşık 2 s; bellek P99 2.37 MB.
+CPU limit aşımı 0, bellek aşımı 0, uncaught exception 2.
+CPU grafiğinin bir zaman dilimindeki P99 değeri 19.673 ms: toplam P99 bunu
+gizleyebilir. Bir hata sentetik parser hatasıyla uyumlu; eski sürümdeki diğer
+hatanın nedeni çağrı kaydı olmadan kesinleştirilmedi. İki hatayı da test kaynaklı
+saymak veya CPU güvenliğini yalnız toplam P99 ile onaylamak doğru değildir.
+Request bazlı trace yok; metrikler kontrollü batch'e özel değildir.
 
-Production ön koşulları: normal hesap gerçek HTTP matrisi, fiziksel test verisi
-silme, çağrı bazlı yoğun batch CPU kanıtı ve karar verilmiş rollback/kota izleme.
-Meta bağlantısı kısıtlama kalkana kadar ayrıca bekler. Bu eksiklerle Production'a
-hazır sonucu verilmez; DEV teknik geçişi çalışır ve **kısmen hazır** kabul edilir.
+[Cloudflare sınırları](https://developers.cloudflare.com/workers/platform/limits/)
+yeniden kontrol edildi. Ücretsiz planda CPU bütçesi ve günlük kota gözetilmeli.
+Ücretli plan/limit açılmadı. Sonraki karar: sır içermeyen çağrı bazlı ölçümle
+19.673 ms örneğini ayırmak; gerekirse yalnız Cloudflare batch'ini 5'ten 2'ye
+düşürüp yoğun mesaj testini tekrarlamak. Ortak mimari bu tur değiştirilmedi.
+
+## Teslim ve canlı geçiş ön koşulları
+
+Build ve DEV yeniden dağıtımı başarılı, mevcut asıl kaynak ağacı korunuyor.
+29 Ekim test kanıtı: 646 birim, 50 WhatsApp, 65 guard, 42 izole PostgreSQL;
+PR #39 önceki head'inde iki CI başarılı. Bunlar 4 Kasım yeniden çalıştırıldı diye
+sunulmaz; bu tur ürün kodu değişmedi.
+
+Canlıya hazır sonucu için:
+1. İkinci kontrollü kullanıcıya ait mevcut özel dosya/mesaj nesneleriyle tam IDOR matrisi.
+2. Kesin Cron/HTTP overlap kanıtı ve çağrı bazlı CPU, açıklanmamış hata teşhisi.
+3. Kuyruk birikmesi/failed/retention için izleme ve müdahale sorumluluğu.
+4. Ayrı Production onayı, yapılandırma ve geri dönüş planı.
+
+## Meta bağlantısı için kullanıcı adımları
+
+Meta kısıtlaması kalkınca Developers uygulamasına WhatsApp ürünü/test numarası
+eklenir. DEV callback:
+https://nakgo-app-dev.yagizyedek8.workers.dev/api/whatsapp/webhook
+Verify token ve uygulamanın App Secret değeri yalnız nakgo-app-dev gizli ayarlarına
+girilir; sohbete veya Git'e yazılmaz. Webhook doğrulaması tamamlanıp messages
+aboneliği açılır, gerekiyorsa WhatsApp Business Account uygulamaya abone edilir.
+İzinli test göndereni Meta ekranında doğruladıktan sonra gerçek mesaj -> webhook ->
+kuyruk -> taslak -> yetkili panel kabulü ayrı çalıştırılır. Test mesajı için açık
+kapsam olmadan gerçek gönderim yapılmaz; otomatik yayın kapalı kalır.
