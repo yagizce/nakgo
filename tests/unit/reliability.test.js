@@ -4,7 +4,7 @@ module.exports = ({run,test,boot}) => {
     r("loads[0].cargo='<img src=x onerror=boom>';loads[0].note='<svg onload=boom>';loads[0].owner='A & B <firma>';render()");
     ok(!r("return main()").includes('<img src=x'),"kartta HTML çalışmaz");
     r("openLoad(loads[0].id)");const h=r("return sheet()");
-    ok(h.includes('&lt;img src=x')&&h.includes('&lt;svg onload')&&h.includes('A &amp; B &lt;firma&gt;'),"detay, not ve ad bir kez kaçışlanır");
+    ok(h.includes('&lt;img src=x')&&h.includes('&lt;svg onload')&&!h.includes('A &amp; B &lt;firma&gt;'),"detay ve not kaçışlı; isim gizli");
     r("q='\" autofocus onfocus=boom x=\"';render()");
     ok(r("return main()").includes('value="&quot; autofocus'),"arama özniteliğinden çıkamaz");
     r("openProfile({name:'<img src=x onerror=boom>'})");
@@ -43,17 +43,17 @@ module.exports = ({run,test,boot}) => {
     ok(r("return dateFields('Yarın',new Date('2026-10-11T12:00:00').getTime()).date")==='2026-10-12',"yarın gerçek tarih");
     ok(r("return dateFields('Bu hafta',new Date('2026-10-05T12:00:00').getTime()).dateEnd")==='2026-10-11',"hafta sonu sabit");
     ok(r("return dateLabel({date:'2026-10-11'},new Date('2026-10-12T12:00:00').getTime())")!=='Bugün',"bugün etiketi ertesi gün eskir");
-    ok(r("return expired({date:'2020-01-01',ts:Date.now()},'load')"),"geçmiş yükleme tarihi kapalı");
+    ok(r("return !expired({date:'2020-01-01',ts:Date.now()},'load')"),"yayın süresi yükleme metninden bağımsız");
     ok(r("return expired(normalizeListing({id:Date.now()-30*864e5,mine:true,from:'A',to:'B',date:'Bugün'}),'load')"),"eski yerel kimlikten tarih taşınır");
     ok(r("return !validDay('2026-02-31')"),"geçersiz takvim günü reddedilir");
   });
   run("Güncel telefon, mesafe ve kapalı ilan kuralları",(r,ok)=>{
     r("myCar.phone='0555 111 22 33';loads[0].mine=true;loads[0].phone='Eski'");
-    ok(r("return phoneOf(loads[0])")==='0555 111 22 33',"eski ilan güncel profil telefonunu kullanır");
+    ok(r("return phoneOf(loads[0])")==='',"profil telefonu izinli ilan telefonu yerine geçmez");
     r("sort='km'");
     ok(r("return sortL([{id:1,km:450},{id:2,from:'Mersin',to:'Adana'}])[0].id")===2,"hesaplanan mesafe sıralamaya katılır");
     r("loads[1].closed=true");ok(r("return requestLoad(loads[1])")===false,"kapalı ilana iş açılmaz");
-    r("loads[2].date='2020-01-01'");ok(r("return requestLoad(loads[2])")===false,"süresi dolmuş ilana iş açılmaz");
+    r("loads[2].ts=Date.now()-7*36e5");ok(r("return requestLoad(loads[2])")===false,"süresi dolmuş ilana iş açılmaz");
     r("q='İstanbul';openFilter()");
     ok(r("return el('#fs').textContent").startsWith(String(r("return loads.filter(x=>visibleListing(x)).length"))),"filtre ve liste sayısı aynı");
   });

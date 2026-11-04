@@ -26,7 +26,7 @@ module.exports = ({run,test,boot}) => {
     ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].stage")===3,"onay kalıcı");
   });
   run("Yük ve araç formu ortak kurallarla doğrulanır",(r,ok)=>{
-    r("loads[0]={id:1,from:'İstanbul',to:'Ankara',cargo:'Palet',ton:.5,cap:.5,veh:vehicles[0],body:bodies[0],date:'Bugün'}");
+    r("loads[0]={phone:'05321234567',contactConsent:true,id:1,from:'İstanbul',to:'Ankara',cargo:'Palet',ton:.5,cap:.5,veh:vehicles[0],body:bodies[0],date:'Bugün'}");
     ok(r("return postError(loads[0])")==="","ondalıklı pozitif tonaj geçerli");
     for(const value of ["0","-1","Infinity","NaN","1e308"])
       ok(r("return !!postError({...loads[0],ton:"+value+"})"),"geçersiz tonaj "+value);
@@ -38,9 +38,9 @@ module.exports = ({run,test,boot}) => {
     ok(r("return normalizeListing({...loads[0],items:[{n:'Koli',q:Infinity,u:'adet'}]}).items[0].q")===0,"eski sonsuz miktar güvenle düzeltilir");
   });
   run("Haftalık ilan tarihini koruma ve yeniden açma",(r,ok)=>{
-    r("loads[0]={...loads[0],mine:true,date:localDay(),dateEnd:dateFields('Bu hafta').dateEnd,closed:true};openEdit('l',loads[0].id,true);el('#ed').value=loads[0].date;el('#en').value='Yeni not';el('#es').onclick()");
+    r("loads[0]={...loads[0],mine:true,date:localDay(),dateEnd:dateFields('Bu hafta').dateEnd,closed:true};openEdit('l',loads[0].id,true);el('#ed').value=loads[0].date;el('#en').value='Yeni not';el('#edit-phone').value='05321234567';el('#edit-consent').checked=true;el('#es').onclick()");
     ok(r("return !loads[0].closed&&loads[0].dateEnd===dateFields('Bu hafta').dateEnd"),"aynı hafta aralığı korunur");
-    r("openEdit('l',loads[0].id);el('#ed').value='Yarın';el('#en').value='Yeni gün';el('#es').onclick()");
+    r("openEdit('l',loads[0].id);el('#ed').value='Yarın';el('#en').value='Yeni gün';el('#edit-phone').value='05321234567';el('#es').onclick()");
     ok(r("return loads[0].date===dateFields('Yarın').date&&!loads[0].dateEnd"),"tek gün seçimi eski hafta sonunu kaldırır");
     r("loads[0].closed=true;loads[0].date='2020-01-01';save();openEdit('l',loads[0].id,true);el('#ed').value='2020-01-01';el('#es').onclick()");
     ok(r("return loads[0].closed"),"eski tarihle yeniden açılmaz");
