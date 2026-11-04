@@ -3,7 +3,9 @@
 Son güncelleme: **29 Ekim 2026 — Europe/Istanbul**.
 Önce [AGENTS.md](../AGENTS.md), sonra bu rehber okunur. Bu dosya mevcut ürünü,
 kararları ve kabul kanıtlarını yeni ajana devreder; yeni özellik veya yetki
-vermez. Yeni kapsam: WhatsApp V2 GitHub/Preview ve DEV kabulü.
+vermez. Güncel kapsam: PR #38 temelli Cloudflare Workers yerel DEV uyarlaması.
+[Uyumluluk, testler ve yayın ön koşulları](cloudflare-dev-migration.md).
+Aşağıdaki WhatsApp Preview/DEV kabulü önceki aşamanın kaydıdır.
 Dal push edildi, Preview dağıtıldı ve WhatsApp migration yalnız DEV'e uygulandı.
 Production değişikliği ve main birleştirmesi yapılmadı. [Teknik devir](whatsapp-review.md).
 
@@ -314,8 +316,8 @@ Yeni secret-key başlığı ve boş PostgREST yanıtı hataları regresyon testi
 Canlı kabuk v44, Preview v45. Kalıcı scheduler ve gerçek Meta bağlantısı kurulmadı.
 24 sentetik mesaj ölçümünde varış ili 20/24; parser'ın bilinen sınırları ve
 manuel Meta adımları [WhatsApp rehberinde](whatsapp-review.md). Yeni özellik
-isteği olmadan parser refactor veya ortak yetkisi eklemeyin. Kullanıcı ileride
-Cloudflare'e geçiş düşünüyor; bu görevde taşıma/Production yayını yapılmadı.
+isteği olmadan parser refactor veya ortak yetkisi eklemeyin. Cloudflare yerel DEV uyarlaması ayrı `codex/nakgo-cloudflare-dev` dalında hazırlandı;
+ilk uzak Cloudflare DEV yayını yapıldı, Production değişikliği yapılmadı.
 
 ### 29 Ekim: Meta test bağlantısı hazırlığı
 
@@ -325,3 +327,24 @@ Cron adapteri kapalı varsayılanla eklendi; 4 yerel güvenlik/yanıt testi geç
 Cloudflare deploy veya gerçek Cron/Meta mesaj kabulü yapılmadı. Vercel Preview
 koruması harici webhook/cron erişimi için çözülmesi gereken bağımlılık; genel
 koruma kapatılmaz. Uygulama/refactor, yeni yetki ve Production değişikliği yok.
+
+### 29 Ekim: Cloudflare Workers yerel DEV geçişi
+
+Ayrı dalda küçük Fetch adapteri, build zamanı katalog paketi ve kapalı varsayılanlı
+Cron hazırlandı. Vercel kaynakları ve veritabanı değiştirilmedi. Yerel workerd,
+Static Assets, ilan/yönetici/WhatsApp ve Auth kontrolleri yapıldı. Gerçek Cloudflare
+DEV deploy kullanıcı onayıyla tamamlandı: `https://nakgo-app-dev.yagizyedek8.workers.dev/`.
+DEV secret kullanıcı tarafından eklendi. Auth ve kuyruk işleme flagleri açık.
+Yeni hostta gerçek DEV yönetici/WhatsApp paneli ve yetkili HTTP worker kabulü geçti;
+normal hesap, Google ve gerçek Meta kabulü henüz tamamlanmadı. [Tam rapor](cloudflare-dev-migration.md).
+
+Cloudflare sentetik imzalı webhook→gerçek DEV kuyruk→Cron→#6 taslak kabulü geçti;
+bekleyen/hata 0. Sentetik taslak reddedildi; geçici Meta secret kaldırıldı.
+Gerçek Meta bağlantısı ve yeni host Google dönüşü bekliyor.
+
+### Cloudflare kalan kabul işleri
+
+Google gerçek DEV giriş/çıkış, normal hesap UI izolasyonu, beş uzun mesajın
+duplicate/eşzamanlı worker kabulü ve DEV CPU metrikleri kaydedildi. Sonuç kısmen
+hazır: [güncel kabul ve açık sınırlar](cloudflare-dev-acceptance.md). Eski test
+sonuçlarını yeni normal hesap HTTP matrisi veya fiziksel veri silme diye sunmayın.
