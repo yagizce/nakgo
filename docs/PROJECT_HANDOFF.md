@@ -1,5 +1,13 @@
 # NakGo proje devir rehberi
 
+## 4 Kasım 2026 — yerel ilan/profil değişikliği
+
+`codex/nakgo-listing-lifecycle` dalında altı saat, izinli telefon, doğrudan iletişim
+ve WhatsApp izin kaydı geliştirildi. Yayın veya uzak migration yapılmadı.
+[Güncel kapsam, test sonuçları ve eksik kabul](listing-lifecycle.md).
+Aşağıdaki tarihli Cloudflare/WhatsApp kayıtları önceki aşamanın durumudur.
+
+
 Son güncelleme: **29 Ekim 2026 — Europe/Istanbul**.
 Önce [AGENTS.md](../AGENTS.md), sonra bu rehber okunur. Bu dosya mevcut ürünü,
 kararları ve kabul kanıtlarını yeni ajana devreder; yeni özellik veya yetki
@@ -67,7 +75,7 @@ Logo/splash/ikonları veya ürün alanları sebepsiz değiştirilmez.
 | [src/js/features/offers.js](../src/js/features/offers.js), [src/js/screens/offers.js](../src/js/screens/offers.js) | Demo iş davranışı ve gerçek hesap iş ekranı |
 | [src/js/features/account.js](../src/js/features/account.js) | Hesap, özel belge başvuruları ve nakgoDocuments durumu |
 | [src/js/screens/profile.js](../src/js/screens/profile.js), [src/js/screens/admin.js](../src/js/screens/admin.js) | Profil, rol görünürlüğü ve yönetici paneli |
-| [src/js/screens/inbox.js](../src/js/screens/inbox.js) | Görüşme/mesaj arayüzü |
+| src/js/screens/inbox.js (mesajlaşma arayüzü bu dalda kaldırıldı) | Görüşme/mesaj arayüzü |
 | [src/js/screens/main.js](../src/js/screens/main.js) | Ekran yönlendirme |
 | [src/js/ui/dialog.js](../src/js/ui/dialog.js) | Sheet, odak, inert arka plan ve kapatma |
 | [api/auth/config.mjs](../api/auth/config.mjs) | Ortama bağlı açık istemci yapılandırması |
