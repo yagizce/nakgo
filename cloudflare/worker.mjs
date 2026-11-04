@@ -26,6 +26,9 @@ export function createAdapter({storeFactory=env=>database.createStore({env,fetch
   async scheduled(_controller,env) {
    const safe=devEnv(env);
    await storeFactory(safe).expire();
+   if(safe.LISTING_RETENTION_ENABLED==='true') {
+    const retention=storeFactory(safe);await retention.redact();await retention.purge();
+   }else if(safe.LISTING_RETENTION_ENABLED && safe.LISTING_RETENTION_ENABLED!=='false')throw Error('invalid_retention_flag');
    if(safe.WHATSAPP_CRON_ENABLED==='false')return;
    if(safe.WHATSAPP_CRON_ENABLED!=='true')throw Error('explicit_cron_enable_required');
    try {

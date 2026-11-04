@@ -26,6 +26,7 @@
     "SUPABASE_URL": "https://axkotffqrsddbrazhcwj.supabase.co",
     "NAKGO_AUTH_ENABLED": "true",
     "WHATSAPP_CRON_ENABLED": "true",
+    "LISTING_RETENTION_ENABLED": "false",
     "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_oca2dXffv23myBM7dZfOZA_KC9qL_Ki"
   },
   "observability": {
