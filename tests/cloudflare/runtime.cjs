@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),{createHmac}=require('node:crypto'),path=require('node:path');
 const {Miniflare,convertV4MiniflareOptions,Response}=require('../../cloudflare/node_modules/miniflare');
 const bindings={NAKGO_ENV:'dev',SUPABASE_URL:'https://axkotffqrsddbrazhcwj.supabase.co',NAKGO_AUTH_ENABLED:'true',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_'+'a'.repeat(24),SUPABASE_SERVICE_ROLE_KEY:'sb_secret_synthetic_only',META_APP_SECRET:'synthetic-meta-test',WHATSAPP_VERIFY_TOKEN:'synthetic-verify-test',WHATSAPP_WORKER_SECRET:'w'.repeat(32),WHATSAPP_CRON_ENABLED:'true'};
-let queued=null,done=0,ingests=0,purges=0,failMode=false,redirectMode=false,failCount=0,lastDraft;
+let queued=null,done=0,ingests=0,purges=0,expiries=0,failMode=false,redirectMode=false,failCount=0,lastDraft;
 async function rpc(req){
  const u=new URL(req.url);assert.equal(u.origin,bindings.SUPABASE_URL);assert.equal(req.headers.get('apikey'),bindings.SUPABASE_SERVICE_ROLE_KEY);assert.equal(req.headers.get('authorization'),null);
  if(redirectMode)return new Response(null,{status:302,headers:{Location:'https://fimlifldsivecezbxwuo.supabase.co/'}});
@@ -11,6 +11,7 @@ async function rpc(req){
  if(name==='nakgo_wa_claim'){const q=queued;queued=null;return Response.json(q);}
  if(name==='nakgo_wa_finish'){if(failMode)return new Response('',{status:503});lastDraft=args.p_drafts;done++;return new Response(null,{status:204});}
  if(name==='nakgo_wa_fail'){failCount++;return new Response(null,{status:204});}
+ if(name==='nakgo_expire_listings'){expiries++;return Response.json(0);}
  if(name==='nakgo_wa_purge'){purges++;return new Response(null,{status:204});}
  throw Error('unexpected_rpc');
 }
@@ -33,7 +34,7 @@ const options={modules:true,scriptPath:path.resolve(__dirname,'../../cloudflare/
  r=await call('whatsapp/webhook',{method:'POST',headers:{'x-hub-signature-256':sig},body});assert.equal(r.status,200,'ingests='+ingests);assert.equal(ingests,1);
  r=await call('whatsapp/worker',{method:'POST',headers:{Authorization:'Bearer '+bindings.WHATSAPP_WORKER_SECRET}});assert.deepEqual(await r.json(),{completed:1,failed:0});assert.equal(done,1);assert.equal(lastDraft[0].fields.from.city,'İzmir');assert.equal(lastDraft[0].fields.destinations[0].city,'Ankara');
  queued={id:2,lease:'00000000-0000-4000-8000-000000000002',text:'Ankara İzmir 10 ton yükleme'};
- const w=await mf.getWorker();await w.scheduled({cron:'* * * * *',scheduledTime:Date.now()});assert.equal(done,2);assert.ok(purges>=2);
+ const w=await mf.getWorker();await w.scheduled({cron:'* * * * *',scheduledTime:Date.now()});assert.equal(done,2);assert.ok(purges>=2);assert.equal(expiries,1);
  redirectMode=true;r=await call('whatsapp/webhook',{method:'POST',headers:{'x-hub-signature-256':sig},body});assert.equal(r.status,503);assert.equal(ingests,1);redirectMode=false;
  failMode=true;queued={id:3,lease:'00000000-0000-4000-8000-000000000003',text:'Ankara İzmir 10 ton yükleme'};
  const failed=await w.scheduled({cron:'* * * * *',scheduledTime:Date.now()});assert.equal(failed.outcome,'exception');assert.equal(failCount,1);

@@ -25,6 +25,7 @@ export function createAdapter({storeFactory=env=>database.createStore({env,fetch
   },
   async scheduled(_controller,env) {
    const safe=devEnv(env);
+   await storeFactory(safe).expire();
    if(safe.WHATSAPP_CRON_ENABLED==='false')return;
    if(safe.WHATSAPP_CRON_ENABLED!=='true')throw Error('explicit_cron_enable_required');
    try {

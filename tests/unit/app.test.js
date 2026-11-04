@@ -25,8 +25,8 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
   });
 
   run("İlan süresi (TTL)", (r, ok) => {
-    r("loads.unshift({id:901,from:'İzmir',to:'Bursa',cargo:'Eski',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-20*864e5});loads.unshift({id:902,from:'İzmir',to:'Bursa',cargo:'Yeni',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-2*864e5});mode='load';tab='list';F=F0();render()");
-    const h = r("return main()"); ok(!h.includes('data-id="901"'), "14 günü geçen ilan gizli"); ok(h.includes('data-id="902"') && h.includes("2 gün önce"), "yeni ilan ve yaş");
+    r("loads.unshift({id:901,from:'İzmir',to:'Bursa',cargo:'Eski',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-20*864e5});loads.unshift({id:902,from:'İzmir',to:'Bursa',cargo:'Yeni',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-2*36e5});mode='load';tab='list';F=F0();render()");
+    const h = r("return main()"); ok(!h.includes('data-id="901"'), "altı saati geçen ilan gizli"); ok(h.includes('data-id="902"') && h.includes("dk kaldı"), "yeni ilan ve yaş");
     ok(r("return offerExp({status:'wait',ots:Date.now()-4*864e5})") === true && r("return offerExp({status:'wait',ots:Date.now()-864e5})") === false, "teklif süresi");
   });
 
@@ -37,7 +37,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
 
   run("Sayfalama ve puan sıralaması", (r, ok) => {
     const cards = h => (h.match(/class="load[ "]/g) || []).length;
-    r("for(let i=0;i<30;i++)loads.push({id:2000+i,from:'İzmir',to:'Bursa',cargo:'T'+i,ton:3,veh:'Kamyon',price:9000+i,date:'Cuma'});mode='load';tab='list';F=F0();render()");
+    r("for(let i=0;i<30;i++)loads.push({ts:Date.now(),id:2000+i,from:'İzmir',to:'Bursa',cargo:'T'+i,ton:3,veh:'Kamyon',price:9000+i,date:'Cuma'});mode='load';tab='list';F=F0();render()");
     let h = r("return main()"); ok(cards(h) === 20 && h.includes('id="more"'), "ilk 20 ilan ve daha fazla düğmesi (" + cards(h) + ")");
     r("shown+=20;render()"); h = r("return main()"); ok(cards(h) === 40, "20 ilan daha (" + cards(h) + ")");
     r("q='Zzz';render();q='';render()"); ok(r("return shown") === 20, "filtre değişince sıfırlanır");
@@ -54,11 +54,9 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     r("navigator.geolocation={getCurrentPosition:(s,e)=>e({code:1})};myPos=null;toggleNear()"); ok(r("return nearOn") === false, "izin reddedilirse açılmaz");
   });
 
-  run("İlan karşılaştırma", (r, ok) => {
-    r("toggleCmp(1);toggleCmp(2);mode='load';tab='list';F=F0();render()");
-    ok(r("return cmp.join()") === "1,2" && r("return main()").includes('id="cmpgo"'), "iki ilan seçilir, çubuk görünür");
-    r("openCompare()"); const h = r("return sheet()"); ok(h.includes("İlanları karşılaştır") && h.includes('class="win"'), "tablo ve kazanan vurgusu");
-    r("toggleCmp(3)"); ok(r("return cmp.join()") === "2,3", "üçüncü seçim en eskisini çıkarır");
+  run("İlan karşılaştırma kaldırıldı", (r,ok)=>{
+    ok(r("return typeof openCompare==='undefined'&&typeof toggleCmp==='undefined'"),"eski giriş noktaları yok");
+    r("tab='me';render()");ok(!r("return main()").includes('Karşılaştır'),"profilde karşılaştırma yok");
   });
 
   // ===== offers =====
@@ -67,13 +65,13 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     ok(r("return main()").includes("Yük sahibini puanla"), "puanlama düğmesi");
     r("setCar({lic:'CE',src:true,kb:true,ruh:true})"); ok(r("return cOk(myCar)") === true, "belge tamam");
     ok(r("return [lvT({approved:true}),lvT({verified:true}),lvT({})].join()") === "2,1,0", "rozet seviyeleri");
-    r("F=F0();F.from='İstanbul';addAlert();loads.unshift({id:920,from:'İstanbul',to:'İzmir',cargo:'Y',ton:2,veh:'Kamyon',price:8000,date:'Bugün'})");
+    r("F=F0();F.from='İstanbul';addAlert();loads.unshift({ts:Date.now(),id:920,from:'İstanbul',to:'İzmir',cargo:'Y',ton:2,veh:'Kamyon',price:8000,date:'Bugün'})");
     ok(r("return notifs().filter(x=>x.k.startsWith('a')&&!seen.has(x.k)).length") === 1, "alarm bildirimi");
   });
 
   // ===== safety =====
   run("Şikayet, engelleme, yardım", (r, ok) => {
-    r("loads.unshift({id:910,from:'İzmir',to:'Bursa',cargo:'X',ton:3,veh:'Kamyon',price:9000,date:'Cuma',uid:'bad'});mode='load';tab='list';F=F0();render()");
+    r("loads.unshift({ts:Date.now(),id:910,from:'İzmir',to:'Bursa',cargo:'X',ton:3,veh:'Kamyon',price:9000,date:'Cuma',uid:'bad'});mode='load';tab='list';F=F0();render()");
     ok(r("return main()").includes('data-id="910"'), "engel öncesi görünür");
     r("blockUser('bad')"); ok(!r("return main()").includes('data-id="910"'), "engellenen kullanıcının ilanı gizli");
     r("openReport('l',910)"); ok(r("return sheet()").includes("Şikayet et"), "şikayet ekranı");
@@ -120,13 +118,11 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
   });
 
   // ===== premium =====
-  run("Premium ve arama", (r, ok) => {
+  run("Demo Premium ve profil telefonu", (r, ok) => {
     ok(r("return isPrem()") === false, "başta üye değil");
-    r("callTo(phoneOf(loads[0]))"); ok(r("return sheet()").includes("NakGo Premium"), "paywall açılır");
+    r("openPaywall('')"); ok(r("return sheet()").includes("NakGo Premium"), "demo üyelik ekranı açılır");
     ok(/299/.test(r("return sheet()")) && /3\.099/.test(r("return sheet()")), "iki plan");
     r("el('#buy').onclick()"); ok(r("return isPrem()") === true, "satın alma (test)");
-    r("callTo(phoneOf(loads[0]))"); ok(r("return sheet()").includes("Örnek telefon")&&!r("return sheet()").includes("tel:"), "demo numarası aranmaz");
-    r("callTo('0555 123 45 67')"); ok(r("return sheet()").includes("tel:05551234567"), "gerçek numara için arama ekranı");
     r("el('#myph').value='0532 111 22 33';savePhone()"); ok(r("return myCar.phone") === "0532 111 22 33", "geçerli numara");
     r("el('#myph').value='123';savePhone()"); ok(r("return myCar.phone") === "0532 111 22 33", "geçersiz numara reddedilir");
   });
@@ -136,7 +132,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     ok(r("return [3,6,12,24,72].map(h=>featPrice('t',h)).join()") === "19,32,61,99,267", "sabit fiyat listesi (boş araç)");
     ok(!/hourMult|FEAT\.peak|FEAT\.low/.test(html), "saat çarpanı kodu kalmadı");
     ok(r("const a=featPrice('l',6);return a")===32 && r("return featPrice('l',24)")===99, "fiyat saatten bağımsız");
-    r("loads.unshift({id:800,from:'İzmir',to:'Bursa',cargo:'Öne',ton:3,veh:'Kamyon',price:9000,date:'Cuma',mine:true});trucks.unshift({id:'t900',from:'İzmir',to:'Ankara',veh:'Tır',cap:10,body:'Tenteli',date:'Yarın',mine:true,rate:'Yeni'})");
+    r("loads.unshift({ts:Date.now(),id:800,from:'İzmir',to:'Bursa',cargo:'Öne',ton:3,veh:'Kamyon',price:9000,date:'Cuma',mine:true});trucks.unshift({ts:Date.now(),id:'t900',from:'İzmir',to:'Ankara',veh:'Tır',cap:10,body:'Tenteli',date:'Yarın',mine:true,rate:'Yeni'})");
     r("openFeature('l',800)"); let h = r("return sheet()"); ok(h.includes("İlanını öne çıkar") && h.includes("3 gün") && !h.includes("Yoğun"), "yük için fiyat ekranı, saat çubuğu yok");
     r("el('#fbuy').onclick()"); ok(r("return isF(findIt('l',800))") === true && r("return findIt('l',800).featPaid") === 32, "yük öne çıkar, 6 saat 32 ₺");
     r("openFeature('t','t900')"); h = r("return sheet()"); ok(h.includes("Boş araç ilanını öne çıkar"), "boş araç için fiyat ekranı");

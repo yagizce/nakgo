@@ -55,7 +55,8 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "codex/nakgo-cloudflare-dev": false
+      "codex/nakgo-cloudflare-dev": false,
+      "codex/nakgo-listing-lifecycle": false
     }
   }
 }

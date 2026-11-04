@@ -28,10 +28,7 @@ function profileIdentityHTML(own,active,done,name,rating) {
 function profileToolsHTML() {
     const saved=nakgoMarket.active()?nakgoFavorites.state():null;
     const favoriteCaption=saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
-    const messageState=nakgoMarket.active()?nakgoMessages.state().unread:null;
-    const messageCaption=messageState?(messageState.ready?(messageState.count?messageState.count+' okunmamış mesaj':'Görüşmelerin'):messageState.error||'Mesajlar yükleniyor…'):'Görüşmelerin';
     const tools=[
-        ['messages','message','Mesajlar',messageCaption],
         ['favorites','heart','Kaydettiklerim',favoriteCaption],
         ['fuel','fuel','Mazot hesabı','Yol giderini planla']
     ];
@@ -99,7 +96,6 @@ function renderProfile(main) {
             toast('Profilin kaydedildi');
         }
     };
-    $('#profile-messages').onclick=openInbox;
     $('#profile-fuel').onclick=()=>openCalc();
     $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
     $('#profile-map').onclick=()=>openRoadMap();

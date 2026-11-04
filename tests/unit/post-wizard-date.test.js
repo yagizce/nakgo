@@ -1,6 +1,6 @@
 module.exports=({run})=>{
  run('Load timing is required free text; notes step and truck calendar stay unchanged',async(r,ok)=>{
-  r("window.loadDraft={from:'İstanbul',to:'Ankara',veh:'Tır',body:'Tenteli',ton:10,cargo:'Synthetic',date:'',time:'',dateText:''};");
+  r("window.loadDraft={phone:'05321234567',contactConsent:true,from:'İstanbul',to:'Ankara',veh:'Tır',body:'Tenteli',ton:10,cargo:'Synthetic',date:'',time:'',dateText:''};");
   ok(r('return postError(window.loadDraft,false,1)===""'),'notes transition does not require timing');
   for(const value of ['', '   '])ok(r('return !!postError({...window.loadDraft,dateText:'+JSON.stringify(value)+'})'),'empty timing cannot publish');
   for(const value of ['bugün','yarın sabah','Haftaya uygun olduğunda','28.10.2026 25:70','2020-01-01','<img src=x onerror=alert(1)>']){

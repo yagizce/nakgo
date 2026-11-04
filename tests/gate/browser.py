@@ -53,7 +53,12 @@ class BrowserGate(unittest.TestCase):
     def visible_box(self,p,selector):
         r=p.locator(selector).bounding_box();v=p.viewport_size
         return bool(r and r['x']>=-1 and r['y']>=-1 and r['x']+r['width']<=v['width']+1 and r['y']+r['height']<=v['height']+1)
+    def contact(self,p):
+        p.fill('#post-phone','05321234567');p.check('#post-consent')
+    def publish(self,p):
+        self.contact(p);p.click('#go')
     def double_click_same_button(self,p,selector):
+        if selector=='#go':self.contact(p)
         # Aynı düğmede kuyruğa alınmış iki click; detached düğme de tekrar çağrılır.
         p.locator(selector).evaluate('e=>{e.click();e.click()}')
 
@@ -73,7 +78,7 @@ class BrowserGate(unittest.TestCase):
                 p.locator('.load[data-tid]').first.click()
                 self.verify(self.visible_box(p,'#sheetBody'),'Araç sheet ekran içinde')
                 self.verify(self.visible_box(p,'#call') and p.is_enabled('#call'),'Ara tıklanabilir')
-                self.verify(self.visible_box(p,'#mg') and p.is_enabled('#mg'),'Mesaj tıklanabilir')
+                self.verify(self.visible_box(p,'#wa') and p.is_enabled('#wa'),'WhatsApp tıklanabilir')
                 p.click('#close');p.click('[data-md=load]');p.locator('.load[data-id]').first.click()
                 self.verify(self.visible_box(p,'#sheetBody'),'Yük sheet ekran içinde');p.click('#close')
 
@@ -109,18 +114,18 @@ class BrowserGate(unittest.TestCase):
             self.verify(not p.get_attribute('#d','placeholder') and p.locator('#post-date-hint').count()==0,'Hazır tarih veya alan altı açıklama yok')
             before=p.evaluate('trucks.length' if truck else 'loads.length')
             if not truck:p.click('#post-next')
-            p.click('#go')
+            self.publish(p)
             self.verify(p.evaluate('trucks.length' if truck else 'loads.length')==before and p.is_visible('#go'),'Boş tarihle ilan yayınlanmaz')
             if not truck:p.click('#post-prev')
             if truck:
-                p.fill('#d',typed_day()+' 25:70');p.click('#go')
+                p.fill('#d',typed_day()+' 25:70');self.publish(p)
                 self.verify(p.evaluate('trucks.length')==before and p.is_visible('#go'),'Geçersiz araç saati yayınlanmaz')
-                p.fill('#d',typed_day()+' 14:30');p.click('#go');p.reload()
+                p.fill('#d',typed_day()+' 14:30');self.publish(p);p.reload()
                 self.verify(p.evaluate("trucks.some(x=>x.mine&&x.time==='14:30')"),'Araç saati yenilemede korunur')
             else:
-                p.fill('#d','   ');p.click('#post-next');p.click('#go')
+                p.fill('#d','   ');p.click('#post-next');self.publish(p)
                 self.verify(p.evaluate('loads.length')==before and p.is_visible('#go'),'Yalnız boşluk yükleme tarihi sayılmaz')
-                p.click('#post-prev');p.fill('#d','yarın sabah');p.click('#post-next');p.click('#go');p.reload()
+                p.click('#post-prev');p.fill('#d','yarın sabah');p.click('#post-next');self.publish(p);p.reload()
                 self.verify(p.evaluate("loads.some(x=>x.mine&&x.dateText==='yarın sabah'&&x.date==='')"),'Serbest yükleme metni yenilemede aynen korunur')
                 saved_id=p.evaluate("loads.find(x=>x.mine&&x.dateText==='yarın sabah').id")
                 p.locator('[data-id="'+str(saved_id)+'"]').click()
@@ -134,7 +139,7 @@ class BrowserGate(unittest.TestCase):
         for amount in ['0','-1','1e308']:
             p.fill('#w',amount);p.click('#post-next')
             self.verify(p.is_visible('#w') and p.evaluate('loads.length')==before,'Geçersiz tonaj '+amount)
-        p.fill('#w','2');p.fill('#c','X'*5000);p.click('#post-next');p.fill('#n','N'*5000);p.click('#go')
+        p.fill('#w','2');p.fill('#c','X'*5000);p.click('#post-next');p.fill('#n','N'*5000);self.publish(p)
         self.verify(p.evaluate('loads[0].cargo.length<=120&&loads[0].note.length<=1000'),'Aşırı uzun metin sınırlandırılır')
         self.verify(p.evaluate('document.documentElement.scrollWidth<=innerWidth'),'Uzun metin ekranı taşırmaz')
 
@@ -150,10 +155,9 @@ class BrowserGate(unittest.TestCase):
 
     def test_request_once_accept_reject_and_expiry(self):
         p=self.page();p.evaluate("prem={until:Date.now()+864e5,plan:'test'};save()")
-        p.locator('.load[data-id="1"]').click();p.click('#mg');p.fill('#mi','Taşıma için görüşelim')
-        self.double_click_same_button(p,'#ms')
-        self.verify(p.evaluate('offers.filter(o=>o.loadId===1).length===1'),'Hızlı mesajla çift talep oluşmaz')
-        p.click('#close');self.nav(p,'mine');p.wait_for_function("offers[0].status==='ok'")
+        p.evaluate('requestLoad(loads[0]);requestLoad(loads[0])')
+        self.verify(p.evaluate('offers.filter(o=>o.loadId===1).length===1'),'Aynı ilan için çift talep oluşmaz')
+        self.nav(p,'mine');p.wait_for_function("offers[0].status==='ok'")
         self.verify('Kabul' in p.inner_text('#main'),'Demo kabul görünür')
         p.evaluate("offers.push({...loads.find(l=>l.id===2),status:'no',loadId:2});offers.push({...loads.find(l=>l.id===3),status:'wait',loadId:3,ots:Date.now()-31*864e5});save();render()")
         self.verify('Reddedildi' in p.inner_text('#main'),'Red durumu görünür')
@@ -171,7 +175,7 @@ class BrowserGate(unittest.TestCase):
         p=self.page();self.form(p);p.fill('#c','Taslak kalmalı');p.fill('#w','7');p.click('#post-next');p.fill('#n','Not kalmalı')
         before=p.evaluate('loads.length')
         p.evaluate("()=>{window.__storageSet=Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new DOMException('full','QuotaExceededError')}}")
-        p.click('#go');self.verify(p.is_visible('#go') and p.evaluate('loads.length')==before,'Depo doluysa sahte ilan oluşmaz')
+        self.publish(p);self.verify(p.is_visible('#go') and p.evaluate('loads.length')==before,'Depo doluysa sahte ilan oluşmaz')
         p.evaluate('()=>{Storage.prototype.setItem=window.__storageSet}');p.reload();self.nav(p,'post')
         self.verify(p.input_value('#c')=='Taslak kalmalı' and p.input_value('#n')=='Not kalmalı','Başarısız kayıtta taslak veri kaybı yok')
 
@@ -185,16 +189,15 @@ class BrowserGate(unittest.TestCase):
 
     def test_security_user_text_is_inert(self):
         for payload in PAYLOADS:
-            p=self.page();self.form(p);p.fill('#c',payload);p.fill('#w','2');p.click('#post-next');p.fill('#n',payload);p.click('#go')
+            p=self.page();self.form(p);p.fill('#c',payload);p.fill('#w','2');p.click('#post-next');p.fill('#n',payload);self.publish(p)
             self.verify(payload in p.inner_text('#main'),'Yük türü düz metin '+payload)
             own=p.evaluate('loads[0].id');p.locator('[data-id="'+str(own)+'"]').click()
             self.verify(payload==p.inner_text('.detail-note'),'İlan notu düz metin');p.click('#close')
             # Profil kaydını mevcut kayıt API'si ile kur; gerçek ekranı render et.
             p.evaluate('(value)=>setCar({displayName:value,about:value})',payload);self.nav(p,'me')
             self.verify(payload in p.inner_text('#main'),'Profil adı/tanıtım düz metin')
-            p.evaluate('(value)=>{prem={until:Date.now()+864e5,plan:"test"};save();openChat("security",value)}',payload)
-            p.fill('#mi',payload);p.click('#ms');self.verify(payload in p.inner_text('#msgs'),'Mesaj düz metin')
-            p.click('#close');p.reload()
+            self.verify(p.evaluate("typeof openChat==='undefined'&&typeof nakgoMessages==='undefined'"),'Mesajlaşma girişleri kaldırıldı')
+            p.reload()
             self.verify(p.evaluate("!document.querySelector('a[href^=\"javascript:\"]')"),'Metin çalıştırılabilir URL olmuyor')
             self.verify(not self.dialogs,'Script/event handler çalışmıyor')
 

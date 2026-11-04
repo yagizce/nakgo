@@ -1,5 +1,11 @@
 # NakGo — ajan çalışma kuralları
 
+Bu dalın güncel kapsamı: `codex/nakgo-listing-lifecycle` üzerinde yerel ilan/profil
+yaşam döngüsü. [Devir ve doğrulama sınırları](docs/listing-lifecycle.md) okunur.
+Uzak DEV migration/deploy yetkisi bu geliştirme kapsamında verilmedi; main,
+Production, DNS ve Draft PR #38/#39 değiştirilmez. Aşağıdaki Cloudflare notları
+temel dalın geçmişidir. Test değişiklikleri ayrı inceleme gerektirir; guard atlanmaz.
+
 Önce [proje devir rehberini](docs/PROJECT_HANDOFF.md) okuyun. Kullanıcıyla Türkçe
 ve açık iletişim kurun. Rehber tarihli bir kayıttır; uzak Git/PR/CI/deployment
 ve veritabanı durumu yeni oturumda yeniden doğrulanır.

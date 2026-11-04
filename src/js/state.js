@@ -49,7 +49,7 @@ let myPos = null;
 let myCity = "";
 let nearOn = false;
 let nearR = 0;
-let cmp = [];
+
 
 // --- Hesap ve oturum ---
 let cloud = false;
@@ -109,3 +109,6 @@ loads.push({ id: 15, from: "Ankara", to: "İstanbul", cargo: "Beyaz eşya", ton:
 });
 
 trucks.push({ id: "t4", verified: true, approved: true, who: "Yılmaz Ağır Nakliyat", from: "Samsun", to: "Mersin", veh: "Lowbed", cap: 30, body: "Lowbed", date: "Cuma", rate: 4.8 }, { id: "t5", who: "Selim K.", from: "Bursa", to: "İstanbul", veh: "Panelvan", cap: 1.5, body: "Kapalı kasa", date: "Bugün", rate: 4.5 }, { id: "t6", verified: true, who: "Doğu Tankercilik", from: "Mersin", to: "Gaziantep", veh: "Tanker", cap: 25, body: "Tanker", date: "Yarın", rate: 4.6 });
+
+// Demo examples receive a six-hour window; account records never use this clock.
+for(const item of [...loads,...trucks])if(!item.ts)item.ts=Date.now();

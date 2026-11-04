@@ -20,7 +20,7 @@ def take_shots():
         pg.goto("file://" + os.path.join(ROOT, "index.html"))
         pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(out, "01_splash.png"))
         pg.wait_for_timeout(2200); pg.screenshot(path=os.path.join(out, "02_liste.png"))
-        for name, js in (("03_detay", "openLoad(1)"), ("04_karsilastirma", "closeSheet();toggleCmp(1);toggleCmp(2);openCompare()"),
+        for name, js in (("03_detay", "openLoad(1)"), ("04_iletisim", "closeSheet();openLoad(2)"),
                          ("05_profil", "closeSheet();offers=[{...loads[0],offer:28500,status:'ok',loadId:1,bidder:'',stage:3,doneAt:Date.now()}];tab='me';setNav();render()"),
                          ("06_yakinimda", "tab='list';setNav();render();toggleNear()")):
             pg.evaluate(js); pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(out, name + ".png"))
@@ -86,24 +86,18 @@ with sync_playwright() as p:
     n1 = cards(); check(f"araç filtresi listeyi daraltır ({n0}→{n1})", 0 < n1 < n0)
     pg.evaluate("F=F0();render()"); pg.wait_for_timeout(200)
 
-    # 5) Karşılaştırma
-    for i in (0, 1):
-        pg.locator(".load[data-id]").nth(i).click(); pg.wait_for_selector("#sheet.open"); pg.click("#cp2"); pg.wait_for_timeout(250)
-    check("iki ilan seçilince karşılaştır çubuğu çıkar", pg.is_visible("#cmpgo"))
-    pg.click("#cmpgo"); pg.wait_for_selector("#sheet.open")
-    check("karşılaştırma tablosu açılır", "İlanları karşılaştır" in pg.inner_text("#sheetBody") and pg.locator("#sheetBody .win").count() > 0)
-    pg.keyboard.press("Escape"); pg.click("#cmpx"); pg.wait_for_timeout(200)
-
-    # 6) Taşıma talebi ve simüle yanıt
-    pg.locator(".load[data-id]").first.click(); pg.wait_for_selector("#sheet.open"); pg.click("#mg"); pg.click("#buy"); pg.locator(".load[data-id]").first.click(); pg.click("#mg"); pg.fill("#mi", "Yük hakkında görüşelim."); pg.click("#ms")
-    check("mesajlaşma ve mevcut iş kaydı korunur", pg.evaluate("offers.length == 1 && Object.values(chats).some(a => a.some(m => m.me))")); pg.click("#close")
-    nav("mine"); pg.wait_for_timeout(300)
+    # 5) Removed comparison/messaging; direct contact stays visible.
+    pg.locator(".load[data-id]").first.click();pg.wait_for_selector("#sheet.open")
+    check("Ara ve WhatsApp var; karşılaştırma ve sohbet yok", pg.is_visible('#call') and pg.is_visible('#wa') and pg.locator('#cp2,#mg').count()==0)
+    pg.click('#close')
+    # 6) Existing job lifecycle remains intact independently of contact UI.
+    pg.evaluate('requestLoad(loads[0])');nav('mine');pg.wait_for_timeout(300)
     check("taşıma talebi bekleniyor görünür", "Yanıt bekleniyor" in pg.inner_text("#main"))
     pg.wait_for_timeout(3600)
     check("simüle yanıt gelir", "Yanıt bekleniyor" not in pg.inner_text("#main"))
 
     # 7) İlan verme ve istatistik
-    nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); pg.fill("#d", typed_day()); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.click("#go"); pg.wait_for_timeout(300)
+    nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); pg.fill("#d", typed_day()); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.fill('#post-phone','05321234567');pg.check('#post-consent');pg.click("#go"); pg.wait_for_timeout(300)
     check("ilan yayınlanır", "İlan yayınlandı" in toast())
     nav("me"); pg.wait_for_timeout(300)
     check("İlanlarım'da yeni ilan ve istatistik satırı var", "görüntülenme" in pg.inner_text("#main") and pg.locator("[data-st2]").count() >= 1)
@@ -131,7 +125,10 @@ with sync_playwright() as p:
     pg.click("#pm1"); pg.wait_for_selector("#buy"); pg.click("#buy"); pg.wait_for_timeout(300)
     check("test modunda üyelik açılır", "Aktif" in pg.inner_text("#main"))
     nav("list"); pg.locator('.load[data-id="1"]').click(); pg.wait_for_selector("#sheet.open"); pg.click("#call"); pg.wait_for_timeout(250)
-    check("örnek telefon gerçek arama sunmaz", "Örnek telefon" in pg.inner_text("#sheetBody")); pg.evaluate('callTo("0555 123 45 67")'); check("Premium gerçek numara için tel bağlantısı verir", pg.locator('#sheetBody a[href^="tel:"]').count()==1)
+    check("numarasız örnek ilan arama başlatmaz", "İletişim numarası kullanılamıyor" in toast())
+    pg.evaluate('prem.until=0')
+    check("Ara ve WhatsApp üyelik olmadan görünür", pg.is_visible('#call') and pg.is_visible('#wa'))
+    pg.evaluate('prem.until=Date.now()+86400000;save()')
     pg.keyboard.press("Escape")
 
     # 9) Tema düğmesi üst barda ve kalıcı
@@ -184,18 +181,12 @@ with sync_playwright() as p:
             check(prefix+"ana menü ve ilan araçları ekranın altında",nav_box['y']>=740 and abs(nav_box['y']-dock_box['y']-dock_box['height'])<2)
             page.locator('#main').evaluate('e=>e.scrollTop=e.scrollHeight')
             check(prefix+"filtre, sıralama ve yakınlık kaydırmada erişilir",all(page.is_visible(s) for s in ('#fb','#s','#nr0')) and abs(page.locator('.list-actions').bounding_box()['y']-dock_box['y'])<2)
-            page.evaluate('cmp=[loads[0].id,loads[1].id];render()')
-            cmp_box=page.locator('.cmpbar').bounding_box();filter_box=page.locator('#fb').bounding_box()
-            check(prefix+"karşılaştırma alt işlemlerle çakışmaz",cmp_box['y']+cmp_box['height']<=filter_box['y']+1)
-            page.evaluate('cmp=[];render()');page.locator('#main').evaluate('e=>e.scrollTop=0')
+            check(prefix+"karşılaştırma kaldırıldı",page.locator('.cmpbar').count()==0)
+            page.locator('#main').evaluate('e=>e.scrollTop=0')
             page.select_option('#route-from','İstanbul');page.select_option('#route-to','Ankara')
             check(prefix+"güzergâh filtresi",page.locator('.load[data-id]').count()==1)
-            page.locator('[data-id]').first.click();page.click('#mg')
-            check(prefix+"mesajlaşma Premium ister",'NakGo Premium' in page.inner_text('#sheetBody'))
-            page.click('#buy');page.locator('[data-id]').first.click();page.click('#mg')
-
-            page.fill('#mi','Test mesajı');page.click('#ms')
-            check(prefix+"mesaj yazılır ve demo açıklaması görünür","Test mesajı" in page.inner_text('#msgs') and 'Demo sohbet' in page.inner_text('#sheetBody'))
+            page.locator('[data-id]').first.click()
+            check(prefix+"doğrudan iletişim",page.is_visible('#call') and page.is_visible('#wa') and page.locator('#mg').count()==0)
             page.keyboard.press('Escape');page.click('nav [data-t=post]');page.click('[data-pm=load]')
             page.click('#post-next');page.fill('#c','Uzun şehir adlarıyla hassas test yükü');page.fill('#w','18');page.fill('#d',typed_day());page.click('#post-next')
             page.fill('#n','Uzun not. '*40)
@@ -216,7 +207,7 @@ with sync_playwright() as p:
                 page.set_viewport_size({'width':390,'height':430});page.fill('#n','Klavye alanında deneme')
                 publish=page.locator('#go').bounding_box();check(prefix+"küçük klavye alanında yayınla görünür",publish['y']>=0 and publish['y']+publish['height']<=430)
                 page.set_viewport_size({'width':390,'height':844})
-            page.click('#go');check(prefix+"yayın sonrası taslak temizlenir",page.evaluate("!JSON.parse(localStorage.getItem('ng-post-drafts')).load"))
+            page.fill('#post-phone','05321234567');page.check('#post-consent');page.click('#go');check(prefix+"yayın sonrası taslak temizlenir",page.evaluate("!JSON.parse(localStorage.getItem('ng-post-drafts')).load"))
             page.click('nav [data-t=me]');page.fill('#myph','0555 123 45 67');page.click('#phs2')
             check(prefix+"profil telefonu kaydedilir",page.evaluate("myCar.phone==='0555 123 45 67'"))
             check(prefix+"profilde tekrar eden rol ve işler yok",page.locator('#profile-jobs,[data-ro]').count()==0 and page.is_visible('#profile-map'))
@@ -236,14 +227,14 @@ with sync_playwright() as p:
             check(prefix+"pencere kapanınca profil ve odak geri gelir",page.evaluate("!document.querySelector('#main').inert&&document.activeElement.id==='profile-map'"))
             page.locator('summary',has_text='Taşıyıcı belgeleri ve güven').click()
             check(prefix+"belge formu erişilir",page.is_visible('#lic'))
-            page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.fill('#d',typed_day());page.click('#go')
+            page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.fill('#d',typed_day());page.fill('#post-phone','05321234567');page.check('#post-consent');page.click('#go')
             check(prefix+"boş araç yayınlanır ve filtre arkasında kalmaz",page.evaluate("trucks.some(t=>t.mine&&t.from==='Afyonkarahisar'&&t.to==='Kahramanmaraş'&&t.cap===20)&&document.querySelectorAll('.load[data-tid]').length===trucks.length"))
             page.locator('.load[data-tid]').first.click();check(prefix+"araç detayını kapatmak erişilir",page.is_visible('.detail-top #close'))
-            message=page.locator('#mg').bounding_box();page.locator('.detail-scroll').evaluate('e=>e.scrollTop=e.scrollHeight')
-            check(prefix+"araç detayı mesaj düğmesi altta sabit",page.locator('.contact-dock #mg').count()==1 and abs(page.locator('#mg').bounding_box()['y']-message['y'])<2 and message['y']+message['height']<=844)
+            message=page.locator('#wa').bounding_box();page.locator('.detail-scroll').evaluate('e=>e.scrollTop=e.scrollHeight')
+            check(prefix+"araç detayı WhatsApp düğmesi altta sabit",page.locator('.contact-dock #wa').count()==1 and abs(page.locator('#wa').bounding_box()['y']-message['y'])<2 and message['y']+message['height']<=844)
             route=page.inner_text('.detail-summary .route');page.click('[data-map-expand]');page.wait_for_selector('#map-back')
             check(prefix+"büyütülen haritada ilana dön erişilir",page.is_visible('#map-back') and page.evaluate("document.querySelector('#sheetBody').contains(document.activeElement)"))
-            page.click('#map-back');check(prefix+"aynı araç ilanına iletişim işlemleriyle dönülür",page.inner_text('.detail-summary .route')==route and page.is_visible('#call') and page.is_visible('#mg') and page.locator('#map-back').count()==0)
+            page.click('#map-back');check(prefix+"aynı araç ilanına iletişim işlemleriyle dönülür",page.inner_text('.detail-summary .route')==route and page.is_visible('#call') and page.is_visible('#wa') and page.locator('#map-back').count()==0)
             page.click('#close')
             for screen in ('list','post','mine','me'):
                 page.click(f'nav [data-t={screen}]')
