@@ -7,11 +7,15 @@ Mevcut Draft PR #38/#39/#40'a, main, Production, DNS ve uzak ortamlara yazılmad
 ## Geçiş kararı: engelli, dağıtılmadı
 
 PR #40'ın `verify` (41877442158) ve `admin-regression` (41877442212) işleri
-GitHub connector ve doğrudan salt okunur GitHub API üzerinden hâlâ queued/null.
-CI başarılı sayılamaz. Önceki korumalı test incelemesi `listing-lifecycle.md` içinde;
+GitHub üzerinden yeniden doğrulandı: **completed/success**.
+Önceki korumalı test incelemesi `listing-lifecycle.md` içinde;
 bu dal guard, workflow veya önceki korumalı test dosyalarını değiştirmez.
 Supabase DEV sekmesi envanterde görünse de araç `browser.user is unavailable`
-verdi. Uzak şema, ledger ve geri yüklenebilir yedek doğrulanamadı.
+verdi. Kullanıcının DEV Backups ekran görüntüsü ücretsiz planda yönetilen proje
+yedeği bulunmadığını gösterdi. Kullanıcı bilinen manuel yedek/restore denemesi
+bildirmedi; bu çalışmada da yedek alınmadı. Uzak şema, ledger ve geri yüklenebilir
+yedek doğrulanamadı. Yönetilen yedek yokluğu, başka yerde manuel yedek olamayacağının
+kanıtı değildir; ancak mevcut geçiş için doğrulanmış bir yedek yoktur.
 Kullanıcının “güvenli geçiş mümkün değilse değişiklik yapma” koşuluyla migration,
 DEV deploy, gerçek ilan/izin/Cron testi çalıştırılmadı. Yerel test gerçek DEV değildir.
 
@@ -36,7 +40,9 @@ DEV deploy, gerçek ilan/izin/Cron testi çalıştırılmadı. Yerel test gerçe
   `SELECT ... FOR UPDATE` ile kilitle, ardından gerekçe referansını yaz.
   Geri alınamaz temizlikten önce engellerin tam envanteri gereklidir.
 - WhatsApp kaynak metni/göndereni 30 gün sonra, kaynak done/purged ise temizlenir.
-  Bir bağlı ilan korunuyorsa kaynak da korunur. Pending/processing/failed iş
+  Güncel veya denetim geçmişindeki eski bir bağlı ilan korunuyorsa kaynak da korunur.
+  Tür değişiminde draft.listing_id yeni ilana geçse bile eski bağlantı korunur.
+  Pending/processing/failed iş
   temizlenmez; `unprocessedOldSources` sayacı müdahale ihtiyacını gösterir.
 - Temizlenmiş WhatsApp ilanının taslak içeriği temizlenip purged yapılır.
   Yayımlanmamış taslaklarda eski 30 günlük iletişim/90 günlük içerik politikası
@@ -95,8 +101,8 @@ servisi kurulmadı. Postgres MVCC/TOAST alanı hemen dosya sistemine iade edilme
 
 ## Yerel kanıt
 
-- `npm test`: 630/630.
-- `tests/retention/database.cjs`: 40 kontrol (PostgreSQL/PGlite).
+- `npm test`: son çalıştırmada 631/631 (önceki çalıştırma 630/630).
+- `tests/retention/database.cjs`: 42 kontrol (PostgreSQL/PGlite).
 - Yaşam döngüsü DB: 54; WhatsApp DB: 42; admin: 47 + 11 rollback fixture.
 - Cloudflare build, mevcut gerçek yerel workerd HTTP/Cron testi ve yeni
   `tests/retention/runtime.cjs` başarılı. Dış RPC'ler sentetik, gerçek Supabase değildir.
@@ -107,3 +113,48 @@ servisi kurulmadı. Postgres MVCC/TOAST alanı hemen dosya sistemine iade edilme
 
 Gerçek eşzamanlı Cron yarışları, uzak CPU, yeni şemanın canlı HTTP kabulü ve
 tam yedekten restore testi tamamlanmadı. DEV geçişi **henüz hazır değil**.
+
+## İçerik kopyası ve güvenlik incelemesi
+
+Bu envanter kaynak kodu ve izole fixture incelemesidir; uzak tablo/logların
+gerçek içeriği bu tur taranmadı. “Her kopya silindi” sonucu çıkarılmaz.
+
+| Alan | Sonuç / saklama davranışı |
+| --- | --- |
+| listings | Serbest içerik, telefon ve image_data temizlenir; ID/sahip/rota/araç/tonaj kalır. |
+| transport_jobs.listing_snapshot | İlan özeti kopyası kalabilir. Bağlı iş varsa ilan zaten korunur; snapshot silinmez. |
+| listing_conversations, conversation_messages, message_inbox | Ad/rota/son mesaj ve serbest mesaj kopyaları kalabilir. Geçmiş korunur, eski istemci yetkileri PR #40'ta kapalıdır. |
+| wa_sources, wa_drafts | Kaynak ve taslak politikası uygulanır; tarihsel ilan bağlantısındaki hold da korunur. |
+| wa_audit.before_value/after_value | Tam fields kopyası; telefon, metin veya görsel barındırabilir. Koruyucu izin/denetim politikası nedeniyle tutulur; normal hesaba açık değildir. |
+| wa_publication_permissions / legal_basis | Telefon ve izin kanıtı korunur. Hukuki takvim netleşmeden otomatik silinmez. |
+| admin_audit / moderation.reason | Serbest gerekçe kişisel veri içerebilir; korunur. Yeni lifecycle audit yalnız ID/işlem/zaman içerir. |
+| listing_favorites | İçerik snapshot'ı yok; FK ve hesabın favorisi korunur, ilan RLS uygulanır. |
+| Storage | İlan fotoğrafı DB'de; özel taşıyıcı belgeleri ayrı bucket'ta. Gerçek bucket envanteri doğrulanmadı, hiçbir nesne silinmez. |
+| Worker logları | Kodda ham webhook/body/DB cevabı loglaması yok; genel hata kodları var. Gerçek Cloudflare/Supabase log saklama ve olası geçmiş içerik kopyaları ayrıca kontrol edilmeli. |
+| Service Worker | Yalnız statik kabuk allowlist'i cache'lenir; API/Supabase yanıtları cache'e yazılmaz. |
+| Tarayıcı belleği / localStorage | Gerçek hesap form taslakları oturum belleğinde; demo yy2/ng-post-drafts ve eski yerel sohbet/kurtarma verileri ayrı kalabilir. Sunucu Cron'u çevrimdışı cihaz kopyalarını silemez. |
+| Yedekler / WAL / eski export dosyaları | Silinmiş içeriği barındırabilir; saklama ve erişim politikası ayrıca uygulanmalı. Bu tur incelenemedi. |
+
+Korumalı testler: PR #40'ta mesaj gönderme başarı senaryoları kaldırılan özellik
+nedeniyle erişim reddi ve UI yokluğu senaryolarına dönüştürüldü. XSS, yanlış rol,
+storage hatası, eski yanıt ve kapalı ilan kontrolleri korunuyor. Retention dalında
+bu testler değiştirilmedi; iki yeni test dosyası eklendi. Guard/workflow farkı yok;
+CI başarısı korumalı dosyalar için gerekli insan incelemesini otomatik kaldırmaz.
+
+Yeni güvenlik düzeltmesi: WhatsApp purge yalnız güncel draft.listing_id'ye
+bakıyordu. Audit'teki eski listing_id de hold kontrolüne alındı; iki regresyon
+assertion'ı kaynak ve taslağın temizlenmediğini doğruluyor. Diğer alanlardaki
+kanıt kopyalarını toplu silmek, kabul edilmiş koruyucu politikaya aykırı olurdu.
+
+## Ücretsiz yedek doğrulaması için gerekenler
+
+Yönetilen yedek satın alınmayacak. Yetkili kişinin DEV veritabanı bağlantısını
+yerel güvenli credential store/pg_service/pgpass üzerinden sağlaması gerekir;
+şifre veya bağlantı sırrı sohbete, Git'e veya komut loglarına yazılmaz.
+Uygun sürümde pg_dump ile tek tutarlı snapshot, gerekli rol/izin tanımları ve
+manifest güvenli Git dışı konuma alınır. Dosyanın varlığı veya pg_restore --list
+tek başına yeterli değildir: aynı uyumlu PostgreSQL ortamında ayrı veritabanına
+restore, satır sayıları, FK ilişkileri, RLS/grant/function tanımları ve örnek
+erişim testleri doğrulanır. Son yazma zamanı, yedek zamanı ve aradaki değişiklikler
+bakım planında değerlendirilir. Yedek ve restore hedefi doğrulanınca kullanıcıya
+somut migration/worker sürümleriyle uygulama onayı sorulur; şu an koşullar eksik.

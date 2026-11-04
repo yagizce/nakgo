@@ -91,6 +91,15 @@ grant execute on function public.nakgo_redact_listings() to service_role;
 
 -- Preserve permission and audit evidence pending the approved legal schedule.
 -- Never destroy pending/failed work. No physical deletes or storage.objects deletes.
+create function private.wa_retention_blocked(p_source bigint) returns boolean
+ language sql stable security definer set search_path='' as $$
+ select exists(select 1 from private.wa_drafts d where d.source_id=p_source
+  and d.listing_id is not null and private.listing_retention_blocked(d.listing_id))
+ or exists(select 1 from private.wa_drafts d join private.wa_audit a on a.draft_id=d.id
+  join public.listings l on l.id::text=a.before_value->>'listing_id' or l.id::text=a.after_value->>'listing_id'
+  where d.source_id=p_source and private.listing_retention_blocked(l.id))
+$$;
+revoke all on function private.wa_retention_blocked(bigint) from public,anon,authenticated;
 create or replace function public.nakgo_wa_purge() returns void
  language plpgsql security definer set search_path='' as $$
 declare s private.wa_sources;
@@ -103,8 +112,7 @@ begin
     (l.content_redacted_at is not null or (d.listing_id is null and
      ((d.created_at<=statement_timestamp()-interval '30 days' and d.fields ?| array['description','contactPhone','company'])
       or d.updated_at<=statement_timestamp()-interval '90 days')))))
-  and not exists(select 1 from private.wa_drafts d where d.source_id=w.id
-   and d.listing_id is not null and private.listing_retention_blocked(d.listing_id))
+  and not private.wa_retention_blocked(w.id)
   order by id for update skip locked limit 100 loop
   update private.wa_sources set original_text=null,sender=null where id=s.id;
   update private.wa_drafts d set fields='{}',issues='[]',status='purged',revision=revision+1

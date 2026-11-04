@@ -2,10 +2,10 @@
 
 ## 4 Kasım 2026 — 30 günlük temizlik hazırlığı
 
-PR #40 CI queued kaldı; uzak şema ve geri alınabilir yedek doğrulanamadı.
+PR #40'ın iki CI işi başarılı doğrulandı; uzak şema ve geri alınabilir yedek doğrulanamadı.
 DEV geçişi başlatılmadı. Ayrı yerel `codex/nakgo-retention-dev` dalında koruyucu
 saklama, Cron ve toplu depolama ölçümü hazırlandı; yeni anahtar false.
-[Kapsam, 40 yeni kontrol, engeller ve güvenli geçiş planı](retention-dev.md).
+[Kapsam, 42 yeni kontrol, içerik kopyaları ve güvenli geçiş planı](retention-dev.md).
 Bu not uzak kabul veya hukuki saklama takvimi onayı değildir.
 
 ## 4 Kasım 2026 — yerel ilan/profil değişikliği

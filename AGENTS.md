@@ -2,8 +2,9 @@
 
 Son çalışma: `codex/nakgo-retention-dev`, PR #40 temelli yerel 30 günlük temizlik.
 [Güncel kabul engelleri ve saklama politikası](docs/retention-dev.md) önce okunur.
-Kullanıcı güvenli DEV geçişine izin verdi; CI/backup doğrulanamadığından uzakta
-işlem yapılmadı. Mevcut Draft PR'lar değiştirilmez; otomatik temizlik anahtarı kapalı.
+PR #40 CI başarılı; DEV yedek/restore doğrulanamadığından uzakta işlem yapılmadı.
+Kullanıcı uygulama öncesi yeniden onay istiyor. Mevcut Draft PR'lar değiştirilmez;
+otomatik temizlik anahtarı kapalı.
 Aşağıdaki eski kapsam notları güncel kullanıcı talimatının yerine geçmez.
 
 Bu dalın güncel kapsamı: `codex/nakgo-listing-lifecycle` üzerinde yerel ilan/profil

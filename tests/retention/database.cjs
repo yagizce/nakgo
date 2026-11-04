@@ -86,6 +86,13 @@ const {parseListings}=require('../../server/whatsapp/review-parser.cjs');
  await q("insert into private.wa_drafts(source_id,ordinal,fields,issues,confidence,fingerprint,status,listing_id) values($1,1,'{}','[]',1,repeat('b',64),'published',$2)",[heldSource,held]);
  await service('purge');
  ok((await q("select count(*)::int n from private.wa_sources where message_id in ('synthetic-failed','synthetic-held') and original_text is not null"))[0].n===2,'holds and unprocessed queue survive purge');
+ // A type change points the draft at a new listing; old listing holds still apply.
+ const historical=(await q("insert into private.wa_sources(message_id,sender,original_text,sent_at,received_at,state) values('synthetic-historical','sender','Historical held evidence',now(),now()-interval '100 days','done') returning id"))[0].id;
+ const historicalDraft=(await q("insert into private.wa_drafts(source_id,ordinal,fields,issues,confidence,fingerprint,status,listing_id) values($1,1,'{}','[]',1,repeat('d',64),'published',$2) returning id",[historical,manual]))[0].id;
+ await q("insert into private.wa_audit(draft_id,actor,action,before_value,after_value) values($1,$2,'publish',jsonb_build_object('listing_id',$3::bigint),jsonb_build_object('listing_id',$4::bigint))",[historicalDraft,admin,held,manual]);
+ await service('purge');
+ ok((await q('select original_text from private.wa_sources where id=$1',[historical]))[0].original_text==='Historical held evidence','historical listing hold protects original source after type change');
+ ok((await q('select status from private.wa_drafts where id=$1',[historicalDraft]))[0].status==='published','historical hold protects current draft too');
  const unlinked=(await q("insert into private.wa_sources(message_id,sender,original_text,sent_at,received_at,state) values('synthetic-unlinked','sender','Old private draft',now(),now()-interval '100 days','done') returning id"))[0].id;
  await q("insert into private.wa_drafts(source_id,ordinal,fields,issues,confidence,fingerprint,created_at,updated_at,legal_basis) values($1,1,'{\"contactPhone\":\"+905321234567\",\"company\":\"Synthetic\",\"description\":\"Private text\"}','[]',1,repeat('c',64),now()-interval '100 days',now()-interval '100 days','Synthetic preserved legal basis')",[unlinked]);
  await service('purge');
