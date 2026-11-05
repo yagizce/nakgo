@@ -27,6 +27,7 @@ jobs:
         run: |
           node --test tests/whatsapp/*.test.cjs
           node tests/whatsapp/group-capacity-db.cjs
+          node tests/whatsapp/storage-growth-db.cjs
       - name: Synthetic 10 and 20 group workloads
         run: node tools/whatsapp-load-check.cjs
       - name: Cloudflare runtime without external services

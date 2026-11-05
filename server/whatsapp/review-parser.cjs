@@ -7,23 +7,29 @@ const vehicleMatchers=vehicles.map(value=>({value,re:new RegExp('(?<![a-z])'+fol
 const places={...Object.fromEntries(cities.map(x=>[fold(x),{city:x,district:null}])),...Object.fromEntries(Object.entries({...districts,Tuzla:'İstanbul',Derince:'Kocaeli',Gazipaşa:'Antalya',Korkuteli:'Antalya',Serik:'Antalya'}).map(([x,city])=>[fold(x),{city,district:x}]))};
 for(const [name,city] of Object.entries({maras:'Kahramanmaraş',antep:'Gaziantep',urfa:'Şanlıurfa',afyon:'Afyonkarahisar',ist:'İstanbul',ank:'Ankara',erzrum:'Erzurum',diyarbkr:'Diyarbakır'}))places[name]={city,district:null,alias:true};
 const locationRE=new RegExp('(?<![a-z])('+Object.keys(places).sort((a,b)=>b.length-a.length).join('|')+")(?:'?(?:dan|den|tan|ten|ya|ye))?(?![a-z])",'g');
-function stops(text){const result=[];for(const m of fold(text).matchAll(locationRE)){const p={...places[m[1]],index:m.index};const last=result.at(-1);if(last&&last.city===p.city&&!last.district&&p.district){result[result.length-1]=p;}else result.push(p);}return result;}
+function foldedStops(text){const result=[];for(const m of text.matchAll(locationRE)){const p={...places[m[1]],index:m.index};const last=result.at(-1);if(last&&last.city===p.city&&!last.district&&p.district){result[result.length-1]=p;}else result.push(p);}return result;}
+function stops(text){return foldedStops(fold(text));}
 const clean=s=>s.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,' ').replace(/<[^>]*>/g,' ');
 const phoneRE=/(?<![+\d])(?:\+90|0090|90|0)?[ (]*[235]\d{2}[ ).-]*\d{3}[ .-]*\d{2}[ .-]*\d{2}(?!\d)/g;
 function contacts(text){return [...new Set((text.match(phoneRE)||[]).map(value=>{let d=value.replace(/\D/g,'');if(d.startsWith('0090'))d=d.slice(4);else if(d.length===12&&d.startsWith('90'))d=d.slice(2);else if(d.length===11&&d.startsWith('0'))d=d.slice(1);return /^[235]\d{9}$/.test(d)&&!/^([0-9])\1{9}$/.test(d)?'+90'+d:null;}).filter(Boolean))];}
 function parseListings(input){
  if(typeof input!=='string'||!input.trim()||input.length>MAX_TEXT)throw Error('invalid_text');
+ // Per-message caches only: no contact/company data survives the invocation.
+ const normalized=new Map(),locations=new Map(),candidates=new Map();
+ const normalizedText=text=>{if(!normalized.has(text))normalized.set(text,fold(text));return normalized.get(text);};
+ const messageStops=text=>{if(!locations.has(text))locations.set(text,foldedStops(normalizedText(text)));return locations.get(text);};
  const lines=clean(input).split(/\r?\n/).map(s=>s.trim()).filter(Boolean),allPhones=contacts(input);
- const companyLines=lines.filter(s=>/(lojistik|nakliyat|tasimacilik|firma\s*:)/.test(fold(s))&&!/\byukleme\b/.test(fold(s)));
+ const companyLines=lines.filter(s=>/(lojistik|nakliyat|tasimacilik|firma\s*:)/.test(normalizedText(s))&&!/\byukleme\b/.test(normalizedText(s)));
  const company=companyLines.length===1?companyLines[0].replace(phoneRE,'').trim():null;
- const conditionLines=lines.filter(s=>/olmali|sart|model|sinirsiz|\d+\s+yer/.test(fold(s)));
+ const conditionLines=lines.filter(s=>/olmali|sart|model|sinirsiz|\d+\s+yer/.test(normalizedText(s)));
  const chunks=[];let current=[];
  for(const line of lines){if(companyLines.includes(line)||(/^[+\d\s().-]+$/.test(line)&&contacts(line).length))continue;
-  if(stops(line).length&&current.length){chunks.push(current.join('\n'));current=[];}current.push(line);
+  if(messageStops(line).length&&current.length){chunks.push(current.join('\n'));current=[];}current.push(line);
  }
  if(current.length)chunks.push(current.join('\n'));if(!chunks.length)chunks.push(clean(input));
  return chunks.slice(0,30).map(text=>{
-  const t=fold(text),loc=stops(text),v1=parseLoad(text,{freightOnly:true}),issues=chunks.length>30?['message_overflow_review']:[];
+  if(candidates.has(text))return structuredClone(candidates.get(text));
+  const t=normalizedText(text),loc=messageStops(text),v1=parseLoad(text,{freightOnly:true}),issues=chunks.length>30?['message_overflow_review']:[];
   const truck=/bos\s+(arac|tir|kamyon)|aracim\s+bos|bosum/.test(t),load=/yukleme|yukler|yuk\s+var|malzeme|profil|palet|yukumuz/.test(t);
   const kind=truck!==load?(truck?'truck':'load'):null;
   const point=p=>p?{city:p.city,district:p.district}:{city:null,district:null};
@@ -56,7 +62,8 @@ function parseListings(input){
   if(!kind)issues.push('kind_unknown');if(!vehicle||!body)issues.push('vehicle_review');if(!cargo&&kind!=='truck')issues.push('cargo_missing');if(!timing)issues.push('timing_missing');if(phones.length!==1)issues.push('contact_review');
   const fields={kind,from,destinations,vehicle,body,weightMin,weightMax,amount:range?null:v1.weightTon,cargo:kind==='truck'?'':cargo,timing,availableOn:truck?availableOn:null,availableUntil:null,availableTime:'',vehicleCount:count?Number(count[1]):null,conditions,company,contactPhone:phones.length===1?phones[0]:null,description:text,publicNote:'',ownerLabel:'NakGo ilan masası',items:[],imageData:null};
   const fingerprint=createHash('sha256').update(JSON.stringify([kind,from,destinations,vehicle,body,weightMin,weightMax,cargo,fold(timing||'')])).digest('hex');
-  return {fields,issues,confidence:Number((Math.max(0,1-issues.length/10)).toFixed(2)),fingerprint,parserVersion:'rules-2'};
+  const candidate={fields,issues,confidence:Number((Math.max(0,1-issues.length/10)).toFixed(2)),fingerprint,parserVersion:'rules-2'};
+  candidates.set(text,candidate);return candidate;
  });
 }
 // Future adapters must return review candidates; cannot write/publish or override source.

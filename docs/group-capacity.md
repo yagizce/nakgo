@@ -63,10 +63,45 @@ Cron/purge açılmaz. CPU sonucu CF dashboard, native sonuç özel yerel raporda
 
 GitHub Draft PR44: 8081ca4 sürümünde quality-gate, verify, admin-regression
 ve capacity başarılı. Sonuncusu 8.000/16.000 sentetik yükü CI içinde de çalıştırdı.
-Kalan: yeni migration öncesi taze DEV yedek/restore ve gerçek DB kabulü; tam
-16 işlik HTTP/Cron yoğunluk kabulü; Storage byte yedeği, Production OAuth/secret
-ve uyumlu Vercel dönüş kabulü. Yerel 8k/16k başarı Production throughput garantisi
-değildir. 16 iş/dakika teorik 960 deneme/saat; 20 grubun retry dahil günlük
-ortalamasını karşılayabilir, yoğun saat marjı henüz kanıtlanmadı. Ücretsiz CPU
-ve 500 MB kapasitesi hedefi karşılamıyor; ücretli hizmet açılmadı.
-Main/Production/DNS/Paid için ayrı onay gerekir.
+6 Kasım devamı: 20261105010000 yalnız DEV'e uygulandı. Öncesinde taze şifreli
+yedek ayrı localhost'a yüklendi: 59 tablo/256 satır/59 FK/16 RLS, şema ve içerik
+hash eşleşti; migration yerelde prova edildi, DEV'de eski satırlar korundu.
+Production Storage: 7 dosya/220.757 bayt şifreli; dosyadan RAM'e çözme doğrulandı,
+uzak Storage servisine gerçek içerikle restore yapılmadı. Production OAuth hâlâ
+nakgo.vercel.app; app.nakgolojistik.com izinli değil, ayarlar değiştirilmedi.
+
+Yeni yerel CPU düzeltmesi yalnız mesaj içi normalizasyon/konum ve eş adayları
+önbelleğe alır; adaylar bağımsız kopyalanır, çağrılar arası telefon/firma tutulmaz.
+120 eski/yeni çıktı aynı; 25 tekrarlı ilanda Node süresi 8,6→0,85 ms. Bu yerel
+wall-time'dır, Cloudflare CPU değildir; benzersiz çoklu ilanla gerçek kabul bekler.
+
+20261106010000: incelenmiş validator gövdesinin hash'i farklıysa durur. Aynı
+satırı iki kez güncellemek yerine her dalda bir kez günceller; revision, before/
+after audit, kaynak, izin ve 6 saat aynen kalır. Yeni tuple için TOAST hedefi
+1024; eski satır rewrite edilmez. Eski aktif WhatsApp ilanları için yalnız eksik
+özel dedupe cache anahtarı eklenir; ilanlar veya mevcut anahtarlar değiştirilmez.
+Yerel 8k/16k testleri yine kayıpsız/çift yayın olmadan (tam audit korunur).
+
+| İlişki | 10 grup MB | İndeks MB | 20 grup MB | İndeks MB |
+| --- | ---: | ---: | ---: | ---: |
+| İlan | 2.71 | 1.19 | 5.19 | 2.29 |
+| Kaynak mesaj | 5.17 | 1.70 | 7.77 | 3.12 |
+| Taslak | 14.36 | 1.83 | 21.41 | 3.49 |
+| İlan audit | 13.82 | 0.40 | 26.98 | 0.77 |
+| İzin | 1.49 | 0.39 | 2.93 | 0.75 |
+| İzin audit | 1.28 | 0.17 | 2.51 | 0.33 |
+| Dedupe cache | 1.64 | 0.88 | 3.26 | 1.78 |
+
+Native PostgreSQL günlük fixture tahsisleri; indeks toplam sütununun içindedir.
+Ham kaynaklar yalnız wa_sources'ta; açıklama/telefon taslak ve tam audit'te de
+bulunur. Toplam büyüme kaynak başına 5,03/4,36 KB; 30 gün doğrusal tahmin
+1,24/2,12 GB (önce 1,43/2,31). Günlük autovacuum yeniden kullanımını ve gerçek
+mesaj dağılımını garanti etmez. İzin/audit iskeletleri 30 günde silinmez; 30 gün
+sonrası birikme izlenmelidir. 350/400/450 MB admin/service RPC eşikleri DEV'de.
+
+Kalan gerçek kabul: ikinci migration için taze yedek/restore; yeni CPU örneklemi,
+8k/16k kontrollü HTTPS consumer yükü ve sentetik DEV Storage restore mekaniği.
+Cron/purge kapalı. 16 iş/dakika teorik 960 deneme/saat; ayrı CPU bütçesi yoktur.
+Ücretsiz CPU kabulü ve yoğun saat marjı ölçülmeden 10/20 grup Production kapasitesi
+diye sunulmaz. Gerçek Production dosyası DEV'e kopyalanmaz; Worker/secret/OAuth,
+HTTPS/DNS ve uyumlu Vercel dönüşünün gerçek kabulü ayrı onaylı aşamadır.

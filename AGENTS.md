@@ -5,8 +5,10 @@
 alındı; korumalar geri açık, uygulama Guard 71/71. Aşağıdaki eski 48/65 notları
 tarihsel. Yeni grup migration'ı uzakta uygulanmadı. Free CPU kabulü hâlâ başarısız;
 dispatcher 503 düzeltmesi gerçek DEV'de geçti; mevcut veri değişmedi.
-Draft PR44 dört GitHub kontrolünü geçti (8081ca4). Grup migration'ı henüz DEV'de
-yok; tam yoğunluk kabulü ve Storage byte yedeği hâlâ tamamlanmadı.
+Draft PR44 dört GitHub kontrolünü geçti (8081ca4). Grup migration'ı DEV'de taze yedek/restore sonrası uygulandı (59 tablo/256 satır,
+RLS ve içerik hash eşleşti). Production Storage 7 dosya şifreli ve yerelde
+doğrulandı; gerçek servis restore değil. Yeni CPU/Storage optimizasyonu yerelde;
+ikinci migration ve tam gerçek DEV yük/CPU kabulü bekler.
 Cron/retention kapalı; Production/main/DNS/Paid için yeni onay gerekir.
 
 Son çalışma: `codex/nakgo-dev-release-checks`. DEV `73c477e` migrationları ve
