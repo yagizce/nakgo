@@ -14,7 +14,8 @@ Yeni kaynak: freightOnly ayrıştırması gereksiz V1 rota/fiyat işlemini atlar
 Gerçek DEV'de public self-fetch dispatcher 503 verdi; yerine aynı Worker içinde
 2 paralel claim, en çok 16 iş ve 50 sn başlatma bütçesi kullanılır. Tüm başlatılan
 işler beklenir; hata saklanmaz. En kötü 16×3+1=49 RPC; CPU ayrı ölçülmez.
-Bu düzeltmenin yerel runtime kabulü geçti; gerçek DEV tekrarı bekler.
+4819470 düzeltmesi gerçek DEV'de boş/kısa/çoklu üç çağrıda 200 verdi;
+sentetik kayıt 0, mevcut snapshot eşleşti. CPU 4/8/11 ms (birer örnek).
 Dakikalık Cron'un teorik üst sınırı 960 deneme/saat; yoğun saat garantisi değildir.
 Cron/dispatch/retention kapalıdır; Paid abonelik açılmadı.
 
@@ -60,6 +61,12 @@ Sentetik kaynak 0 kaldı, mevcut dört tablo snapshot'ı eşleşti. Free 10 ms C
 kabulü başarısız. Paid gereksinimi ayrıca kullanıcı onayına tabidir; mevcut kodda
 Cron/purge açılmaz. CPU sonucu CF dashboard, native sonuç özel yerel rapordadır.
 
-Kalan: düzeltilmiş drain için gerçek DEV kabulü; yeni migration öncesi taze yedek
-ve rehearsal; tüm GitHub CI; Storage byte yedeği, Production OAuth/secret ve
-uyumlu Vercel dönüş kabulü. Main/Production/DNS/Paid için ayrı onay gerekir.
+GitHub Draft PR44: 8081ca4 sürümünde quality-gate, verify, admin-regression
+ve capacity başarılı. Sonuncusu 8.000/16.000 sentetik yükü CI içinde de çalıştırdı.
+Kalan: yeni migration öncesi taze DEV yedek/restore ve gerçek DB kabulü; tam
+16 işlik HTTP/Cron yoğunluk kabulü; Storage byte yedeği, Production OAuth/secret
+ve uyumlu Vercel dönüş kabulü. Yerel 8k/16k başarı Production throughput garantisi
+değildir. 16 iş/dakika teorik 960 deneme/saat; 20 grubun retry dahil günlük
+ortalamasını karşılayabilir, yoğun saat marjı henüz kanıtlanmadı. Ücretsiz CPU
+ve 500 MB kapasitesi hedefi karşılamıyor; ücretli hizmet açılmadı.
+Main/Production/DNS/Paid için ayrı onay gerekir.
