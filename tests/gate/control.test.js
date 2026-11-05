@@ -18,7 +18,7 @@ test('Only trusted exact before/after hashes may approve product-contract tests'
  assert.equal(reviewedChange(null,file,before,after),false);
  assert.equal(reviewedChange({...ledger,version:2},file,before,after),false);
  assert.equal(reviewedChange({version:1,reviews:[{...review,source_head:'invalid'}]},file,before,after),false);
- for(const control of ['tests/guard.js','tests/run.js','tests/requirements.txt','tests/gate/control.test.js','tests/gate/static.js','tests/gate/static_html.py','.github/workflows/quality-gate.yml','.github/reviewed-controls.json','tests/../.github/workflows/quality-gate.yml','tests\\unit\\product.test.js']){
+ for(const control of ['tests/gate/browser.py','tests/gate/browser-dispatch.py','tests/gate/legacy-browser.py','tests/gate/product-browser.py','tests/gate/browser_dispatch_test.py','tests/unit/browser-dispatch.test.js','tests/guard.js','tests/run.js','tests/requirements.txt','tests/gate/control.test.js','tests/gate/static.js','tests/gate/static_html.py','.github/workflows/quality-gate.yml','.github/reviewed-controls.json','tests/../.github/workflows/quality-gate.yml','tests\\unit\\product.test.js']){
   assert.equal(reviewedChange({version:1,reviews:[{...review,files:{[control]:review.files[file]}}]},control,before,after),false);
  }
 });
