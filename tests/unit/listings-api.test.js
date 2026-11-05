@@ -10,7 +10,7 @@ module.exports=({test,fs,path,ROOT})=>{
   const ctx={URL,AbortSignal,setTimeout,clearTimeout,tab:'list',render(){},location:{href:'https://preview.example/',origin:'https://preview.example'},localStorage:{getItem:()=>null},sessionStorage:{getItem:()=>null,removeItem(){}},document:{createElement:()=>({remove(){}}),head:{appendChild:s=>queueMicrotask(()=>s.onload())}},window:{fetch:async()=>({ok:true,json:async()=>({enabled:true,url:'https://abcdefghijklmnopqrst.supabase.co',publishableKey:'sb_publishable_abcdefghijklmnopqrst'})}),supabase:{createClient:()=>sdk}}};
   vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8')+';this.auth=nakgoAuth;',ctx);await ctx.auth.init();
   await ctx.auth.createListing({kind:'load',from_city:'Ankara',to_city:'İzmir',amount:12,owner_id:'attacker',phone:'05555555555',premium:true,created_at:'forged',status:'archived'});
-  ok(call.values.owner_label==='Account A'&&!('owner_id' in call.values)&&!('phone' in call.values)&&!('premium' in call.values)&&!('created_at' in call.values)&&!('status' in call.values),'creation keeps identity and private fields server-owned');
+  ok(!('owner_label' in call.values)&&!('owner_id' in call.values)&&!('phone' in call.values)&&!('premium' in call.values)&&!('created_at' in call.values)&&!('status' in call.values),'creation keeps identity and private fields server-owned');
   await ctx.auth.updateListing(1,{note:'Updated',owner_id:'b',kind:'truck',status:'closed'});
   ok(JSON.stringify(call.values)==='{"note":"Updated","status":"closed"}'&&JSON.stringify(call.filters)==='[["id",1],["owner_id","account-a"]]','update is explicitly scoped and whitelisted');
   await ctx.auth.listListings({own:true,before:50});

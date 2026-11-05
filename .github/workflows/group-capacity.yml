@@ -1,0 +1,38 @@
+name: NakGo group capacity
+on:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: group-capacity-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Install locked Cloudflare tools and isolated PostgreSQL fixture
+        run: |
+          npm --prefix cloudflare ci --ignore-scripts --no-fund --no-audit
+          npm install --prefix "$RUNNER_TEMP/capacity-tools" --ignore-scripts --no-fund --no-audit @electric-sql/pglite@0.3.14
+          echo "NODE_PATH=$RUNNER_TEMP/capacity-tools/node_modules" >> "$GITHUB_ENV"
+      - name: Parser, dispatch, permissions and duplicate publication checks
+        run: |
+          node --test tests/whatsapp/*.test.cjs
+          node tests/whatsapp/group-capacity-db.cjs
+      - name: Synthetic 10 and 20 group workloads
+        run: node tools/whatsapp-load-check.cjs
+      - name: Cloudflare runtime without external services
+        run: |
+          node tools/cloudflare-build.cjs
+          node tests/cloudflare/runtime.cjs
+          node tests/cloudflare/group-dispatch.cjs
+          node tools/cloudflare-build.cjs --production
+          node tests/cloudflare/production-runtime.cjs

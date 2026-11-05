@@ -813,77 +813,6 @@ header p {
   width:40%;
 }
 
-.cmp {
-  display:grid;
-  grid-template-columns:92px 1fr 1fr;
-  margin-top:12px;
-  font-size:13px;
-}
-
-.cmp>div {
-  padding:8px 6px;
-  border-bottom:1px solid var(--line);
-  word-break:break-word;
-}
-
-.cmp .rl {
-  color:var(--mute);
-  font-weight:600;
-}
-
-.cmp .ch {
-  font-weight:800;
-  font-size:14px;
-}
-
-.cmp .win {
-  color:var(--ok);
-  font-weight:800;
-}
-
-.cmpbar {
-  position:sticky;
-  bottom:6px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:8px;
-  background:var(--ink);
-  color:var(--bg);
-  padding:10px 12px;
-  border-radius:14px;
-  margin-top:8px;
-  box-shadow:0 8px 24px rgba(0,0,0,.25);
-  font-size:14px;
-  font-weight:700;
-}
-
-/* ----- Teklifler, teslim aşamaları, mesajlaşma ----- */
-
-.bub {
-  max-width:80%;
-  padding:9px 13px;
-  border-radius:16px 16px 16px 4px;
-  margin:6px 0;
-  font-size:14px;
-  background:var(--card);
-  border:1px solid var(--line);
-}
-
-.bub.me {
-  margin-left:auto;
-  border-radius:16px 16px 4px 16px;
-  background:var(--brand-fill);
-  color:var(--on-brand);
-  border-color:var(--brand-fill);
-}
-
-#msgs {
-  height:240px;
-  overflow-y:auto;
-  padding:4px 0;
-}
-
 .st {
   font-weight:800;
   font-size:13px;
@@ -1614,6 +1543,12 @@ header p {
   letter-spacing:.2px;
   animation:rise .55s .5s both;
 }
+/* WhatsApp review remains inside the existing mobile shell. */
+.wa-review{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.wa-source{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-height:320px;overflow:auto}
+.wa-review textarea{display:block;width:100%;min-height:48px;box-sizing:border-box;margin:4px 0 12px}
+.wa-uncertain{border-left:3px solid #e6b800;padding:8px;overflow-wrap:anywhere}
+@media(min-width:760px){.wa-review{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
 
 /* Animasyonlar, hareket azaltma ve dar ekran düzeltmeleri (en sonda, diğer kuralları ezer) */
 
@@ -1883,11 +1818,6 @@ textarea:focus { outline:2px solid var(--brand-ink); outline-offset:2px; }
 .toast { width:max-content; max-width:calc(100% - 32px); white-space:normal; text-align:center; border-radius:16px; }
 .sheet { position:fixed; bottom:var(--keyboard-inset,0px); }
 .sheet>div { max-height:var(--detail-height,90dvh); }
-.chat-detail #msgs { min-height:0; max-height:none; flex:1; overflow:auto; padding:16px; margin:0; }
-.chat-detail .demo-note { margin:12px 16px 0; flex:none; }
-.chat-composer { display:flex; gap:8px; padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--line); background:var(--card); flex:none; }
-.chat-composer input { flex:1; min-width:0; }
-.chat-composer .btn { margin:0; width:auto; padding:12px; }
 .detail-top { gap:12px; }
 .detail-top>span,.detail-top>b { min-width:0; flex:1; }
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
@@ -1915,7 +1845,6 @@ header p { font-family:'Trebuchet MS','Segoe UI',sans-serif; font-size:11px; fon
 #thh+.bell { margin-left:0; }
 main { background:var(--bg); }
 #main[data-screen=list],#main[data-screen=post] { padding-bottom:160px; scroll-padding-bottom:160px; }
-#main[data-screen=list][data-comparing=true] { padding-bottom:210px; scroll-padding-bottom:210px; }
 nav { flex:none; height:var(--nav-height); padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px)); gap:6px; border-radius:24px 24px 0 0; box-shadow:0 -6px 24px #003e4510; z-index:3; }
 nav button { justify-content:center; border-radius:16px; padding:7px 2px; gap:5px; font-size:10px; }
 nav button svg { width:23px; height:23px; }
@@ -1931,8 +1860,6 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .list-controls .chip { font-size:12px; padding:10px 8px; gap:5px; }
 .list-controls .chip svg { width:16px; height:16px; }
 .dock-hint { font-size:12px; color:var(--mute); }
-.list-actions .cmpbar { position:static; box-shadow:none; margin:0 auto 10px; padding:0; border:0; max-width:720px; background:transparent; color:var(--ink); gap:8px; font-size:12px; }
-.list-actions .cmpbar .chip { padding:8px 12px; }
 .route-search { background:var(--app-gradient); padding:16px; border-radius:24px; color:var(--on-brand); position:relative; overflow:hidden; box-shadow:0 8px 20px #00686d20; margin-bottom:14px; }
 .route-search::before { content:""; position:absolute; width:170px; height:170px; right:-60px; top:-55px; border:22px solid #ffffff0d; border-radius:50%; pointer-events:none; }
 .route-search-heading,.route-fields { position:relative; }
@@ -2012,6 +1939,8 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 #app[data-keyboard=true] { --nav-height:0px; }
 #app[data-keyboard=true] nav { display:none; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+
+#post-consent,#edit-consent,#permission-active { width:20px; height:20px; min-height:20px; margin-right:8px; vertical-align:middle; }
 
 /* Profil kimliği, günlük araçlar ve iletişim */
 .profile-cover { display:flex; gap:14px; align-items:center; padding:20px 18px; border-radius:22px; background:var(--app-gradient); color:var(--on-brand); }
@@ -2217,11 +2146,11 @@ const SL = [["M1 6h13v10H1zM14 10h4l3 3v3h-7", "Yük bul, araç bul", "Yük sahi
 
 const PLANS = [{ id: "m", name: "Aylık", price: 299, days: 30 }, { id: "y", name: "Yıllık", price: 3099, days: 365 }];
 
-const TTL = { load: 14, truck: 7, offer: 3 };
+const TTL = { load: 0.25, truck: 0.25, offer: 3 };
 
 const SUPPORT_MAIL = "destek@nakgolojistik.com";
 
-const FAQ = [["Premium üyelik nedir?", "Premium üyeler ilan sahiplerini ve taşıyıcıları arayabilir ve uygulama içinden mesajlaşabilir."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Yükleme nasıl onaylanır?", "Taşıyıcı İşlerim bölümünde Yükledim der; yük sahibi yüklemeyi onaylar. Teslim fotoğrafı adımı yoktur."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
+const FAQ = [["Premium üyelik nedir?", "İlan iletişimi Ara ve WhatsApp üzerinden sağlanır."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Yükleme nasıl onaylanır?", "Taşıyıcı İşlerim bölümünde Yükledim der; yük sahibi yüklemeyi onaylar. Teslim fotoğrafı adımı yoktur."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
 
 /* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ürün kuralları docs/product.md içinde. */
 const FEAT = { prices: { l: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 }, t: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 } } };
@@ -2321,7 +2250,7 @@ let myPos = null;
 let myCity = "";
 let nearOn = false;
 let nearR = 0;
-let cmp = [];
+
 
 // --- Hesap ve oturum ---
 let cloud = false;
@@ -2382,6 +2311,22 @@ loads.push({ id: 15, from: "Ankara", to: "İstanbul", cargo: "Beyaz eşya", ton:
 
 trucks.push({ id: "t4", verified: true, approved: true, who: "Yılmaz Ağır Nakliyat", from: "Samsun", to: "Mersin", veh: "Lowbed", cap: 30, body: "Lowbed", date: "Cuma", rate: 4.8 }, { id: "t5", who: "Selim K.", from: "Bursa", to: "İstanbul", veh: "Panelvan", cap: 1.5, body: "Kapalı kasa", date: "Bugün", rate: 4.5 }, { id: "t6", verified: true, who: "Doğu Tankercilik", from: "Mersin", to: "Gaziantep", veh: "Tanker", cap: 25, body: "Tanker", date: "Yarın", rate: 4.6 });
 
+// Demo examples receive a six-hour window; account records never use this clock.
+for(const item of [...loads,...trucks])if(!item.ts)item.ts=Date.now();
+
+/**
+ * İlan telefon kuralları
+ * Türkiye numaralarını normalleştirir; mevcut veri yardımcılarını korur.
+ */
+// Turkish mobile and geographic numbers; no letters, extensions or foreign prefixes.
+function normalizeListingPhone(value) {
+    if(typeof value!=='string'||!/^[+0-9 ()\- .]+$/.test(value)||value.length>32)return '';
+    let digits=value.replace(/\D/g,'');
+    if(digits.startsWith('0090'))digits=digits.slice(4);
+    else if(digits.length===12&&digits.startsWith('90'))digits=digits.slice(2);
+    else if(digits.length===11&&digits.startsWith('0'))digits=digits.slice(1);
+    return /^[235][0-9]{9}$/.test(digits)&&!/^([0-9])\1{9}$/.test(digits)?'+90'+digits:'';
+}
 /**
  * Veri kuralları
  * Tarih, mesafe ve kayıt doğrulama; metinler ham saklanır, çizim sınırında kaçışlanır.
@@ -2452,6 +2397,8 @@ function postError(x, isTruck = false, step = 2) {
         if (!loadingTextOK(x.dateText)) return 'Yükleme tarihini yaz';
     } else if (!postDateOK(x.date) || dateFields(x.date).date < localDay()) return isTruck ? 'Güncel bir müsaitlik tarihi seç' : 'Güncel bir yükleme tarihi seç';
     if (Array.isArray(x.items) && x.items.some(i => !positiveAmount(i.q) || !ITEM_UNITS.includes(i.u))) return "Yük kalemlerine geçerli, sıfırdan büyük miktar ve birim gir";
+    if (!normalizeListingPhone(x.phone)) return "Geçerli bir Türkiye telefon numarası gir";
+    if (x.contactConsent !== true) return "Telefon numaranın ilanda paylaşılmasına izin vermelisin";
     return "";
 }
 function fuelEstimate(values) {
@@ -3056,8 +3003,8 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
-    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data'];
+    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,contact_phone,published_at,expires_at,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
+    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data','contact_phone','contact_consent'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
         return {id:state.user.id, revision};
@@ -3071,7 +3018,7 @@ const nakgoAuth = (() => {
         const account=listingAccount();
         let query=requireClient().from('listings').select(listingColumns).order('id',{ascending:false}).limit(50);
         if(own)query=query.eq('owner_id',account.id);
-        else query=query.eq('status','active');
+        else query=query.eq('status','active').gt('expires_at',new Date().toISOString());
         if(before!==null) {
             if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');
             query=query.lt('id',before);
@@ -3081,7 +3028,7 @@ const nakgoAuth = (() => {
     async function createListing(input) {
         const account=listingAccount();
         if(!['load','truck'].includes(input?.kind))throw Error('Invalid kind');
-        const values={kind:input.kind,owner_label:String(state.profile.display_name||'NakGo kullanıcısı').trim().slice(0,60)};
+        const values={kind:input.kind};
         for(const key of listingFields)if(Object.prototype.hasOwnProperty.call(input,key))values[key]=input[key];
         return listingResult(await requireClient().from('listings').insert(values).select(listingColumns).single(),account);
     }
@@ -3093,6 +3040,7 @@ const nakgoAuth = (() => {
         if(!Object.keys(values).length)throw Error('No editable fields');
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
+    async function listingContact(id){const account=listingAccount();return listingResult(await requireClient().rpc('nakgo_listing_contact',{p_id:id}),account);}
     const jobColumns='id,listing_id,owner_id,carrier_id,carrier_label,listing_snapshot,status,stage,created_at,updated_at,expires_at,loaded_at,confirmed_at';
     async function listJobs(before=null) {
         const account=listingAccount();
@@ -3125,40 +3073,7 @@ const nakgoAuth = (() => {
         return {active,done};
     }
     const messageResult=async(q,account)=>listingResult(await (typeof q.abortSignal==='function'&&typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?q.abortSignal(AbortSignal.timeout(15000)):q),account);
-    const conversationColumns='id,listing_id,owner_id,guest_id,owner_label,guest_label,listing_kind,from_city,to_city,last_message_id,last_message_body,last_sender_id,owner_read_id,guest_read_id,unread_count,created_at,updated_at';
-    const messageColumns='id,conversation_id,sender_id,client_nonce,body,created_at';
     const messageID=id=>Number.isSafeInteger(id)&&id>0;
-    async function listConversations(before=null) {
-        const account=listingAccount();
-        let q=requireClient().from('message_inbox').select(conversationColumns).order('last_message_id',{ascending:false}).order('id',{ascending:false}).limit(50);
-        if(before!==null) {
-            if(!messageID(before.id)||!Number.isSafeInteger(before.activity)||before.activity<0)throw Error('Invalid cursor');
-            q=q.or('last_message_id.lt.'+before.activity+',and(last_message_id.eq.'+before.activity+',id.lt.'+before.id+')');
-        }
-        return messageResult(q,account);
-    }
-    async function listMessages(id,before=null) {
-        const account=listingAccount();if(!messageID(id)||(before!==null&&!messageID(before)))throw Error('Invalid conversation');
-        let q=requireClient().from('conversation_messages').select(messageColumns).eq('conversation_id',id).order('id',{ascending:false}).limit(50);
-        if(before!==null)q=q.lt('id',before);
-        return messageResult(q,account);
-    }
-    async function openConversation(id) {
-        const account=listingAccount();if(!messageID(id))throw Error('Invalid listing');
-        return messageResult(requireClient().rpc('nakgo_open_conversation',{p_listing_id:id}),account);
-    }
-    async function sendMessage(id,body,nonce) {
-        const account=listingAccount();
-        if(!messageID(id)||typeof body!=='string'||!body.trim()||body.trim().length>500||typeof nonce!=='string'||!/^([a-f0-9]{8}-){1}[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(nonce))throw Error('Invalid message');
-        return messageResult(requireClient().rpc('nakgo_send_message',{p_conversation_id:id,p_body:body.trim(),p_client_nonce:nonce}),account);
-    }
-    async function readConversation(id,through) {
-        const account=listingAccount();if(!messageID(id)||!messageID(through))throw Error('Invalid boundary');
-        return messageResult(requireClient().rpc('nakgo_read_conversation',{p_conversation_id:id,p_through_id:through}),account);
-    }
-    async function unreadMessages() {
-        const account=listingAccount();return messageResult(requireClient().rpc('nakgo_message_unread_count'),account);
-    }
     const applicationColumns='id,owner_id,owner_label,license_class,status,revision,created_at,submitted_at,reviewed_at,reviewed_by,review_note,updated_at';
     const documentColumns='id,application_id,owner_id,kind,object_path,status,byte_size,created_at,updated_at';
     const documentUUID=id=>typeof id==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id);
@@ -3198,6 +3113,7 @@ const nakgoAuth = (() => {
         if(!Number.isSafeInteger(id)||id<1||!['accept','reject','withdraw','loaded','confirm'].includes(action))throw Error('Invalid transition');
         return listingResult(await requireClient().rpc('nakgo_transition_transport',{p_job_id:id,p_action:action}),account);
     }
+    async function whatsappRPC(name,args={}){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_wa_'+name,args),account);}
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
     async function adminPage(section,offset=0,search=''){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_page',{p_section:section,p_offset:offset,p_search:search}),account);}
     async function adminModerate(kind,target,action,reason,expectedRevision){
@@ -3205,7 +3121,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
+    return {listingContact,whatsappRPC,adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -3217,14 +3133,14 @@ const nakgoMarket = (() => {
     function empty() {
         loads=[]; trucks=[]; offers=[]; incoming=[]; chats={}; favs=[]; alerts=[]; blocked=[]; reports=[]; rates=[]; cdocs={};
         myCar={lic:'',src:false,kb:false,ruh:false}; prem={until:0,plan:''};
-        carriers={}; names={}; appr={}; events=[]; allO=[]; seen=new Set(); cmp=[]; postDrafts=null; postImg='';
+        carriers={}; names={}; appr={}; events=[]; allO=[]; seen=new Set(); postDrafts=null; postImg='';
     }
     function sync(s) {
         const next=s.marketplace && s.user && !s.recovery ? s.user.id : '';
         if(next!==account) {
             generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
             if(!account && next) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
-            empty(); account=next; nakgoJobs.reset(); nakgoFavorites.reset(); nakgoMessages.reset(); nakgoDocuments.reset(); nakgoAdminAccess.reset();
+            empty(); account=next; nakgoJobs.reset(); nakgoFavorites.reset(); nakgoDocuments.reset(); nakgoAdminAccess.reset();
             if(!next && demo) {
                 applyState(demo.data); ({incoming,carriers,names,appr,events,allO,seen}=demo); demo=null;
             }
@@ -3236,7 +3152,7 @@ const nakgoMarket = (() => {
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
             from:r.from_city,to:r.to_city,veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
-            owner:r.owner_label,who:r.owner_label,date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note,
+            owner:'',who:'',phone:r.contact_phone||'',expiresAt:Date.parse(r.expires_at),date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note,
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active',archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};
     }
@@ -3265,7 +3181,7 @@ const nakgoMarket = (() => {
     function payload(x,truck) {
         const dates=!truck&&'dateText' in x?{date:null,dateEnd:''}:dateFields(x.date);
         return {kind:truck?'truck':'load',from_city:x.from,to_city:x.to,vehicle:x.veh,body:x.body,amount:truck?x.cap:x.ton,
-            cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,available_time:x.time||'',...(!truck&&'dateText' in x?{loading_text:x.dateText}:{}),
+            contact_phone:normalizeListingPhone(x.phone),contact_consent:x.contactConsent===true,cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,available_time:x.time||'',...(!truck&&'dateText' in x?{loading_text:x.dateText}:{}),
             items:truck?[]:x.items||[],image_data:truck?'':x.img||''};
     }
     async function create(x,truck=false) {
@@ -3275,6 +3191,7 @@ const nakgoMarket = (() => {
     async function update(k,id,patch) {
         const x=findIt(k,id); if(!x?._remote || !x.mine)throw Error('Own listing required');
         const owner=token(), values={};
+        if('phone' in patch){values.contact_phone=normalizeListingPhone(patch.phone);values.contact_consent=patch.contactConsent===true;}
         if('note' in patch)values.note=patch.note;
         if('cap' in patch)values.amount=patch.cap;
         if('date' in patch){const dates=dateFields(patch.date);values.available_on=dates.date;values.available_until=('dateEnd' in patch?patch.dateEnd:patch.date===x.date?x.dateEnd:dates.dateEnd)||null;}
@@ -3286,7 +3203,7 @@ const nakgoMarket = (() => {
     }
     function controls() {
         if(!active())return '';
-        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar, fotoğraflar, taşıma talepleri, favorilerin ve mesajların hesabında saklanır.')+'</p>'+
+        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar, fotoğraflar, taşıma talepleri, favorilerin hesabında saklanır.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
     }
     return {active,token,sync,refresh,create,update,pending,controls,mapped};
@@ -3406,120 +3323,13 @@ const nakgoFavorites = (() => {
     return {reset,state,has,disabled,listings,unavailable,refresh,refreshPage,ensure,setSaved,controls,bind,updateListing};
 })();
 
-// Private conversations never enter yy2 or the legacy demo chat store.
-const nakgoMessages=(()=>{
-    let epoch=0,version=0,screen=0,timer=null,opening=false,conversations=[],inboxReady=false,inboxBusy=false,inboxError='',inboxBefore=null,inboxMore=false;
-    let current=null,messages=[],messageReady=false,messageBusy=false,messageError='',messageMore=false,messageBefore=null,sending=false,sendError='',retry=null;
-    let readBusy=false,lastRead=0,pollGeneration=0,pollDelay=8000,draftAccount='',drafts=new Map(),draftWarning='';
-    let summaryChecked=0,unread={count:0,ready:false,busy:false,error:''};
-    const allowed=()=>{const a=nakgoAuth.snapshot();return nakgoMarket.active()&&a.user&&a.profile&&!a.recovery;};
-    const state=()=>({conversations:conversations.map(x=>({...x})),inboxReady,inboxBusy,inboxError,inboxMore,current:current?{...current}:null,messages:messages.map(x=>({...x})),messageReady,messageBusy,messageError,messageMore,sending,sendError,draft:current?(drafts.get(current.id)?.body||''):'',draftWarning,unread:{...unread}});
-    const stop=()=>{pollGeneration++;if(timer!==null&&typeof window?.clearTimeout==='function')window.clearTimeout(timer);timer=null;};
-    function reset(){stop();if(draftAccount)try{window?.sessionStorage?.removeItem('ng-message-drafts:'+draftAccount);}catch(e){}drafts=new Map();draftAccount='';draftWarning='';readBusy=false;lastRead=0;pollDelay=8000;epoch++;version++;screen++;opening=false;conversations=[];inboxReady=inboxBusy=inboxMore=false;inboxError='';inboxBefore=null;current=null;messages=[];messageReady=messageBusy=messageMore=sending=false;messageError=sendError='';messageBefore=retry=null;summaryChecked=0;unread={count:0,ready:false,busy:false,error:''};}
-    const key=()=>$('#sheetBody').dataset.k;
-    const active=()=>key()==='account-inbox'||(current&&key()==='account-chat:'+current.id);
-    const same=(account,e)=>account===nakgoMarket.token()&&e===epoch;
-    const draw=()=>{if(active())paintAccountMessages();};
-    function loadDrafts(){
-        const account=nakgoAuth.snapshot().user?.id;if(!account||account===draftAccount)return;
-        drafts=new Map();draftAccount=account;draftWarning='';
-        try{const data=JSON.parse(window?.sessionStorage?.getItem('ng-message-drafts:'+account)||'[]');
-            if(Array.isArray(data))for(const row of data.slice(0,50))if(Number.isSafeInteger(row.id)&&row.id>0&&typeof row.body==='string'&&row.body.length<=500&&(!row.nonce||/^[a-f0-9-]{36}$/i.test(row.nonce)))drafts.set(row.id,{id:row.id,body:row.body,nonce:row.nonce||null});
-        }catch(e){draftWarning='Taslağı tarayıcıda saklayamadık. Göndermeden önce depolama erişimini kontrol et.';}
-    }
-    function saveDraft(body,nonce=null){
-        if(!allowed()||!current)return false;loadDrafts();
-        const old=drafts.get(current.id),value=String(body).slice(0,500);
-        if(value&&!old&&drafts.size>=50){draftWarning='Önce eski mesaj taslaklarından birini tamamla.';return false;}
-        const record={id:current.id,body:value,nonce:nonce||(old?.body.trim()===value.trim()?old.nonce:null)};
-        if(value)drafts.set(current.id,record);else drafts.delete(current.id);
-        try{window?.sessionStorage?.setItem('ng-message-drafts:'+draftAccount,JSON.stringify([...drafts.values()]));draftWarning='';return true;}
-        catch(e){draftWarning='Taslağı tarayıcıda saklayamadık. Göndermeden önce depolama erişimini kontrol et.';return false;}
-    }
-    const atBottom=()=>{const log=$('#msgs');return Number.isFinite(log.clientHeight)&&log.clientHeight>0&&log.scrollHeight-log.scrollTop-log.clientHeight<40;};
-    async function acknowledge(){
-        if(!allowed()||!current||readBusy||!messageReady||key()!=='account-chat:'+current.id||document.visibilityState==='hidden'||!atBottom())return;
-        const through=messages.at(-1)?.id;if(!through||through<=lastRead)return;
-        const account=nakgoMarket.token(),e=epoch,view=screen,id=current.id;readBusy=true;
-        try{await nakgoAuth.readConversation(id,through);if(same(account,e)&&view===screen){lastRead=Math.max(lastRead,through);version++;unread.ready=false;refreshSummary();}}
-        catch(e1){if(same(account,e)&&view===screen)messageError='Okundu bilgisi kaydedilemedi. Yenile ile tekrar dene.';}
-        finally{if(same(account,e)&&view===screen){readBusy=false;draw();}}
-    }
-    function schedule(){
-        stop();if(!active()||typeof window?.setTimeout!=='function')return;
-        const generation=pollGeneration,account=nakgoMarket.token(),e=epoch,view=screen;
-        timer=window.setTimeout(async()=>{
-            timer=null;if(!active()||generation!==pollGeneration||!same(account,e)||view!==screen)return;
-            if(document.visibilityState!=='hidden'){
-                if(key()==='account-inbox')await refreshInbox();else await refreshMessages();
-                pollDelay=(key()==='account-inbox'?inboxError:messageError)?Math.min(pollDelay*2,60000):8000;
-            }
-            if(generation===pollGeneration&&same(account,e)&&view===screen&&active())schedule();
-        },pollDelay);
-    }
-    async function refreshSummary(){
-        if(!allowed()||unread.busy)return;
-        const account=nakgoMarket.token(),e=epoch,v=version;unread.busy=true;unread.error='';
-        try{const count=await nakgoAuth.unreadMessages();if(same(account,e)&&v===version){if(!Number.isSafeInteger(count)||count<0)throw Error('Invalid unread count');unread={count,ready:true,busy:true,error:''};}}
-        catch(e1){if(same(account,e)&&v===version)unread.error='Mesaj sayısı yüklenemedi';}
-        finally{if(same(account,e)){unread.busy=false;summaryChecked=Date.now();if(tab==='me')render();}}
-    }
-    function ensure(){if(allowed()&&!unread.busy&&((!unread.ready&&!unread.error)||Date.now()-summaryChecked>15000))refreshSummary();}
-    async function refreshInbox(append=false){
-        if(!allowed()||inboxBusy)return;
-        const account=nakgoMarket.token(),e=epoch,v=version;inboxBusy=true;inboxError='';draw();
-        try{const page=await nakgoAuth.listConversations(append?inboxBefore:null);if(!same(account,e)||v!==version)return;
-            const initial=!inboxReady,all=new Map((initial?[]:conversations).map(c=>[c.id,c]));page.forEach(c=>all.set(c.id,c));conversations=[...all.values()].sort((a,b)=>b.last_message_id-a.last_message_id||b.id-a.id);inboxReady=true;
-            if(append||initial){inboxMore=page.length===50;const last=page.at(-1);inboxBefore=last?{activity:last.last_message_id,id:last.id}:null;}
-        }catch(e1){if(same(account,e))inboxError='Görüşmeler yüklenemedi. Yeniden dene.';}
-        finally{if(same(account,e)){inboxBusy=false;draw();}}
-    }
-    function openInbox(){if(!allowed())return;stop();screen++;current=null;messages=[];retry=null;pollDelay=8000;$('#sheetBody').dataset.k='account-inbox';paintAccountMessages();syncDetailViewport();$('#sheet').classList.add('open');unChat=stop;refreshInbox().then(schedule);refreshSummary();}
-    async function openListing(id){
-        if(!allowed()||opening)return;const account=nakgoMarket.token(),e=epoch,view=++screen;opening=true;stop();
-        $('#sheetBody').dataset.k='account-opening';$('#sheetBody').innerHTML='<div class="detail-top"><b>Görüşme açılıyor…</b><button class="chip" id="close">Kapat ×</button></div>';$('#close').onclick=closeSheet;$('#sheet').classList.add('open');
-        try{const row=await nakgoAuth.openConversation(id);if(!same(account,e)||view!==screen||key()!=='account-opening')return;openConversation(row);}
-        catch(e1){if(same(account,e)&&view===screen&&key()==='account-opening'){closeSheet();toast('Görüşme açılamadı. İlanları yenileyip tekrar dene.');}}
-        finally{if(same(account,e))opening=false;}
-    }
-    function openConversation(row){
-        if(!allowed())return;stop();screen++;loadDrafts();current={...row};messages=[];readBusy=false;lastRead=Number(row.owner_id===nakgoAuth.snapshot().user.id?row.owner_read_id:row.guest_read_id)||0;pollDelay=8000;messageReady=messageBusy=messageMore=sending=false;messageError=sendError='';messageBefore=null;const draft=drafts.get(row.id);retry=draft?.nonce?{id:row.id,body:draft.body.trim(),nonce:draft.nonce}:null;
-        $('#sheetBody').dataset.k='account-chat:'+row.id;paintAccountMessages();syncDetailViewport();$('#sheet').classList.add('open');unChat=stop;refreshMessages().then(schedule);
-    }
-    async function refreshMessages(append=false){
-        if(!allowed()||!current||messageBusy||sending)return;
-        const account=nakgoMarket.token(),e=epoch,view=screen,v=version,id=current.id;messageBusy=true;messageError='';draw();
-        try{const page=await nakgoAuth.listMessages(id,append?messageBefore:null);if(!same(account,e)||view!==screen||v!==version)return;
-            const overlaps=page.some(m=>messages.some(old=>old.id===m.id));
-            const keep=append||overlaps;
-            const all=new Map((keep?messages:[]).map(m=>[m.id,m]));page.forEach(m=>all.set(m.id,m));messages=[...all.values()].sort((a,b)=>a.id-b.id);
-            if(append||!keep){messageMore=page.length===50;messageBefore=messages[0]?.id||null;}messageReady=true;
-            draw();
-            await acknowledge();
-        }catch(e1){if(same(account,e)&&view===screen)messageError='Mesajlar yüklenemedi. Yeniden dene.';}
-        finally{if(same(account,e)&&view===screen){messageBusy=false;draw();}}
-    }
-    async function send(body){
-        if(!allowed()||!current||sending||typeof body!=='string'||!body.trim()||body.trim().length>500)return null;
-        const account=nakgoMarket.token(),e=epoch,view=screen,id=current.id,text=body.trim();
-        if(!retry||retry.id!==id||retry.body!==text){if(typeof window?.crypto?.randomUUID!=='function')throw Error('Secure message ID unavailable');retry={id,body:text,nonce:window.crypto.randomUUID()};}
-        const request={...retry};if(!saveDraft(text,request.nonce)){sendError=draftWarning;draw();throw Error('Message draft storage unavailable');}sending=true;sendError='';draw();
-        try{const row=await nakgoAuth.sendMessage(id,text,request.nonce);if(!same(account,e)||view!==screen)throw Error('Account or conversation changed');
-            if(row.conversation_id!==id||row.body!==text||row.sender_id!==nakgoAuth.snapshot().user.id||row.client_nonce!==request.nonce)throw Error('Invalid message response');
-            version++;const all=new Map(messages.map(m=>[m.id,m]));all.set(row.id,row);messages=[...all.values()].sort((a,b)=>a.id-b.id);messageReady=true;retry=null;saveDraft('');unread.ready=false;return row;
-        }catch(e1){if(same(account,e)&&view===screen)sendError='Mesaj gönderilemedi. Yazdığın metin korunuyor; tekrar dene.';throw e1;}
-        finally{if(same(account,e)&&view===screen){sending=false;draw();refreshSummary();}}
-    }
-    return {reset,state,ensure,refreshSummary,refreshInbox,openInbox,openListing,openConversation,refreshMessages,acknowledge,saveDraft,send,stop};
-})();
-
 /**
  * İlan listesi ve ilanlarım
- * Liste kartları, filtre, sıralama, yakınımda, karşılaştırma, ilan yönetimi; kendi ilanlarını düzenleme, kapatma ve silme.
+ * Liste kartları, filtre, sıralama, yakınımda, ilan yönetimi; kendi ilanlarını düzenleme, kapatma ve silme.
  */
 
 // ===== İlan listesi =====
-// Liste kartları, filtre, sıralama, yakınımda, iki ilanı karşılaştırma, piyasa fiyatı.
+// Liste kartları, filtre, sıralama, yakınımda, iki ilanı piyasa fiyatı.
 
 function F0() {
     return { veh: [], body: [], date: [], from: "", to: "", tonMin: "", tonMax: "", rate: 0, fav: false, ok: false };
@@ -3604,13 +3414,13 @@ const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
-    ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
+    ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya WhatsApp"}</b></div></div>
     <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
     <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
-    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
+    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""} · ${esc(listingRemaining(l))}</span></span><button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(listingRemaining(t))}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
@@ -3696,40 +3506,6 @@ function toggleNear() {
 
 const nearRow = () => nearOn ? `<div class="chips" aria-label="Yakınlık mesafesi">${[100, 250, 500, 0].map(k => `<button class="chip ${nearR === k ? "on" : ""}" data-nr="${k}">${k ? k + " km" : "Tümü"}</button>`).join("")}</div>` : "";
 
-function toggleCmp(id) {
-    const i = cmp.indexOf(id);
-    if (i >= 0)
-        cmp.splice(i, 1);
-    else {
-        cmp.push(id);
-        if (cmp.length > 2)
-            cmp.shift();
-    }
-    closeSheet();
-    render();
-    toast(i >= 0 ? "Karşılaştırmadan çıkarıldı" : cmp.length === 2 ? "2 ilan seçildi, Karşılaştır'a dokun" : "1 ilan seçildi, bir tane daha seç");
-}
-
-const cmpBar = () => cmp.length ? `<div class="cmpbar"><span>${cmp.length} ilan seçildi</span><span style="display:flex;gap:6px"><button class="chip" id="cmpx">Temizle</button>${cmp.length === 2 ? '<button class="chip on" id="cmpgo">Karşılaştır</button>' : ""}</span></div>` : "";
-
-function openCompare() {
-    const L = cmp.map(id => findIt("l",id)).filter(Boolean);
-    if (L.length < 2)
-        return toast("İki ilan seç");
-    const B = $("#sheetBody");
-    B.dataset.k = "";
-    const km = l => l.km || dist(l.from, l.to);
-    const rows = [["Yük", l => esc(l.cargo), null], ["Ağırlık", l => esc(l.ton) + " ton", null], ["Araç", l => esc(l.veh + " · " + (l.body || "—")), null], ["Mesafe", l => km(l) ? km(l) + " km" : "—", l => -km(l)], ["Yükleme", l => esc(dateLabel(l)), null], ["Puan", l => starTxt(l), rv]];
-    const cell = (i, rw) => {
-        const g = rw[1], sc = rw[2], win = sc && sc(L[0]) !== sc(L[1]) && sc(L[i]) === Math.max(sc(L[0]), sc(L[1]));
-        return `<div class="${win ? "win" : ""}">${g(L[i])}</div>`;
-    };
-    B.innerHTML = `<b style="font-size:19px">İlanları karşılaştır</b><div class="cmp"><div></div>${L.map(l => `<div class="ch">${esc(l.from)}<br>→ ${esc(l.to)}</div>`).join("")}${rows.map(rw => `<div class="rl">${rw[0]}</div>${cell(0, rw)}${cell(1, rw)}`).join("")}</div><div class="row" style="margin-top:14px">${L.map(l => `<button class="chip" data-gl="${esc(l.id)}">İlana git</button>`).join("")}</div><button class="btn alt" id="close">Kapat</button>`;
-    B.querySelectorAll("[data-gl]").forEach(b => b.onclick = () => openLoad(+b.dataset.gl));
-    $("#close").onclick = closeSheet;
-    $("#sheet").classList.add("open");
-}
-
 const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 9e9) - (listingDistance(y) || 9e9)) : sort === "rate" ? [...a].sort((x, y) => rv(y) - rv(x)) : a;
 
 // ===== İlanlarım =====
@@ -3740,8 +3516,6 @@ function postTruck(t) {
     const error = postError(t, true);
     if (error) { toast(error); return false; }
     Object.assign(t, dateFields(t.date), {ts:Date.now()});
-    if (myCar.phone)
-        t.phone = myCar.phone;
     if (cloud) {
         t.uid = me;
         t.ts = Date.now();
@@ -3783,13 +3557,18 @@ function openEdit(k, id, reopen=false) {
         return;
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label>${L && 'dateText' in it ? `<input id="ed" type="text" maxlength="32" required value="${esc(it.dateText)}">` : `<select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>`}${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label>${L && 'dateText' in it ? `<input id="ed" type="text" maxlength="32" required value="${esc(it.dateText)}">` : `<select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>`}${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<label for="edit-phone">İletişim telefonu</label><input id="edit-phone" type="tel" maxlength="32" value="${esc(it.phone||'')}"><label><input type="checkbox" id="edit-consent"> Bu numarayı ilanda yayınlama yetkim ve iznim var.</label><button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#es").onclick = async () => {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
         const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 1000) } : { cap: v, date: $("#ed").value };
         const selectedDate=$("#ed").value;
+        const phone=normalizeListingPhone($('#edit-phone').value);
+        if(reopen||phone!==normalizeListingPhone(it.phone)){
+            if(!phone||!$('#edit-consent').checked)return toast('Geçerli telefon ve yayın iznini doğrula');
+            patch.phone=phone;patch.contactConsent=true;
+        }
         if (L && 'dateText' in it) {
             if (!loadingTextOK(selectedDate)) return toast('Yükleme tarihini yaz');
             delete patch.date; Object.assign(patch,{dateText:selectedDate.trim(),date:'',dateEnd:'',time:''});
@@ -3872,14 +3651,15 @@ function itemsUI() {
     };
 }
 
-const expired = (x, k) => !!(!x._remote && x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
+const listingExpiry=x=>Number.isFinite(x.expiresAt)?x.expiresAt:(x.ts?x.ts+6*36e5:0);
+const listingRemaining=x=>{const ms=listingExpiry(x)-Date.now();return ms>0?Math.min(360,Math.ceil(ms/60000))+' dk kaldı':'Süresi doldu';};
+const expired = (x,k) => !listingExpiry(x)||Date.now()>=listingExpiry(x);
 const availableListing = (x,isT=false) => !!x && !x.archived && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
-const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||x.who||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
+const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
 function contactAllowed(x,isT=false,allowOwn=false) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
     const current=x&&findIt(isT?"t":"l",x.id);
     if(!availableListing(current,isT)) { toast("Bu ilan artık açık değil. Yeni iletişim başlatılamaz."); return false; }
-    if(!allowOwn && ((cloud && current.uid===me)||(!cloud&&current.mine))) { toast("Kendi ilanına mesaj gönderemezsin"); return false; }
+    if(!allowOwn && ((cloud && current.uid===me)||(!cloud&&current.mine))) { toast("Kendi ilanına taşıma talebi gönderemezsin"); return false; }
     return true;
 }
 
@@ -3889,6 +3669,19 @@ const ago = x => {
     const d = Math.floor((Date.now() - x.ts) / 864e5);
     return d < 1 ? "bugün eklendi" : d + " gün önce";
 };
+
+let listingExpiryTimer=null;
+function refreshListingExpiry(){
+    document.querySelectorAll('[data-listing-expiry]').forEach(e=>{if(Number(e.dataset.listingExpiry)<=Date.now())closeSheet();});
+    if(tab==='list')render();else scheduleListingExpiry();
+}
+function scheduleListingExpiry(){
+    if(typeof window==='undefined'||typeof window?.setTimeout!=='function')return;
+    window.clearTimeout(listingExpiryTimer);
+    const now=Date.now(),future=[...loads,...trucks].filter(x=>!x.closed&&!x.archived).map(listingExpiry).filter(t=>t>now);
+    const delay=Math.max(1,Math.min(60000, ...future.map(t=>t-now)));
+    listingExpiryTimer=window.setTimeout(()=>{if(document.visibilityState!=='hidden')refreshListingExpiry();},delay);
+}
 
 /**
  * Taşıma talepleri
@@ -4027,68 +3820,6 @@ function addAlert() {
 
 const alertsCard = () => `<div class="load" style="cursor:default"><b>Rota alarmlarım</b>${alerts.length ? alerts.map(x => `<div class="kv"><span style="color:var(--ink);font-weight:700">${esc(x.from || "Her yer")} → ${esc(x.to || "Her yer")}${x.veh ? " · " + esc(x.veh) : ""}</span><button class="chip" data-ad="${esc(x.id)}">Kaldır</button></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Filtre ekranında nereden ve nereye seçip listedeki "Alarm kur"a dokun. Uygun yük çıkınca bildirim gelir.</p>`}</div>`;
 
-// ===== Mesajlaşma =====
-// Teklif sohbeti (gerçek kullanıcılar arasında canlı, örnek ilanlarda hazır cevaplı).
-
-function openChat(key, who, onFirstSend, guard) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
-    if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
-    const live = cloud && /^o\d+_./.test(key), B = $("#sheetBody");
-    B.dataset.k = key;
-    let msgs = live ? [] : (chats[key] = chats[key] || [{ me: 0, t: "Merhaba, nasıl yardımcı olabilirim?" }]);
-    const draw = () => {
-        if (!$("#msgs") || B.dataset.k !== key)
-            return;
-        $("#msgs").innerHTML = msgs.map(x => `<div class="bub ${x.me ? "me" : ""}">${esc(x.t)}</div>`).join("");
-        $("#msgs").scrollTop = 1e5;
-    };
-    B.innerHTML = `<div class="load-detail chat-detail"><div class="detail-top"><b>${esc(who)}</b><button class="chip detail-close" id="close" aria-label="Sohbeti kapat">Kapat ×</button></div>${!live ? '<p class="demo-note"><b>Demo sohbet</b> · Mesajlar cihazında tutulur; yanıtlar simüledir.</p>' : ""}<div id="msgs" role="log" aria-live="polite" aria-label="Mesajlar"></div><div class="chat-composer"><label class="sr-only" for="mi">Mesajın</label><input id="mi" placeholder="Mesaj yaz" maxlength="500"><button class="btn" id="ms">Gönder</button></div></div>`;
-    if (unChat) {
-        unChat();
-        unChat = null;
-    }
-    if (live)
-        unChat = db.collection("msgs").where("k", "==", key).onSnapshot(sn => {
-            msgs = sn.docs.map(x => x.data()).sort((a, b) => (a.ts || 0) - (b.ts || 0)).map(x => ({ me: x.uid === me, t: String(x.t || "") }));
-            draw();
-        }, () => { });
-    draw();
-    syncDetailViewport();
-    $("#sheet").classList.add("open");
-    $("#close").onclick = closeSheet;
-    const send = async () => {
-        if (guard && !guard()) return;
-        if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
-        const t = $("#mi").value.trim().slice(0, 500);
-        if (!t)
-            return;
-        if (live) {
-            if (onFirstSend && onFirstSend() === false) return;
-            if (await dbw(db.collection("msgs").add({ k: key, uid: me, t, ts: Date.now() }))) { onFirstSend=null; if(B.dataset.k===key) $("#mi").value=""; }
-            return;
-        }
-        const oldOffers=JSON.parse(JSON.stringify(offers));
-        msgs.push({me:1,t});
-        chats[key]=msgs;
-        if (onFirstSend && onFirstSend() === false) { msgs=chats[key]||[]; return; }
-        if (!save()) { offers=oldOffers; msgs=chats[key]||[]; return; }
-        onFirstSend=null;
-        $("#mi").value="";
-        draw();
-        setTimeout(() => {
-            msgs.push({ me: 0, t: ["Tamamdır, yarın sabah yüklemeye hazırız.", "Fiyatta biraz esneyebiliriz, ne düşünüyorsun?", "Telefonla konuşalım mı?"][Math.floor(Math.random() * 3)] });
-            chats[key]=msgs;
-            if (!save()) {msgs=chats[key]||[];}
-            draw();
-        }, 1500);
-    };
-    $("#ms").onclick = send;
-    $("#mi").onkeydown = e => {
-        if (e.key === "Enter")
-            send();
-    };
-}
-
 /**
  * Profil, doğrulama ve güven
  * Herkese açık profil, puan, rol ve tanıtım, profil bilgileri; belge rozetleri ve telefon; şikayet, engelleme ve yardım.
@@ -4160,7 +3891,7 @@ function listBind() {
             const it = findIt(k, id);
             if (it) {
                 const off = it.closed || expired(it, k === "l" ? "load" : "truck");
-                if (off && validDay(it.date) && (it.dateEnd||it.date)<localDay()) return openEdit(k,id,true);
+                if (off) return openEdit(k,id,true);
                 patchIt(k, id, off ? { closed: false, ts: Date.now() } : { closed: true });
             }
         };
@@ -4287,8 +4018,8 @@ function openProfile(o) {
     const R = o.uid ? rates.filter(x => x.to === o.uid) : [], avg = R.length ? R.reduce((t, x) => t + x.stars, 0) / R.length : (+o.rate || 0);
     const info = o.uid ? carriers[o.uid] || {} : {};
     const act = o.uid ? loads.filter(l => l.uid === o.uid && !l.closed && !expired(l, "load")).length + trucks.filter(t => t.uid === o.uid && !t.closed && !expired(t, "truck")).length : 0;
-    const done = o.uid ? allO.filter(x => (x.bidder === o.uid || x.ownerUid === o.uid) && (+x.stage || 0) >= 3).length : 0, n2 = o.name || "Kullanıcı";
-    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b style="font-size:18px">${esc(n2)}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
+    const done = o.uid ? allO.filter(x => (x.bidder === o.uid || x.ownerUid === o.uid) && (+x.stage || 0) >= 3).length : 0, n2 = "İlan sahibi";
+    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b style="font-size:18px">${esc(n2)}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.city ? `<p>${esc(info.city)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
     if ($("#pr"))
         $("#pr").onclick = () => openReport("u", o.uid);
     if ($("#pb2"))
@@ -4330,11 +4061,7 @@ const installCard = () => {
 // ===== Doğrulama ve iletişim =====
 // Belge rozetleri, belge fotoğrafı, yönetici onayı, telefon numarası.
 
-const phoneOf = x => {
-    if ((!cloud&&x.mine)||(cloud&&x.uid===me)) return myCar.phone||"";
-    if (x.uid) return carrierPhone(x.uid)||x.phone||"";
-    return x.phone||"0000 000 00 "+String(x.id).replace(/\D/g,"").padStart(2,"0").slice(-2);
-};
+const phoneOf = x => normalizeListingPhone(x.phone||'');
 
 const carrierPhone = u => (carriers[u] && carriers[u].phone) || "";
 
@@ -4701,7 +4428,6 @@ function documentImageDimensions(bytes){
 
 const isPrem = () => prem.until > Date.now();
 
-const callChip = a => `<button class="chip" ${a}>Ara${isPrem() ? "" : '<b class="pm">Premium</b>'}</button>`;
 
 function openPaywall(why) {
     if(nakgoMarket.active())return nakgoMarket.pending();
@@ -4712,7 +4438,7 @@ function openPaywall(why) {
     let pl = "y";
     const pr = id => PLANS.find(x => x.id === id), save12 = Math.round((1 - pr("y").price / (pr("m").price * 12)) * 100);
     const draw = () => {
-        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>İlan sahipleriyle uygulama içinden mesajlaş</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${esc(x.id)}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
+        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Üyelik planı denemesi."}</p><p>İlanlarda Ara ve WhatsApp iletişimi üyelik gerektirmez.</p><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${esc(x.id)}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
         B.querySelectorAll("[data-pl]").forEach(b => b.onclick = () => {
             pl = b.dataset.pl;
             draw();
@@ -4732,30 +4458,7 @@ function openPaywall(why) {
     $("#sheet").classList.add("open");
 }
 
-function callTo(phone) {
-    if (!isPrem())
-        return openPaywall("Doğrudan arama");
-    if (!phone)
-        return toast("Bu kullanıcı henüz numara eklememiş");
-    const B = $("#sheetBody");
-    B.dataset.k = "";
-    if (/^0000/.test(phone)) {
-        B.innerHTML = `<b>Örnek telefon</b><p class="demo-note">Bu demo ilanda gerçek telefon numarası bulunmuyor. Kendi ilanında profilinden numara ekleyebilirsin.</p><button class="btn alt" id="close">Kapat</button>`;
-        $("#close").onclick=closeSheet; $("#sheet").classList.add("open"); return;
-    }
-    const num = String(phone).replace(/[^\d+]/g, "");
-    B.innerHTML = `<b style="font-size:19px">Ara</b><p class="callnum">${esc(phone)}</p><a class="btn" href="tel:${num}" style="display:block;text-align:center;text-decoration:none">Şimdi ara</a><button class="btn alt" id="cp">Numarayı kopyala</button><button class="btn alt" id="close">Kapat</button>`;
-    $("#cp").onclick = () => {
-        if (navigator.clipboard)
-            navigator.clipboard.writeText(String(phone)).then(() => toast("Numara kopyalandı")).catch(() => toast("Kopyalanamadı"));
-        else
-            toast("Kopyalama desteklenmiyor");
-    };
-    $("#close").onclick = closeSheet;
-    $("#sheet").classList.add("open");
-}
-
-const premCard = () => `<div class="load" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center"><b>Premium üyelik</b>${isPrem() ? '<span class="vb" style="margin:0">Aktif</span>' : '<span class="tag">Üye değil</span>'}</div><p style="font-size:13px;color:var(--mute);margin:8px 0">${isPrem() ? "Bitiş: " + new Date(prem.until).toLocaleDateString("tr-TR") : "Arama ve mesajlaşma Premium üyelere açık."}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip on" id="pm1">${isPrem() ? "Planı uzat" : "Premium'a geç"}</button>${isPrem() ? '<button class="chip" id="pm2">Üyeliği sıfırla (test)</button>' : ""}</div></div>`;
+const premCard = () => `<div class="load" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center"><b>Premium üyelik</b>${isPrem() ? '<span class="vb" style="margin:0">Aktif</span>' : '<span class="tag">Üye değil</span>'}</div><p style="font-size:13px;color:var(--mute);margin:8px 0">${isPrem() ? "Bitiş: " + new Date(prem.until).toLocaleDateString("tr-TR") : "Demo üyelik planı; iletişim üyelik gerektirmez."}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip on" id="pm1">${isPrem() ? "Planı uzat" : "Premium'a geç"}</button>${isPrem() ? '<button class="chip" id="pm2">Üyeliği sıfırla (test)</button>' : ""}</div></div>`;
 
 // ===== Öne çıkan ilan =====
 // Öne çıkarma fiyatı, satın alma ekranı, etkinin ölçülmesi ve özeti.
@@ -5337,7 +5040,7 @@ function persistPostDrafts() {
 function capturePostDraft() {
     if (tab !== "post" || !document.querySelectorAll) return;
     const fields = {};
-    document.querySelectorAll('#main input[id], #main select[id], #main textarea[id]').forEach(e => fields[e.id] = e.value);
+    document.querySelectorAll('#main input[id], #main select[id], #main textarea[id]').forEach(e => {if(e.type!=='checkbox')fields[e.id] = e.value;});
     const items = [...document.querySelectorAll('#its .itrow')].map(e => ({n:e.querySelector('[data-in]').value,q:e.querySelector('[data-iq]').value,u:e.querySelector('[data-iu]').value}));
     const drafts = getPostDrafts(); drafts[postMode] = {fields, items, image: postImg, step: postStep};
     return persistPostDrafts();
@@ -5352,7 +5055,7 @@ function initPostWizard(m) {
     const savedDraft=getPostDrafts()[postMode], draft=isRecord(savedDraft)?savedDraft:null;
     postStep=draft ? Math.max(0,Math.min(2,+draft.step||0)) : 0;
     if (draft) {
-        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=id==='d' && postMode==='truck' && postDateOK(value) ? postDateText(dateFields(value).date) : value; }
+        for(const id of ['f','t','v','w','bd','d','c','b','n','post-phone']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=id==='d' && postMode==='truck' && postDateOK(value) ? postDateText(dateFields(value).date) : value; }
         if(postMode==='load') {
             for(const item of (Array.isArray(draft.items)?draft.items:[]).filter(isRecord).slice(0,6)) { $('#addit').onclick(); const e=$('#its').lastElementChild; e.querySelector('[data-in]').value=typeof item.n==='string'?item.n:''; e.querySelector('[data-iq]').value=typeof item.q==='string'||Number.isFinite(item.q)?item.q:''; if(ITEM_UNITS.includes(item.u))e.querySelector('[data-iu]').value=item.u; }
             if(imgOk(draft.image)){postImg=draft.image;$('#phs').innerHTML=`<img class="th" src="${postImg}" alt="Taslak yük fotoğrafı">`;}
@@ -5444,7 +5147,6 @@ function initDialogAccessibility() {
  */
 
 function renderListings(m) {
-    m.dataset.comparing = cmp.length ? "true" : "false";
     const SEG = `<div class="seg"><button data-md="load" aria-pressed="${mode === "load"}" class="${mode === "load" ? "on" : ""}">Yükler</button><button data-md="truck" aria-pressed="${mode === "truck"}" class="${mode === "truck" ? "on" : ""}">Boş araçlar</button></div>`;
     const segBind = () => m.querySelectorAll("[data-md]").forEach(b => b.onclick = () => {
         mode = b.dataset.md;
@@ -5471,7 +5173,7 @@ function renderListings(m) {
         m.innerHTML = routeSearch() + SEG + (!cloud && !nakgoMarket.active() ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${esc(q)}" style="margin:0"></div>
     ${nearRow()}${ac.length ? `<div class="chips active-filters wrap">${ac.map(c => `<button class="chip on" data-x="${c[0]}" data-v="${esc(c[1])}">${esc(c[2])} ×</button>`).join("")}</div>` : ""}
     <div class="meta listing-count" style="margin:0 2px 10px"><span>${items.length} ${isT ? "boş araç" : "ilan"}${!isT && (F.from || F.to) ? ` <button class="chip" id="al" style="margin-left:6px;padding:4px 10px;font-size:12px">Alarm kur</button>` : ""}</span><span>Yola çıkmaya hazır</span></div>
-    <div class="listing-grid">${!listingReady && !(saved?.error||saved?.pageError) ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : saved && (saved.error||saved.pageError) ? '<div class="empty">Kayıtlı ilanlarını görmek için yeniden dene.</div>' : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div><section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section><div class="list-actions" aria-label="İlan araçları">${cmpBar()}<div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option><option value="rate" ${sort === "rate" ? "selected" : ""}>Puan ↓</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
+    <div class="listing-grid">${!listingReady && !(saved?.error||saved?.pageError) ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : saved && (saved.error||saved.pageError) ? '<div class="empty">Kayıtlı ilanlarını görmek için yeniden dene.</div>' : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div><section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section><div class="list-actions" aria-label="İlan araçları"><div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option><option value="rate" ${sort === "rate" ? "selected" : ""}>Puan ↓</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
         if(saved) {
             const hidden=nakgoFavorites.unavailable();
             if(hidden.length)m.innerHTML+='<section aria-label="Yayında olmayan kayıtlar"><h2>Yayında olmayan kayıtlar</h2>'+hidden.map(id=>'<article class="load"><p>Bu ilan artık yayında değil.</p><button class="chip" data-unsave="'+id+'" '+(nakgoFavorites.disabled(id)?'disabled':'')+'>Kaydı kaldır</button></article>').join('')+'</section>';
@@ -5526,13 +5228,6 @@ function renderListings(m) {
             nearR = +b.dataset.nr;
             render();
         });
-        if ($("#cmpgo"))
-            $("#cmpgo").onclick = openCompare;
-        if ($("#cmpx"))
-            $("#cmpx").onclick = () => {
-                cmp = [];
-                render();
-            };
         if ($("#s"))
             $("#s").onchange = e => {
                 sort = e.target.value;
@@ -5569,6 +5264,7 @@ function renderListings(m) {
 function postValues() {
     const truck = postMode === "truck";
     return {
+        phone: $("#post-phone").value, contactConsent: $("#post-consent").checked,
         from: $("#f").value, to: $("#t").value, veh: $("#v").value,
         body: $(truck ? "#bd" : "#b").value, ...(truck ? parsePostDate($('#d').value) : {date:'',time:'',dateText:$('#d').value.trim()}), note: $("#n").value.trim().slice(0,1000),
         ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
@@ -5586,7 +5282,7 @@ function renderPost(m) {
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" required><label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3"></textarea><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" required><label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3"></textarea>${listingContactFields()}<button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             const publishButton = $("#go");
             publishButton.onclick = async () => {
@@ -5618,15 +5314,13 @@ function renderPost(m) {
     </div>
     <label>Yükleme tarihi</label><input id="d" type="text" maxlength="32" required>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
-    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
+    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div>${listingContactFields()}<button class="btn" id="go">İlanı yayınla</button>`;
         pb();
         itemsUI();
         const publishButton = $("#go");
         publishButton.onclick = async () => {
             if (tab !== "post" || $("#go") !== publishButton) return;
             const l = { ...postValues(), id: Date.now(), note: $("#n").value.trim().slice(0,1000), owner: myCar.displayName || myName || "Ben" };
-            if (myCar.phone)
-                l.phone = myCar.phone;
             if (postImg)
                 l.img = postImg;
             const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
@@ -5663,6 +5357,8 @@ function renderPost(m) {
         };
         initPostWizard(m);
 }
+
+function listingContactFields(){return '<label for="post-phone">İletişim telefonu</label><input id="post-phone" type="tel" inputmode="tel" maxlength="32" required placeholder="05xx xxx xx xx"><label><input id="post-consent" type="checkbox"> Bu numarayı yayınlama yetkim var; ilanda Ara ve WhatsApp iletişimi için paylaşılmasına izin veriyorum.</label>';}
 
 /**
  * İşlerim
@@ -5746,10 +5442,7 @@ function profileIdentityHTML(own,active,done,name,rating) {
 function profileToolsHTML() {
     const saved=nakgoMarket.active()?nakgoFavorites.state():null;
     const favoriteCaption=saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
-    const messageState=nakgoMarket.active()?nakgoMessages.state().unread:null;
-    const messageCaption=messageState?(messageState.ready?(messageState.count?messageState.count+' okunmamış mesaj':'Görüşmelerin'):messageState.error||'Mesajlar yükleniyor…'):'Görüşmelerin';
     const tools=[
-        ['messages','message','Mesajlar',messageCaption],
         ['favorites','heart','Kaydettiklerim',favoriteCaption],
         ['fuel','fuel','Mazot hesabı','Yol giderini planla']
     ];
@@ -5817,7 +5510,6 @@ function renderProfile(main) {
             toast('Profilin kaydedildi');
         }
     };
-    $('#profile-messages').onclick=openInbox;
     $('#profile-fuel').onclick=()=>openCalc();
     $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
     $('#profile-map').onclick=()=>openRoadMap();
@@ -5847,7 +5539,7 @@ async function openAdminPanel() {
     if(!nakgoMarket.active())return;
     const generation=++adminPanelGeneration,account=nakgoMarket.token(), body=$('#sheetBody');
     let section='overview',offset=0,search='',request=0;
-    const titles={overview:'Genel bakış',users:'Kullanıcılar',listings:'İlanlar',audit:'Belge işlem geçmişi',moderation:'Yönetim işlem geçmişi'};
+    const titles={overview:'Genel bakış',whatsapp:'WhatsApp ilanları',users:'Kullanıcılar',listings:'İlanlar',audit:'Belge işlem geçmişi',moderation:'Yönetim işlem geçmişi'};
     const valid=()=>generation===adminPanelGeneration&&account===nakgoMarket.token()&&body.dataset.k==='admin';
     const date=value=>new Date(value).toLocaleString('tr-TR');
     body.dataset.k='admin';$('#sheet').classList.add('open');
@@ -5861,6 +5553,7 @@ async function openAdminPanel() {
     async function load(){
         const ticket=++request;frame('<p role="status">Yönetici erişimi kontrol ediliyor…</p>');
         try{
+            if(section==='whatsapp'){await whatsappPage(ticket);return;}
             const data=await nakgoAuth.adminPage(section,offset,search);
             if(!valid()||ticket!==request)return;
             if(section==='overview'){
@@ -5884,6 +5577,55 @@ async function openAdminPanel() {
             if($('#admin-search'))$('#admin-search').onsubmit=event=>{event.preventDefault();search=$('#admin-term').value.trim();offset=0;load();};
         }catch(error){if(valid()&&ticket===request){frame('<p role="alert">Yönetici paneli açılamadı. Yetkini ve bağlantını kontrol et.</p><button class="chip" id="admin-retry">Tekrar dene</button>');$('#admin-retry').onclick=load;}}
     }
+    const waStatus=value=>({draft:'Taslak',published:'Yayında',rejected:'Reddedildi',withdrawn:'Yayından kaldırıldı',purged:'Saklama süresi doldu'})[value]||value;
+    const waIssue=value=>({kind_unknown:'İlan türü belirsiz',route_incomplete:'Güzergâh eksik',origin_missing:'Yükleme noktası eksik',route_order_review:'Güzergâh yönünü doğrula',location_alias_review:'Kısaltılmış yer adını doğrula',weight_review:'Tonajı tamamla veya doğrula',vehicle_review:'Araç ve kasa tipini doğrula',cargo_missing:'Yük cinsi eksik',timing_missing:'Yükleme zamanı eksik',conditions_review:'Özel şartlar incelenmeli',vehicle_count_review:'Birden çok araç talebi incelenmeli',timing_ambiguous:'Birden çok yükleme zamanı var',truck_calendar_review:'Boş araç için kesin takvim tarihi eksik',contact_review:'İletişim bilgisi eksik veya belirsiz',message_overflow_review:'Mesajda 30’dan fazla bölüm var; tüm kaynağı incele'})[value]||'Manuel inceleme gerekiyor';
+    async function whatsappPage(ticket){
+        const data=await nakgoAuth.whatsappRPC('page',{p_offset:offset});
+        if(!valid()||ticket!==request)return;
+        const rows=data.drafts.slice(0,20);
+        frame('<h2>WhatsApp ilanları</h2><button class="chip" id="wa-permission">Mesaj için yayın izni kaydet / geri al</button><p>Bekleyen mesaj: '+esc(String(data.pending))+' · İşleme hatası: '+esc(String(data.failed))+'</p><button class="chip" id="wa-retry">Hatalı mesajları tekrar sıraya al</button>'+rows.map(r=>'<article class="load"><b>#'+esc(String(r.id))+' · '+esc(r.fields.from?.city||'Yükleme belirsiz')+' → '+esc(r.fields.destinations?.map(p=>p.city||'?').join(' + ')||'Teslimat belirsiz')+'</b><p>'+esc(waStatus(r.status))+' · Güven '+esc(String(Math.round(r.confidence*100)))+'%</p><p>'+esc(String(r.issues.length))+' inceleme işareti · '+esc(String(r.similar_count))+' benzer aday</p><button class="chip" data-wa-open="'+r.id+'">İncele / düzenle</button></article>').join('')+'<div class="admin-tabs"><button class="chip" id="wa-prev" '+(offset===0?'disabled':'')+'>Önceki</button><button class="chip" id="wa-next" '+(data.drafts.length<=20?'disabled':'')+'>Sonraki</button><button class="chip" id="wa-refresh">Yenile</button></div>',true);
+        body.querySelectorAll('[data-wa-open]').forEach(b=>b.onclick=()=>whatsappDetail(Number(b.dataset.waOpen)));
+        $('#wa-permission').onclick=permissionForm;
+        $('#wa-prev').onclick=()=>{offset=Math.max(0,offset-20);load();};$('#wa-next').onclick=()=>{offset+=20;load();};$('#wa-refresh').onclick=load;
+        $('#wa-retry').onclick=async()=>{try{await nakgoAuth.whatsappRPC('retry');if(valid())load();}catch{if(valid())frame('<p role="alert">Tekrar sıraya alma doğrulanamadı. Paneli yeniden aç.</p>');}};
+    }
+    function permissionForm(){
+        ++request;
+        frame('<h2>Mesaja özel yayın izni</h2><p>İzin belirli kaynak mesaj kimliğini ve mesaj içindeki telefonu kapsar. İleten kişinin telefonu veya mesajdaki izin sözü yeterli değildir. Otomatik yayın için izin en az altı saat daha geçerli olmalı; eksik ve belirsiz adaylar yayımlanmaz.</p><form id="wa-permission-form"><label for="permission-message">Meta kaynak mesaj kimliği</label><input id="permission-message" maxlength="256" required><label for="permission-phone">İzin kapsamındaki telefon</label><input id="permission-phone" type="tel" maxlength="32" required><label for="permission-basis">İzin kanıtı / hukuki dayanak referansı</label><textarea id="permission-basis" minlength="10" maxlength="1000" required></textarea><label for="permission-until">İzin bitişi (en fazla 30 gün)</label><input id="permission-until" type="datetime-local" required><label><input id="permission-active" type="checkbox" checked> İzin geçerli (geri almak için kaldır)</label><p id="permission-error" role="alert"></p><button class="btn" type="submit">Kaydet</button><button class="chip" type="button" id="permission-back">Vazgeç</button></form>');
+        $('#permission-back').onclick=load;let saving=false;
+        $('#wa-permission-form').onsubmit=async event=>{
+            event.preventDefault();if(saving||!valid())return;
+            const phone=normalizeListingPhone($('#permission-phone').value),until=new Date($('#permission-until').value);
+            if(!phone||!Number.isFinite(until.getTime())){$('#permission-error').textContent='Telefon ve izin bitişini kontrol et.';return;}
+            saving=true;
+            try{await nakgoAuth.whatsappRPC('permission',{p_message_id:$('#permission-message').value.trim(),p_phone:phone,p_basis:$('#permission-basis').value.trim(),p_until:until.toISOString(),p_active:$('#permission-active').checked});if(valid())load();}
+            catch{if(valid())$('#permission-error').textContent='İzin kaydı doğrulanamadı. Yetki, tarih ve dayanak alanlarını kontrol et.';}
+            finally{saving=false;}
+        };
+    }
+    async function whatsappDetail(id){
+        const ticket=++request;frame('<p role="status">Taslak yükleniyor…</p>');
+        try{
+            const d=await nakgoAuth.whatsappRPC('detail',{p_id:id});if(!valid()||ticket!==request)return;
+            const f=d.fields;
+            const fields=[['kind','İlan türü'],['from','Yükleme ili | ilçesi'],['destinations','Teslimat ili | ilçesi — her nokta ayrı satır'],['vehicle','Araç tipi'],['body','Kasa tipi'],['weightMin','En az tonaj'],['weightMax','En çok tonaj'],['amount','Yayımlanacak kesin tonaj / araç kapasitesi'],['cargo','Yük cinsi'],['timing','Yükleme metni'],['availableOn','Boş araç günü (YYYY-MM-DD)'],['availableUntil','Boş araç bitiş günü'],['availableTime','Boş araç saati'],['vehicleCount','Araç adedi'],['conditions','Özel şartlar'],['company','Firma / kişi (özel)'],['contactPhone','İzinle yayımlanacak iletişim telefonu'],['description','Ayrıştırılan açıklama (özel)'],['publicNote','Yayımlanacak açıklama: tüm duraklar ve gerekli şartlar'],['items','Yük kalemleri — her satır: ad | miktar | birim']];
+            const formatPoint=p=>[p?.city,p?.district].filter(Boolean).join(' | ');
+            const fieldValue=key=>key==='from'?formatPoint(f.from):key==='destinations'?(f.destinations||[]).map(formatPoint).join('\n'):key==='items'?(f.items||[]).map(x=>[x.n,x.q,x.u].join(' | ')).join('\n'):String(f[key]??'');
+            const numbers=['weightMin','weightMax','amount','vehicleCount'];
+            frame('<h2>WhatsApp taslağı #'+esc(String(id))+'</h2><p>'+esc(waStatus(d.status))+' · Güven '+esc(String(Math.round(d.confidence*100)))+'% — yayın izni değildir.</p><div class="wa-review"><section><h3>Değişmez kaynak mesaj</h3><p>Mesaj kimliği: '+esc(d.source.messageId||'')+'</p><pre class="wa-source">'+esc(d.source.text||'Kaynak saklama süresi dolmuş.')+'</pre><small>Alındı: '+esc(date(d.source.receivedAt))+'</small><p>Benzer adaylar: '+esc(d.similar.join(', ')||'Yok')+'</p></section><form id="wa-form"><h3>Düzenlenebilir ilan</h3><p class="wa-uncertain">İnceleme işaretleri: '+esc(d.issues.map(waIssue).join(' · ')||'Yok')+'</p>'+fields.map(([key,label])=>'<label class="'+(!f[key]?'wa-uncertain':'')+'" for="wa-'+key+'">'+label+'</label>'+(key==='kind'?'<select id="wa-kind"><option value="">Belirsiz</option><option value="load" '+(f.kind==='load'?'selected':'')+'>Yük</option><option value="truck" '+(f.kind==='truck'?'selected':'')+'>Boş araç</option></select>':'<textarea id="wa-'+key+'" maxlength="6000">'+esc(fieldValue(key))+'</textarea>')).join('')+'<label for="wa-basis">Yayın izni / hukuki dayanak kaydı (zorunlu)</label><textarea id="wa-basis" maxlength="1000">'+esc(d.legal_basis||'')+'</textarea><label><input type="checkbox" id="wa-reviewed"> Yayımlanacak alanları, kişisel veri iznini, tüm teslimat noktalarını ve şartları kontrol ettim.</label><p>İletişim telefonu izinle yayımlanır; Ara ve WhatsApp bağlantılarında kullanılır. Firma, kişi adı ve kaynak metin yayımlanmaz. İlan altı saat aktiftir.</p><p id="wa-error" role="alert"></p><div class="admin-tabs">'+[['save','Taslak kaydet'],['publish',d.status==='published'?'Değişiklikleri onayla ve yayımla':'Onayla ve yayımla'],['reject','Reddet'],['withdraw','Yayından kaldır']].map(([a,l])=>'<button type="button" class="chip" data-wa-action="'+a+'" '+(a==='save'&&d.status==='published'?'disabled':'')+'>'+l+'</button>').join('')+'<button type="button" class="chip" id="wa-back">Listeye dön</button></div></form></div><details><summary>İşlem geçmişi (son 50)</summary>'+d.audit.map(a=>'<article><b>'+esc(a.action)+' · '+esc(date(a.created_at))+'</b><p>İşlemi yapan: '+esc(a.actor||'Silinmiş hesap')+'</p><pre class="wa-source">'+esc(JSON.stringify({eski:a.before_value,yeni:a.after_value},null,2))+'</pre></article>').join('')+'</details>');
+            $('#wa-back').onclick=load;let sending=false;
+            body.querySelectorAll('[data-wa-action]').forEach(b=>b.onclick=async()=>{
+                if(sending||!valid())return;const action=b.dataset.waAction,next={};
+                try{
+                    for(const [key] of fields){const value=$('#wa-'+key).value.trim();const point=s=>{const [city,district]=s.split('|').map(x=>x.trim());return {city:city||null,district:district||null};};next[key]=key==='from'?point(value):key==='destinations'?value.split('\n').filter(Boolean).map(point):key==='items'?value.split('\n').filter(Boolean).map(s=>{const [n,q,u]=s.split('|').map(x=>x.trim());return {n,q:Number(q),u};}):numbers.includes(key)?(value===''?null:Number(value)):(value||null);}
+                    if(action==='publish'&&!$('#wa-reviewed').checked)throw Error('Yayın alanlarını ve izin kaydını kontrol edip kutuyu işaretle.');
+                }catch(e){$('#wa-error').textContent=e.message||'Alan biçimini kontrol et.';return;}
+                next.imageData=f.imageData||null;const basis=$('#wa-basis').value.trim();sending=true;body.querySelectorAll('button').forEach(button=>button.disabled=true);
+                try{await nakgoAuth.whatsappRPC('change',{p_id:id,p_revision:d.revision,p_action:action,p_fields:next,p_basis:basis});if(valid())await whatsappDetail(id);}
+                catch(e){if(!valid())return;frame('<p role="alert">'+esc(e.code==='40001'?'Kayıt değişmiş. Güncel kaydı yükle.':'İşlem doğrulanamadı. Zorunlu alanları ve yayın izin kaydını kontrol etmek için güncel kaydı yükle.')+'</p><button class="chip" id="wa-reload">Güncel kaydı yükle</button>');$('#wa-reload').onclick=()=>whatsappDetail(id);}
+            });
+        }catch{if(valid()&&ticket===request){frame('<p role="alert">Taslak açılamadı. Yetkini ve bağlantını kontrol et.</p><button class="chip" id="wa-back">Listeye dön</button>');$('#wa-back').onclick=load;}}
+    }
     function confirmAction(row){
         if(!valid())return;
         ++request;
@@ -5906,95 +5648,6 @@ async function openAdminPanel() {
         };
     }
     await load();
-}
-
-/**
- * Mesaj geçmişi ekranı
- * Görüşme seçimi; sohbet erişimi mevcut Premium kuralını kullanır.
- */
-
-function inboxEntries() {
-    const entries=new Map();
-    [...offers,...incoming].forEach(offer=>{
-        const mine=offer.bidder===me||(!cloud&&offers.includes(offer));
-        const who=mine?(offer.owner||nm(offer.ownerUid)):nm(offer.bidder);
-        const uid=mine?offer.ownerUid:offer.bidder;
-        if(uid&&blocked.includes(uid))return;
-        const key='o'+offer.loadId+'_'+offer.bidder;
-        entries.set(key,{k:key,who,route:offer.from+' → '+offer.to});
-    });
-    Object.keys(chats).forEach(key=>{
-        if(entries.has(key)||!chats[key].some(message=>message.me))return;
-        const truck=trucks.find(item=>'t'+item.id===key);
-        const load=loads.find(item=>key==='o'+item.id+'_'+me||key==='o'+item.id+'_');
-        if((truck?.uid&&blocked.includes(truck.uid))||(load?.uid&&blocked.includes(load.uid)))return;
-        entries.set(key,{
-            k:key,
-            who:truck?(truck.who||nm(truck.uid)):load?(load.owner||nm(load.uid)):'Görüşme',
-            route:truck?truck.from+' → '+truck.to:load?load.from+' → '+load.to:'Kaydedilmiş sohbet'
-        });
-    });
-    return [...entries.values()];
-}
-
-function openInbox() {
-    if(nakgoMarket.active())return nakgoMessages.openInbox();
-    const entries=inboxEntries(),body=$('#sheetBody');
-    body.dataset.k='';
-    body.innerHTML=`<div class="load-detail">
-        <div class="detail-top"><b>Mesajlar</b><button class="chip detail-close" id="close">Kapat ×</button></div>
-        <div class="detail-scroll">${entries.map((entry,index)=>`<button class="conversation" data-conv="${index}">
-            <b>${esc(entry.who)}</b><span>${esc(entry.route)}</span>
-            <small>${esc((chats[entry.k]||[]).slice(-1)[0]?.t||'Görüşmeyi aç')}</small>
-        </button>`).join('')||'<div class="empty">Henüz görüşmen yok. İlan detayındaki Mesaj gönder düğmesinden başlayabilirsin.</div>'}</div>
-    </div>`;
-    body.querySelectorAll('[data-conv]').forEach(button=>button.onclick=()=>{
-        const entry=entries[+button.dataset.conv];
-        openChat(entry.k,entry.who);
-    });
-    $('#close').onclick=closeSheet;
-    syncDetailViewport();$('#sheet').classList.add('open');
-}
-
-// The account path uses Supabase conversations; demo inbox behavior is kept above.
-function paintAccountMessages() {
-    const s=nakgoMessages.state(),B=$('#sheetBody'),account=nakgoAuth.snapshot().user?.id;
-    if(B.dataset.k==='account-inbox') {
-        B.innerHTML='<div class="load-detail"><div class="detail-top"><b>Mesajlar</b><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><p class="estimate-note">Test ortamı · Görüşmeler hesabında saklanır.</p>'+
-        (s.inboxError?'<p role="alert">'+esc(s.inboxError)+'</p>':'')+'<button class="chip" id="messages-refresh" '+(s.inboxBusy?'disabled':'')+'>Görüşmeleri yenile</button>'+
-        (!s.inboxReady&&!s.inboxError?'<p role="status">Görüşmeler yükleniyor…</p>':'')+
-        s.conversations.map((c,i)=>'<button class="conversation" data-account-conv="'+i+'"><b>'+esc(c.owner_id===account?c.guest_label:c.owner_label)+'</b><span>'+esc(c.from_city)+' → '+esc(c.to_city)+'</span><small>'+esc(c.last_message_body||'Henüz mesaj yok')+'</small>'+(c.unread_count?'<span>'+esc(c.unread_count)+' okunmamış</span>':'')+'</button>').join('')+
-        (s.inboxReady&&!s.conversations.length?'<div class="empty">Henüz görüşmen yok. Bir ilan üzerinden başlayabilirsin.</div>':'')+
-        (s.inboxMore?'<button class="chip" id="messages-more" '+(s.inboxBusy?'disabled':'')+'>Daha fazla görüşme</button>':'')+'</div></div>';
-        $('#close').onclick=closeSheet;$('#messages-refresh').onclick=()=>{nakgoMessages.refreshInbox();nakgoMessages.refreshSummary();};
-        B.querySelectorAll('[data-account-conv]').forEach(b=>b.onclick=()=>nakgoMessages.openConversation(s.conversations[+b.dataset.accountConv]));
-        if($('#messages-more'))$('#messages-more').onclick=()=>nakgoMessages.refreshInbox(true);
-        return;
-    }
-    if(!s.current||B.dataset.k!=='account-chat:'+s.current.id)return;
-    const c=s.current;
-    if(B.dataset.renderedConversation!==String(c.id)||!B.querySelector('#account-message-input')) {
-        B.dataset.renderedConversation=String(c.id);
-        B.innerHTML='<div class="load-detail chat-detail"><div class="detail-top"><b>'+esc(c.owner_id===account?c.guest_label:c.owner_label)+'</b><button class="chip detail-close" id="close" aria-label="Sohbeti kapat">Kapat ×</button></div><p class="estimate-note">'+esc(c.from_city)+' → '+esc(c.to_city)+' · Hesabında saklanan görüşme</p><div class="chips"><button class="chip" id="messages-back">Görüşmeler</button><button class="chip" id="messages-refresh">Yenile</button><button class="chip" id="message-older">Önceki mesajlar</button></div><p id="message-status" role="status"></p><div id="msgs" role="log" aria-live="polite" aria-label="Mesajlar"></div><p id="message-send-error" role="alert"></p><div class="chat-composer"><label class="sr-only" for="account-message-input">Mesajın</label><input id="account-message-input" placeholder="Mesaj yaz" maxlength="500"><button class="btn" id="account-message-send">Gönder</button></div></div>';
-        $('#close').onclick=closeSheet;$('#messages-back').onclick=()=>nakgoMessages.openInbox();
-        $('#messages-refresh').onclick=()=>nakgoMessages.refreshMessages();$('#message-older').onclick=()=>nakgoMessages.refreshMessages(true);
-        const input=$('#account-message-input'),sendButton=$('#account-message-send');input.value=s.draft;input.oninput=()=>{nakgoMessages.saveDraft(input.value);$('#message-send-error').textContent=nakgoMessages.state().draftWarning;};$('#msgs').onscroll=()=>nakgoMessages.acknowledge();
-        const submit=async()=>{const body=input.value;if(!body.trim())return;try{const row=await nakgoMessages.send(body);if(row&&$('#account-message-input')===input&&input.value===body)input.value='';}catch(e){/* Server-confirmed errors are rendered with the preserved draft. */}};
-        sendButton.onclick=submit;input.onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing){e.preventDefault();submit();}};
-    }
-    const log=$('#msgs'),bottom=log.scrollHeight-log.scrollTop-log.clientHeight<40,oldHeight=log.scrollHeight,oldTop=log.scrollTop;
-    const first=s.messages[0]?.id||0,signature=s.messages.map(m=>m.id).join(',');
-    if(log.dataset.signature!==signature){
-        const prepended=+log.dataset.first>first&&first>0;
-        log.innerHTML=s.messages.map(m=>'<div class="bub '+(m.sender_id===account?'me':'')+'">'+esc(m.body)+'</div>').join('');
-        log.dataset.signature=signature;log.dataset.first=String(first);
-        if(prepended)log.scrollTop=oldTop+log.scrollHeight-oldHeight;else if(bottom||!oldHeight)log.scrollTop=log.scrollHeight;else log.scrollTop=oldTop;
-    }
-    $('#message-status').textContent=s.messageError||(!s.messageReady?'Mesajlar yükleniyor…':'');
-    $('#message-send-error').textContent=s.sendError||s.draftWarning;
-    $('#message-older').hidden=!s.messageMore;$('#message-older').disabled=s.messageBusy||s.sending;
-    $('#messages-refresh').disabled=s.messageBusy||s.sending;
-    $('#account-message-send').disabled=s.sending||!s.messageReady;$('#account-message-input').disabled=s.sending;
 }
 
 /**
@@ -6065,23 +5718,22 @@ function syncDetailViewport() {
 function openLoad(id) {
     roadMapDispose(true);
     const l = findIt("l",id);
-    if (!l)
+    if (!l || !availableListing(l))
         return toast("İlan bulunamadı");
     track("v", id);
     const km = listingDistance(l);
     const unavailable = !availableListing(l);
     const kv = rows => rows.map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("");
-    $("#sheetBody").innerHTML = `<div class="load-detail">
+    $("#sheetBody").innerHTML = `<div class="load-detail" data-listing-expiry="${listingExpiry(l)}">
       <div class="detail-top"><span>Yük ilanı <span class="detail-id">#${esc(l.id)}</span></span><button class="chip detail-close" id="close" aria-label="İlan detayını kapat">Kapat <span aria-hidden="true">×</span></button></div>
       <div class="detail-scroll" tabindex="0" aria-label="İlan bilgileri">
         <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${esc(dateLabel(l))}</span>${isF(l) ? `<span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span>` : ""}</div></section>
         ${!cloud && !nakgoMarket.active() ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
         ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
         <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", esc(l.cargo)], ["Tonaj", esc(l.ton) + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", esc(dateLabel(l))]])}${l.note ? `<p class="detail-note">${esc(l.note)}</p>` : ""}</section>
-        <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p></section>
+        <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya WhatsApp üzerinden görüşebilirsin.</p></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
-        <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${esc(l.owner || (l.uid ? nm(l.uid) : "Bireysel"))}</b><p>${starTxt(l)} ${vbadge(l.uid ? lvU(l.uid) : 0)}</p></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button></div></section>
-        <div class="detail-actions">${l._remote&&!l.mine&&!unavailable?'<button class="chip" id="request-job">Taşıma talebi gönder</button>':""}<button class="chip" id="sh">Paylaş</button><button class="chip" id="cp2">${cmp.includes(l.id) ? "Karşılaştırmadan çıkar" : "Karşılaştır"}</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me && !l.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
+        <div class="detail-actions">${l._remote&&!l.mine&&!unavailable?'<button class="chip" id="request-job">Taşıma talebi gönder</button>':""}<button class="chip" id="sh">Paylaş</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me && !l.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
       </div>
       ${contactDockHTML(unavailable,l.mine)}
     </div>`;
@@ -6098,45 +5750,43 @@ function openLoad(id) {
             catch(e){if(account===nakgoMarket.token()){button.disabled=false;toast('Talep gönderilemedi. İlanları yenileyip tekrar dene.');}}
         };
     }
-    $("#call").onclick = () => {
-        if (!contactAllowed(l,false,true)) return;
-        track("c", l.id);
-        callTo(phoneOf(l));
-    };
-    $("#cp2").onclick = () => toggleCmp(l.id);
-    $("#pf").onclick = () => openProfile({ uid: l.uid, name: l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), lv: l.uid ? lvU(l.uid) : 0, rate: l.rate });
+    bindListingContact(l,false);
     $("#rp").onclick = () => openReport("l", l.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
-    $("#mg").onclick = () => {
-        if(l._remote)return nakgoMessages.openListing(l.remoteId);
-        if (!contactAllowed(l)) return;
-        openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => offers.some(o=>o.id===l.id&&o.status!=="no"&&!offerExp(o)) || requestLoad(l), () => contactAllowed(l));
-    };
+
 }
 
 function openTruck(id) {
     roadMapDispose(true);
     const t = findIt("t",id);
-    if (!t) return toast("İlan bulunamadı");
+    if (!t || !availableListing(t,true)) return toast("İlan bulunamadı");
     const unavailable = !availableListing(t,true);
-    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", esc(t.who || nm(t.uid)) + (lvT(t) === 2 ? " ✓ Onaylı" : vok(t) ? " ✓ Belgeli" : "") + " · " + starTxt(t)], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me && !t.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
+    $("#sheetBody").innerHTML = `<div class="load-detail" data-listing-expiry="${listingExpiry(t)}"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Kalan süre", esc(listingRemaining(t))], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))]].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me && !t.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openTruck(id));
     $("#close").onclick = closeSheet;
-    $("#mg").onclick = () => { if(t._remote)return nakgoMessages.openListing(t.remoteId); if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
-    $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
-    $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid), lv: lvT(t), rate: t.rate });
+    bindListingContact(t,true);
     $("#rp").onclick = () => openReport("t", t.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(t.uid);
 }
 
-function contactDockHTML(unavailable=false,mine=false) {
-    if(nakgoMarket.active())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">Telefon bağlantısı hazırlanıyor. Test sürümünde mesajlaşabilirsin.</p><button class="btn" id="call" disabled>Ara</button><button class="btn alt" id="mg" '+(unavailable||mine?'disabled':'')+'>Mesaj gönder</button></div>';
-    const badge=isPrem()?"":'<b class="pm">Premium</b>';
-    return `<div class="contact-dock dual-contact">${unavailable?'<p class="contact-unavailable" role="status">Bu ilan kapalı veya süresi dolmuş. Yeni görüşme başlatılamaz.</p>':""}<button class="btn contact-call" id="call" ${unavailable?"disabled":""}><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg" ${unavailable?"disabled":""}><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
+function contactDockHTML(unavailable=false){return `<div class="contact-dock dual-contact"><button class="btn" id="call" ${unavailable?'disabled':''}>Ara</button><button class="btn alt" id="wa" ${unavailable?'disabled':''}>WhatsApp</button></div>`;}
+function bindListingContact(item,isTruck){
+    const contact=async(channel)=>{
+        if(!availableListing(item,isTruck))return toast('İlanın süresi doldu');
+        const account=nakgoMarket.token();
+        try {
+            const phone=item._remote?await nakgoAuth.listingContact(item.remoteId):phoneOf(item);
+            if(item._remote&&account!==nakgoMarket.token())return;
+            if(!availableListing(item,isTruck))return toast('İlanın süresi doldu');
+            const n=normalizeListingPhone(phone);if(!n)return toast('İletişim numarası kullanılamıyor');
+            window.location.href=channel==='call'?'tel:'+n:'https://wa.me/'+n.slice(1);
+        }catch(e){toast('İlan veya iletişim izni artık geçerli değil');}
+    };
+    $('#call').onclick=()=>contact('call');$('#wa').onclick=()=>contact('whatsapp');
 }
 
 /**
@@ -6145,6 +5795,7 @@ function contactDockHTML(unavailable=false,mine=false) {
  */
 
 function render() {
+ scheduleListingExpiry();
  const m = $("#main"); bell();
  m.dataset.screen = tab;
  if(tab === "list") renderListings(m);
@@ -6160,7 +5811,6 @@ function render() {
     if(m.insertAdjacentHTML)m.insertAdjacentHTML('afterbegin',nakgoFavorites.controls());
     nakgoFavorites.bind();nakgoFavorites.ensure();
  }
- if(nakgoMarket.active()&&tab==='me')nakgoMessages.ensure();
  if(storageNotice && m.insertAdjacentHTML) m.insertAdjacentHTML("afterbegin",`<p class="demo-note" role="status">${esc(storageNotice)}</p>`);
 }
 
@@ -6373,6 +6023,11 @@ initDialogAccessibility();
 
 // Optional preview-only account service; demo state and legacy host remain separate.
 nakgoAuth.init();
+
+// Resume server-time visibility checks when a suspended tab becomes visible.
+if(document.addEventListener)document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState!=='hidden')refreshListingExpiry();
+});
 </script>
 </body>
 </html>

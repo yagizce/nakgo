@@ -207,3 +207,8 @@ initDialogAccessibility();
 
 // Optional preview-only account service; demo state and legacy host remain separate.
 nakgoAuth.init();
+
+// Resume server-time visibility checks when a suspended tab becomes visible.
+if(document.addEventListener)document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState!=='hidden')refreshListingExpiry();
+});

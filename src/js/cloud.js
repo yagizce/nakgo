@@ -361,8 +361,8 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
-    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data'];
+    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,contact_phone,published_at,expires_at,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
+    const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data','contact_phone','contact_consent'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
         return {id:state.user.id, revision};
@@ -376,7 +376,7 @@ const nakgoAuth = (() => {
         const account=listingAccount();
         let query=requireClient().from('listings').select(listingColumns).order('id',{ascending:false}).limit(50);
         if(own)query=query.eq('owner_id',account.id);
-        else query=query.eq('status','active');
+        else query=query.eq('status','active').gt('expires_at',new Date().toISOString());
         if(before!==null) {
             if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');
             query=query.lt('id',before);
@@ -386,7 +386,7 @@ const nakgoAuth = (() => {
     async function createListing(input) {
         const account=listingAccount();
         if(!['load','truck'].includes(input?.kind))throw Error('Invalid kind');
-        const values={kind:input.kind,owner_label:String(state.profile.display_name||'NakGo kullanıcısı').trim().slice(0,60)};
+        const values={kind:input.kind};
         for(const key of listingFields)if(Object.prototype.hasOwnProperty.call(input,key))values[key]=input[key];
         return listingResult(await requireClient().from('listings').insert(values).select(listingColumns).single(),account);
     }
@@ -398,6 +398,7 @@ const nakgoAuth = (() => {
         if(!Object.keys(values).length)throw Error('No editable fields');
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
+    async function listingContact(id){const account=listingAccount();return listingResult(await requireClient().rpc('nakgo_listing_contact',{p_id:id}),account);}
     const jobColumns='id,listing_id,owner_id,carrier_id,carrier_label,listing_snapshot,status,stage,created_at,updated_at,expires_at,loaded_at,confirmed_at';
     async function listJobs(before=null) {
         const account=listingAccount();
@@ -430,40 +431,7 @@ const nakgoAuth = (() => {
         return {active,done};
     }
     const messageResult=async(q,account)=>listingResult(await (typeof q.abortSignal==='function'&&typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?q.abortSignal(AbortSignal.timeout(15000)):q),account);
-    const conversationColumns='id,listing_id,owner_id,guest_id,owner_label,guest_label,listing_kind,from_city,to_city,last_message_id,last_message_body,last_sender_id,owner_read_id,guest_read_id,unread_count,created_at,updated_at';
-    const messageColumns='id,conversation_id,sender_id,client_nonce,body,created_at';
     const messageID=id=>Number.isSafeInteger(id)&&id>0;
-    async function listConversations(before=null) {
-        const account=listingAccount();
-        let q=requireClient().from('message_inbox').select(conversationColumns).order('last_message_id',{ascending:false}).order('id',{ascending:false}).limit(50);
-        if(before!==null) {
-            if(!messageID(before.id)||!Number.isSafeInteger(before.activity)||before.activity<0)throw Error('Invalid cursor');
-            q=q.or('last_message_id.lt.'+before.activity+',and(last_message_id.eq.'+before.activity+',id.lt.'+before.id+')');
-        }
-        return messageResult(q,account);
-    }
-    async function listMessages(id,before=null) {
-        const account=listingAccount();if(!messageID(id)||(before!==null&&!messageID(before)))throw Error('Invalid conversation');
-        let q=requireClient().from('conversation_messages').select(messageColumns).eq('conversation_id',id).order('id',{ascending:false}).limit(50);
-        if(before!==null)q=q.lt('id',before);
-        return messageResult(q,account);
-    }
-    async function openConversation(id) {
-        const account=listingAccount();if(!messageID(id))throw Error('Invalid listing');
-        return messageResult(requireClient().rpc('nakgo_open_conversation',{p_listing_id:id}),account);
-    }
-    async function sendMessage(id,body,nonce) {
-        const account=listingAccount();
-        if(!messageID(id)||typeof body!=='string'||!body.trim()||body.trim().length>500||typeof nonce!=='string'||!/^([a-f0-9]{8}-){1}[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(nonce))throw Error('Invalid message');
-        return messageResult(requireClient().rpc('nakgo_send_message',{p_conversation_id:id,p_body:body.trim(),p_client_nonce:nonce}),account);
-    }
-    async function readConversation(id,through) {
-        const account=listingAccount();if(!messageID(id)||!messageID(through))throw Error('Invalid boundary');
-        return messageResult(requireClient().rpc('nakgo_read_conversation',{p_conversation_id:id,p_through_id:through}),account);
-    }
-    async function unreadMessages() {
-        const account=listingAccount();return messageResult(requireClient().rpc('nakgo_message_unread_count'),account);
-    }
     const applicationColumns='id,owner_id,owner_label,license_class,status,revision,created_at,submitted_at,reviewed_at,reviewed_by,review_note,updated_at';
     const documentColumns='id,application_id,owner_id,kind,object_path,status,byte_size,created_at,updated_at';
     const documentUUID=id=>typeof id==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id);
@@ -503,6 +471,7 @@ const nakgoAuth = (() => {
         if(!Number.isSafeInteger(id)||id<1||!['accept','reject','withdraw','loaded','confirm'].includes(action))throw Error('Invalid transition');
         return listingResult(await requireClient().rpc('nakgo_transition_transport',{p_job_id:id,p_action:action}),account);
     }
+    async function whatsappRPC(name,args={}){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_wa_'+name,args),account);}
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
     async function adminPage(section,offset=0,search=''){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_page',{p_section:section,p_offset:offset,p_search:search}),account);}
     async function adminModerate(kind,target,action,reason,expectedRevision){
@@ -510,7 +479,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
+    return {listingContact,whatsappRPC,adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -522,14 +491,14 @@ const nakgoMarket = (() => {
     function empty() {
         loads=[]; trucks=[]; offers=[]; incoming=[]; chats={}; favs=[]; alerts=[]; blocked=[]; reports=[]; rates=[]; cdocs={};
         myCar={lic:'',src:false,kb:false,ruh:false}; prem={until:0,plan:''};
-        carriers={}; names={}; appr={}; events=[]; allO=[]; seen=new Set(); cmp=[]; postDrafts=null; postImg='';
+        carriers={}; names={}; appr={}; events=[]; allO=[]; seen=new Set(); postDrafts=null; postImg='';
     }
     function sync(s) {
         const next=s.marketplace && s.user && !s.recovery ? s.user.id : '';
         if(next!==account) {
             generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
             if(!account && next) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
-            empty(); account=next; nakgoJobs.reset(); nakgoFavorites.reset(); nakgoMessages.reset(); nakgoDocuments.reset(); nakgoAdminAccess.reset();
+            empty(); account=next; nakgoJobs.reset(); nakgoFavorites.reset(); nakgoDocuments.reset(); nakgoAdminAccess.reset();
             if(!next && demo) {
                 applyState(demo.data); ({incoming,carriers,names,appr,events,allO,seen}=demo); demo=null;
             }
@@ -541,7 +510,7 @@ const nakgoMarket = (() => {
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
             from:r.from_city,to:r.to_city,veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
-            owner:r.owner_label,who:r.owner_label,date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note,
+            owner:'',who:'',phone:r.contact_phone||'',expiresAt:Date.parse(r.expires_at),date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note,
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active',archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};
     }
@@ -570,7 +539,7 @@ const nakgoMarket = (() => {
     function payload(x,truck) {
         const dates=!truck&&'dateText' in x?{date:null,dateEnd:''}:dateFields(x.date);
         return {kind:truck?'truck':'load',from_city:x.from,to_city:x.to,vehicle:x.veh,body:x.body,amount:truck?x.cap:x.ton,
-            cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,available_time:x.time||'',...(!truck&&'dateText' in x?{loading_text:x.dateText}:{}),
+            contact_phone:normalizeListingPhone(x.phone),contact_consent:x.contactConsent===true,cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,available_time:x.time||'',...(!truck&&'dateText' in x?{loading_text:x.dateText}:{}),
             items:truck?[]:x.items||[],image_data:truck?'':x.img||''};
     }
     async function create(x,truck=false) {
@@ -580,6 +549,7 @@ const nakgoMarket = (() => {
     async function update(k,id,patch) {
         const x=findIt(k,id); if(!x?._remote || !x.mine)throw Error('Own listing required');
         const owner=token(), values={};
+        if('phone' in patch){values.contact_phone=normalizeListingPhone(patch.phone);values.contact_consent=patch.contactConsent===true;}
         if('note' in patch)values.note=patch.note;
         if('cap' in patch)values.amount=patch.cap;
         if('date' in patch){const dates=dateFields(patch.date);values.available_on=dates.date;values.available_until=('dateEnd' in patch?patch.dateEnd:patch.date===x.date?x.dateEnd:dates.dateEnd)||null;}
@@ -591,7 +561,7 @@ const nakgoMarket = (() => {
     }
     function controls() {
         if(!active())return '';
-        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar, fotoğraflar, taşıma talepleri, favorilerin ve mesajların hesabında saklanır.')+'</p>'+
+        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar, fotoğraflar, taşıma talepleri, favorilerin hesabında saklanır.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
     }
     return {active,token,sync,refresh,create,update,pending,controls,mapped};
@@ -709,111 +679,4 @@ const nakgoFavorites = (() => {
         if($('#favorites-more'))$('#favorites-more').onclick=()=>refreshPage(true);
     }
     return {reset,state,has,disabled,listings,unavailable,refresh,refreshPage,ensure,setSaved,controls,bind,updateListing};
-})();
-
-// Private conversations never enter yy2 or the legacy demo chat store.
-const nakgoMessages=(()=>{
-    let epoch=0,version=0,screen=0,timer=null,opening=false,conversations=[],inboxReady=false,inboxBusy=false,inboxError='',inboxBefore=null,inboxMore=false;
-    let current=null,messages=[],messageReady=false,messageBusy=false,messageError='',messageMore=false,messageBefore=null,sending=false,sendError='',retry=null;
-    let readBusy=false,lastRead=0,pollGeneration=0,pollDelay=8000,draftAccount='',drafts=new Map(),draftWarning='';
-    let summaryChecked=0,unread={count:0,ready:false,busy:false,error:''};
-    const allowed=()=>{const a=nakgoAuth.snapshot();return nakgoMarket.active()&&a.user&&a.profile&&!a.recovery;};
-    const state=()=>({conversations:conversations.map(x=>({...x})),inboxReady,inboxBusy,inboxError,inboxMore,current:current?{...current}:null,messages:messages.map(x=>({...x})),messageReady,messageBusy,messageError,messageMore,sending,sendError,draft:current?(drafts.get(current.id)?.body||''):'',draftWarning,unread:{...unread}});
-    const stop=()=>{pollGeneration++;if(timer!==null&&typeof window?.clearTimeout==='function')window.clearTimeout(timer);timer=null;};
-    function reset(){stop();if(draftAccount)try{window?.sessionStorage?.removeItem('ng-message-drafts:'+draftAccount);}catch(e){}drafts=new Map();draftAccount='';draftWarning='';readBusy=false;lastRead=0;pollDelay=8000;epoch++;version++;screen++;opening=false;conversations=[];inboxReady=inboxBusy=inboxMore=false;inboxError='';inboxBefore=null;current=null;messages=[];messageReady=messageBusy=messageMore=sending=false;messageError=sendError='';messageBefore=retry=null;summaryChecked=0;unread={count:0,ready:false,busy:false,error:''};}
-    const key=()=>$('#sheetBody').dataset.k;
-    const active=()=>key()==='account-inbox'||(current&&key()==='account-chat:'+current.id);
-    const same=(account,e)=>account===nakgoMarket.token()&&e===epoch;
-    const draw=()=>{if(active())paintAccountMessages();};
-    function loadDrafts(){
-        const account=nakgoAuth.snapshot().user?.id;if(!account||account===draftAccount)return;
-        drafts=new Map();draftAccount=account;draftWarning='';
-        try{const data=JSON.parse(window?.sessionStorage?.getItem('ng-message-drafts:'+account)||'[]');
-            if(Array.isArray(data))for(const row of data.slice(0,50))if(Number.isSafeInteger(row.id)&&row.id>0&&typeof row.body==='string'&&row.body.length<=500&&(!row.nonce||/^[a-f0-9-]{36}$/i.test(row.nonce)))drafts.set(row.id,{id:row.id,body:row.body,nonce:row.nonce||null});
-        }catch(e){draftWarning='Taslağı tarayıcıda saklayamadık. Göndermeden önce depolama erişimini kontrol et.';}
-    }
-    function saveDraft(body,nonce=null){
-        if(!allowed()||!current)return false;loadDrafts();
-        const old=drafts.get(current.id),value=String(body).slice(0,500);
-        if(value&&!old&&drafts.size>=50){draftWarning='Önce eski mesaj taslaklarından birini tamamla.';return false;}
-        const record={id:current.id,body:value,nonce:nonce||(old?.body.trim()===value.trim()?old.nonce:null)};
-        if(value)drafts.set(current.id,record);else drafts.delete(current.id);
-        try{window?.sessionStorage?.setItem('ng-message-drafts:'+draftAccount,JSON.stringify([...drafts.values()]));draftWarning='';return true;}
-        catch(e){draftWarning='Taslağı tarayıcıda saklayamadık. Göndermeden önce depolama erişimini kontrol et.';return false;}
-    }
-    const atBottom=()=>{const log=$('#msgs');return Number.isFinite(log.clientHeight)&&log.clientHeight>0&&log.scrollHeight-log.scrollTop-log.clientHeight<40;};
-    async function acknowledge(){
-        if(!allowed()||!current||readBusy||!messageReady||key()!=='account-chat:'+current.id||document.visibilityState==='hidden'||!atBottom())return;
-        const through=messages.at(-1)?.id;if(!through||through<=lastRead)return;
-        const account=nakgoMarket.token(),e=epoch,view=screen,id=current.id;readBusy=true;
-        try{await nakgoAuth.readConversation(id,through);if(same(account,e)&&view===screen){lastRead=Math.max(lastRead,through);version++;unread.ready=false;refreshSummary();}}
-        catch(e1){if(same(account,e)&&view===screen)messageError='Okundu bilgisi kaydedilemedi. Yenile ile tekrar dene.';}
-        finally{if(same(account,e)&&view===screen){readBusy=false;draw();}}
-    }
-    function schedule(){
-        stop();if(!active()||typeof window?.setTimeout!=='function')return;
-        const generation=pollGeneration,account=nakgoMarket.token(),e=epoch,view=screen;
-        timer=window.setTimeout(async()=>{
-            timer=null;if(!active()||generation!==pollGeneration||!same(account,e)||view!==screen)return;
-            if(document.visibilityState!=='hidden'){
-                if(key()==='account-inbox')await refreshInbox();else await refreshMessages();
-                pollDelay=(key()==='account-inbox'?inboxError:messageError)?Math.min(pollDelay*2,60000):8000;
-            }
-            if(generation===pollGeneration&&same(account,e)&&view===screen&&active())schedule();
-        },pollDelay);
-    }
-    async function refreshSummary(){
-        if(!allowed()||unread.busy)return;
-        const account=nakgoMarket.token(),e=epoch,v=version;unread.busy=true;unread.error='';
-        try{const count=await nakgoAuth.unreadMessages();if(same(account,e)&&v===version){if(!Number.isSafeInteger(count)||count<0)throw Error('Invalid unread count');unread={count,ready:true,busy:true,error:''};}}
-        catch(e1){if(same(account,e)&&v===version)unread.error='Mesaj sayısı yüklenemedi';}
-        finally{if(same(account,e)){unread.busy=false;summaryChecked=Date.now();if(tab==='me')render();}}
-    }
-    function ensure(){if(allowed()&&!unread.busy&&((!unread.ready&&!unread.error)||Date.now()-summaryChecked>15000))refreshSummary();}
-    async function refreshInbox(append=false){
-        if(!allowed()||inboxBusy)return;
-        const account=nakgoMarket.token(),e=epoch,v=version;inboxBusy=true;inboxError='';draw();
-        try{const page=await nakgoAuth.listConversations(append?inboxBefore:null);if(!same(account,e)||v!==version)return;
-            const initial=!inboxReady,all=new Map((initial?[]:conversations).map(c=>[c.id,c]));page.forEach(c=>all.set(c.id,c));conversations=[...all.values()].sort((a,b)=>b.last_message_id-a.last_message_id||b.id-a.id);inboxReady=true;
-            if(append||initial){inboxMore=page.length===50;const last=page.at(-1);inboxBefore=last?{activity:last.last_message_id,id:last.id}:null;}
-        }catch(e1){if(same(account,e))inboxError='Görüşmeler yüklenemedi. Yeniden dene.';}
-        finally{if(same(account,e)){inboxBusy=false;draw();}}
-    }
-    function openInbox(){if(!allowed())return;stop();screen++;current=null;messages=[];retry=null;pollDelay=8000;$('#sheetBody').dataset.k='account-inbox';paintAccountMessages();syncDetailViewport();$('#sheet').classList.add('open');unChat=stop;refreshInbox().then(schedule);refreshSummary();}
-    async function openListing(id){
-        if(!allowed()||opening)return;const account=nakgoMarket.token(),e=epoch,view=++screen;opening=true;stop();
-        $('#sheetBody').dataset.k='account-opening';$('#sheetBody').innerHTML='<div class="detail-top"><b>Görüşme açılıyor…</b><button class="chip" id="close">Kapat ×</button></div>';$('#close').onclick=closeSheet;$('#sheet').classList.add('open');
-        try{const row=await nakgoAuth.openConversation(id);if(!same(account,e)||view!==screen||key()!=='account-opening')return;openConversation(row);}
-        catch(e1){if(same(account,e)&&view===screen&&key()==='account-opening'){closeSheet();toast('Görüşme açılamadı. İlanları yenileyip tekrar dene.');}}
-        finally{if(same(account,e))opening=false;}
-    }
-    function openConversation(row){
-        if(!allowed())return;stop();screen++;loadDrafts();current={...row};messages=[];readBusy=false;lastRead=Number(row.owner_id===nakgoAuth.snapshot().user.id?row.owner_read_id:row.guest_read_id)||0;pollDelay=8000;messageReady=messageBusy=messageMore=sending=false;messageError=sendError='';messageBefore=null;const draft=drafts.get(row.id);retry=draft?.nonce?{id:row.id,body:draft.body.trim(),nonce:draft.nonce}:null;
-        $('#sheetBody').dataset.k='account-chat:'+row.id;paintAccountMessages();syncDetailViewport();$('#sheet').classList.add('open');unChat=stop;refreshMessages().then(schedule);
-    }
-    async function refreshMessages(append=false){
-        if(!allowed()||!current||messageBusy||sending)return;
-        const account=nakgoMarket.token(),e=epoch,view=screen,v=version,id=current.id;messageBusy=true;messageError='';draw();
-        try{const page=await nakgoAuth.listMessages(id,append?messageBefore:null);if(!same(account,e)||view!==screen||v!==version)return;
-            const overlaps=page.some(m=>messages.some(old=>old.id===m.id));
-            const keep=append||overlaps;
-            const all=new Map((keep?messages:[]).map(m=>[m.id,m]));page.forEach(m=>all.set(m.id,m));messages=[...all.values()].sort((a,b)=>a.id-b.id);
-            if(append||!keep){messageMore=page.length===50;messageBefore=messages[0]?.id||null;}messageReady=true;
-            draw();
-            await acknowledge();
-        }catch(e1){if(same(account,e)&&view===screen)messageError='Mesajlar yüklenemedi. Yeniden dene.';}
-        finally{if(same(account,e)&&view===screen){messageBusy=false;draw();}}
-    }
-    async function send(body){
-        if(!allowed()||!current||sending||typeof body!=='string'||!body.trim()||body.trim().length>500)return null;
-        const account=nakgoMarket.token(),e=epoch,view=screen,id=current.id,text=body.trim();
-        if(!retry||retry.id!==id||retry.body!==text){if(typeof window?.crypto?.randomUUID!=='function')throw Error('Secure message ID unavailable');retry={id,body:text,nonce:window.crypto.randomUUID()};}
-        const request={...retry};if(!saveDraft(text,request.nonce)){sendError=draftWarning;draw();throw Error('Message draft storage unavailable');}sending=true;sendError='';draw();
-        try{const row=await nakgoAuth.sendMessage(id,text,request.nonce);if(!same(account,e)||view!==screen)throw Error('Account or conversation changed');
-            if(row.conversation_id!==id||row.body!==text||row.sender_id!==nakgoAuth.snapshot().user.id||row.client_nonce!==request.nonce)throw Error('Invalid message response');
-            version++;const all=new Map(messages.map(m=>[m.id,m]));all.set(row.id,row);messages=[...all.values()].sort((a,b)=>a.id-b.id);messageReady=true;retry=null;saveDraft('');unread.ready=false;return row;
-        }catch(e1){if(same(account,e)&&view===screen)sendError='Mesaj gönderilemedi. Yazdığın metin korunuyor; tekrar dene.';throw e1;}
-        finally{if(same(account,e)&&view===screen){sending=false;draw();refreshSummary();}}
-    }
-    return {reset,state,ensure,refreshSummary,refreshInbox,openInbox,openListing,openConversation,refreshMessages,acknowledge,saveDraft,send,stop};
 })();

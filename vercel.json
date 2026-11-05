@@ -6,6 +6,10 @@
     "api/whatsapp/webhook.mjs": {
       "includeFiles": "src/js/config.js",
       "maxDuration": 10
+    },
+    "api/whatsapp/worker.mjs": {
+      "includeFiles": "src/js/config.js",
+      "maxDuration": 60
     }
   },
   "headers": [
@@ -48,5 +52,13 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "codex/nakgo-cloudflare-dev": false,
+      "codex/nakgo-listing-lifecycle": false,
+      "codex/nakgo-retention-dev": false,
+      "codex/nakgo-group-capacity": false
+    }
+  }
 }

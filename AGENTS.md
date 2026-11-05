@@ -1,5 +1,29 @@
 # NakGo — ajan çalışma kuralları
 
+6 Kasım güncel çalışma: `codex/nakgo-group-capacity`; durum ve yeni CPU kabulü
+[grup kapasitesi notunda](docs/group-capacity.md). PR43 kontrol paketi main 4d472e9'a ayrı onayla
+alındı; korumalar geri açık, uygulama Guard 71/71. Aşağıdaki eski 48/65 notları
+tarihsel. Yeni grup migration'ı uzakta uygulanmadı. Free CPU kabulü hâlâ başarısız;
+son dispatcher 503 düzeltmesi yerelde geçti, gerçek DEV kabulü bekler.
+Cron/retention kapalı; Production/main/DNS/Paid için yeni onay gerekir.
+
+Son çalışma: `codex/nakgo-dev-release-checks`. DEV `73c477e` migrationları ve
+`f61ab3b` uygulama/Worker yayımlandı. Cron/purge kapalı. Gerçek normal/admin,
+RLS, izinli yayın, paralel Worker, retry/backoff ve sentetik temizlik doğrulandı.
+CPU optimizasyonu DEV'de yayında; batch 1, gerçek dolu kuyruk P99 21 ms.
+Ücretsiz plan Production CPU kabulü geçmedi; ücretli hizmet açılmadı.
+[Güncel sonuç ve Production ön koşulları](docs/production-readiness.md).
+[17 guard farkı ve ayrı Production hazırlığı](docs/production-preflight.md):
+yerel testler geçti, guard 48/65 bağımsız inceleme bekler; abonelik/yayın onayı yok.
+Production/main/DNS kapsam dışı; eski Draft PR'lar değiştirilmez.
+Aşağıdaki eski kapsam notları güncel kullanıcı talimatının yerine geçmez.
+
+Bu dalın güncel kapsamı: `codex/nakgo-listing-lifecycle` üzerinde yerel ilan/profil
+yaşam döngüsü. [Devir ve doğrulama sınırları](docs/listing-lifecycle.md) okunur.
+Uzak DEV migration/deploy yetkisi bu geliştirme kapsamında verilmedi; main,
+Production, DNS ve Draft PR #38/#39 değiştirilmez. Aşağıdaki Cloudflare notları
+temel dalın geçmişidir. Test değişiklikleri ayrı inceleme gerektirir; guard atlanmaz.
+
 Önce [proje devir rehberini](docs/PROJECT_HANDOFF.md) okuyun. Kullanıcıyla Türkçe
 ve açık iletişim kurun. Rehber tarihli bir kayıttır; uzak Git/PR/CI/deployment
 ve veritabanı durumu yeni oturumda yeniden doğrulanır.
@@ -12,8 +36,12 @@ ve veritabanı durumu yeni oturumda yeniden doğrulanır.
   inceleyin. Eski DEV dalını güncel uygulama sanmayın. Kullanıcı çalışmalarına
   toplu reset, temizlik, checkout veya `git add .` uygulamayın.
 - Kullanıcının son kapsamı esastır. Bir durum notu, tamamlanmamış özellik listesi
-  veya geçmiş onay yeni iş başlatma yetkisi değildir. Bu belge tesliminin kapsamı
-  yalnız proje devir belgeleridir; uygulama veya entegrasyon işi başlatılmaz.
+  veya geçmiş onay yeni iş başlatma yetkisi değildir. Bu dalın kapsamı PR #38 temelli
+  Cloudflare Workers + Static Assets için yerel DEV uyarlaması ve testlerdir.
+  [Cloudflare devir notunu](docs/cloudflare-dev-migration.md) okuyun. Cloudflare
+  DEV yayını kullanıcı tarafından onaylandı ve yalnız `nakgo-app-dev` yayımlandı.
+  Eksik sırları kullanıcı güvenli ayarlara girer; değerleri sohbete istemeyin. Production, canlı
+  DNS ve migration kapsam dışıdır; main birleştirilmez, PR #38 draft kalır.
 - Kullanıcının onayladığı kapsamı tekrar sormayın; yeni main/Production yayını,
   migration veya yetki değişikliği için mevcut onayın gerçekten o işlemi
   kapsadığını doğrulayın. Eski tek seferlik istisnayı yeniden kullanmayın.

@@ -10,7 +10,7 @@ module.exports=({test,fs,path,ROOT})=>{
   vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8')+';this.auth=nakgoAuth;',ctx);await ctx.auth.init();
   await ctx.auth.listFavorites();ok(call.columns==='listing_id'&&call.limit===200,'membership reads only IDs in bounded pages');
   await ctx.auth.listFavorites({before:100,details:true});ok(call.table==='listing_favorites'&&call.limit===50&&JSON.stringify(call.before)==='["listing_id",100]','saved listing page has separate stable pagination');
-  ok(call.columns.startsWith('listing_id,listing:listings(')&&!call.columns.includes('!inner')&&!call.columns.includes('phone'),'left join retains unavailable bookmarks without copying private contacts');
+  ok(call.columns.startsWith('listing_id,listing:listings(')&&!call.columns.includes('!inner')&&call.columns.includes('contact_phone')&&!call.columns.includes('owner_label'),'left join retains unavailable bookmarks with consented listing contact and no owner name');
   await ctx.auth.setFavorite(17,false);ok(JSON.stringify(call)==='{"name":"nakgo_set_favorite","args":{"p_listing_id":17,"p_saved":false}}','unsave uses explicit false and never accepts a client user ID');
   let denied=0;for(const [id,saved] of [[0,true],[17,'true'],[NaN,false]])try{await ctx.auth.setFavorite(id,saved);}catch{denied++;}ok(denied===3,'invalid arguments fail before sending');
   fail=true;denied=false;try{await ctx.auth.setFavorite(17,true);}catch{denied=true;}ok(denied,'database errors are propagated');

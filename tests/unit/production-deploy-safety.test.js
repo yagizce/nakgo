@@ -1,0 +1,6 @@
+module.exports=({test,fs,path,ROOT})=>{
+ test('Production source config is isolated and cannot start live services by default',()=>{
+  const c=JSON.parse(fs.readFileSync(path.join(ROOT,'cloudflare/wrangler.production.jsonc'),'utf8'));
+  return [[c.name==='nakgo-app-prod'&&c.main==='dist/production-worker.mjs'&&c.account_id==='830c75912ca110ba6550788bfebf26ed','separate pinned account, worker and bundle'],[c.vars.NAKGO_ENV==='production'&&c.vars.SUPABASE_URL==='https://fimlifldsivecezbxwuo.supabase.co','pinned production project'],[c.vars.NAKGO_PRODUCTION_RELEASE_ENABLED==='false'&&c.vars.SUPABASE_PUBLISHABLE_KEY==='','missing operator configuration fails closed'],[c.vars.WHATSAPP_ENABLED==='false'&&c.vars.PRODUCTION_MAINTENANCE_ENABLED==='false'&&c.vars.WHATSAPP_CRON_ENABLED==='false'&&c.vars.LISTING_RETENTION_ENABLED==='false'&&c.triggers.crons.length===0,'all background/Meta/destructive work disabled'],[c.vars.WHATSAPP_BATCH_SIZE==='1'&&c.limits.cpu_ms===100,'bounded initial CPU work'],[c.workers_dev===false&&c.preview_urls===false&&!c.routes,'no implicit public hostname or DNS route'],[!Object.keys(c.vars).some(k=>/SECRET|SERVICE_ROLE|TOKEN/.test(k)),'no source credentials']];
+ });
+};
