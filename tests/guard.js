@@ -6,7 +6,7 @@ const TEST_COMMAND='node tools/bundle.js --check && node tools/dev.js lint && no
 const protectedFile = name => /^(tests\/|\.github\/)/.test(name) || ['tools/bundle.js','tools/dev.js','tools/project.js'].includes(name);
 // Only this running guard's trusted checkout supplies approvals. Never read a
 // candidate root, environment variable, CLI option, PR label or head manifest.
-const eligibleReviewedFile=p=>typeof p==='string'&&!p.includes('\\')&&path.posix.normalize(p)===p&&((/^tests\//.test(p)&&!['tests/guard.js','tests/run.js','tests/requirements.txt','tests/gate/control.test.js','tests/gate/static.js','tests/gate/static_html.py'].includes(p))||p==='tools/project.js');
+const eligibleReviewedFile=p=>typeof p==='string'&&!p.includes('\\')&&path.posix.normalize(p)===p&&((/^tests\//.test(p)&&!['tests/gate/browser.py','tests/gate/browser-dispatch.py','tests/gate/legacy-browser.py','tests/gate/product-browser.py','tests/gate/browser_dispatch_test.py','tests/unit/browser-dispatch.test.js','tests/guard.js','tests/run.js','tests/requirements.txt','tests/gate/control.test.js','tests/gate/static.js','tests/gate/static_html.py'].includes(p))||p==='tools/project.js');
 const digest=text=>crypto.createHash('sha256').update(text.replace(/\r\n/g,'\n')).digest('hex');
 function reviewedChange(ledger,file,before,after){
  if(!eligibleReviewedFile(file)||ledger?.version!==1||!Array.isArray(ledger.reviews))return false;
