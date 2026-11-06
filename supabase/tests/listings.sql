@@ -5,11 +5,9 @@ select set_config('nakgo.test_b',gen_random_uuid()::text,true);
 insert into auth.users(id) values(current_setting('nakgo.test_a')::uuid),(current_setting('nakgo.test_b')::uuid);
 select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
 set local role authenticated;
-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
- values('load','İstanbul','Ankara','Tır','Tenteli',22,'Test yük','Test A',(now() at time zone 'Europe/Istanbul')::date)
+insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',22,'Test yük','Test A',(now() at time zone 'Europe/Istanbul')::date)
  returning set_config('nakgo.listing_a',id::text,true);
-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
- values('truck','Ankara','İzmir','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date)
+insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on) values('+905321234567',true,'truck','Ankara','İzmir','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date)
  returning set_config('nakgo.truck_a',id::text,true);
 do $$ begin
  if (select owner_id from public.listings where id=current_setting('nakgo.listing_a')::bigint)<>auth.uid() then raise exception 'FAIL owner assigned by database'; end if;
@@ -63,10 +61,10 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
 set local role authenticated;
-update public.listings set status='closed' where id=current_setting('nakgo.listing_a')::bigint;
-update public.listings set status='archived' where id=current_setting('nakgo.truck_a')::bigint;
+select public.nakgo_close_listing(current_setting('nakgo.listing_a')::bigint,'closed');
+select public.nakgo_close_listing(current_setting('nakgo.truck_a')::bigint,'archived');
 do $$ begin
- if (select count(*) from public.listings where owner_id=auth.uid())<>2 then raise exception 'FAIL owner history'; end if;
+ if (select count(*) from public.listings where owner_id=auth.uid())<>0 then raise exception 'FAIL owner archive privacy'; end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.test_b'),true);

@@ -17,6 +17,7 @@ with sync_playwright() as p:
           window.adminRows=[{id:'00000000-0000-4000-8000-000000000003',display_name:'<img src=x onerror=alert(1)>',city:'İzmir',account_type:'carrier',created_at:'2026-10-26T00:00:00Z',revision:0,suspended:false}];
           window.adminListings=[{id:7,owner_label:'Test Owner',kind:'load',from_city:'İzmir',to_city:'Manisa',status:'active',removed:false,revision:0}];
           nakgoMarket.active=()=>true;nakgoMarket.token=()=>window.adminTestAccount;
+          nakgoAuth.dataCapabilities=async()=>['privacy_cases'];
           nakgoAuth.adminPage=async(section)=>section==='overview'?{users:2,listings:3,documents:1,jobs:1}:section==='users'?window.adminRows:section==='listings'?window.adminListings:[];
           nakgoAuth.adminModerate=async(...args)=>{window.adminCalls.push(args);await new Promise(r=>setTimeout(r,150));if(window.adminFail)throw {code:'40001'};if(args[0]==='user'){window.adminRows[0].suspended=args[2]==='suspend';window.adminRows[0].revision++;}else{window.adminListings[0].removed=args[2]==='remove';window.adminListings[0].revision++;}return {changed:true};};
           return openAdminPanel();

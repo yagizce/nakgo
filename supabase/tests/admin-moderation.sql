@@ -10,15 +10,16 @@ insert into auth.users(id,email_confirmed_at) values(current_setting('nakgo.mod_
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
 insert into public.profiles(id,display_name,account_type) values(current_setting('nakgo.mod_owner')::uuid,'Synthetic moderation owner','owner'),(current_setting('nakgo.mod_carrier')::uuid,'Synthetic moderation carrier','carrier');
 set local role authenticated;
-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
- values('load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic accepted load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date+2) returning set_config('nakgo.mod_accepted_load',id::text,true);
-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
- values('load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic pending load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date+2) returning set_config('nakgo.mod_pending_load',id::text,true);
+insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic accepted load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date+2) returning set_config('nakgo.mod_accepted_load',id::text,true);
+insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic pending load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date+2) returning set_config('nakgo.mod_pending_load',id::text,true);
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_carrier'),true);
 select set_config('nakgo.mod_accepted_job',(public.nakgo_request_transport(current_setting('nakgo.mod_accepted_load')::bigint)).id::text,true),
- set_config('nakgo.mod_pending_job',(public.nakgo_request_transport(current_setting('nakgo.mod_pending_load')::bigint)).id::text,true),
- set_config('nakgo.mod_conversation',(public.nakgo_open_conversation(current_setting('nakgo.mod_accepted_load')::bigint)).id::text,true);
+ set_config('nakgo.mod_pending_job',(public.nakgo_request_transport(current_setting('nakgo.mod_pending_load')::bigint)).id::text,true);
+-- Synthetic historical message creation by fixture owner only, not an application grant.
+reset role;
+select set_config('nakgo.mod_conversation',(public.nakgo_open_conversation(current_setting('nakgo.mod_accepted_load')::bigint)).id::text,true);
 select public.nakgo_send_message(current_setting('nakgo.mod_conversation')::bigint,'Synthetic moderation history',gen_random_uuid());
+set local role authenticated;
 select set_config('nakgo.mod_application',(public.nakgo_create_carrier_application('CE')).id::text,true);
 select set_config('nakgo.mod_file',(public.nakgo_reserve_document(current_setting('nakgo.mod_application')::bigint,'src',gen_random_uuid())).id::text,true);
 insert into storage.objects(bucket_id,name,owner_id,metadata) select 'carrier-documents',object_path,auth.uid()::text,'{"mimetype":"image/jpeg","size":100}'::jsonb from public.carrier_document_files where id=current_setting('nakgo.mod_file')::uuid;
@@ -53,7 +54,7 @@ do $$begin
  begin perform public.nakgo_create_carrier_application('C');raise exception 'FAIL suspended document';exception when insufficient_privilege then null;end;
  begin insert into storage.objects(bucket_id,name,owner_id,metadata) select 'carrier-documents',current_setting('nakgo.mod_carrier')||'/'||current_setting('nakgo.mod_application')||'/'||current_setting('nakgo.mod_reserved')||'.jpg',auth.uid()::text,'{"mimetype":"image/jpeg","size":100}'::jsonb;raise exception 'FAIL suspended storage insert';exception when insufficient_privilege then null;end;
  if exists(select 1 from storage.objects where bucket_id='carrier-documents' and name like auth.uid()::text||'/%') then raise exception 'FAIL suspended storage read';end if;
- if not exists(select 1 from public.listing_conversations where id=current_setting('nakgo.mod_conversation')::bigint) then raise exception 'FAIL suspended participant history';end if;
+ begin perform 1 from public.listing_conversations;raise exception 'FAIL retired history API';exception when insufficient_privilege then null;end;
  perform public.nakgo_transition_transport(current_setting('nakgo.mod_accepted_job')::bigint,'loaded');
 end $$;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
@@ -68,8 +69,8 @@ do $$begin
  begin perform public.nakgo_admin_moderate('listing',current_setting('nakgo.mod_pending_load'),'restore','Synthetic stale listing revision',0);raise exception 'FAIL stale listing revision';exception when serialization_failure then null;end;
 end $$;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
-do $$begin
- begin update public.listings set status='active' where id=current_setting('nakgo.mod_pending_load')::bigint;raise exception 'FAIL republish removed';exception when insufficient_privilege then null;end;
+do $$declare affected integer;begin
+ begin update public.listings set status='active' where id=current_setting('nakgo.mod_pending_load')::bigint;get diagnostics affected=row_count;if affected<>0 then raise exception 'FAIL republish removed';end if;exception when insufficient_privilege then null;end;
 end $$;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_admin'),true);
 select public.nakgo_admin_moderate('listing',current_setting('nakgo.mod_pending_load'),'restore','Synthetic rollback restoration',1);
@@ -79,10 +80,12 @@ do $$declare result jsonb;begin
 end $$;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
 do $$begin
- if (select status from public.listings where id=current_setting('nakgo.mod_pending_load')::bigint)<>'closed' then raise exception 'FAIL restoration republished listing';end if;
+ if exists(select 1 from public.listings where id=current_setting('nakgo.mod_pending_load')::bigint) then raise exception 'FAIL closed listing visible to owner';end if;
  if (select stage from public.transport_jobs where id=current_setting('nakgo.mod_accepted_job')::bigint)<>3 then raise exception 'FAIL accepted work completion';end if;
 end $$;
 reset role;
+do $$begin if (select status from public.listings where id=current_setting('nakgo.mod_pending_load')::bigint) is distinct from 'closed' then raise exception 'FAIL restoration republished listing';end if;end $$;
+do $$begin if not exists(select 1 from public.listing_conversations where id=current_setting('nakgo.mod_conversation')::bigint) then raise exception 'FAIL retained history';end if;end $$;
 -- Revoke inside this uncommitted transaction only; the real membership is restored by ROLLBACK.
 update private.admin_members set active=false where user_id=current_setting('nakgo.mod_admin')::uuid;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_admin'),true);

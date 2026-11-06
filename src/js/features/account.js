@@ -69,7 +69,7 @@ function listBind() {
             const it = findIt(k, id);
             if (it) {
                 const off = it.closed || expired(it, k === "l" ? "load" : "truck");
-                if (off && validDay(it.date) && (it.dateEnd||it.date)<localDay()) return openEdit(k,id,true);
+                if (off) return openEdit(k,id,true);
                 patchIt(k, id, off ? { closed: false, ts: Date.now() } : { closed: true });
             }
         };
@@ -196,8 +196,8 @@ function openProfile(o) {
     const R = o.uid ? rates.filter(x => x.to === o.uid) : [], avg = R.length ? R.reduce((t, x) => t + x.stars, 0) / R.length : (+o.rate || 0);
     const info = o.uid ? carriers[o.uid] || {} : {};
     const act = o.uid ? loads.filter(l => l.uid === o.uid && !l.closed && !expired(l, "load")).length + trucks.filter(t => t.uid === o.uid && !t.closed && !expired(t, "truck")).length : 0;
-    const done = o.uid ? allO.filter(x => (x.bidder === o.uid || x.ownerUid === o.uid) && (+x.stage || 0) >= 3).length : 0, n2 = o.name || "Kullanıcı";
-    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b style="font-size:18px">${esc(n2)}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
+    const done = o.uid ? allO.filter(x => (x.bidder === o.uid || x.ownerUid === o.uid) && (+x.stage || 0) >= 3).length : 0, n2 = "İlan sahibi";
+    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b style="font-size:18px">${esc(n2)}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.city ? `<p>${esc(info.city)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
     if ($("#pr"))
         $("#pr").onclick = () => openReport("u", o.uid);
     if ($("#pb2"))
@@ -239,11 +239,7 @@ const installCard = () => {
 // ===== Doğrulama ve iletişim =====
 // Belge rozetleri, belge fotoğrafı, yönetici onayı, telefon numarası.
 
-const phoneOf = x => {
-    if ((!cloud&&x.mine)||(cloud&&x.uid===me)) return myCar.phone||"";
-    if (x.uid) return carrierPhone(x.uid)||x.phone||"";
-    return x.phone||"0000 000 00 "+String(x.id).replace(/\D/g,"").padStart(2,"0").slice(-2);
-};
+const phoneOf = x => normalizeListingPhone(x.phone||'');
 
 const carrierPhone = u => (carriers[u] && carriers[u].phone) || "";
 
@@ -398,7 +394,7 @@ function authCardHTML() {
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
-            <div class="chips"><button class="chip on" data-auth-open="${s.recovery?'password':'profile'}">${s.recovery?'Yeni şifre belirle':'Hesap bilgileri'}</button><button class="chip" id="account-signout">Çıkış yap</button></div>`:
+            <div class="chips"><button class="chip on" data-auth-open="${s.recovery?'password':'profile'}">${s.recovery?'Yeni şifre belirle':'Hesap bilgileri'}</button><button class="chip" id="account-privacy">Veri hakları ve hesap silme</button><button class="chip" id="account-signout">Çıkış yap</button></div>`:
             '<div class="chips"><button class="chip on" data-auth-open="signin">Giriş yap</button><button class="chip" data-auth-open="signup">Kayıt ol</button></div>'}
         <p id="account-status" role="status" class="estimate-note"></p>
     </div>`;
@@ -406,6 +402,7 @@ function authCardHTML() {
 
 function bindAuthCard() {
     document.querySelectorAll('[data-auth-open]').forEach(button=>button.onclick=()=>openAuth(button.dataset.authOpen));
+    const privacy=$('#account-privacy');if(privacy)privacy.onclick=openPrivacyRequests;
     const out=$('#account-signout');
     if(out)out.onclick=async()=>{
         if(out.disabled)return;
@@ -598,4 +595,22 @@ function documentImageDimensions(bytes){
         const n=(bytes[p]<<8)|bytes[p+1];if(n<2||p+n>bytes.length)return null;
         if(marker>=192&&marker<=207&&![196,200,204].includes(marker)){const height=(bytes[p+3]<<8)|bytes[p+4],width=(bytes[p+5]<<8)|bytes[p+6];return width>0&&height>0?{width,height}:null;}p+=n;
     }return null;
+}
+
+async function openPrivacyRequests(){
+    if(!nakgoMarket.active())return;
+    const account=nakgoMarket.token(),body=$('#sheetBody');body.dataset.k='privacy';$('#sheet').classList.add('open');
+    const valid=()=>account===nakgoMarket.token()&&body.dataset.k==='privacy';
+    const labels={access:'Verilerime erişim',correction:'Veri düzeltme',deletion:'Hesabımı ve ilişkili verileri silme',objection:'İşlemeye itiraz'};
+    body.innerHTML='<h2>Veri hakları ve hesap silme</h2><p>Başvurular yükleniyor…</p>';
+    try{
+        const rows=await nakgoAuth.privacyRPC('requests');if(!valid())return;
+        body.innerHTML='<h2>Veri hakları ve hesap silme</h2><p>Silme başvurusu hesabını hemen silmez. Başvurunun sonucunu ve varsa gerekçeli saklama istisnalarını takip edeceğiz. Yanıt süresi en fazla 30 gündür.</p><form id="privacy-request"><label for="privacy-kind">Başvuru türü</label><select id="privacy-kind">'+Object.entries(labels).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select><button class="btn">Başvuru oluştur</button></form><p id="privacy-status" role="status"></p>'+rows.map(r=>'<article class="load"><b>#'+esc(String(r.id))+' · '+esc(labels[r.kind])+'</b><p>'+esc(({open:'Bekliyor',reviewing:'İnceleniyor',completed:'Tamamlandı',rejected:'Yanıtlandı'})[r.status]||r.status)+'</p><p>Son yanıt '+esc(new Date(r.due_at).toLocaleDateString('tr-TR'))+'</p></article>').join('');
+        let sending=false;
+        $('#privacy-request').onsubmit=async event=>{event.preventDefault();if(sending||!valid())return;sending=true;
+            try{await nakgoAuth.privacyRPC('request',{p_kind:$('#privacy-kind').value});if(valid())await openPrivacyRequests();}
+            catch{if(valid())$('#privacy-status').textContent='Başvuru doğrulanamadı. Tekrar dene.';}
+            finally{sending=false;}
+        };
+    }catch{if(valid())body.innerHTML='<h2>Veri hakları</h2><p role="alert">Başvurular yüklenemedi. Bağlantını kontrol edip yeniden aç.</p>';}
 }

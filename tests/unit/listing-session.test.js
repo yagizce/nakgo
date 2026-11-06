@@ -22,7 +22,9 @@ module.exports=({run})=>{
   await r('return nakgoMarket.update("l",800,{date:loads[0].date,note:"Edited"});');
   ok(r('return window.lastPatch.available_until')===end,'unchanged weekly date keeps its end');
   await r('return nakgoMarket.update("l",800,{closed:true});');
-  ok(r('return loads[0].closed'),'close uses persisted server state');
+  ok(r('return loads.length===0'),'closed row and private content leave the user cache');
+  let hidden=false;try{await r('return nakgoMarket.update("l",800,{archived:true});');}catch{hidden=true;}ok(hidden,'hidden closed row cannot be edited again from cache');
+  await r('return nakgoMarket.create({from:"İstanbul",to:"Ankara",veh:"Tır",body:"Tenteli",ton:22,cargo:"Test",date:"Bu hafta"});');
   await r('return nakgoMarket.update("l",800,{archived:true});');
   ok(r('return loads.length===0'),'archived row leaves list');
   r('nakgoAuth.createListing=async()=>{throw Error("offline");};');

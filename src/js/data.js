@@ -1,4 +1,17 @@
 /**
+ * İlan telefon kuralları
+ * Türkiye numaralarını normalleştirir; mevcut veri yardımcılarını korur.
+ */
+// Turkish mobile and geographic numbers; no letters, extensions or foreign prefixes.
+function normalizeListingPhone(value) {
+    if(typeof value!=='string'||!/^[+0-9 ()\- .]+$/.test(value)||value.length>32)return '';
+    let digits=value.replace(/\D/g,'');
+    if(digits.startsWith('0090'))digits=digits.slice(4);
+    else if(digits.length===12&&digits.startsWith('90'))digits=digits.slice(2);
+    else if(digits.length===11&&digits.startsWith('0'))digits=digits.slice(1);
+    return /^[235][0-9]{9}$/.test(digits)&&!/^([0-9])\1{9}$/.test(digits)?'+90'+digits:'';
+}
+/**
  * Veri kuralları
  * Tarih, mesafe ve kayıt doğrulama; metinler ham saklanır, çizim sınırında kaçışlanır.
  */
@@ -68,6 +81,8 @@ function postError(x, isTruck = false, step = 2) {
         if (!loadingTextOK(x.dateText)) return 'Yükleme tarihini yaz';
     } else if (!postDateOK(x.date) || dateFields(x.date).date < localDay()) return isTruck ? 'Güncel bir müsaitlik tarihi seç' : 'Güncel bir yükleme tarihi seç';
     if (Array.isArray(x.items) && x.items.some(i => !positiveAmount(i.q) || !ITEM_UNITS.includes(i.u))) return "Yük kalemlerine geçerli, sıfırdan büyük miktar ve birim gir";
+    if (!normalizeListingPhone(x.phone)) return "Geçerli bir Türkiye telefon numarası gir";
+    if (x.contactConsent !== true) return "Telefon numaranın ilanda paylaşılmasına izin vermelisin";
     return "";
 }
 function fuelEstimate(values) {

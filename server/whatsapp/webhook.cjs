@@ -1,6 +1,6 @@
 'use strict';
 const {createHmac,createHash,timingSafeEqual}=require('node:crypto');
-const {prepareDrafts}=require('./messages.cjs');
+const {prepareDrafts,normalizeMessages}=require('./messages.cjs');
 const MAX_BODY=128*1024;
 function verifySignature(raw,signature,secret){
   if(typeof secret!=='string'||!secret||typeof signature!=='string'||!/^sha256=[a-f0-9]{64}$/i.test(signature))return false;
@@ -18,7 +18,7 @@ async function readBody(request){
   finally{reader.releaseLock();}
   return Buffer.concat(chunks,size);
 }
-function createWebhook({env=process.env,allowUnsignedLocal=false,inspectDrafts}={}){
+function createWebhook({env=process.env,allowUnsignedLocal=false,inspectDrafts,ingest}={}){
   return async request=>{
     try{
       if(request.method==='GET'){
@@ -37,6 +37,11 @@ function createWebhook({env=process.env,allowUnsignedLocal=false,inspectDrafts}=
       let raw;try{raw=await readBody(request);}catch(e){return reply(e.message==='body_limit'?413:400,'Invalid body');}
       if(secret&&!verifySignature(raw,request.headers.get('x-hub-signature-256'),secret))return reply(401,'Unauthorized');
       let payload;try{payload=JSON.parse(raw.toString('utf8'));}catch{return reply(400,'Invalid JSON');}
+      if(typeof ingest==='function'){
+        const messages=normalizeMessages(payload);
+        if(messages.length){try{await ingest(messages);}catch{return reply(503,'Retry later');}}
+        return reply(200,'OK');
+      }
       const drafts=prepareDrafts(payload);
       // Saf hazırlık; kalıcı yazma, gerçek ilan ve dış mesaj yok. Test gözlemcisi yalnız local mock'ta.
       if(mock&&typeof inspectDrafts==='function')inspectDrafts(drafts);

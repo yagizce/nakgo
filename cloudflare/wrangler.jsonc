@@ -1,0 +1,36 @@
+{
+  "name": "nakgo-app-dev",
+  "main": "dist/worker.mjs",
+  "compatibility_date": "2026-10-23",
+  "workers_dev": true,
+  "preview_urls": false,
+  "build": {
+    "command": "node tools/cloudflare-build.cjs",
+    "cwd": "."
+  },
+  "assets": {
+    "directory": "../public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ],
+    "not_found_handling": "none"
+  },
+  "triggers": {
+    "crons": []
+  },
+  "vars": {
+    "NAKGO_ENV": "dev",
+    "SUPABASE_URL": "https://axkotffqrsddbrazhcwj.supabase.co",
+    "NAKGO_AUTH_ENABLED": "true",
+    "WHATSAPP_CRON_ENABLED": "false",
+    "WHATSAPP_BATCH_SIZE": "1",
+    "LISTING_RETENTION_ENABLED": "false",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_BypAARwuwaN4KvYS6DF4pA_8UyG0uV0",
+    "WHATSAPP_DISPATCH_ENABLED": "false",
+    "NAKGO_WORKER_ORIGIN": "https://nakgo-app-dev.yagizyedek8.workers.dev"
+  },
+  "observability": {
+    "enabled": false
+  }
+}

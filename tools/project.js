@@ -23,7 +23,6 @@ module.exports={root:path.resolve(__dirname,".."),js:[
   "src/js/screens/offers.js",
   "src/js/screens/profile.js",
   "src/js/screens/admin.js",
-  "src/js/screens/inbox.js",
   "src/js/screens/road-map.js",
   "src/js/screens/details.js",
   "src/js/screens/main.js",

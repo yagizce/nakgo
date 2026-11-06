@@ -1,0 +1,44 @@
+{
+  "name": "nakgo-app-prod",
+  "account_id": "830c75912ca110ba6550788bfebf26ed",
+  "main": "dist/production-worker.mjs",
+  "compatibility_date": "2026-10-23",
+  "workers_dev": false,
+  "preview_urls": false,
+  "build": {
+    "command": "node tools/cloudflare-build.cjs --production",
+    "cwd": "."
+  },
+  "assets": {
+    "directory": "../public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
+    ],
+    "not_found_handling": "none"
+  },
+  "triggers": {
+    "crons": []
+  },
+  "limits": {
+    "cpu_ms": 100
+  },
+  "vars": {
+    "NAKGO_ENV": "production",
+    "NAKGO_AUTH_ENABLED": "true",
+    "NAKGO_PRODUCTION_AUTH_ENABLED": "true",
+    "NAKGO_PRODUCTION_RELEASE_ENABLED": "false",
+    "SUPABASE_URL": "https://fimlifldsivecezbxwuo.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "",
+    "WHATSAPP_ENABLED": "false",
+    "WHATSAPP_BATCH_SIZE": "1",
+    "WHATSAPP_CRON_ENABLED": "false",
+    "PRODUCTION_MAINTENANCE_ENABLED": "false",
+    "LISTING_RETENTION_ENABLED": "false",
+    "WHATSAPP_DISPATCH_ENABLED": "false",
+    "NAKGO_WORKER_ORIGIN": "https://app.nakgolojistik.com"
+  },
+  "observability": {
+    "enabled": false
+  }
+}

@@ -1,0 +1,57 @@
+'use strict';
+const assert=require('node:assert/strict'),setup=require('./capacity-fixture.cjs');
+(async()=>{
+ const {db,q,admin,user}=await setup();
+ const role=async(id)=>{await db.exec('reset role');await q("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');};
+ const denied=fn=>assert.rejects(fn,e=>e.code==='42501');
+ try{
+  await role(user);
+  const id=(await q(`insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,loading_text,contact_phone,contact_consent) values('load','İstanbul','Ankara','Tır','Kapalı kasa',20,'Sentetik yük','bugün','+905321234567',true) returning id`))[0].id;
+  assert.equal((await q('select id from public.listings where id=$1',[id])).length,1);
+  await denied(()=>q('select public.nakgo_archive_list()'));
+  await denied(()=>q('select public.nakgo_archive_detail($1)',[id]));
+  await role(admin);await denied(()=>q('select public.nakgo_archive_list()'));
+  await db.exec('reset role');
+  // Isolated fixture clock shift, never a production trigger bypass.
+  await db.exec("alter table public.listings disable trigger user");
+  await q("update public.listings set published_at=now()-interval '7 hours',expires_at=now()-interval '1 hour' where id=$1",[id]);
+  await db.exec('alter table public.listings enable trigger user');
+  await role(user);assert.equal((await q('select id from public.listings where id=$1',[id])).length,0);
+  await db.exec('reset role');await q("insert into private.data_access_grants values($1,'listing_archive')",[admin]);
+  await role(admin);
+  const rows=(await q('select public.nakgo_archive_list() v'))[0].v;
+  assert.equal(rows.length,1);assert.deepEqual((await q("select public.nakgo_admin_page('listings') v"))[0].v,[]);assert.equal(rows[0].contact_phone,undefined);
+  assert.equal(new Date(rows[0].archive_until)-new Date(rows[0].published_at),198*3600000);
+  assert.equal((await q("select public.nakgo_archive_list('',null,'truck') v"))[0].v.length,0);
+  assert.equal((await q("select public.nakgo_archive_list('',null,'load','manual') v"))[0].v.length,1);
+  assert.equal((await q("select public.nakgo_archive_list('',null,null,'whatsapp') v"))[0].v.length,0);
+  assert.equal((await q("select public.nakgo_archive_list('',null,null,null,now()) v"))[0].v.length,0);
+  await q("select public.nakgo_archive_review($1,'open','Synthetic complaint reference',0)",[id]);
+  await assert.rejects(()=>q("select public.nakgo_archive_review($1,'closed','Synthetic stale revision',0)",[id]),e=>e.code==='40001');
+  assert.equal((await q("select public.nakgo_archive_list('',null,null,null,null,null,'open') v"))[0].v.length,1);
+  assert.equal((await q("select public.nakgo_archive_list('',null,null,null,null,null,'closed') v"))[0].v.length,0);
+  await denied(()=>q("select public.nakgo_archive_hold($1,'Synthetic legal reference',now()+interval '1 day')",[id]));
+  await q("select public.nakgo_archive_review($1,'closed','Synthetic complaint resolved',1)",[id]);
+  await denied(()=>q('select public.nakgo_archive_detail($1)',[id]));
+  await db.exec('reset role');await q("insert into private.data_access_grants values($1,'archive_contact')",[admin]);
+  await role(admin);assert.equal((await q('select public.nakgo_archive_detail($1) v',[id]))[0].v.contact_phone,'+905321234567');
+  await denied(()=>q('select * from private.archive_access_audit'));
+  await db.exec('reset role');assert.equal((await q('select count(*)::int n from private.archive_access_audit'))[0].n,1);
+  await db.exec('alter table public.listings disable trigger user');
+  await q("update public.listings set published_at=now()-interval '199 hours',expires_at=now()-interval '193 hours' where id=$1",[id]);
+  await db.exec('alter table public.listings enable trigger user');
+  await role(admin);assert.deepEqual((await q('select public.nakgo_archive_list() v'))[0].v,[]);
+  await assert.rejects(()=>q('select public.nakgo_archive_detail($1)',[id]),e=>e.code==='P0002');
+  await db.exec('reset role');await db.exec('set role service_role');
+  assert.equal((await q('select public.nakgo_redact_listings() n'))[0].n,1);
+  assert.equal((await q('select public.nakgo_redact_listings() n'))[0].n,0);
+  await db.exec('reset role');const cleared=(await q('select owner_id,from_city,to_city,vehicle,body,amount,contact_phone,note,cargo,content_redacted_at from public.listings where id=$1',[id]))[0];
+  assert.equal(cleared.contact_phone,null);assert.equal(cleared.note,'');assert.equal(cleared.cargo,'Temizlendi');assert.ok(cleared.content_redacted_at);for(const field of ['owner_id','from_city','to_city','vehicle','body','amount'])assert.equal(cleared[field],null);
+  const evidence=(await q('select * from private.erasure_events'))[0];
+  assert.equal(evidence.listing_id,id);assert.equal(evidence.contact_phone,undefined);assert.equal(evidence.note,undefined);
+  assert.ok(new Date(evidence.retain_until)>new Date(evidence.performed_at));
+  await assert.rejects(()=>q('delete from private.erasure_events'),e=>e.code==='42501');
+  await assert.rejects(()=>q("update private.erasure_events set retain_until=now()"),e=>e.code==='42501');
+  console.log('PASS archive grants, owner expiry RLS, 198h deadline, audited detail, expiry denial, idempotent redaction');
+ }finally{await db.close();}
+})().catch(e=>{console.error(e);process.exitCode=1;});

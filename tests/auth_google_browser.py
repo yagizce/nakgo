@@ -37,7 +37,12 @@ with sync_playwright() as p:
                     return route.fulfill(status=204,headers={**headers,'access-control-allow-headers':'*','access-control-allow-methods':'*'})
                 if '/authorize?' in url:
                     q=urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
-                    assert q['provider']==['google'] and q['redirect_to']==[BASE]
+                    assert q['provider']==['google'] and len(q['redirect_to'])==1
+                    redirect=urllib.parse.urlparse(q['redirect_to'][0]);base=urllib.parse.urlparse(BASE)
+                    assert redirect._replace(query='')==base
+                    flow=urllib.parse.parse_qs(redirect.query)
+                    assert set(flow)=={'sb_flow_id'} and len(flow['sb_flow_id'])==1
+                    assert len(flow['sb_flow_id'][0])==32 and all(c in '0123456789abcdef' for c in flow['sb_flow_id'][0])
                     assert q['code_challenge_method']==['s256'] and q['code_challenge'][0]
                     assert 'client_secret' not in q and 'access_type' not in q
                     state['challenge']=q['code_challenge'][0];state['authorizes']+=1
