@@ -1,5 +1,8 @@
 # NakGo proje devir rehberi
 
+Güncel yerel kapsam [arşiv ve veri hakları](archive-privacy-work.md). Aşağıdaki
+tarihli kabul sonuçları yeni 8 günlük arşiv çalışmasının kabulü değildir.
+
 6 Kasım güncel çalışma: `codex/nakgo-group-capacity`; durum ve yeni CPU kabulü
 [grup kapasitesi notunda](group-capacity.md). PR43 kontrol paketi main 4d472e9'a ayrı onayla
 alındı; korumalar geri açık, uygulama Guard 71/71. Aşağıdaki eski 48/65 notları

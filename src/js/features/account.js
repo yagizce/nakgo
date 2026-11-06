@@ -394,7 +394,7 @@ function authCardHTML() {
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
-            <div class="chips"><button class="chip on" data-auth-open="${s.recovery?'password':'profile'}">${s.recovery?'Yeni şifre belirle':'Hesap bilgileri'}</button><button class="chip" id="account-signout">Çıkış yap</button></div>`:
+            <div class="chips"><button class="chip on" data-auth-open="${s.recovery?'password':'profile'}">${s.recovery?'Yeni şifre belirle':'Hesap bilgileri'}</button><button class="chip" id="account-privacy">Veri hakları ve hesap silme</button><button class="chip" id="account-signout">Çıkış yap</button></div>`:
             '<div class="chips"><button class="chip on" data-auth-open="signin">Giriş yap</button><button class="chip" data-auth-open="signup">Kayıt ol</button></div>'}
         <p id="account-status" role="status" class="estimate-note"></p>
     </div>`;
@@ -402,6 +402,7 @@ function authCardHTML() {
 
 function bindAuthCard() {
     document.querySelectorAll('[data-auth-open]').forEach(button=>button.onclick=()=>openAuth(button.dataset.authOpen));
+    const privacy=$('#account-privacy');if(privacy)privacy.onclick=openPrivacyRequests;
     const out=$('#account-signout');
     if(out)out.onclick=async()=>{
         if(out.disabled)return;
@@ -594,4 +595,22 @@ function documentImageDimensions(bytes){
         const n=(bytes[p]<<8)|bytes[p+1];if(n<2||p+n>bytes.length)return null;
         if(marker>=192&&marker<=207&&![196,200,204].includes(marker)){const height=(bytes[p+3]<<8)|bytes[p+4],width=(bytes[p+5]<<8)|bytes[p+6];return width>0&&height>0?{width,height}:null;}p+=n;
     }return null;
+}
+
+async function openPrivacyRequests(){
+    if(!nakgoMarket.active())return;
+    const account=nakgoMarket.token(),body=$('#sheetBody');body.dataset.k='privacy';$('#sheet').classList.add('open');
+    const valid=()=>account===nakgoMarket.token()&&body.dataset.k==='privacy';
+    const labels={access:'Verilerime erişim',correction:'Veri düzeltme',deletion:'Hesabımı ve ilişkili verileri silme',objection:'İşlemeye itiraz'};
+    body.innerHTML='<h2>Veri hakları ve hesap silme</h2><p>Başvurular yükleniyor…</p>';
+    try{
+        const rows=await nakgoAuth.privacyRPC('requests');if(!valid())return;
+        body.innerHTML='<h2>Veri hakları ve hesap silme</h2><p>Silme başvurusu hesabını hemen silmez. Başvurunun sonucunu ve varsa gerekçeli saklama istisnalarını takip edeceğiz. Yanıt süresi en fazla 30 gündür.</p><form id="privacy-request"><label for="privacy-kind">Başvuru türü</label><select id="privacy-kind">'+Object.entries(labels).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('')+'</select><button class="btn">Başvuru oluştur</button></form><p id="privacy-status" role="status"></p>'+rows.map(r=>'<article class="load"><b>#'+esc(String(r.id))+' · '+esc(labels[r.kind])+'</b><p>'+esc(({open:'Bekliyor',reviewing:'İnceleniyor',completed:'Tamamlandı',rejected:'Yanıtlandı'})[r.status]||r.status)+'</p><p>Son yanıt '+esc(new Date(r.due_at).toLocaleDateString('tr-TR'))+'</p></article>').join('');
+        let sending=false;
+        $('#privacy-request').onsubmit=async event=>{event.preventDefault();if(sending||!valid())return;sending=true;
+            try{await nakgoAuth.privacyRPC('request',{p_kind:$('#privacy-kind').value});if(valid())await openPrivacyRequests();}
+            catch{if(valid())$('#privacy-status').textContent='Başvuru doğrulanamadı. Tekrar dene.';}
+            finally{sending=false;}
+        };
+    }catch{if(valid())body.innerHTML='<h2>Veri hakları</h2><p role="alert">Başvurular yüklenemedi. Bağlantını kontrol edip yeniden aç.</p>';}
 }

@@ -473,13 +473,22 @@ const nakgoAuth = (() => {
     }
     async function whatsappRPC(name,args={}){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_wa_'+name,args),account);}
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
+    async function archiveList(search='',before=null,filters={}){
+        const account=listingAccount();
+        return messageResult(requireClient().rpc('nakgo_archive_list',{p_search:search,p_before:before,p_kind:filters.kind||null,p_source:filters.source||null,p_from:filters.from||null,p_to:filters.to||null,p_review:filters.review||null}),account);
+    }
+    async function dataCapabilities(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_data_capabilities'),account);}
+    async function maintenanceStatus(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_maintenance_status'),account);}
+    async function privacyRPC(name,args={}){if(!['request','requests','queue','resolve'].includes(name))throw Error('Invalid privacy action');const account=listingAccount();return messageResult(requireClient().rpc('nakgo_privacy_'+name,args),account);}
+    async function archiveAction(action,args){if(!['review','hold'].includes(action))throw Error('Invalid archive action');const account=listingAccount();return messageResult(requireClient().rpc('nakgo_archive_'+action,args),account);}
+    async function archiveDetail(id){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_archive_detail',{p_id:id}),account);}
     async function adminPage(section,offset=0,search=''){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_page',{p_section:section,p_offset:offset,p_search:search}),account);}
     async function adminModerate(kind,target,action,reason,expectedRevision){
         const account=listingAccount();
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {listingContact,whatsappRPC,adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
+    return {maintenanceStatus,archiveAction,privacyRPC,listingContact,whatsappRPC,adminRole,adminModerate,archiveList,archiveDetail,dataCapabilities,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.

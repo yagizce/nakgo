@@ -41,6 +41,6 @@ test('modern secret keys use apikey only; legacy JWT keeps bearer compatibility'
 });
 test('PostgREST void RPC 204/empty replies are successful, not parse failures',async()=>{
  for(const response of [new Response(null,{status:204}),new Response('',{status:200})]){
-  const store=createStore({env:{SUPABASE_URL:'https://axkotffqrsddbrazhcwj.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'sb_secret_synthetic_only',VERCEL_ENV:'preview'},fetchImpl:async()=>response});assert.equal(await store.purge(),null);
+  const store=createStore({env:{SUPABASE_URL:'https://axkotffqrsddbrazhcwj.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'sb_secret_synthetic_only',VERCEL_ENV:'preview'},fetchImpl:async()=>response});assert.equal(await store.expire(),null);
  }
 });
