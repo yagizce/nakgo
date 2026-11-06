@@ -1,5 +1,9 @@
 # NakGo — ajan çalışma kuralları
 
+6 Kasım son durum: dokuz arşiv migrationı ve bc98998 yalnız DEV’de yayında.
+[Arşiv/KVKK güncel kabul ve sınırlar](docs/archive-privacy-work.md) önce okunur.
+Aşağıdaki eski bekliyor notları tarihseldir. Cron/purge/gerçek hesap silme kapalı.
+
 6 Kasım güncel çalışma: `codex/nakgo-group-capacity`; durum ve yeni CPU kabulü
 [grup kapasitesi notunda](docs/group-capacity.md). PR43 kontrol paketi main 4d472e9'a ayrı onayla
 alındı; korumalar geri açık, uygulama Guard 71/71. Aşağıdaki eski 48/65 notları

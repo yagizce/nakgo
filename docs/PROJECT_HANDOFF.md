@@ -1,6 +1,6 @@
 # NakGo proje devir rehberi
 
-Güncel yerel kapsam [arşiv ve veri hakları](archive-privacy-work.md). Aşağıdaki
+Güncel DEV durumu [arşiv ve veri hakları](archive-privacy-work.md). Aşağıdaki
 tarihli kabul sonuçları yeni 8 günlük arşiv çalışmasının kabulü değildir.
 
 6 Kasım güncel çalışma: `codex/nakgo-group-capacity`; durum ve yeni CPU kabulü
