@@ -79,6 +79,28 @@
           "after": "278fa8d7c028e8d163b4cd7e23af4aae6d16e3e81bd5ba2d7e5ed22ff7ccf223"
         }
       }
+    },
+    {
+      "source_base": "4d472e994edab239159a62ba66230d179dc16917",
+      "source_head": "bd73c9250aff5f1ab224caaa5be1dad4e6acc999",
+      "files": {
+        "tests/admin_panel_browser.py": {
+          "before": "587fb368f73f9e9ba2504204996597b8614e637559d5118bbdd8507eb8b0ae31",
+          "after": "ba343b62c8e23c5e1d3cdb935a1b250cf119c3c4f0675b30db0737677482e6fd"
+        },
+        "tests/unit/listing-session.test.js": {
+          "before": "69f8260b6428c80df976b946c035ffb801d126ef359fdf28d2407be06b93678c",
+          "after": "1d01cec8ed9562f1f0100d63d5b7a0e291a58de890d7b8a9e85caeeb2b1d83c8"
+        },
+        "tests/unit/listings-api.test.js": {
+          "before": "7efaac1f2bbd6878146336ea23a41ce4493f1cba992f0152ec62c5a477bdb555",
+          "after": "57b1b77a1645cd274ca6ab875aa4e985ccc4f13a56730b7054a713b80585386b"
+        },
+        "tests/whatsapp/v1.test.cjs": {
+          "before": "dba1baf5e6794155999e99d46406fbe073a31de570d8e3d996a14216a56c5ced",
+          "after": "030004189c14e78dc0925bfcc67867e74b27ae68edd1281a88ae33eeb561916a"
+        }
+      }
     }
   ]
 }
