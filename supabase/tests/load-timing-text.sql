@@ -35,7 +35,7 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.timing_owner'),true);
 set local role authenticated;
-update public.listings set status='closed' where id=current_setting('nakgo.timing_listing')::bigint;
+select public.nakgo_close_listing(current_setting('nakgo.timing_listing')::bigint,'closed');
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.timing_carrier'),true);
 set local role authenticated;

@@ -3038,6 +3038,7 @@ const nakgoAuth = (() => {
         const values={};
         for(const key of [...listingFields,'status'])if(Object.prototype.hasOwnProperty.call(input,key))values[key]=input[key];
         if(!Object.keys(values).length)throw Error('No editable fields');
+        if(['closed','archived'].includes(values.status)){if(Object.keys(values).length!==1)throw Error('Close separately from edits');return listingResult(await requireClient().rpc('nakgo_close_listing',{p_id:id,p_status:values.status}),account);}
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
     async function listingContact(id){const account=listingAccount();return listingResult(await requireClient().rpc('nakgo_listing_contact',{p_id:id}),account);}
@@ -3208,7 +3209,7 @@ const nakgoMarket = (() => {
         if('closed' in patch)values.status=patch.closed?'closed':'active';
         if(patch.archived)values.status='archived';
         const row=await nakgoAuth.updateListing(x.remoteId,values);
-        if(owner!==token())throw Error('Account changed'); writes++; put([row]); nakgoFavorites.updateListing(row); render(); return true;
+        if(owner!==token())throw Error('Account changed'); writes++;if(['closed','archived'].includes(row.status)){loads=loads.filter(item=>item.remoteId!==row.id);trucks=trucks.filter(item=>item.remoteId!==row.id);}else put([row]);nakgoFavorites.updateListing(row);render();return true;
     }
     function controls() {
         if(!active())return '';

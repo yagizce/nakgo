@@ -77,10 +77,10 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
 set local role authenticated;
-update public.listings set status='closed' where id=current_setting('nakgo.listing_a')::bigint;
-update public.listings set status='archived' where id=current_setting('nakgo.truck_a')::bigint;
+select public.nakgo_close_listing(current_setting('nakgo.listing_a')::bigint,'closed');
+select public.nakgo_close_listing(current_setting('nakgo.truck_a')::bigint,'archived');
 do $$ begin
- if (select count(*) from public.listings where owner_id=auth.uid())<>2 then raise exception 'FAIL owner history'; end if;
+ if (select count(*) from public.listings where owner_id=auth.uid())<>0 then raise exception 'FAIL owner archive privacy'; end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.test_b'),true);

@@ -2,7 +2,7 @@ module.exports=({test,fs,path,ROOT})=>{
  test('Supabase listings adapter excludes private fields and rejects stale sessions',async()=>{
   const vm=require('node:vm'),out=[],ok=(v,m)=>out.push([!!v,m]);
   let callback,call,error=null,finish=null,delay=false;
-  const sdk={auth:{onAuthStateChange(cb){callback=cb;},async getSession(){return {data:{session:{}},error:null};},async getUser(){return {data:{user:{id:'account-a',email:'test@example.test'}},error:null};}},from(table){
+  const sdk={async rpc(name,args){call={rpc:name,args};const result={error,data:{id:args.p_id,status:args.p_status}};if(delay)return new Promise(resolve=>{finish=()=>resolve(result);});return result;},auth:{onAuthStateChange(cb){callback=cb;},async getSession(){return {data:{session:{}},error:null};},async getUser(){return {data:{user:{id:'account-a',email:'test@example.test'}},error:null};}},from(table){
    const request={table,filters:[]};call=request;
    const result=()=>({error,data:table==='profiles'?{id:'account-a',display_name:'Account A'}:request.mode==='read'?[{id:1}]:{id:1,...request.values}});
    const q={select(){return q;},order(k,v){request.order=[k,v];return q;},limit(n){request.limit=n;return q;},eq(k,v){request.filters.push([k,v]);return q;},lt(k,v){request.before=[k,v];return q;},insert(v){request.mode='insert';request.values=v;return q;},update(v){request.mode='update';request.values=v;return q;},async maybeSingle(){return result();},async single(){if(delay)return new Promise(resolve=>{finish=()=>resolve(result());});return result();},then(resolve,reject){request.mode='read';return Promise.resolve(result()).then(resolve,reject);}};return q;
@@ -11,8 +11,10 @@ module.exports=({test,fs,path,ROOT})=>{
   vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8')+';this.auth=nakgoAuth;',ctx);await ctx.auth.init();
   await ctx.auth.createListing({kind:'load',from_city:'Ankara',to_city:'İzmir',amount:12,owner_id:'attacker',phone:'05555555555',premium:true,created_at:'forged',status:'archived'});
   ok(!('owner_label' in call.values)&&!('owner_id' in call.values)&&!('phone' in call.values)&&!('premium' in call.values)&&!('created_at' in call.values)&&!('status' in call.values),'creation keeps identity and private fields server-owned');
-  await ctx.auth.updateListing(1,{note:'Updated',owner_id:'b',kind:'truck',status:'closed'});
-  ok(JSON.stringify(call.values)==='{"note":"Updated","status":"closed"}'&&JSON.stringify(call.filters)==='[["id",1],["owner_id","account-a"]]','update is explicitly scoped and whitelisted');
+  await ctx.auth.updateListing(1,{note:'Updated',owner_id:'b',kind:'truck'});
+  ok(JSON.stringify(call.values)==='{"note":"Updated"}'&&JSON.stringify(call.filters)==='[["id",1],["owner_id","account-a"]]','update is explicitly scoped and whitelisted');
+  await ctx.auth.updateListing(1,{status:'closed'});ok(call.rpc==='nakgo_close_listing'&&call.args.p_id===1&&call.args.p_status==='closed','closing uses scoped server action without archive content');
+  let mixed=false;try{await ctx.auth.updateListing(1,{status:'closed',note:'mixed'});}catch{mixed=true;}ok(mixed,'mixed close/edit rejected instead of discarding fields');
   await ctx.auth.listListings({own:true,before:50});
   ok(call.limit===50&&JSON.stringify(call.before)==='["id",50]'&&call.filters[0][1]==='account-a','bounded own listings pagination');
   let denied=false;try{await ctx.auth.updateListing(-1,{note:'x'});}catch{denied=true;}ok(denied,'invalid identifiers rejected');

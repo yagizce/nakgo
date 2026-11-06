@@ -69,8 +69,8 @@ do $$begin
  begin perform public.nakgo_admin_moderate('listing',current_setting('nakgo.mod_pending_load'),'restore','Synthetic stale listing revision',0);raise exception 'FAIL stale listing revision';exception when serialization_failure then null;end;
 end $$;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
-do $$begin
- begin update public.listings set status='active' where id=current_setting('nakgo.mod_pending_load')::bigint;raise exception 'FAIL republish removed';exception when insufficient_privilege then null;end;
+do $$declare affected integer;begin
+ begin update public.listings set status='active' where id=current_setting('nakgo.mod_pending_load')::bigint;get diagnostics affected=row_count;if affected<>0 then raise exception 'FAIL republish removed';end if;exception when insufficient_privilege then null;end;
 end $$;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_admin'),true);
 select public.nakgo_admin_moderate('listing',current_setting('nakgo.mod_pending_load'),'restore','Synthetic rollback restoration',1);
@@ -80,10 +80,11 @@ do $$declare result jsonb;begin
 end $$;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
 do $$begin
- if (select status from public.listings where id=current_setting('nakgo.mod_pending_load')::bigint)<>'closed' then raise exception 'FAIL restoration republished listing';end if;
+ if exists(select 1 from public.listings where id=current_setting('nakgo.mod_pending_load')::bigint) then raise exception 'FAIL closed listing visible to owner';end if;
  if (select stage from public.transport_jobs where id=current_setting('nakgo.mod_accepted_job')::bigint)<>3 then raise exception 'FAIL accepted work completion';end if;
 end $$;
 reset role;
+do $$begin if (select status from public.listings where id=current_setting('nakgo.mod_pending_load')::bigint) is distinct from 'closed' then raise exception 'FAIL restoration republished listing';end if;end $$;
 do $$begin if not exists(select 1 from public.listing_conversations where id=current_setting('nakgo.mod_conversation')::bigint) then raise exception 'FAIL retained history';end if;end $$;
 -- Revoke inside this uncommitted transaction only; the real membership is restored by ROLLBACK.
 update private.admin_members set active=false where user_id=current_setting('nakgo.mod_admin')::uuid;

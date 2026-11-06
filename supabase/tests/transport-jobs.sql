@@ -62,7 +62,7 @@ do $$ declare j public.transport_jobs; begin
  j:=public.nakgo_transition_transport(current_setting('nakgo.job')::bigint,'accept');if j.status<>'ok' then raise exception 'FAIL acceptance';end if;
  begin perform public.nakgo_transition_transport(j.id,'confirm');raise exception 'FAIL premature confirmation';exception when check_violation then null;end;
  begin perform public.nakgo_transition_transport(j.id,'loaded');raise exception 'FAIL owner loading';exception when insufficient_privilege then null;end;
- update public.listings set status='archived' where id=j.listing_id;
+ perform public.nakgo_close_listing(j.listing_id,'archived');
  if not exists(select 1 from public.transport_jobs where id=j.id) then raise exception 'FAIL history after archive';end if;
 end $$;
 reset role;
