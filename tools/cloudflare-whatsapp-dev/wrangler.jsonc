@@ -1,0 +1,10 @@
+{
+  "name": "nakgo-whatsapp-dev-scheduler",
+  "main": "scheduler.mjs",
+  "compatibility_date": "2026-10-29",
+  "workers_dev": false,
+  "preview_urls": false,
+  "triggers": { "crons": ["* * * * *"] },
+  "vars": { "NAKGO_ENV": "dev", "SCHEDULER_ENABLED": "false" },
+  "observability": { "enabled": true }
+}

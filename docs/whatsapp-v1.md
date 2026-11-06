@@ -1,3 +1,6 @@
+> V1 tarihsel temelidir. Yeni yerel V2 alım/yönetim akışı ve kurulum durumu için
+> [WhatsApp inceleme rehberini](whatsapp-review.md) okuyun. V2 henüz yayımlanmadı.
+
 # WhatsApp Bot V1 — güvenli temel
 
 Bu sürüm resmi WhatsApp Business Cloud API için altyapıdır. Meta uygulaması, gerçek numara veya kullanıcı verisi bağlanmadı. AI, WhatsApp Web otomasyonu, scraping, mesaj gönderme ve ilan yayınlama yoktur. UI ve mevcut yerel/demo veri şeması değişmez.

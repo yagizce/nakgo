@@ -1,0 +1,40 @@
+-- DEV-only rollback acceptance. No membership or persistent data changes.
+begin;
+create temporary table wa_queue_result(label text,passed boolean);
+do $test$
+declare j jsonb; k jsonb; sid bigint; oldlease uuid; a uuid; rejected boolean:=false;
+begin
+ if exists(select 1 from private.wa_sources where state in ('pending','processing','failed')) then raise exception 'Queue is not empty; refusing to touch other work';end if;
+ select user_id into a from private.admin_members where active;
+ if a is null then raise exception 'Existing admin required';end if;
+ execute 'set local role service_role';
+ perform public.nakgo_wa_ingest('[{"messageId":"nakgo-dev-queue-rollback","fromPhone":"+905000000001","timestamp":1793203200,"text":"Ankara İstanbul 10 ton test yükleme"}]'::jsonb);
+ j:=public.nakgo_wa_claim();sid:=(j->>'id')::bigint;oldlease:=(j->>'lease')::uuid;
+ if public.nakgo_wa_claim() is not null then raise exception 'Active lease claimed twice';end if;
+ perform public.nakgo_wa_fail(sid,oldlease);
+ if public.nakgo_wa_claim() is not null then raise exception 'Backoff bypassed';end if;
+ execute 'reset role';
+ if not exists(select 1 from private.wa_sources where id=sid and state='pending' and attempts=1 and next_attempt=now()+interval '1 minute' and lease is null) then raise exception 'Failure backoff state invalid';end if;
+ insert into wa_queue_result values('lease isolation and failure backoff',true);
+ update private.wa_sources set next_attempt=now() where id=sid;
+ execute 'set local role service_role';k:=public.nakgo_wa_claim();execute 'reset role';
+ update private.wa_sources set lease_until=now()-interval '1 second' where id=sid;
+ execute 'set local role service_role';j:=public.nakgo_wa_claim();
+ if j->>'lease'=k->>'lease' then raise exception 'Lease not renewed';end if;
+ begin perform public.nakgo_wa_finish(sid,(k->>'lease')::uuid,'[]'::jsonb);exception when serialization_failure then rejected:=true;end;
+ if not rejected then raise exception 'Stale worker accepted';end if;
+ execute 'reset role';
+ insert into wa_queue_result values('expired lease recovery and stale worker rejection',true);
+ update private.wa_sources set attempts=8 where id=sid;
+ execute 'set local role service_role';perform public.nakgo_wa_fail(sid,(j->>'lease')::uuid);execute 'reset role';
+ if not exists(select 1 from private.wa_sources where id=sid and state='failed') then raise exception 'Retry cap missing';end if;
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',a,'role','authenticated')::text,true);
+ execute 'set local role authenticated';
+ if public.nakgo_wa_retry()<>1 then raise exception 'Admin retry count invalid';end if;
+ execute 'reset role';
+ if not exists(select 1 from private.wa_sources where id=sid and state='pending' and attempts=0 and lease is null) then raise exception 'Admin retry state invalid';end if;
+ insert into wa_queue_result values('retry cap and existing-admin recovery',true);
+end $test$;
+select * from wa_queue_result;
+rollback;
