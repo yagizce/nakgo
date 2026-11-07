@@ -48,5 +48,10 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "codex/nakgo-guard-approval": false
+    }
+  }
 }
