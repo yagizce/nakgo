@@ -55,6 +55,9 @@
   ],
   "git": {
     "deploymentEnabled": {
+      "main": false,
+      "codex/nakgo-ci-unlock-safety": false,
+      "codex/nakgo-guard-approval": false,
       "codex/nakgo-cloudflare-dev": false,
       "codex/nakgo-listing-lifecycle": false,
       "codex/nakgo-retention-dev": false,

@@ -1,5 +1,37 @@
 # NakGo proje devir rehberi
 
+7 Kasım sonraki yerel çalışma: kart/detay WhatsApp simgesi aynı izinli iletişim
+RPC'sini kullanır. Kaydedilen ilanlar/sayaç yayın dönemi ve süreyle sınırlandırılır;
+eski/erişilemeyen kayıt kartları kaldırıldı, yeni yayın açıkça yeniden kaydedilir.
+Arşiv UI'si telefon göstermez; mevcut kapsam ve geç yanıt korumaları korunur.
+`supabase/pending/favorite-publication-access.sql` yalnız yerel öneridir:
+kaydetme RLS/RPC'si ve telefonsuz arşiv detayı PGlite'ta doğrulandı, migration
+olarak kaydedilmedi/uzakta uygulanmadı. Mevcut eski kaydetme ilişkileri silinmedi;
+gerçek temizlik ayrıca işleme özel onay, saklama ve geri dönüş planı gerektirir.
+722 uygulama, 113 yeni izole SQL, mevcut 79 yaşam döngüsü ve arşiv SQL kabulü;
+390/1280 px yönetici/arşiv/ilan tarayıcı testleri, 6 DM/sayaç ve 2 profil taslağı senaryosu geçti.
+Guard 71/71: iki kayıtlı-ilan testinin onaylı hash kaydı, açık kullanıcı onayıyla
+PR #46 üzerinden main `38ba39b` içine alındı. Yerel defter main ile eşitlendi;
+main ile aynı Guard ve 17 kontrol-koruma testi geçti. Hedefli son incelemede
+gelecek yayın için RLS/RPC alt sınırı ve telefon
+sütunu izni eksik bulundu; yalnız yerel SQL önerisi ve istemci düzeltildi.
+Telefon genel sorgudan çıkarıldı; düzenlemede boş yeni telefon mevcut numarayı
+değiştirmez. SQL eksik yayın/bitiş zamanını da reddeder; uzak değişiklik yapılmadı.
+Aktif ilanın serbest metin/görselleri kullanıcı tarafından kişisel veri içerebilir;
+otomatik kişisel veri ayıklama yoktur. Süresi dolan/gelecek ilanda bu içerik de
+izole testte kapalıdır. Gerçek DEV rol/JWT/PostgREST ve şema uyumu doğrulanmadı.
+İki testin dört hash'i ve kaynak kimlikleri onaylı snapshot ile eşleşir.
+PR #46'nın eski tabandaki 70/71 CI başarısızlığı başarılı sayılmaz; kabul sırasında
+yalnız quality-gate zorunluluğu geçici kaldırıldı ve hemen geri yüklendi.
+verify/quality-gate GitHub Actions kaynakları, strict/PR/yönetici korumaları korunur.
+PR #47 main otomatik Vercel yayınını kapattı; yeni deployment oluşmadı.
+Ek imzacı sistemi kurulmadı. Yeni uygulama değişiklikleri GitHub'a gönderilmedi;
+71/71 sonucu güncel main kontrolleriyle yereldir, yeni uygulama GitHub CI kabulü değildir.
+Yeni çalışma yerelde; önceki UI düzeltmeleri ve yalnız bu dalı kapatan Vercel
+ayarı GitHub `42c8a35` ile eşleşiyor. Vercel'de yeni yayın görülmedi. Yeni kodun
+yayını için SQL/istemci uyumu ve gerçek DEV kabulü açık; Meta, CPU/yoğunluk,
+yedek/restore, uzaktaki KVKK amaç/süre doğrulaması ve Production yapılmadı.
+
 7 Kasım yerel UI düzeltmesi (`codex/nakgo-local-ui-fixes`): yönetici KVKK,
 arşiv inceleme/koruma ve mesaj izni formlarından çıkıldıktan sonra gelen yanıtlar
 elenir; bu, gönderilmiş işlemin iptal edildiği anlamına gelmez. Yeniden açılan

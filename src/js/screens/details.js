@@ -72,9 +72,8 @@ function openTruck(id) {
         $("#bk2").onclick = () => blockUser(t.uid);
 }
 
-function contactDockHTML(unavailable=false){return `<div class="contact-dock dual-contact"><button class="btn" id="call" ${unavailable?'disabled':''}>Ara</button><button class="btn alt" id="wa" ${unavailable?'disabled':''}>WhatsApp</button></div>`;}
-function bindListingContact(item,isTruck){
-    const contact=async(channel)=>{
+function contactDockHTML(unavailable=false){return `<div class="contact-dock dual-contact"><button class="btn" id="call" ${unavailable?'disabled':''}>Ara</button><button class="btn alt" id="wa" ${unavailable?'disabled':''}>${uiIcon('whatsapp')} WhatsApp</button></div>`;}
+async function contactListing(item,isTruck,channel){
         if(!availableListing(item,isTruck))return toast('İlanın süresi doldu');
         const account=nakgoMarket.token();
         try {
@@ -84,6 +83,7 @@ function bindListingContact(item,isTruck){
             const n=normalizeListingPhone(phone);if(!n)return toast('İletişim numarası kullanılamıyor');
             window.location.href=channel==='call'?'tel:'+n:'https://wa.me/'+n.slice(1);
         }catch(e){toast('İlan veya iletişim izni artık geçerli değil');}
-    };
-    $('#call').onclick=()=>contact('call');$('#wa').onclick=()=>contact('whatsapp');
+}
+function bindListingContact(item,isTruck){
+    $('#call').onclick=()=>contactListing(item,isTruck,'call');$('#wa').onclick=()=>contactListing(item,isTruck,'whatsapp');
 }

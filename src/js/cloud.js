@@ -361,7 +361,7 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,contact_phone,published_at,expires_at,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
+    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,published_at,expires_at,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
     const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data','contact_phone','contact_consent'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
@@ -409,7 +409,8 @@ const nakgoAuth = (() => {
     }
     async function listFavorites({before=null,details=false}={}) {
         const account=listingAccount();
-        let q=requireClient().from('listing_favorites').select(details?'listing_id,listing:listings('+listingColumns+')':'listing_id')
+        const favoriteColumns=listingColumns.split(',').filter(column=>column!=='contact_phone').join(',');
+        let q=requireClient().from('listing_favorites').select('listing_id,created_at,listing:listings!inner('+(details?favoriteColumns:'id,owner_id,kind,status,published_at,expires_at')+')')
             .order('listing_id',{ascending:false}).limit(details?50:200);
         if(before!==null){if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');q=q.lt('listing_id',before);}
         return listingResult(await q,account);
@@ -520,7 +521,7 @@ const nakgoMarket = (() => {
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
             from:r.from_city,to:r.to_city,veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
-            owner:'',who:'',phone:r.contact_phone||'',expiresAt:Date.parse(r.expires_at),date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note,
+            owner:'',who:'',phone:r.contact_phone||'',publishedAt:Date.parse(r.published_at),expiresAt:Date.parse(r.expires_at),date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note,
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active',archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};
     }
@@ -621,25 +622,28 @@ const nakgoJobs = (() => {
 
 // Private favorite membership and pages never enter the device demo store.
 const nakgoFavorites = (() => {
-    let ids=new Set(),rows=[],ready=false,busy=false,error='',pageReady=false,pageBusy=false,pageError='',before=null,more=false,version=0;
+    let ids=new Map(),rows=[],ready=false,busy=false,error='',pageReady=false,pageBusy=false,pageError='',before=null,more=false,version=0;
     const pending=new Set();
     const allowed=()=>{const s=nakgoAuth.snapshot();return nakgoMarket.active()&&s.user&&s.profile&&!s.recovery;};
-    const reset=()=>{ids=new Set();rows=[];ready=busy=pageReady=pageBusy=more=false;error=pageError='';before=null;version++;pending.clear();};
-    const state=()=>({ready,busy,error,pageReady,pageBusy,pageError,more,count:ids.size});
-    const has=id=>ids.has(id);
+    const reset=()=>{ids=new Map();rows=[];ready=busy=pageReady=pageBusy=more=false;error=pageError='';before=null;version++;pending.clear();};
+    const current=r=>!!r?.listing&&r.listing.status==='active'&&Date.parse(r.listing.published_at)<=Date.now()&&Date.parse(r.created_at)>=Date.parse(r.listing.published_at)&&Date.parse(r.listing.expires_at)>Date.now();
+    const has=id=>{
+        const saved=ids.get(id),item=[...loads,...trucks].find(x=>x.remoteId===id);
+        return current(saved)&&(!item||(availableListing(item)&&item.publishedAt===Date.parse(saved.listing.published_at)));
+    };
+    const state=()=>({ready,busy,error,pageReady,pageBusy,pageError,more,count:[...ids.keys()].filter(has).length});
     const disabled=id=>!ready||pending.has(id);
-    const listings=()=>rows.filter(r=>r.listing&&ids.has(r.listing_id)).map(r=>nakgoMarket.mapped(r.listing));
-    const unavailable=()=>rows.filter(r=>ids.has(r.listing_id)&&(!r.listing||!availableListing(nakgoMarket.mapped(r.listing),r.listing.kind==='truck'))).map(r=>r.listing_id);
+    const listings=()=>rows.filter(r=>current(r)&&has(r.listing_id)).map(r=>nakgoMarket.mapped(r.listing)).filter(x=>availableListing(x,typeof x.id==='string'));
     async function refresh() {
         if(!allowed()||busy)return;
         const account=nakgoMarket.token(),revision=version;busy=true;error='';
         render();
         try {
-            let cursor=null;const found=new Set();
+            let cursor=null;const found=new Map();
             for(;;) {
                 const page=await nakgoAuth.listFavorites({before:cursor});
                 if(account!==nakgoMarket.token()||revision!==version)return;
-                page.forEach(r=>found.add(r.listing_id));
+                page.forEach(r=>{if(current(r))found.set(r.listing_id,r);});
                 if(page.length<200)break;
                 const next=page.at(-1)?.listing_id;
                 if(!Number.isSafeInteger(next)||next<1||(cursor!==null&&next>=cursor))throw Error('Invalid favorite cursor');
@@ -656,6 +660,7 @@ const nakgoFavorites = (() => {
             const page=await nakgoAuth.listFavorites({before:append?before:null,details:true});
             if(account!==nakgoMarket.token()||revision!==version)return;
             const all=new Map((append?rows:[]).map(r=>[r.listing_id,r]));page.forEach(r=>all.set(r.listing_id,r));
+            page.forEach(r=>{if(current(r))ids.set(r.listing_id,r);else ids.delete(r.listing_id);});
             rows=[...all.values()];before=page.at(-1)?.listing_id||null;more=page.length===50;pageReady=true;
         } catch(e){if(account===nakgoMarket.token()&&revision===version)pageError='Kayıtlı ilanlar yüklenemedi. Yeniden dene.';}
         finally {if(account===nakgoMarket.token()){pageBusy=false;render();}}
@@ -668,16 +673,18 @@ const nakgoFavorites = (() => {
     async function setSaved(id,saved) {
         if(!allowed()||!ready||!Number.isSafeInteger(id)||id<1||typeof saved!=='boolean')throw Error('Favorite unavailable');
         if(pending.has(id))return null;
+        const item=[...loads,...trucks,...listings()].find(x=>x.remoteId===id);
+        if(saved&&(!item||!availableListing(item)))throw Error('Listing unavailable');
         const account=nakgoMarket.token();pending.add(id);render();
         try {
             const result=await nakgoAuth.setFavorite(id,saved);
             if(account!==nakgoMarket.token())throw Error('Account changed');
             if(result?.listing_id!==id||result.saved!==saved)throw Error('Invalid favorite response');
-            version++;if(saved)ids.add(id);else ids.delete(id);
+            version++;if(saved)ids.set(id,{listing_id:id,created_at:new Date(Date.now()).toISOString(),listing:{id,kind:typeof item.id==='string'?'truck':'load',status:'active',published_at:new Date(item.publishedAt).toISOString(),expires_at:new Date(listingExpiry(item)).toISOString()}});else ids.delete(id);
             rows=rows.filter(r=>r.listing_id!==id);pageReady=false;pageError='';error='';return result;
         } finally {if(account===nakgoMarket.token()){pending.delete(id);render();}}
     }
-    const updateListing=row=>{rows=rows.map(r=>r.listing_id===row.id?{...r,listing:row}:r);};
+    const updateListing=row=>{rows=rows.map(r=>r.listing_id===row.id?{...r,listing:row}:r);if(ids.has(row.id))ids.set(row.id,{...ids.get(row.id),listing:row});};
     function controls() {
         const problem=error||pageError;
         return (problem?'<p role="alert">'+esc(problem)+'</p>':'')+
@@ -688,5 +695,5 @@ const nakgoFavorites = (() => {
         if($('#favorites-refresh'))$('#favorites-refresh').onclick=()=>refresh();
         if($('#favorites-more'))$('#favorites-more').onclick=()=>refreshPage(true);
     }
-    return {reset,state,has,disabled,listings,unavailable,refresh,refreshPage,ensure,setSaved,controls,bind,updateListing};
+    return {reset,state,has,disabled,listings,refresh,refreshPage,ensure,setSaved,controls,bind,updateListing};
 })();

@@ -17,6 +17,7 @@ function routeSearch() {
 
 const isFavorite=x=>nakgoMarket.active()?nakgoFavorites.has(x.remoteId):favs.includes(String(x.id));
 const favoriteDisabled=x=>nakgoMarket.active()&&nakgoFavorites.disabled(x.remoteId)?' disabled':'';
+const listingWhatsApp=x=>`<button type="button" class="chip listing-whatsapp" data-whatsapp="${esc(x.id)}" data-contact-kind="${typeof x.id==='string'?'t':'l'}" aria-label="İlan sahibiyle WhatsApp'ta görüş">${uiIcon('whatsapp')}</button>`;
 const listingSource=isT=>nakgoMarket.active()&&F.fav?nakgoFavorites.listings().filter(x=>(typeof x.id==='string')===isT):(isT?trucks:loads);
 async function changeAccountFavorite(id,saved) {
     const account=nakgoMarket.token();
@@ -92,10 +93,10 @@ const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc
     ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya WhatsApp"}</b></div></div>
     <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
     <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
-    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""} · ${esc(listingRemaining(l))}</span></span><button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
+    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""} · ${esc(listingRemaining(l))}</span></span>${listingWhatsApp(l)}<button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(listingRemaining(t))}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(listingRemaining(t))}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span>${listingWhatsApp(t)}<button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
@@ -232,7 +233,7 @@ function openEdit(k, id, reopen=false) {
         return;
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label>${L && 'dateText' in it ? `<input id="ed" type="text" maxlength="32" required value="${esc(it.dateText)}">` : `<select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>`}${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<label for="edit-phone">İletişim telefonu</label><input id="edit-phone" type="tel" maxlength="32" value="${esc(it.phone||'')}"><label><input type="checkbox" id="edit-consent"> Bu numarayı ilanda yayınlama yetkim ve iznim var.</label><button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label>${L && 'dateText' in it ? `<input id="ed" type="text" maxlength="32" required value="${esc(it.dateText)}">` : `<select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>`}${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<label for="edit-phone">İletişim telefonu</label><input id="edit-phone" type="tel" maxlength="32" value="${esc(it.phone||'')}" ${it._remote&&!reopen?'placeholder="Değiştirmeyeceksen boş bırak"':''}><label><input type="checkbox" id="edit-consent"> Bu numarayı ilanda yayınlama yetkim ve iznim var.</label><button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#es").onclick = async () => {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))
@@ -240,7 +241,7 @@ function openEdit(k, id, reopen=false) {
         const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 1000) } : { cap: v, date: $("#ed").value };
         const selectedDate=$("#ed").value;
         const phone=normalizeListingPhone($('#edit-phone').value);
-        if(reopen||phone!==normalizeListingPhone(it.phone)){
+        if(reopen||((!it._remote||$('#edit-phone').value.trim())&&phone!==normalizeListingPhone(it.phone))){
             if(!phone||!$('#edit-consent').checked)return toast('Geçerli telefon ve yayın iznini doğrula');
             patch.phone=phone;patch.contactConsent=true;
         }
@@ -329,7 +330,7 @@ function itemsUI() {
 const listingExpiry=x=>Number.isFinite(x.expiresAt)?x.expiresAt:(x.ts?x.ts+6*36e5:0);
 const listingRemaining=x=>{const ms=listingExpiry(x)-Date.now();return ms>0?Math.min(360,Math.ceil(ms/60000))+' dk kaldı':'Süresi doldu';};
 const expired = (x,k) => !listingExpiry(x)||Date.now()>=listingExpiry(x);
-const availableListing = (x,isT=false) => !!x && !x.archived && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
+const availableListing = (x,isT=false) => !!x && (!x._remote||Number.isFinite(x.publishedAt)) && (x.publishedAt??x.ts??0)<=Date.now() && !x.archived && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
 const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
 function contactAllowed(x,isT=false,allowOwn=false) {
     const current=x&&findIt(isT?"t":"l",x.id);
@@ -348,12 +349,18 @@ const ago = x => {
 let listingExpiryTimer=null;
 function refreshListingExpiry(){
     document.querySelectorAll('[data-listing-expiry]').forEach(e=>{if(Number(e.dataset.listingExpiry)<=Date.now())closeSheet();});
-    if(tab==='list')render();else scheduleListingExpiry();
+    if(tab==='list')render();else{
+        if(tab==='me'&&nakgoMarket.active()){
+            const caption=$('#profile-favorites')?.querySelector('small'),saved=nakgoFavorites.state();
+            if(caption&&saved.ready)caption.textContent=saved.count+' kayıtlı ilan';
+        }
+        scheduleListingExpiry();
+    }
 }
 function scheduleListingExpiry(){
     if(typeof window==='undefined'||typeof window?.setTimeout!=='function')return;
     window.clearTimeout(listingExpiryTimer);
-    const now=Date.now(),future=[...loads,...trucks].filter(x=>!x.closed&&!x.archived).map(listingExpiry).filter(t=>t>now);
+    const now=Date.now(),future=[...loads,...trucks,...(nakgoMarket.active()?nakgoFavorites.listings():[])].filter(x=>!x.closed&&!x.archived).map(listingExpiry).filter(t=>t>now);
     const delay=Math.max(1,Math.min(60000, ...future.map(t=>t-now)));
     listingExpiryTimer=window.setTimeout(()=>{if(document.visibilityState!=='hidden')refreshListingExpiry();},delay);
 }

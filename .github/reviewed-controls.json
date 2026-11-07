@@ -101,6 +101,20 @@
           "after": "030004189c14e78dc0925bfcc67867e74b27ae68edd1281a88ae33eeb561916a"
         }
       }
+    },
+    {
+      "source_base": "49d1de1467fe349241d9d72d555b4255154e6af9",
+      "source_head": "c93a67f2e18b8edea6f3921538a43fae1eb57233",
+      "files": {
+        "tests/unit/account-favorites.test.js": {
+          "before": "f860328f9f85e3b270b02422bb9098e3ca7258566d2d95b7eaba360536a572ae",
+          "after": "bd01501d5c22834c04fa9c3ba5739abf2261b02cc76c3dac1d226fd0b986d20a"
+        },
+        "tests/unit/favorites-api.test.js": {
+          "before": "caa6f495e341100c7eafabdb24e7c0475db81a1f30d789cff41dee56985b26f1",
+          "after": "f287eebd561a02beaf3b4a22fb2fbf72459dfb3186623968d028ae41f891ab9b"
+        }
+      }
     }
   ]
 }

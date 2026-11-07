@@ -36,8 +36,8 @@ with sync_playwright() as p:
   page.locator('#archive-action .btn').click()
   expect(page.locator('#archive-search')).to_be_visible()
   assert page.evaluate("calls.some(c=>c.action==='review'&&c.args.p_revision===0)")
-  page.get_by_role('button',name='İletişim ve detay',exact=True).click()
-  expect(page.locator('#sheetBody')).to_contain_text('+905321234567')
+  page.get_by_role('button',name='İlan detayı',exact=True).click()
+  expect(page.locator('#sheetBody')).not_to_contain_text('+905321234567')
   assert page.locator('#sheetBody script').count()==0
   page.locator('#archive-back').click()
   page.get_by_role('button',name='Süreli hukuki koruma',exact=True).click()
