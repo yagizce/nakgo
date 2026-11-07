@@ -1,5 +1,15 @@
 # NakGo proje devir rehberi
 
+7 Kasım yerel açılış/PWA düzeltmesi: kayıtlı yük sahibi rolü normal açılışı artık
+Boş Araçlar'a çevirmez; varsayılan Yükler'dir. Görünür ilan ekranı, geri dönüşte
+ve bağlantı gelince mevcut hesap/filtrelerle yenilenir; profil taslağı yeniden çizilmez.
+Kabuk/worker önbelleği yeniden doğrulanır, v47 eski kabuk önbelleğini değiştirir;
+API ve oturum verileri worker önbelleğine alınmaz. 735 yerel kontrol, Guard 71/71
+ve Chromium/WebKit'te 32 sentetik açılış/sayaç/önbellek kontrolü geçti.
+WebKit emülasyonu fiziksel iPhone Safari/kurulu PWA kabulü değildir. Safari ve
+kurulu PWA'nın oturum depolarının ortak olduğu varsayılmaz. Düzeltmeler Draft PR #48
+kapsamındadır; main birleşmesi, deploy ve gerçek veritabanı işlemi yapılmadı.
+
 7 Kasım Draft PR #48 (`codex/nakgo-local-ui-fixes`, taban PR #44): kart/detay
 WhatsApp simgesi aynı izinli iletişim
 RPC'sini kullanır. Kaydedilen ilanlar/sayaç yayın dönemi ve süreyle sınırlandırılır;

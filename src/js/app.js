@@ -72,7 +72,7 @@ catch (e) { }
 
 try {
     if ("serviceWorker" in navigator && (location.protocol === "https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) && !/claude/.test(location.host) && !isNative())
-        navigator.serviceWorker.register("sw.js").catch(() => { });
+        navigator.serviceWorker.register("sw.js", {updateViaCache:"none"}).catch(() => { });
 }
 catch (e) { }
 
@@ -176,7 +176,6 @@ updTheme();
 $("#bell").onclick = openBell;
 
 if (role === "owner") {
-    mode = "truck";
     postMode = "load";
 }
 else if (role === "carrier") {
@@ -208,7 +207,15 @@ initDialogAccessibility();
 // Optional preview-only account service; demo state and legacy host remain separate.
 nakgoAuth.init();
 
-// Resume server-time visibility checks when a suspended tab becomes visible.
-if(document.addEventListener)document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState!=='hidden')refreshListingExpiry();
-});
+// Refresh resumed listing screens without replacing another screen's drafts.
+function resumeListingFeed(){
+    if(document.visibilityState==='hidden')return;
+    refreshListingExpiry();
+    if(tab==='list'&&nakgoMarket.active()&&navigator.onLine!==false)
+        return Promise.allSettled([nakgoMarket.refresh(),nakgoFavorites.refresh()]);
+}
+if(document.addEventListener)document.addEventListener('visibilitychange',resumeListingFeed);
+try{
+    window.addEventListener('pageshow',event=>{if(event.persisted)resumeListingFeed();});
+    window.addEventListener('online',resumeListingFeed);
+}catch(e){}
