@@ -58,7 +58,8 @@
       "codex/nakgo-cloudflare-dev": false,
       "codex/nakgo-listing-lifecycle": false,
       "codex/nakgo-retention-dev": false,
-      "codex/nakgo-group-capacity": false
+      "codex/nakgo-group-capacity": false,
+      "codex/nakgo-engineering-skills": false
     }
   }
 }

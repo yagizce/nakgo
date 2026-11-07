@@ -1,5 +1,12 @@
 # NakGo — ajan çalışma kuralları
 
+## Proje Skill entegrasyonu
+
+Kodlama, hata düzeltme ve incelemede [NakGo Engineering](.agents/skills/nakgo-engineering/SKILL.md)
+ile [Karpathy Guidelines](.agents/skills/karpathy-guidelines/SKILL.md) yönergelerini uygula.
+Güncel kullanıcı talebi ve bu AGENTS.md önceliklidir; güvenlik ve onay sınırlarında
+çelişki varsa daha koruyucu kural uygulanır. Skill'ler ek işlem yetkisi vermez.
+
 6 Kasım son durum: dokuz arşiv migrationı ve bc98998 yalnız DEV’de yayında.
 [Arşiv/KVKK güncel kabul ve sınırlar](docs/archive-privacy-work.md) önce okunur.
 Aşağıdaki eski bekliyor notları tarihseldir. Cron/purge/gerçek hesap silme kapalı.
