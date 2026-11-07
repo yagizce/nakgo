@@ -597,10 +597,11 @@ function documentImageDimensions(bytes){
     }return null;
 }
 
+let privacyRequestsGeneration=0;
 async function openPrivacyRequests(){
     if(!nakgoMarket.active())return;
-    const account=nakgoMarket.token(),body=$('#sheetBody');body.dataset.k='privacy';$('#sheet').classList.add('open');
-    const valid=()=>account===nakgoMarket.token()&&body.dataset.k==='privacy';
+    const generation=++privacyRequestsGeneration,account=nakgoMarket.token(),body=$('#sheetBody');body.dataset.k='privacy';$('#sheet').classList.add('open');
+    const valid=()=>generation===privacyRequestsGeneration&&account===nakgoMarket.token()&&body.dataset.k==='privacy';
     const labels={access:'Verilerime erişim',correction:'Veri düzeltme',deletion:'Hesabımı ve ilişkili verileri silme',objection:'İşlemeye itiraz'};
     body.innerHTML='<h2>Veri hakları ve hesap silme</h2><p>Başvurular yükleniyor…</p>';
     try{

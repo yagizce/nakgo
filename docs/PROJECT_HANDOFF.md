@@ -1,5 +1,13 @@
 # NakGo proje devir rehberi
 
+7 Kasım yerel UI düzeltmesi (`codex/nakgo-local-ui-fixes`): yönetici KVKK,
+arşiv inceleme/koruma ve mesaj izni formlarından çıkıldıktan sonra gelen yanıtlar
+elenir; bu, gönderilmiş işlemin iptal edildiği anlamına gelmez. Yeniden açılan
+kullanıcı KVKK ekranı da eski okuma/başvuru yanıtlarını reddeder. 698 yerel kontrol,
+71 Guard, mevcut yönetici/arşiv tarayıcı kabulü ve 390/1280 px'de 18 ek DOM yarışı
+geçti; dış HTTP/HTTPS engellendi. Yeni testler eklendi, eski testler korunuyor.
+Uzak DB/Meta, yoğunluk/CPU, yedek/restore, deploy ve mağaza kabulü yapılmadı.
+
 Güncel DEV durumu [arşiv ve veri hakları](archive-privacy-work.md). Aşağıdaki
 tarihli kabul sonuçları yeni 8 günlük arşiv çalışmasının kabulü değildir.
 
