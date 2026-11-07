@@ -1,6 +1,7 @@
 # NakGo proje devir rehberi
 
-7 Kasım sonraki yerel çalışma: kart/detay WhatsApp simgesi aynı izinli iletişim
+7 Kasım Draft PR #48 (`codex/nakgo-local-ui-fixes`, taban PR #44): kart/detay
+WhatsApp simgesi aynı izinli iletişim
 RPC'sini kullanır. Kaydedilen ilanlar/sayaç yayın dönemi ve süreyle sınırlandırılır;
 eski/erişilemeyen kayıt kartları kaldırıldı, yeni yayın açıkça yeniden kaydedilir.
 Arşiv UI'si telefon göstermez; mevcut kapsam ve geç yanıt korumaları korunur.
@@ -8,7 +9,7 @@ Arşiv UI'si telefon göstermez; mevcut kapsam ve geç yanıt korumaları korunu
 kaydetme RLS/RPC'si ve telefonsuz arşiv detayı PGlite'ta doğrulandı, migration
 olarak kaydedilmedi/uzakta uygulanmadı. Mevcut eski kaydetme ilişkileri silinmedi;
 gerçek temizlik ayrıca işleme özel onay, saklama ve geri dönüş planı gerektirir.
-722 uygulama, 113 yeni izole SQL, mevcut 79 yaşam döngüsü ve arşiv SQL kabulü;
+725 uygulama, 113 yeni izole SQL, mevcut 79 yaşam döngüsü ve arşiv SQL kabulü;
 390/1280 px yönetici/arşiv/ilan tarayıcı testleri, 6 DM/sayaç ve 2 profil taslağı senaryosu geçti.
 Guard 71/71: iki kayıtlı-ilan testinin onaylı hash kaydı, açık kullanıcı onayıyla
 PR #46 üzerinden main `38ba39b` içine alındı. Yerel defter main ile eşitlendi;
@@ -25,10 +26,11 @@ PR #46'nın eski tabandaki 70/71 CI başarısızlığı başarılı sayılmaz; k
 yalnız quality-gate zorunluluğu geçici kaldırıldı ve hemen geri yüklendi.
 verify/quality-gate GitHub Actions kaynakları, strict/PR/yönetici korumaları korunur.
 PR #47 main otomatik Vercel yayınını kapattı; yeni deployment oluşmadı.
-Ek imzacı sistemi kurulmadı. Yeni uygulama değişiklikleri GitHub'a gönderilmedi;
-71/71 sonucu güncel main kontrolleriyle yereldir, yeni uygulama GitHub CI kabulü değildir.
-Yeni çalışma yerelde; önceki UI düzeltmeleri ve yalnız bu dalı kapatan Vercel
-ayarı GitHub `42c8a35` ile eşleşiyor. Vercel'de yeni yayın görülmedi. Yeni kodun
+Ek imzacı sistemi kurulmadı. Çalışma Draft PR #48'e gönderildi; PR #44 dalı
+değişmedi. 71/71 sonucu güncel main kontrolleriyle yereldir: quality-gate yalnız
+main hedefli PR'da çalışır; katmanlı PR'ın verify/admin/capacity sonuçları ayrıdır.
+Hesap ekranının kaldırılmış mesajlaşma vaadi düzeltildi; üç yeni kontrol geçti.
+Main ve mevcut geliştirme dallarının Vercel yayın engelleri korunur. Yeni kodun
 yayını için SQL/istemci uyumu ve gerçek DEV kabulü açık; Meta, CPU/yoğunluk,
 yedek/restore, uzaktaki KVKK amaç/süre doğrulaması ve Production yapılmadı.
 
