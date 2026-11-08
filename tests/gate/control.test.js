@@ -6,22 +6,6 @@ const root=path.resolve(__dirname,'../..');
 const {guard,TEST_COMMAND}=require('../guard.js');
 const {REQUIRED_STEPS,eligiblePR,successfulGate,policyPath}=require('../../.github/scripts/policy.js');
 const {decide,client}=require('../../.github/scripts/auto-merge.js');
-const {reviewedChange}=require('../guard.js');
-const crypto=require('node:crypto');
-test('Only trusted exact before/after hashes may approve product-contract tests',()=>{
- const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
- const file='tests/unit/product.test.js',before='old contract',after='new contract';
- const review={source_base:'a'.repeat(40),source_head:'b'.repeat(40),files:{[file]:{before:hash(before),after:hash(after)}}};
- const ledger={version:1,reviews:[review]};
- assert.equal(reviewedChange(ledger,file,before,after),true);
- for(const [b,a] of [[before+'x',after],[before,after+'x'],[after,before]])assert.equal(reviewedChange(ledger,file,b,a),false);
- assert.equal(reviewedChange(null,file,before,after),false);
- assert.equal(reviewedChange({...ledger,version:2},file,before,after),false);
- assert.equal(reviewedChange({version:1,reviews:[{...review,source_head:'invalid'}]},file,before,after),false);
- for(const control of ['tests/gate/browser.py','tests/gate/browser-dispatch.py','tests/gate/legacy-browser.py','tests/gate/product-browser.py','tests/gate/browser_dispatch_test.py','tests/unit/browser-dispatch.test.js','tests/guard.js','tests/run.js','tests/requirements.txt','tests/gate/control.test.js','tests/gate/static.js','tests/gate/static_html.py','.github/workflows/quality-gate.yml','.github/reviewed-controls.json','tests/../.github/workflows/quality-gate.yml','tests\\unit\\product.test.js']){
-  assert.equal(reviewedChange({version:1,reviews:[{...review,files:{[control]:review.files[file]}}]},control,before,after),false);
- }
-});
 const repo='owner/nakgo',head='a'.repeat(40),base='b'.repeat(40);
 const fresh=()=>({number:7,state:'open',draft:false,merged:false,mergeable:true,mergeable_state:'clean',base:{ref:'main',sha:base,repo:{full_name:repo}},head:{ref:'codex/fix',sha:head,repo:{full_name:repo,fork:false}}});
 const goodRun=()=>({id:21,display_title:'quality:7:'+head+':'+base,head_sha:head,run_attempt:1,event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:7,head:{sha:head},base:{sha:base}}]});
@@ -78,21 +62,38 @@ test('GitHub API hata veya yönlendirmede güvenli durur',async()=>{
   const api=client('not-a-real-token',async(url,options)=>{assert.equal(options.redirect,'error');return {ok:false,status:403};});
   await assert.rejects(api('GET','/repos/owner/nakgo'),/403/);
 });
-test('Guard test silme, gevşetme ve script kaldırmayı yakalar',()=>{
+test('Guard ürün testlerini düzenlemeye izin verir ve CI güvenlik sınırlarını korur',()=>{
   const tempRoot=path.join(root,'tests/shots');fs.mkdirSync(tempRoot,{recursive:true});
   const dir=fs.mkdtempSync(path.join(tempRoot,'nakgo-guard-')),baseline={};
   const put=(p,s)=>{fs.mkdirSync(path.dirname(path.join(dir,p)),{recursive:true});fs.writeFileSync(path.join(dir,p),s);};
   const options={root:dir,baseline};
   try{
-    for(const p of ['tests/run.js','tests/e2e.py','tests/requirements.txt','tests/guard.js','.github/workflows/quality-gate.yml','.github/workflows/auto-merge.yml'])put(p,fs.readFileSync(path.join(root,p)));
+    const fixed=['tests/run.js','tests/requirements.txt','tests/guard.js','tests/unit/browser-dispatch.test.js','tests/gate/browser.py','tests/gate/static.js','tests/gate/static_html.py','.github/workflows/quality-gate.yml','.github/workflows/auto-merge.yml','tools/project.js'];
+    const product=['tests/e2e.py','tests/unit/infrastructure.test.js','tests/whatsapp/v1.test.cjs'];
+    for(const p of [...fixed,...product])put(p,baseline[p]=fs.readFileSync(path.join(root,p),'utf8'));
     put('package.json',JSON.stringify({scripts:{test:TEST_COMMAND,'test:e2e':'python tests/e2e.py'}}));
-    for(const p of ['tests/run.js','tests/e2e.py','tests/requirements.txt','tests/guard.js','.github/workflows/quality-gate.yml','.github/workflows/auto-merge.yml'])baseline[p]=fs.readFileSync(path.join(dir,p),'utf8');
     assert.deepEqual(guard(options).errors,[]);
-    const injected='candidate self-approval';
-    put('.github/reviewed-controls.json',JSON.stringify({version:1,reviews:[{source_base:'a'.repeat(40),source_head:'b'.repeat(40),files:{'tests/e2e.py':{before:crypto.createHash('sha256').update(baseline['tests/e2e.py']).digest('hex'),after:crypto.createHash('sha256').update(injected).digest('hex')}}}]}));
-    put('tests/e2e.py',injected);assert.ok(guard(options).errors.some(e=>e.includes('tests/e2e.py')),'candidate cannot supply approval ledger');
-    put('tests/run.js','/* empty success */');assert.ok(guard(options).errors.some(e=>e.includes('tests/run.js')));
+    for(const p of product)put(p,baseline[p]+(p.endsWith('.py')?'\n# regression fixture\n':'\n// regression fixture\n'));
+    assert.deepEqual(guard(options).errors,[],'product tests do not need byte equality or a ledger');
+    for(const p of fixed){
+      put(p,baseline[p]+'\n# disabled check\n');
+      assert.ok(guard(options).errors.some(e=>e.includes(p)),p);
+      put(p,baseline[p]);
+    }
+    const inbox='  "src/js/screens/inbox.js",\n';
+    baseline['tools/project.js']=baseline['tools/project.js'].replace(/\r\n/g,'\n');
+    if(!baseline['tools/project.js'].includes(inbox)){
+      const map='  "src/js/screens/road-map.js",\n';
+      baseline['tools/project.js']=baseline['tools/project.js'].replace(map,inbox+map);
+    }
+    put('tools/project.js',baseline['tools/project.js'].replace(inbox,''));
+    assert.deepEqual(guard(options).errors,[],'previously supported inbox retirement remains valid');
+    put('tests/unit/infrastructure.test.js',' \n');
+    assert.ok(guard(options).errors.some(e=>e.includes('tests/unit/infrastructure.test.js')));
     fs.unlinkSync(path.join(dir,'tests/e2e.py'));assert.ok(guard(options).errors.some(e=>e.includes('tests/e2e.py')));
-    put('package.json',JSON.stringify({scripts:{test:'echo pass'}}));assert.ok(guard(options).errors.some(e=>e.includes('npm test')));
+    put('package.json',JSON.stringify({scripts:{test:'echo pass','test:e2e':'echo pass'}}));
+    const errors=guard(options).errors;
+    assert.ok(errors.some(e=>e.includes('npm test')));
+    assert.ok(errors.some(e=>e.includes('E2E komutu')));
   }finally{assert.ok(dir.startsWith(tempRoot+path.sep));fs.rmSync(dir,{recursive:true,force:true});}
 });

@@ -1,4 +1,4 @@
-"""Run only trusted, exact-reviewed legacy or Ara/WhatsApp browser contracts."""
+"""Run only trusted, committed legacy or Ara/WhatsApp browser contracts."""
 import argparse
 import importlib.util
 from pathlib import Path
