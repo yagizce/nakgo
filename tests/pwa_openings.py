@@ -25,7 +25,12 @@ class Handler(SimpleHTTPRequestHandler):
         pass
 
     def end_headers(self):
-        self.send_header('Cache-Control', 'no-cache')
+        static_asset = self.path in ('/', '/manifest.webmanifest') or (self.path.startswith('/icons/') and '?' not in self.path)
+        if not self.old and static_asset:
+            self.send_header('X-NakGo-Offline-Asset', '1')
+            self.send_header('Cache-Control', 'public, max-age=0')
+        else:
+            self.send_header('Cache-Control', 'no-cache')
         super().end_headers()
 
     def do_GET(self):
@@ -33,6 +38,13 @@ class Handler(SimpleHTTPRequestHandler):
             self.close_connection = True
             self.connection.shutdown(socket.SHUT_RDWR)
             self.connection.close()
+            return
+        if self.path == '/?go=mine':
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html')
+            self.send_header('Set-Cookie', 'synthetic_cache_probe=1; HttpOnly; Path=/')
+            self.end_headers()
+            self.wfile.write(b'<p>synthetic private shell</p>')
             return
         name = 'index.html' if self.path.split('?')[0] == '/' else self.path.split('?')[0].lstrip('/')
         if self.old and name in legacy:
@@ -120,10 +132,18 @@ try:
             check(page.evaluate("mode==='truck'"), 'old shell reproduced before update')
             Handler.old = False
             page.evaluate('async()=>{const r=await navigator.serviceWorker.getRegistration();await r.update();}')
-            page.wait_for_function("async()=>JSON.stringify(await caches.keys()).includes('nakgo-v48-cache-isolation')")
+            page.wait_for_function("async()=>JSON.stringify(await caches.keys()).includes('nakgo-v49-static-offline')")
             page.wait_for_function("async()=>!(await caches.keys()).includes('nakgo-v46-listing-lifecycle')")
             page.reload()
             check(page.evaluate("mode==='load'"), 'updated shell opens Loads')
+            # The original navigation may receive a cookie-setting response.
+            # This must never be used to populate the offline shell.
+            check(page.evaluate("""async()=>{
+              const url=new URL('./?go=mine',location.href);
+              const res=await fetch(url);
+              return (await res.text()).includes('synthetic private shell') && res.headers.get('Set-Cookie')===null;
+            }"""), 'browser filters Set-Cookie from fetch responses')
+            check(any(cookie['name'] == 'synthetic_cache_probe' for cookie in context.cookies()), 'online response still sets its cookie')
             Handler.offline = True
             page.reload()
             check(page.evaluate("mode==='load'&&tab==='list'"), 'offline updated shell also opens Loads')

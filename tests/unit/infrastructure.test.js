@@ -16,15 +16,25 @@ module.exports=({test,fs,path,ROOT})=>{
   });
   test("Çevrimdışı önbellek yalnızca başarılı uygulama dosyalarını tutar",async()=>{
     const vm=require('node:vm'),events={},writes=[],pending=[],out=[];
-    let response={ok:true,redirected:false,clone:()=>({copy:true})},offline=false;
-    const ctx={URL,Response,location:{origin:'https://test'},self:{registration:{scope:'https://test/'},addEventListener:(n,f)=>events[n]=f},caches:{open:async()=>({put:(...a)=>writes.push(a)}),match:async k=>k.includes('index.html')?{cached:true}:null},fetch:async()=>{if(offline)throw Error('offline');return response;}};
+    const headers=new Headers({'X-NakGo-Offline-Asset':'1'});
+    const publicAsset={ok:true,redirected:false,headers};
+    const failedAsset={ok:false,redirected:false,headers};
+    const cache={put:(...args)=>writes.push(args),match:async key=>writes.find(([saved])=>saved===key)?.[1]};
+    let offline=false;
+    const ctx={URL,Response,location:{origin:'https://test'},self:{registration:{scope:'https://test/'},skipWaiting(){},addEventListener:(n,f)=>events[n]=f},caches:{open:async()=>cache},fetch:async r=>{
+      if(offline)throw Error('offline');
+      return (r instanceof URL?r.href:r.url).endsWith('icon-192.png')?failedAsset:publicAsset;
+    }};
     vm.runInNewContext(fs.readFileSync(path.join(ROOT,'sw.js'),'utf8'),ctx);
     const get=async(url,mode='cors')=>{let p;events.fetch({request:{url,method:'GET',mode},waitUntil:p=>pending.push(p),respondWith:x=>p=x});const r=await p;await Promise.all(pending);return r;};
     out.push([await get('https://test/api/private')===undefined,'API önbelleğe girmez']);
     out.push([await get('https://tile.openstreetmap.org/a.png')===undefined,'harita önbelleğe girmez']);
-    await get('https://test/index.html?go=post','navigate');out.push([writes.length===1&&writes[0][0]==='https://test/index.html','kabuk sorgu bağımsız anahtarla saklanır']);
-    response={ok:false,redirected:false};await get('https://test/icons/icon-192.png');out.push([writes.length===1,'404/500 saklanmaz']);
-    offline=true;out.push([(await get('https://test/','navigate')).cached,'çevrimdışı gezinme kabuğu açar']);
+    out.push([await get('https://external.example/index.html','navigate')===undefined,'izinli dosya adı başka origin için geçerli değildir']);
+    events.install({waitUntil:p=>pending.push(p)});await Promise.all(pending);
+    const installed=writes.length;
+    await get('https://test/index.html?go=post','navigate');out.push([writes.length===installed&&writes.some(([key])=>key==='https://test/'),'yalnız kurulumun kanonik kabuğu saklanır']);
+    await get('https://test/icons/icon-192.png');out.push([writes.length===installed&&!writes.some(([key])=>key.endsWith('icon-192.png')),'başarısız yanıt işaretli olsa da saklanmaz']);
+    offline=true;out.push([await get('https://test/','navigate')===publicAsset,'çevrimdışı gezinme gerçekten kaydedilmiş kabuğu açar']);
     out.push([(await get('https://test/icons/icon-192.png')).type==='error','eksik resme HTML verilmez']);
     return out;
   });

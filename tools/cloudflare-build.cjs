@@ -14,6 +14,14 @@ fs.writeFileSync(path.join(root,'public/_headers'),`/*
   Content-Type: application/javascript; charset=utf-8
 /manifest.webmanifest
   Content-Type: application/manifest+json
+  X-NakGo-Offline-Asset: 1
+  Cache-Control: public, max-age=0
+/
+  X-NakGo-Offline-Asset: 1
+  Cache-Control: public, max-age=0
+/icons/*
+  X-NakGo-Offline-Asset: 1
+  Cache-Control: public, max-age=0
 `);
 esbuild.build({entryPoints:[path.join(root,production?'cloudflare/production-worker.mjs':'cloudflare/worker.mjs')],outfile:path.join(root,production?'cloudflare/dist/production-worker.mjs':'cloudflare/dist/worker.mjs'),bundle:true,format:'esm',platform:'neutral',target:'es2022',plugins:[{
  name:'nakgo-cloudflare-compat',setup(build){

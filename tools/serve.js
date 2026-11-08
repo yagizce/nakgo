@@ -15,7 +15,8 @@ function createServer() {
         if(!file.startsWith(root+path.sep)) return reply(403,"Erişim yok");
         fs.stat(file,(err,stat)=>{
             if(err||!stat.isFile()) return reply(404,"Bulunamadı");
-            res.writeHead(200,{"Content-Type":types[path.extname(file)]||"application/octet-stream","Content-Length":stat.size,"X-Content-Type-Options":"nosniff","Cache-Control":"no-cache"});
+            const offlineAsset=pathname==="/"||pathname==="/manifest.webmanifest"||/^\/icons\/[^/]+\.(?:svg|png)$/.test(pathname);
+            res.writeHead(200,{"Content-Type":types[path.extname(file)]||"application/octet-stream","Content-Length":stat.size,"X-Content-Type-Options":"nosniff","Cache-Control":offlineAsset?"public, max-age=0":"no-cache",...(offlineAsset?{"X-NakGo-Offline-Asset":"1"}:{})});
             if(req.method==="HEAD")return res.end();
             fs.createReadStream(file).on("error",()=>res.destroy()).pipe(res);
         });
