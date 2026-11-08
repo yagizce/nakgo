@@ -120,7 +120,7 @@ try:
             check(page.evaluate("mode==='truck'"), 'old shell reproduced before update')
             Handler.old = False
             page.evaluate('async()=>{const r=await navigator.serviceWorker.getRegistration();await r.update();}')
-            page.wait_for_function("async()=>JSON.stringify(await caches.keys()).includes('nakgo-v47-opening-refresh')")
+            page.wait_for_function("async()=>JSON.stringify(await caches.keys()).includes('nakgo-v48-cache-isolation')")
             page.wait_for_function("async()=>!(await caches.keys()).includes('nakgo-v46-listing-lifecycle')")
             page.reload()
             check(page.evaluate("mode==='load'"), 'updated shell opens Loads')

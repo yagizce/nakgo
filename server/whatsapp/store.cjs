@@ -12,6 +12,11 @@ function createStore({env=process.env,fetchImpl=fetch}={}){
   const text=await response.text();return text?JSON.parse(text):null;
  }
  async function maintenance(task){const result=await rpc('nakgo_maintenance',{p_task:task});if(result?.ok!==true)throw Error('maintenance_retry_required');return task==='redact'?result.count:null;}
- return {enqueue:messages=>rpc('nakgo_wa_ingest',{p_messages:messages}),claim:()=>rpc('nakgo_wa_claim',{}),complete:(id,lease,drafts)=>rpc('nakgo_wa_finish',{p_id:id,p_lease:lease,p_drafts:drafts}),fail:(id,lease)=>rpc('nakgo_wa_fail',{p_id:id,p_lease:lease}),purge:()=>maintenance('purge'),expire:()=>rpc('nakgo_expire_listings',{}),redact:()=>maintenance('redact')};
+ async function enqueue(messages){
+  const inserted=await rpc('nakgo_wa_ingest',{p_messages:messages});
+  if(!Number.isInteger(inserted)||inserted<0||inserted>messages.length)throw Error('invalid_enqueue_result');
+  return inserted;
+ }
+ return {enqueue,claim:()=>rpc('nakgo_wa_claim',{}),complete:(id,lease,drafts)=>rpc('nakgo_wa_finish',{p_id:id,p_lease:lease,p_drafts:drafts}),fail:(id,lease)=>rpc('nakgo_wa_fail',{p_id:id,p_lease:lease}),purge:()=>maintenance('purge'),expire:()=>rpc('nakgo_expire_listings',{}),redact:()=>maintenance('redact')};
 }
 module.exports={createStore};
