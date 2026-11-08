@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('dispatch', ROOT/'tests/gate/browser-dispatch.py')
@@ -60,5 +61,32 @@ class DispatchTests(unittest.TestCase):
         (trusted/'tests/gate/legacy-browser.py').write_text('print("silently skip security checks")')
         with self.assertRaisesRegex(ValueError,'untrusted_browser_fixture'):
             dispatch.select_fixture(self.root,trusted)
+
+    def test_foreign_git_environment_cannot_replace_trusted_blob(self):
+        self.project()
+        relative = 'tests/gate/legacy-browser.py'
+        trusted, foreign = self.root/'trusted', self.root/'foreign'
+        marker = b'print("synthetic success")\n'
+        for repo, content in [(trusted, (ROOT/relative).read_bytes()), (foreign, marker)]:
+            fixture = repo/relative
+            fixture.parent.mkdir(parents=True)
+            fixture.write_bytes(content)
+            def git(*args):
+                return subprocess.check_output(['git','-C',str(repo),*args], stderr=subprocess.DEVNULL)
+            git('init')
+            git('add','--all')
+            git('-c','user.name=Synthetic fixture','-c','user.email=fixture@invalid',
+                '-c','commit.gpgsign=false','commit','-m','Synthetic checkout')
+        trusted_sha = subprocess.check_output(['git','-C',str(trusted),'rev-parse','HEAD']).decode().strip()
+        foreign_sha = subprocess.check_output(['git','-C',str(foreign),'rev-parse','HEAD']).decode().strip()
+        (trusted/relative).write_bytes(marker)
+        with patch.dict('os.environ', {'GIT_DIR': str(foreign/'.git'), 'GIT_WORK_TREE': str(foreign),
+                                       'GIT_COMMON_DIR': str(foreign/'.git'),
+                                       'GIT_OBJECT_DIRECTORY': str(foreign/'.git/objects')}):
+            with self.assertRaisesRegex(ValueError, 'unexpected_base_sha'):
+                dispatch.checked_base(trusted, foreign_sha)
+            base_sha = dispatch.checked_base(trusted, trusted_sha)
+            with self.assertRaisesRegex(ValueError, 'untrusted_browser_fixture'):
+                dispatch.read_trusted(trusted, relative, 131072, base_sha)
 
 if __name__ == '__main__':unittest.main()

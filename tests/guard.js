@@ -19,7 +19,12 @@ function guard({root=path.resolve(__dirname,'..'),baseRef='origin/main',baseline
   for(const p of names.filter(protectedFile)) {
     if(!regular(p)){check(false,'Korunan dosya silinmiş veya symlink: '+p);continue;}
     const after=read(p);
-    if(!fixedControl(p)){check(after.trim().length>0,'Mevcut test dosyası boş: '+p);continue;}
+    if(!fixedControl(p)){
+      // The E2E entry point uses check() to record real browser assertions.
+      const hasChecks=p==='tests/e2e.py'?/^\s+check\(/m.test(after):after.trim().length>0;
+      check(hasChecks,'Mevcut test dosyasında kontrol yok: '+p);
+      continue;
+    }
     const before=(baseline?baseline[p]:cp.execFileSync('git',['show',baseRef+':'+p],{cwd:root,encoding:'utf8'})).replace(/\r\n/g,'\n');
     // The trusted browser dispatcher supports the existing inbox retirement.
     check(after===before||p==='tools/project.js'&&after===before.replace(retiredInbox,''),
