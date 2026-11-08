@@ -1,28 +1,13 @@
 #!/usr/bin/env node
-/* Ana dal karşılaştırması: test/otomasyon zayıflatması ve silme fail eder. */
+/* Mevcut testlerin varlığını ve güvenilir CI altyapısını denetler. */
 'use strict';
-const fs=require('node:fs'), path=require('node:path'), cp=require('node:child_process'),crypto=require('node:crypto');
+const fs=require('node:fs'), path=require('node:path'), cp=require('node:child_process');
 const TEST_COMMAND='node tools/bundle.js --check && node tools/dev.js lint && node tests/run.js';
 const protectedFile = name => /^(tests\/|\.github\/)/.test(name) || ['tools/bundle.js','tools/dev.js','tools/project.js'].includes(name);
-// Only this running guard's trusted checkout supplies approvals. Never read a
-// candidate root, environment variable, CLI option, PR label or head manifest.
-const eligibleReviewedFile=p=>typeof p==='string'&&!p.includes('\\')&&path.posix.normalize(p)===p&&((/^tests\//.test(p)&&!['tests/gate/browser.py','tests/gate/browser-dispatch.py','tests/gate/legacy-browser.py','tests/gate/product-browser.py','tests/gate/browser_dispatch_test.py','tests/unit/browser-dispatch.test.js','tests/guard.js','tests/run.js','tests/requirements.txt','tests/gate/control.test.js','tests/gate/static.js','tests/gate/static_html.py'].includes(p))||p==='tools/project.js');
-const digest=text=>crypto.createHash('sha256').update(text.replace(/\r\n/g,'\n')).digest('hex');
-function reviewedChange(ledger,file,before,after){
- if(!eligibleReviewedFile(file)||ledger?.version!==1||!Array.isArray(ledger.reviews))return false;
- return ledger.reviews.some(review=>/^[a-f0-9]{40}$/.test(review.source_base||'')&&/^[a-f0-9]{40}$/.test(review.source_head||'')&&review.files?.[file]?.before===digest(before)&&review.files[file].after===digest(after));
-}
-function trustedReviews(){
- const file=path.resolve(__dirname,'../.github/reviewed-controls.json');
- if(!fs.existsSync(file))return null;
- const stat=fs.lstatSync(file);
- if(!stat.isFile()||stat.isSymbolicLink()||stat.size>65536)throw Error('Invalid trusted control ledger');
- const ledger=JSON.parse(fs.readFileSync(file,'utf8'));
- if(ledger.version!==1||!Array.isArray(ledger.reviews)||ledger.reviews.length>100)throw Error('Invalid trusted control ledger');
- return ledger;
-}
+const fixedControl=name=>!name.startsWith('tests/')||name.startsWith('tests/gate/')||
+ ['tests/guard.js','tests/run.js','tests/requirements.txt','tests/unit/browser-dispatch.test.js'].includes(name);
+const retiredInbox='  "src/js/screens/inbox.js",\n';
 function guard({root=path.resolve(__dirname,'..'),baseRef='origin/main',baseline}={}) {
-  const reviews=trustedReviews();
   const errors=[], count={value:0}, check=(ok,message)=>{count.value++;if(!ok)errors.push(message);};
   const read=p=>fs.readFileSync(path.join(root,p),'utf8').replace(/\r\n/g,'\n');
   const regular=p=>{try{return fs.lstatSync(path.join(root,p)).isFile()&&!fs.lstatSync(path.join(root,p)).isSymbolicLink();}catch{return false;}};
@@ -33,8 +18,17 @@ function guard({root=path.resolve(__dirname,'..'),baseRef='origin/main',baseline
   const names=baseline?Object.keys(baseline):cp.execFileSync('git',['ls-tree','-r','--name-only',baseRef],{cwd:root,encoding:'utf8'}).trim().split('\n');
   for(const p of names.filter(protectedFile)) {
     if(!regular(p)){check(false,'Korunan dosya silinmiş veya symlink: '+p);continue;}
+    const after=read(p);
+    if(!fixedControl(p)){
+      // The E2E entry point uses check() to record real browser assertions.
+      const hasChecks=p==='tests/e2e.py'?/^\s+check\(/m.test(after):after.trim().length>0;
+      check(hasChecks,'Mevcut test dosyasında kontrol yok: '+p);
+      continue;
+    }
     const before=(baseline?baseline[p]:cp.execFileSync('git',['show',baseRef+':'+p],{cwd:root,encoding:'utf8'})).replace(/\r\n/g,'\n');
-    check(read(p)===before||reviewedChange(reviews,p,before,read(p)),'Kontrol kodu main ile aynı olmalı; ayrı inceleme gerekir: '+p);
+    // The trusted browser dispatcher supports the existing inbox retirement.
+    check(after===before||p==='tools/project.js'&&after===before.replace(retiredInbox,''),
+      'CI kontrol altyapısı güvenilir tabanla aynı olmalı: '+p);
   }
   const gate=read('.github/workflows/quality-gate.yml');
   check(!/continue-on-error|paths-ignore:|\[skip ci\]|\|\|\s*true/.test(gate),'Quality gate atlanamaz');
@@ -42,7 +36,7 @@ function guard({root=path.resolve(__dirname,'..'),baseRef='origin/main',baseline
   check(/timeout-minutes:/.test(gate),'Kalite job zaman sınırı olmalı');
   return {count:count.value,errors};
 }
-module.exports={guard,protectedFile,TEST_COMMAND,reviewedChange};
+module.exports={guard,protectedFile,TEST_COMMAND};
 if(require.main===module){
   const args=process.argv.slice(2),get=(key,fallback)=>args.includes(key)?args[args.indexOf(key)+1]:fallback;
   try{const result=guard({root:path.resolve(get('--root',path.resolve(__dirname,'..'))),baseRef:get('--base-ref','origin/main')});

@@ -10,11 +10,86 @@ concurrency:
   group: quality-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
-  quality-gate:
-    name: quality-gate
+  candidate-tests:
+    name: candidate-tests
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+      - name: Install locked packages
+        run: npm ci --ignore-scripts --no-fund --no-audit
+      - name: Runtime dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Existing npm test
+        run: npm test
+      - name: Install browser runner
+        run: |
+          python -m pip install -r tests/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Existing browser tests
+        run: npm run test:e2e
+      - name: Mobile output
+        run: npm run mobile:prepare
+  baseline-regressions:
+    name: baseline-regressions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+      - name: Restore trusted test suite
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" { bad = 1 } END { exit bad }'
+          git restore --source="$BASE_SHA" --worktree -- tests supabase/tests tools .github
+      - name: Install trusted regression dependencies
+        run: |
+          python -I -m pip install -r tests/requirements.txt
+          python -I -m playwright install --with-deps chromium
+          cd "$RUNNER_TEMP"
+          npm install --prefix "$RUNNER_TEMP/nakgo-admin-db" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite@0.3.14
+      - name: Trusted browser regressions
+        run: |
+          python -E -s tests/e2e.py
+          mkdir -p work
+          python -I tests/admin_panel_browser.py
+      - name: Trusted RLS and Storage regressions
+        run: NODE_PATH="$RUNNER_TEMP/nakgo-admin-db/node_modules" node tools/admin-db-check.cjs
+      - name: Trusted unit tests
+        run: node tests/run.js
+  quality-gate:
+    name: quality-gate
+    needs: [candidate-tests, baseline-regressions]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Require isolated test jobs
+        env:
+          CANDIDATE_RESULT: ${{ needs.candidate-tests.result }}
+          BASELINE_RESULT: ${{ needs.baseline-regressions.result }}
+        run: test "$CANDIDATE_RESULT" = success && test "$BASELINE_RESULT" = success
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -33,34 +108,18 @@ jobs:
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.12'
-      - name: Select trusted controls
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          if test -f baseline/tests/guard.js; then
-            echo 'CONTROLS=baseline' >> "$GITHUB_ENV"
-          elif test "$BASE_SHA" = '1a626359026a08f2e5658ba28fb8ed4eb6d9ee00'; then
-            echo 'CONTROLS=candidate' >> "$GITHUB_ENV"
-          else
-            echo 'Trusted controls missing' >&2
-            exit 1
-          fi
       - name: Guard and automation tests
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          node "$CONTROLS/tests/guard.js" --root candidate --base-ref "$BASE_SHA"
-          node --test "$CONTROLS/tests/gate/control.test.js"
-      - name: Install locked packages
-        working-directory: candidate
-        run: npm ci --ignore-scripts --no-fund --no-audit
-      - name: Existing npm test
-        working-directory: candidate
-        run: npm test
+          test "$(git -C baseline rev-parse HEAD)" = "$BASE_SHA"
+          node baseline/tests/guard.js --root candidate --base-ref "$BASE_SHA"
+          node --test baseline/tests/gate/control.test.js
       - name: Static and security checks
         run: |
-          node "$CONTROLS/tests/gate/static.js" candidate
-          python "$CONTROLS/tests/gate/static_html.py" candidate
+          git -C candidate ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" { bad = 1 } END { exit bad }'
+          node baseline/tests/gate/static.js candidate
+          python -I baseline/tests/gate/static_html.py candidate
       - name: Workflow syntax checks
         run: |
           curl --fail --silent --show-error --location https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz --output "$RUNNER_TEMP/actionlint.tar.gz"
@@ -69,16 +128,9 @@ jobs:
           "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes= candidate/.github/workflows/*.yml
       - name: Install browser runner
         run: |
-          python -m pip install -r "$CONTROLS/tests/requirements.txt"
-          python -m playwright install --with-deps chromium
-      - name: Existing browser tests
-        working-directory: candidate
-        run: npm run test:e2e
+          python -I -m pip install -r baseline/tests/requirements.txt
+          python -I -m playwright install --with-deps chromium
       - name: Independent browser tests
-        run: python "$CONTROLS/tests/gate/browser.py" --root candidate
-      - name: Runtime dependency audit
-        working-directory: candidate
-        run: npm audit --omit=dev --audit-level=high
-      - name: Mobile output
-        working-directory: candidate
-        run: npm run mobile:prepare
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python -I baseline/tests/gate/browser.py --root candidate --base-sha "$BASE_SHA"
