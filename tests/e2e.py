@@ -34,6 +34,16 @@ if "--shots" in sys.argv:
 class Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
 
+    def end_headers(self):
+        # Match the development server's opt-in for the static offline shell.
+        if self.path in ('/', '/manifest.webmanifest') or (
+            self.path.startswith('/icons/') and self.path.count('/') == 2
+            and self.path.endswith(('.svg', '.png')) and '?' not in self.path
+        ):
+            self.send_header('X-NakGo-Offline-Asset', '1')
+            self.send_header('Cache-Control', 'public, max-age=0')
+        super().end_headers()
+
 srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=ROOT))
 threading.Thread(target=srv.serve_forever, daemon=True).start()
 URL = os.environ.get("NAKGO_E2E_URL") or f"http://127.0.0.1:{srv.server_address[1]}/index.html"
@@ -161,7 +171,9 @@ with sync_playwright() as p:
     pg.set_viewport_size({"width": 390, "height": 844})
 
     # 11) Çevrimdışı açılış (servis çalışanı)
-    pg.goto(URL); pg.evaluate("navigator.serviceWorker.ready.then(()=>true)"); pg.wait_for_timeout(800); pg.reload(); pg.wait_for_timeout(800)
+    pg.goto(URL)
+    pg.wait_for_function("navigator.serviceWorker.controller !== null", timeout=10000)
+    pg.reload(); pg.wait_for_timeout(800)
     ctx.set_offline(True); pg.reload(); pg.wait_for_timeout(800)
     check("internet yokken uygulama kayıtlı kopyadan açılır", cards() > 0 and pg.is_visible("#off"))
     ctx.set_offline(False)
