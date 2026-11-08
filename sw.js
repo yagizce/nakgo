@@ -1,10 +1,11 @@
 /* NakGo: yalnızca uygulama kabuğu önbelleğe alınır; kişisel veri/harita istekleri alınmaz. */
-const V = "nakgo-v49-static-offline";
+const V = "nakgo-v50-static-offline";
 const ASSETS = ["./", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/brand-logo.png", "icons/header-logo.png"];
 const index = new URL("index.html",self.registration.scope);
 const root = new URL(self.registration.scope);
-self.addEventListener("install", e => {
-    e.waitUntil(caches.open(V).then(cache=>Promise.allSettled(ASSETS.map(async path=>{
+async function installOfflineShell() {
+    const cache=await caches.open(V);
+    const cacheAsset=async path=>{
         const url=new URL(path,self.registration.scope);
         const res=await fetch(url,{credentials:'omit',cache:'no-store',redirect:'error'});
         const policy=res.headers.get('Cache-Control')||'';
@@ -13,9 +14,16 @@ self.addEventListener("install", e => {
             && !/(?:^|,)\s*(?:private|no-cache|no-store)\b/i.test(policy)
             && !vary.split(',').some(value=>['cookie','authorization','*'].includes(value.trim().toLowerCase()))) {
             await cache.put(url.href,res);
+            return;
         }
-    }))).then(()=>self.skipWaiting()));
-});
+        throw Error('Offline asset is not cacheable');
+    };
+    // A failed installation leaves the active worker and its cache in place.
+    await cacheAsset("./");
+    await Promise.allSettled(ASSETS.filter(path=>path!=="./").map(cacheAsset));
+    await self.skipWaiting();
+}
+self.addEventListener("install", e => { e.waitUntil(installOfflineShell()); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("nakgo-")&&k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
 self.addEventListener("fetch", e => {
     const r=e.request, u=new URL(r.url);

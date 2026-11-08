@@ -46,4 +46,43 @@ module.exports=({test,fs,path,ROOT})=>{
       [entries.size===1,'installation rejects no-cache, unmarked and cookie-varying responses']
     ];
   });
+  test('A worker update keeps the old offline shell until the new shell is cached',async()=>{
+    const vm=require('node:vm');
+    const source=fs.readFileSync(path.join(ROOT,'sw.js'),'utf8');
+    const origin='https://nakgo.example',shell=origin+'/',oldVersion='nakgo-old-worker';
+    const out=[];
+    for(const failure of ['network','unmarked','write',null]){
+      const events={},previous=new Map([[shell,'old shell']]),entries=new Map([[oldVersion,previous]]);
+      let skipped=false,claimed=false,installed=false,pending;
+      vm.runInNewContext(source,{
+        URL,Response,location:{origin},
+        self:{registration:{scope:shell},addEventListener:(name,fn)=>events[name]=fn,
+          skipWaiting(){skipped=true;},clients:{claim(){claimed=true;}}},
+        caches:{
+          open:async name=>{
+            if(!entries.has(name))entries.set(name,new Map());
+            return {put:async(key,value)=>{
+              if(key===shell&&failure==='write')throw Error('cache write failed');
+              entries.get(name).set(key,await value.text());
+            }};
+          },
+          keys:async()=>[...entries.keys()],delete:async name=>entries.delete(name)
+        },
+        fetch:async url=>{
+          if(url.href!==shell||failure==='network')throw Error('network unavailable');
+          return new Response('new shell',{headers:failure==='unmarked'?{}:{'X-NakGo-Offline-Asset':'1'}});
+        }
+      });
+      const event={waitUntil:promise=>pending=promise};
+      events.install(event);
+      try{await pending;installed=true;}catch{}
+      // Only a successfully installed worker can reach activation.
+      if(installed){events.activate(event);await pending;}
+      if(failure)out.push([!installed&&!skipped&&!claimed&&entries.get(oldVersion)?.get(shell)==='old shell',
+        'failed shell installation keeps the old cache: '+failure]);
+      else out.push([installed&&skipped&&claimed&&!entries.has(oldVersion)&&[...entries.values()].some(cache=>cache.get(shell)==='new shell'),
+        'cached shell permits activation even if optional assets fail']);
+    }
+    return out;
+  });
 };
