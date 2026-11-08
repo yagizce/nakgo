@@ -71,7 +71,7 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/nakgo-admin-db" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite@0.3.14
       - name: Trusted browser regressions
         run: |
-          python -I tests/e2e.py
+          python -E -s tests/e2e.py
           mkdir -p work
           python -I tests/admin_panel_browser.py
       - name: Trusted RLS and Storage regressions

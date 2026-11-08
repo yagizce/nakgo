@@ -115,7 +115,7 @@ test('Aday yürütmesi bağımsız kontrollerin ortamını veya dosyalarını de
   assert.match(jobs['candidate-tests'],/run: npm test/);
   assert.match(jobs['baseline-regressions'],/git restore --source="\$BASE_SHA" --worktree -- tests supabase\/tests/);
   assert.match(jobs['baseline-regressions'],/run: node tests\/run\.js/);
-  assert.match(jobs['baseline-regressions'],/python -I tests\/e2e\.py/);
+  assert.match(jobs['baseline-regressions'],/python -E -s tests\/e2e\.py/);
   const independent=jobs['quality-gate'];
   assert.match(independent,/needs: \[candidate-tests, baseline-regressions\]/);
   assert.match(independent,/if: \$\{\{ always\(\) \}\}/);
