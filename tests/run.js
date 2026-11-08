@@ -39,12 +39,18 @@ const run = (name, steps, opts) => test(name, async () => {
 });
 
 const H = { fs, path, ROOT, html, script, boot, test, run, tests };
-for (const f of fs.readdirSync(path.join(__dirname,"unit")).filter(x => x.endsWith(".test.js")).sort()) require("./unit/" + f)(H);
+for (const f of fs.readdirSync(path.join(__dirname,"unit")).filter(x => x.endsWith(".test.js")).sort()) {
+  const before=tests.length;
+  require("./unit/" + f)(H);
+  if (tests.length<=before) throw new Error("Test dosyası hiçbir test kaydetmedi: " + f);
+}
 
 (async () => {
   let fail = 0, total = 0;
   for (const [name, fn] of tests) {
-    try { const res = await fn(); const bad = res.filter(x => !x[0]); total += res.length; fail += bad.length;
+    try { const res = await fn();
+      if (!res.length) throw new Error("Test hiçbir kontrol çalıştırmadı");
+      const bad = res.filter(x => !x[0]); total += res.length; fail += bad.length;
       console.log((bad.length ? "✗ " : "✓ ") + name + (bad.length ? "  -> " + bad.map(b => b[1]).join("; ") : ""));
     } catch (e) { fail++; total++; console.log("✗ " + name + "  -> HATA: " + e.message + (process.env.DEBUG ? "\n" + e.stack : "")); }
   }

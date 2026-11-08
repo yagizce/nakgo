@@ -19,7 +19,7 @@ Browser kurulumu [geliştirme belgesindedir](development.md). Guard'ın karşıl
 
 ## Güven sınırı
 
-CI kontrol kodunu PR'dan değil olayın base commit'indeki main kopyasından çalıştırır. Mevcut tests/run.js, birim/E2E dosyaları ve kontrol araçlarının değiştirilmesi/silinmesi guard'ı başarısız kılar; test komutları kaldırılamaz veya başka komutla değiştirilemez. Ek test dosyaları test edilebilir, fakat tests/ veya .github/ değişikliği içeren PR otomatik birleşmez. Koruma ve test tabanını güncellemek ayrı, insan tarafından incelenen bakım işidir; olağan uygulama değişiklikleri bu dosyaları değiştirmez.
+CI kontrol kodunu olayın base commit'indeki main kopyasından çalıştırır. Birim ve E2E testleri düzenlenebilir veya eklenebilir. Mevcut testler silinemez veya boş bırakılamaz. Guard, test çalıştırıcısı, komutlar, workflow'lar ve bağımsız kontroller koruma kapsamındadır. `tests/` veya `.github/` değişikliği içeren PR otomatik birleşmez. Güvenilir kontrol tabanını güncellemek insan tarafından incelenen ayrı bakım işidir.
 
 İlk kurulumda main üzerinde kontrol dosyaları henüz yoktur. Yalnızca `1a626359026a08f2e5658ba28fb8ed4eb6d9ee00` tabanında bootstrap istisnası vardır; bu kurulum PR'ı tüm kontroller geçtikten sonra incelemeyle birleştirilir. Sonraki PR'larda main kopyası zorunludur. İlk kurulum PR'ı kendi kendini otomatik birleştiremez.
 

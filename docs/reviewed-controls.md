@@ -1,18 +1,20 @@
-# Exact control baseline proposal
+# Test değişiklikleri ve güvenilir kontroller
 
-This branch changes no application, database, DNS or Vercel configuration.
-The ledger proposes the 17 original product-contract file changes plus the strict SDK flow-id fixture correction from the
-Cloudflare branch. It becomes authoritative only after independent review
-and adoption into protected main; this branch cannot approve itself in CI.
+Ürün testleri düzenlenebilir ve eklenebilir. Guard mevcut test dosyalarının
+silinmesini, boş bırakılmasını ve sembolik bağlantıyla değiştirilmesini engeller.
+Aday testler çalışır. Ayrı bir CI job'ı main'deki birim, tarayıcı ve SQL
+regresyonlarını aday uygulama üzerinde yeniden çalıştırır. Böylece test
+dosyasındaki bir düzenleme mevcut regresyonun yerini almaz. Güvenilir bir
+regresyonun beklentisini değiştiren ürün değişiklikleri ayrıca incelenir.
+Ayrı SHA-256 defteri kullanılmaz.
 
-CI must continue running the **base checkout's** guard. Only its adjacent
-ledger is read; candidate files, flags, environment variables and PR labels
-cannot supply approval. Both old and new normalized SHA-256 must match.
-Guard, workflow, runner, security-static and approval-ledger changes are never
-eligible. Missing/symlink files still fail. Auto-merge rules remain unchanged.
+Guard, test çalıştırıcısı, statik ve bağımsız tarayıcı kontrolleri ile GitHub
+yapılandırması güvenilir main tabanından korunur. Bağımsız kontroller ayrı
+bir GitHub-hosted job'da yeniden checkout yapar ve aday job'dan yalnız sonucu
+alır. Tarayıcı seçicisi yalnızca
+bilinen iki uygulama sözleşmesini kabul eder ve seçilen test dosyasını güvenilir
+checkout'taki sabit base SHA ile doğrular. Test değişiklikleri otomatik birleşmez.
 
-After adoption, synchronize guard/control-test/ledger verbatim from main to
-the application branch. A further edit to any approved test needs new review.
-This proposal itself requires a trusted-controls transition; do not bypass
-branch protection. A main merge also triggers Vercel's existing deployment,
-so adoption needs the user's separate approval before that action.
+Bu politika main'e alınana kadar CI mevcut main Guard'ını kullanır ve bu
+bakım değişikliğini reddeder. Güvenilir kontrol tabanının güncellenmesi ayrı
+bakım işlemidir.
