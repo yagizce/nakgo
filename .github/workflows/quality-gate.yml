@@ -26,6 +26,7 @@ jobs:
       base: ${{ steps.snapshot.outputs.base }}
       head: ${{ steps.snapshot.outputs.head }}
       merge: ${{ steps.snapshot.outputs.merge }}
+      tree: ${{ steps.snapshot.outputs.tree }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:

@@ -31,16 +31,25 @@ async function snapshot(api, request) {
       (dispatch ? head !== source || pr.head.repo?.full_name !== repo ||
         `refs/heads/${pr.head.ref}` !== BOOTSTRAP : base !== source ||
         base !== eventPR?.base?.sha || head !== eventPR?.head?.sha)) throw Error('PR snapshot changed');
-  const main = await api(`${root}/git/ref/heads/main`);
+  const [main, commit, candidate, comparison] = await Promise.all([
+    api(`${root}/git/ref/heads/main`),
+    api(`${root}/git/commits/${merge}`),
+    api(`${root}/git/commits/${head}`),
+    api(`${root}/compare/${base}...${head}?per_page=1`)
+  ]);
   if (main.object?.sha !== base) throw Error('Main advanced since this snapshot');
-  const commit = await api(`${root}/git/commits/${merge}`);
   if (commit.sha !== merge || commit.parents?.length !== 2 ||
       commit.parents[0].sha !== base || commit.parents[1].sha !== head) throw Error('Unexpected test merge commit');
-  return {source, base, head, merge};
+  if (comparison.merge_base_commit?.sha !== base || candidate.sha !== head ||
+      !sha(candidate.tree?.sha) || commit.tree?.sha !== candidate.tree.sha) {
+    throw Error('Head is not current or its tree differs from the test merge');
+  }
+  return {source, base, head, merge, tree: candidate.tree.sha};
 }
 
 function publishable(actual, expected, results) {
-  return ['source', 'base', 'head', 'merge'].every(key => sha(actual[key]) && actual[key] === expected[key]) &&
+  return ['source', 'base', 'head', 'tree'].every(key => sha(actual[key]) && actual[key] === expected[key]) &&
+    sha(actual.merge) && sha(expected.merge) &&
     results.length === 3 && results.every(result => result === 'success');
 }
 
@@ -73,25 +82,37 @@ async function appClient(env) {
 
 async function main(mode, env) {
   const request = intent(env, JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH, 'utf8')), mode === 'publish');
-  const current = await snapshot(github(env.GITHUB_TOKEN), request);
+  const api = github(env.GITHUB_TOKEN);
   if (mode === 'snapshot') {
+    const current = await snapshot(api, request);
     fs.appendFileSync(env.GITHUB_OUTPUT, Object.entries(current).map(([key, value]) => `${key}=${value}\n`).join(''));
     return;
   }
   const expected = JSON.parse(env.CI_SNAPSHOT ?? '{}');
-  if (mode !== 'publish' || !publishable(current, expected, [env.CI_VERIFY, env.CI_REGRESSIONS, env.CI_GATE])) {
+  const results = [env.CI_VERIFY, env.CI_REGRESSIONS, env.CI_GATE];
+  const current = await snapshot(api, request);
+  if (mode !== 'publish' || !publishable(current, expected, results)) {
     throw Error('Required jobs failed, were skipped, or used a stale snapshot');
   }
   const app = await appClient(env);
-  const result = await app(`/repos/${request.repo}/check-runs`, {
-    name: CHECK, head_sha: current.merge, status: 'completed', conclusion: 'success',
-    details_url: `https://github.com/${request.repo}/actions/runs/${env.GITHUB_RUN_ID}`,
-    external_id: `${request.number}:${current.base}:${current.head}`
-  });
-  if (result.head_sha !== current.merge || String(result.app?.id) !== env.CI_APP_ID) throw Error('Unexpected check identity');
+  const latest = await snapshot(api, request);
+  if (!publishable(latest, expected, results)) {
+    throw Error('PR snapshot changed before publication');
+  }
+  const check = checkRun(request, expected, env.GITHUB_RUN_ID);
+  const result = await app(`/repos/${request.repo}/check-runs`, check);
+  if (result.head_sha !== check.head_sha || String(result.app?.id) !== env.CI_APP_ID) throw Error('Unexpected check identity');
 }
 
-module.exports = {intent, snapshot, publishable};
+function checkRun({repo, number}, {base, head, merge, tree}, runId) {
+  return {
+    name: CHECK, head_sha: head, status: 'completed', conclusion: 'success',
+    details_url: `https://github.com/${repo}/actions/runs/${runId}`,
+    external_id: `${number}:${base}:${head}:${merge}:${tree}`
+  };
+}
+
+module.exports = {intent, snapshot, publishable, checkRun};
 if (require.main === module) main(process.argv[2], process.env).catch(error => {
   console.error(error.message);
   process.exitCode = 1;

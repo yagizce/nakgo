@@ -27,7 +27,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Publish App check for exact test merge commit
+      - name: Publish App check for the verified PR head
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CI_CALLER_REF: ${{ github.workflow_ref }}

@@ -22,9 +22,9 @@ CI bağımsız kontrol kodunu olayın base commit'indeki main kopyasından çal�
 
 `pull_request_target`, kalite workflow'unu güvenilir `main` commit'inden yükler. Önce GitHub API'sinden açık PR ve iki ebeveynli test birleşim commit'i doğrulanır. Aday testleri, geri yüklenmiş güvenilir regresyonlar ve bağımsız kontroller üç ayrı GitHub-hosted runner'da çalışır. Test işlerinde yazma izni, App sırrı, aday artefaktı veya paylaşılan cache yoktur. Bağımlılık denetimi aday `.npmrc` dosyasından bağımsız bir geçici dizinde yapılır.
 
-Sonuç yalnız taze bir runner'daki `publish` işi tarafından yayımlanır. Bu iş yalnız güvenilir ref'i alır, aday kodu çalıştırmaz ve PR'ın hâlâ aynı base/head/test birleşim SHA'larında olduğunu tekrar doğrular. `nakgo/trusted-ci` sonucunun kaynağı, yalnız bu depoya kurulu ayrı GitHub App'tir. `verify` mevcut adıyla zorunlu kalır. Eski `quality-gate` check adı yerine App sonucu zorunlu olur. App sonucu Quality Gate'in üç işini birlikte gerektirir. Aday test sonucu güvenilir regresyonun yerine geçmez.
+Sonuç yalnız taze bir runner'daki `publish` işi tarafından yayımlanır. Bu iş yalnız güvenilir ref'i alır, aday kodu çalıştırmaz ve güncel base, head ve test edilen Git ağacını tekrar doğrular. `nakgo/trusted-ci` sonucunun kaynağı, yalnız bu depoya kurulu ayrı GitHub App'tir. `verify` mevcut adıyla zorunlu kalır. Eski `quality-gate` check adı yerine App sonucu zorunlu olur. App sonucu Quality Gate'in üç işini birlikte gerektirir. Aday test sonucu güvenilir regresyonun yerine geçmez.
 
-Sonuç test birleşim SHA'sına yazılır. Head veya base değiştiğinde yeni test birleşim SHA'sı gerekir. Atlanan, iptal edilen veya başarısız işlerde App başarısı yayımlanmaz. Main ilerlerse PR dalını güncelleyip yeni çalışmayı tetikleyin.
+Sonuç PR head SHA'sına yazılır. Main, head'in atası olmalı ve head ağacı test edilen birleşim ağacıyla birebir eşleşmelidir. GitHub aynı ebeveynler ve ağaçla test birleşimini yeniden üretebilir. Yayımlanan kayıtta test edilen birleşim SHA'sı ve ağaç SHA'sı yer alır. Atlanan, iptal edilen veya başarısız işlerde başarı yayımlanmaz. Main ilerlerse PR dalını güncelleyip yeni çalışmayı tetikleyin.
 
 ## İlk geçiş ve geri dönüş
 
@@ -32,7 +32,7 @@ Bu işlemler ayrı yönetici onayı gerektirir. Uygulama ve veritabanı PR'ları
 
 1. Depo sahibi yalnız `nakgo` için özel bir GitHub App kurar. Yetki `Checks: Read and write` ve GitHub'ın zorunlu `Metadata: Read` erişimiyle sınırlıdır. Webhook ve kullanıcı yetkisi gerekmez. App anahtarı yalnız `nakgo-ci-publisher` GitHub ortam sırrı `NAKGO_CI_APP_KEY` olarak saklanır. Ortam değişkenleri `NAKGO_CI_APP_ID` ve `NAKGO_CI_INSTALLATION_ID` değerlerini içerir. Ortamda yalnız `main` ve ilk kurulum için kilitli `codex/nakgo-trusted-ci` dalı seçilir. Tag ve wildcard eklenmez. App anahtarı repo seviyesinde tanımlanmaz.
 2. Main tabanlı bakım PR'ını Draft açın. Tam head SHA'yı doğrulayın, bakım dalını yazma/silme/force-push'a karşı kilitleyin ve ancak bundan sonra ortam kuralına ekleyin. Geçiş sırasında açık başka main PR'larının birleşmesini durdurun. Vercel dal kontrolünü ve gerekli dal korumasını gözden geçirin.
-3. İncelenen kaynağı `gh workflow run quality-gate.yml -R yagizce/nakgo --ref codex/nakgo-trusted-ci -f pr=<numara>` ile çalıştırın. Bu dosyanın yolu mevcut main'de de bulunur. GitHub dispatch'i kabul etmiyorsa eski kontrolü kaldırmayın. Run'ın kaynak SHA'sı, PR head SHA'sı ve kilitli ref eşleşmeli. `gh run watch <run-id> -R yagizce/nakgo --exit-status` ile tamamlanmasını bekleyin. Aynı adlı GitHub Actions check'inin App kimliğine sahip olmadığını ve sonucun PR'ın güncel test birleşim SHA'sında doğru App'ten geldiğini kontrol edin.
+3. Mevcut main manuel tetiklemeyi desteklemiyorsa depo sahibinin denetimindeki ayrı bootstrap deposunu kullanın. İncelenen head'i sabitleyin ve testleri App anahtarı olmayan işler üzerinde çalıştırın. Publisher sonucu yazmadan önce çalışma kaynağını, zorunlu iş/adım sonuçlarını, base/head ve güncel test birleşim ağacını doğrular. Sonucun PR head SHA'sında doğru App'ten geldiğini kontrol edin.
 4. Önce mevcut kuralı yedekleyin. Eski zorunlu `quality-gate` bağlamını yalnız doğrulanmış App sonucu hazırsa, aynı API çağrısında App bağlamıyla değiştirin. `verify`, strict güncellik, yönetici uygulaması, PR şartı ve diğer korumalar sürer. Yanlış App, yanlış SHA, eksik/atlanmış iş veya yeni main/PR commit'i varsa durun.
 
 ```bash
@@ -40,9 +40,9 @@ repo=yagizce/nakgo
 checks="repos/$repo/branches/main/protection/required_status_checks"
 gh api "$checks" > old-checks.json
 gh api "repos/$repo/branches/main/protection/enforce_admins" --jq .enabled
-gh api "repos/$repo/commits/$merge_sha/check-runs" \
+gh api "repos/$repo/commits/$head_sha/check-runs" \
   --jq '.check_runs[] | select(.name=="nakgo/trusted-ci") | [.head_sha,.app.id,.conclusion,.details_url]'
-# app_id ve merge_sha değerlerini yukarıdaki kanıtla doğrulayın.
+# app_id ve head_sha değerlerini yukarıdaki kanıtla doğrulayın.
 jq -e --argjson id "$app_id" '
   select(.strict and ([.checks[] | [.context,.app_id]] | sort) ==
     [["quality-gate",15368],["verify",15368]]) |
