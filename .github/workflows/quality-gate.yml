@@ -44,11 +44,20 @@ jobs:
     name: baseline-regressions
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: candidate
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
           fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: baseline
           persist-credentials: false
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
@@ -60,9 +69,19 @@ jobs:
       - name: Restore trusted test suite
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           git ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" { bad = 1 } END { exit bad }'
+          replay_patch="$(mktemp -d "$RUNNER_TEMP/nakgo-replay.XXXXXX")/product.patch"
+          # During maintenance review, the old trusted base still runs its original suite.
+          if [ -f ../baseline/tests/gate/prepare-replay.py ]; then
+            python -I ../baseline/tests/gate/prepare-replay.py --root . --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA" --output "$replay_patch"
+          fi
           git restore --source="$BASE_SHA" --worktree -- tests supabase/tests tools .github
+          if [ -s "$replay_patch" ]; then
+            git apply --check "$replay_patch"
+            git apply "$replay_patch"
+          fi
       - name: Install trusted regression dependencies
         run: |
           python -I -m pip install -r tests/requirements.txt
@@ -115,6 +134,7 @@ jobs:
           test "$(git -C baseline rev-parse HEAD)" = "$BASE_SHA"
           node baseline/tests/guard.js --root candidate --base-ref "$BASE_SHA"
           node --test baseline/tests/gate/control.test.js
+          python -I baseline/tests/gate/prepare_replay_test.py
       - name: Static and security checks
         run: |
           git -C candidate ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" { bad = 1 } END { exit bad }'

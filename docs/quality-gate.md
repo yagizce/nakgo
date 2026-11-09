@@ -35,6 +35,18 @@ Başarısız PR main'e birleşmez; böylece mevcut Vercel Git entegrasyonunun Pr
 
 ## Sınırlar
 
+Güvenilir regresyon işi adayın sabit head SHA'sındaki `tools/project.js`
+dosyasından mevcut bağımsız tarayıcı seçicisiyle ürün sözleşmesini belirler.
+Test ve araçlar PR'ın sabit base SHA'sından geri yüklenir. Eski ürünün
+kontrolleri aynen çalışır. Eski tabandan Ara/WhatsApp sözleşmesine geçişte
+yalnızca güvenilir base commit'teki `tests/gate/product-replay.patch` uygulanır.
+Güncel ürün tabana girdikten sonra kendi güvenilir testleri doğrudan çalışır.
+Bu fark eski arayüz beklentilerini günceller ve RLS/Storage için yalnız PGlite içinde
+`service_role` oluşturur. Kaydedilen ilanların ham telefon alanını istememesi
+denetimi iki sözleşmede de korunur. Bakım PR'ı eski güvenilir tabana karşı
+çalışırken bu tabanın regresyon paketi olduğu gibi çalışır. Uyuşmayan manifest,
+base veya test farkı işi başarısız kılar.
+
 Bu paket statik uygulamanın yerel/demo davranışını ve güvenli render'ını doğrular; gerçek backend, gerçek ödeme, iki ayrı gerçek kullanıcı veya fiziksel telefon/Safari doğrulaması değildir. npm audit yalnızca production bağımlılıklarında high/critical bulguda fail eder; ağ/registry hatasında da sonuç bilinmediği için kapı kapalı kalır. Güvenlik metin denemeleri script, img onerror, svg onload, attribute kırma ve javascript: dizgilerini açıklama/ad/not/mesaj çiziminde kullanır. Bu kontroller güvenlik incelemesinin yerine geçmez.
 
 ## Kurulum doğrulaması — 12 Ekim 2026
