@@ -73,18 +73,32 @@ test('Aday yürütmesi bağımsız kontrollerin ortamını veya dosyalarını de
   const jobs=Object.fromEntries([...workflow.split('\njobs:\n')[1].matchAll(/^  ([\w-]+):\n([\s\S]*?)(?=^  [\w-]+:\n|(?![\s\S]))/gm)]
     .map(([,id,body])=>[id,body]));
   assert.match(jobs['candidate-tests'],/run: npm test/);
-  assert.match(jobs['baseline-regressions'],/git restore --source="\$BASE_SHA" --worktree -- tests supabase\/tests/);
+  assert.match(jobs['baseline-regressions'],/git restore --source="\$SOURCE_SHA" --worktree -- tests supabase\/tests/);
   assert.match(jobs['baseline-regressions'],/run: node tests\/run\.js/);
   assert.match(jobs['baseline-regressions'],/python -E -s tests\/e2e\.py/);
   const independent=jobs['quality-gate'];
-  assert.match(independent,/needs: \[candidate-tests, baseline-regressions\]/);
-  assert.match(independent,/if: \$\{\{ always\(\) \}\}/);
+  assert.match(independent,/needs: \[snapshot, candidate-tests, baseline-regressions\]/);
+  assert.match(independent,/if: \$\{\{ always\(\) && needs\.snapshot\.result == 'success' \}\}/);
   assert.match(independent,/needs\.candidate-tests\.result/);
   assert.match(independent,/needs\.baseline-regressions\.result/);
   assert.match(independent,/baseline\/tests\/gate\/browser\.py --root candidate --base-sha "\$BASE_SHA"/);
   assert.doesNotMatch(independent,/npm test|npm run|npm ci|working-directory: candidate|GITHUB_ENV|GITHUB_PATH|\$CONTROLS/);
-  assert.doesNotMatch(workflow,/actions\/(?:upload-artifact|download-artifact|cache)|^\s+outputs:/m);
-  for(const job of Object.values(jobs)) assert.match(job,/runs-on: ubuntu-24\.04/);
+  const caller = jobs.publish;
+  const publisher = fs.readFileSync(path.join(root,'.github/workflows/trusted-ci-publish.yml'),'utf8');
+  assert.match(workflow,/^  pull_request_target:/m);
+  assert.match(caller,/uses: \.\/\.github\/workflows\/trusted-ci-publish\.yml/);
+  assert.match(publisher,/ref: \$\{\{ github\.sha \}\}/);
+  assert.match(publisher,/environment: nakgo-ci-publisher/);
+  assert.match(caller,/needs: \[snapshot, candidate-tests, baseline-regressions, quality-gate\]/);
+  for (const name of ['snapshot', 'candidate-tests', 'baseline-regressions', 'quality-gate']) {
+    assert.ok(caller.includes(`needs.${name}.result == 'success'`));
+    assert.doesNotMatch(jobs[name],/secrets\.|environment:|\bwrite\b/);
+    if (name !== 'snapshot') assert.doesNotMatch(jobs[name],/^\s+outputs:/m);
+  }
+  assert.doesNotMatch(publisher,/outputs\.merge.*\n.*persist-credentials|npm |candidate\//);
+  assert.doesNotMatch(workflow,/actions\/(?:upload-artifact|download-artifact|cache)/);
+  for(const [name,job] of Object.entries(jobs)) if(name!=='publish') assert.match(job,/runs-on: ubuntu-24\.04/);
+  assert.match(publisher,/runs-on: ubuntu-24\.04/);
 });
 
 test('Test çalıştırıcısı kayıtsız ve doğrulamasız başarılı görünen modülleri reddeder',()=>{

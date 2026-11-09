@@ -1,6 +1,6 @@
-# Kalite kapısı ve otomatik birleşme
+# Kalite kapısı
 
-`quality-gate.yml` main hedefli tüm PR'larda çalışır. Mevcut `npm test`, 305 kontrol ve mevcut Chromium E2E paketi korunmuştur. `checks.yml` de çalışmaya devam eder. Yeni bağımsız paket 390×844 ve 393×852 ekranlarda iki tema, gezinti/sheet, form ve çift tıklama, filtre/boş sonuç, tutarsız taşıma talebi, kabul/red/süre, storage ve refresh, deep-link, PWA varlıkları ve kullanıcı metni güvenliğini sınar.
+`quality-gate.yml` main hedefli PR'larda çalışır. `npm test`, mevcut Chromium E2E ve `checks.yml` korunur. Bağımsız paket iki temada gezinti, form, filtre, storage, deep-link, PWA ve kullanıcı metni güvenliğini sınar.
 
 Yerelde:
 
@@ -20,19 +20,47 @@ Browser kurulumu [geliştirme belgesindedir](development.md). Actionlint 1.7.12 
 
 CI bağımsız kontrol kodunu olayın base commit'indeki main kopyasından çalıştırır. `tests/` veya `.github/` değişikliği içeren PR otomatik birleşmez. Aday testleri ayrı çalışır ve zorunlu güvenilir regresyonların yerine geçmez.
 
-**Geçiş önkoşulu:** Dosya Guard'ı kaldırılmadan önce `verify` ve `quality-gate` için adayın değiştiremediği workflow kaynağı GitHub'da zorunlu olmalıdır. Kontrol adı ve GitHub Actions uygulama kimliği tek başına workflow kaynağını doğrulamaz. GitHub'ın [zorunlu workflow kuralı](https://docs.github.com/en/enterprise-cloud@latest/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets#require-workflows-to-pass-before-merging) organizasyon veya enterprise kapsamında uygulanır. Kaynak kuralı etkinleştikten sonra gerçek bir deneme PR'ında aynı adlı sahte işler, atlanan işler ve eski SHA sonuçları birleşmeyi açamamalıdır. Bu kabul tamamlanmadan Guard kaldırma dalı main'e alınmaz.
+`pull_request_target`, kalite workflow'unu güvenilir `main` commit'inden yükler. Önce GitHub API'sinden açık PR ve iki ebeveynli test birleşim commit'i doğrulanır. Aday testleri, geri yüklenmiş güvenilir regresyonlar ve bağımsız kontroller üç ayrı GitHub-hosted runner'da çalışır. Test işlerinde yazma izni, App sırrı, aday artefaktı veya paylaşılan cache yoktur. Bağımlılık denetimi aday `.npmrc` dosyasından bağımsız bir geçici dizinde yapılır.
 
-Tek seferlik geçişte önce incelenmiş yeni workflow güvenilir bir ref'ten zorunlu kılınır. Bu kaynak kuralı bakım PR'ının tam head SHA'sında başarılı olduktan sonra eski ad temelli `quality-gate` şartı yetkili bakımda değiştirilir. Zorunlu güvenilir `verify` ve `quality-gate` çalışmaları bu değişiklik boyunca geçerli kalır.
+Sonuç yalnız taze bir runner'daki `publish` işi tarafından yayımlanır. Bu iş yalnız güvenilir ref'i alır, aday kodu çalıştırmaz ve PR'ın hâlâ aynı base/head/test birleşim SHA'larında olduğunu tekrar doğrular. `nakgo/trusted-ci` sonucunun kaynağı, yalnız bu depoya kurulu ayrı GitHub App'tir. `verify` mevcut adıyla zorunlu kalır. Eski `quality-gate` check adı yerine App sonucu zorunlu olur. App sonucu Quality Gate'in üç işini birlikte gerektirir. Aday test sonucu güvenilir regresyonun yerine geçmez.
 
-`run-name` PR numarası, head SHA ve base SHA'yı çalışma kaydına bağlar. Yeni commit geldiğinde eski başarılı sonuç kullanılamaz; main ilerlerse dal güncellenmeli ve testler yeniden çalışmalıdır. Skipped, cancelled, neutral, timed-out veya eksik adımlar başarı sayılmaz. Kurulum sonrası main dalı için `quality-gate` ve mevcut `verify` sonuçları, güncel taban ve PR şartı zorunlu olmalıdır; kural yöneticiler için de uygulanmalıdır.
+Sonuç test birleşim SHA'sına yazılır. Head veya base değiştiğinde yeni test birleşim SHA'sı gerekir. Atlanan, iptal edilen veya başarısız işlerde App başarısı yayımlanmaz. Main ilerlerse PR dalını güncelleyip yeni çalışmayı tetikleyin.
+
+## İlk geçiş ve geri dönüş
+
+Bu işlemler ayrı yönetici onayı gerektirir. Uygulama ve veritabanı PR'ları ayrı kalır. Bakım dalı `codex/nakgo-trusted-ci` ve `main` için Vercel Git deploy kapalıdır. İki ref'i ve Vercel proje ayarını işlemden önce doğrulayın.
+
+1. Depo sahibi yalnız `nakgo` için özel bir GitHub App kurar. Yetki `Checks: Read and write` ve GitHub'ın zorunlu `Metadata: Read` erişimiyle sınırlıdır. Webhook ve kullanıcı yetkisi gerekmez. App anahtarı yalnız `nakgo-ci-publisher` GitHub ortam sırrı `NAKGO_CI_APP_KEY` olarak saklanır. Ortam değişkenleri `NAKGO_CI_APP_ID` ve `NAKGO_CI_INSTALLATION_ID` değerlerini içerir. Ortamda yalnız `main` ve ilk kurulum için kilitli `codex/nakgo-trusted-ci` dalı seçilir. Tag ve wildcard eklenmez. App anahtarı repo seviyesinde tanımlanmaz.
+2. Main tabanlı bakım PR'ını Draft açın. Tam head SHA'yı doğrulayın, bakım dalını yazma/silme/force-push'a karşı kilitleyin ve ancak bundan sonra ortam kuralına ekleyin. Geçiş sırasında açık başka main PR'larının birleşmesini durdurun. Vercel dal kontrolünü ve gerekli dal korumasını gözden geçirin.
+3. İncelenen kaynağı `gh workflow run quality-gate.yml -R yagizce/nakgo --ref codex/nakgo-trusted-ci -f pr=<numara>` ile çalıştırın. Bu dosyanın yolu mevcut main'de de bulunur. GitHub dispatch'i kabul etmiyorsa eski kontrolü kaldırmayın. Run'ın kaynak SHA'sı, PR head SHA'sı ve kilitli ref eşleşmeli. `gh run watch <run-id> -R yagizce/nakgo --exit-status` ile tamamlanmasını bekleyin. Aynı adlı GitHub Actions check'inin App kimliğine sahip olmadığını ve sonucun PR'ın güncel test birleşim SHA'sında doğru App'ten geldiğini kontrol edin.
+4. Önce mevcut kuralı yedekleyin. Eski zorunlu `quality-gate` bağlamını yalnız doğrulanmış App sonucu hazırsa, aynı API çağrısında App bağlamıyla değiştirin. `verify`, strict güncellik, yönetici uygulaması, PR şartı ve diğer korumalar sürer. Yanlış App, yanlış SHA, eksik/atlanmış iş veya yeni main/PR commit'i varsa durun.
+
+```bash
+repo=yagizce/nakgo
+checks="repos/$repo/branches/main/protection/required_status_checks"
+gh api "$checks" > old-checks.json
+gh api "repos/$repo/branches/main/protection/enforce_admins" --jq .enabled
+gh api "repos/$repo/commits/$merge_sha/check-runs" \
+  --jq '.check_runs[] | select(.name=="nakgo/trusted-ci") | [.head_sha,.app.id,.conclusion,.details_url]'
+# app_id ve merge_sha değerlerini yukarıdaki kanıtla doğrulayın.
+jq -e --argjson id "$app_id" '
+  select(.strict and ([.checks[] | [.context,.app_id]] | sort) ==
+    [["quality-gate",15368],["verify",15368]]) |
+  {strict,checks:[.checks[] | if .context=="quality-gate" then
+    {context:"nakgo/trusted-ci",app_id:$id} else . end]}' old-checks.json > new-checks.json
+# jq başarılıysa ve head/base/merge tekrar eşleşiyorsa yetkili yönetici uygular.
+gh api -X PATCH "$checks" --input new-checks.json
+gh api "$checks"
+# Ayrı birleşme onayından sonra, Draft durumunu kaldırıp yalnız doğrulanan SHA'yı squash edin.
+gh pr ready "$pr" -R "$repo"
+gh pr merge "$pr" -R "$repo" --squash --match-head-commit "$head_sha"
+```
+
+Birleşmeden önce hata oluşursa eski kuralı `jq '{strict,checks}' old-checks.json | gh api -X PATCH "$checks" --input -` ile geri yükleyin ve yeniden okuyun. Birleşme sonrasında önce main tabanlı bir deneme PR'ında yeni workflow'u ve App kaynağını doğrulayın, ardından ortamdan bootstrap dalını çıkarın. Yeni main üzerinde hata varsa App zorunluluğu birleşmeleri kapalı tutar. Geri dönüş için eski güvenilir CI dosyalarını bir geri alma PR'ında doğrulayın. Önceki kaynak ve kuralın yeniden kurulması ayrı yönetici işlemi gerektirir.
 
 ## Otomatik birleşme
 
-`auto-merge.yml`, yalnızca kalite ve mevcut kontrol iş akışlarının tamamlanmasını dinler. Yazma izni olan job PR kodu, PR cache'i veya PR artefaktı çalıştırmaz; main üzerindeki küçük API denetçisi kullanılır. [GitHub'ın workflow_run güvenlik sınırı](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run) bu ayrımı gerektirir.
-
-Birleşme için aynı repository içinde `codex/` ile başlayan head, main hedefi, draft olmayan açık PR, çakışmasız/güncel dal, aynı son head/base için başarılı quality-gate ve NakGo checks, tüm gerekli adımlarda success ve başka bekleyen/başarısız kontrol olmaması gerekir. Fork ve diğer dal adları kapsam dışıdır. Main dal koruması veya zorunlu kontrol adları bulunmazsa denetçi birleşmez. Son API çağrısı beklenen head SHA ile squash yapar; [GitHub dal koruması](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches) eşzamanlı main değişikliğini ve başarısız zorunlu kontrolleri engeller.
-
-Başarısız PR main'e birleşmez; böylece mevcut Vercel Git entegrasyonunun Production yayını tetiklenmez. Başarılı uygun PR otomatik squash birleşir ve Vercel main yayını mevcut şekilde sürdürür. Manuel doğrudan main gönderimleri de PR/zorunlu kontrol korumasına tabidir. Runtime veritabanı, kimlik doğrulama ve ödeme bu görevin kapsamı değildir.
+Eski `auto-merge.yml` ve denetçisi `pull_request` kaynaklı kalite koşulunu beklediğinden App geçişinden sonra otomatik birleşmeye izin vermez. Birleşmeler GitHub'ın zorunlu App kontrolü altında yapılır. Eski otomasyonun ayrı güvenlik testleri korunur.
 
 ## Sınırlar
 
