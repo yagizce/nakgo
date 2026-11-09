@@ -5,7 +5,7 @@ const REQUIRED_STEPS = {
     'Existing browser tests', 'Mobile output'],
   'baseline-regressions': ['Restore trusted test suite', 'Trusted unit tests',
     'Trusted browser regressions', 'Trusted RLS and Storage regressions'],
-  'quality-gate': ['Require isolated test jobs', 'Guard and automation tests', 'Static and security checks',
+  'quality-gate': ['Require isolated test jobs', 'Trusted automation tests', 'Static and security checks',
     'Workflow syntax checks', 'Independent browser tests']
 };
 const POLICY_PATHS = ['.github/', 'tests/', 'tools/bundle.js', 'tools/dev.js', 'tools/project.js'];

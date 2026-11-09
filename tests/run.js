@@ -8,6 +8,9 @@
      };
    r("kod") uygulama kapsamında kod çalıştırır (durum korunur), ok(koşul, açıklama) bir kontrol kaydeder. */
 const fs = require("fs"), path = require("path");
+// An unresolved application promise can let Node quit before the summary.
+process.exitCode = 1;
+const isolated = process.argv.includes('--isolated') ? require('./gate/isolated-js.cjs') : null;
 const ROOT = path.resolve(__dirname,"..");
 const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
 const script = /<script>([\s\S]*?)<\/script>/.exec(html)[1];
@@ -24,6 +27,11 @@ function boot({ win, hash = "", onboarded = true, initialStore = {} } = {}) {
     navigator: {}, location: { hash, host: "test", origin: "https://test", pathname: "/" }, window: win, claude: win && win.claude,
     setBg: v => { bg = v; }, flush: () => { while (timers.length) timers.shift()(); }, main: () => (els["#main"] || mk()).innerHTML, sheet: () => (els["#sheetBody"] || mk()).innerHTML, el: s => els[s] || (els[s] = mk()),
   };
+  if (isolated) {
+    const realm = isolated.compartment({...ctx, clearTimeout() {}});
+    realm.start(script);
+    return code => realm.evaluate("(()=>{" + code + "})()");
+  }
   // Uygulama betiği bir kez çalıştırılır; r("kod") aynı kapsamda kod çalıştırır (durum korunur).
   new Function("ctx", "const {document,localStorage,getComputedStyle,setTimeout,navigator,location,window,claude,setBg,flush,main,sheet,el}=ctx;\n" + script + "\nctx.ev=c=>eval(c);")(ctx);
   return code => ctx.ev("(()=>{" + code + "})()");
@@ -38,10 +46,22 @@ const run = (name, steps, opts) => test(name, async () => {
   await steps(r, ok); return out;
 });
 
-const H = { fs, path, ROOT, html, script, boot, test, run, tests };
+const importAuthConfig = () => isolated ? isolated.authConfig(fs.readFileSync(path.join(ROOT, 'api/auth/config.mjs'), 'utf8')) : import('../api/auth/config.mjs');
+const H = { fs, path, ROOT, html, script, boot, test, run, tests, importAuthConfig, isolated: !!isolated };
 for (const f of fs.readdirSync(path.join(__dirname,"unit")).filter(x => x.endsWith(".test.js")).sort()) {
   const before=tests.length;
-  require("./unit/" + f)(H);
+  if (!isolated) require("./unit/" + f)(H);
+  else {
+    // Test modules come from trusted main. Route their browser evaluations
+    // through SES without exposing Node's vm to any candidate script.
+    const filename = path.join(__dirname, 'unit', f);
+    const load = require('node:module').createRequire(filename);
+    const module = {exports: {}};
+    const nodeVM = require('node:vm');
+    nodeVM.compileFunction(fs.readFileSync(filename, 'utf8'), ['require', 'module'], {filename})(
+      name => name === 'node:vm' || name === 'vm' ? isolated.vm : load(name), module);
+    module.exports(H);
+  }
   if (tests.length<=before) throw new Error("Test dosyası hiçbir test kaydetmedi: " + f);
 }
 

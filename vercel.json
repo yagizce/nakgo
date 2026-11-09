@@ -52,6 +52,9 @@
   "git": {
     "deploymentEnabled": {
       "main": false,
+      "codex/nakgo-trusted-ci": false,
+      "codex/nakgo-retire-file-guard": false,
+      "codex/nakgo-guard-replay-maintenance": false,
       "codex/nakgo-ci-unlock-safety": false,
       "codex/nakgo-guard-approval": false
     }
