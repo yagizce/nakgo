@@ -47,6 +47,9 @@ class TrustedReplayTest(unittest.TestCase):
                                   'tests/gate/legacy-browser.py': '# legacy\n',
                                   'tests/gate/product-browser.py': '# product\n',
                                   'tests/gate/product-replay.patch': overlay,
+                                  'tests/gate/publication-replay.patch': overlay,
+                                  'src/js/cloud.js': '// legacy favorites\n',
+                                  'sw.js': '// legacy cache\n',
                                   'supabase/tests/check.sql': 'select false;\n',
                                   '.github/control': 'trusted\n'}.items():
                 write(base, name, content)
@@ -101,6 +104,29 @@ class TrustedReplayTest(unittest.TestCase):
             legacy_head = commit(candidate)
             with self.assertRaisesRegex(ValueError, 'unsupported_replay_contract_transition'):
                 replay.prepare(candidate, product_base, legacy_head, root/'downgrade.patch', base)
+
+            git(candidate, 'restore', '--source='+head_sha, '--worktree', '--', 'tools/project.js')
+            write(candidate, 'src/js/cloud.js', '// listing:listings!inner(\n')
+            partial = commit(candidate)
+            with self.assertRaisesRegex(ValueError, 'unsupported_publication_contract_transition'):
+                replay.prepare(candidate, product_base, partial, root/'partial.patch', base)
+            write(candidate, 'sw.js', '// X-NakGo-Offline-Asset\n')
+            write(candidate, 'tests/gate/publication-replay.patch', 'untrusted replacement\n')
+            newer = commit(candidate)
+            publication = root/'publication.patch'
+            replay.prepare(candidate, product_base, newer, root/'newer.patch', base, publication)
+            self.assertEqual(publication.read_bytes(), overlay.encode())
+            self.assertEqual((root/'newer.patch').read_bytes(), b'')
+
+            for name in ('src/js/cloud.js', 'sw.js'):
+                write(base, name, (candidate/name).read_bytes())
+            new_base = commit(base)
+            replay.prepare(candidate, new_base, newer, root/'already.patch', base, root/'native-publication.patch')
+            self.assertEqual((root/'native-publication.patch').read_bytes(), b'')
+            git(candidate, 'restore', '--source='+base_sha, '--worktree', '--', 'src/js/cloud.js', 'sw.js')
+            old = commit(candidate)
+            with self.assertRaisesRegex(ValueError, 'unsupported_publication_contract_transition'):
+                replay.prepare(candidate, new_base, old, root/'old-publication.patch', base)
 
 
 if __name__ == '__main__':

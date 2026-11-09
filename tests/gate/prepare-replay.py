@@ -9,7 +9,15 @@ dispatch = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(dispatch)
 
 
-def prepare(root, base_sha, head_sha, output, trusted_root=dispatch.TRUSTED_ROOT):
+def publication_contract(root, sha):
+    favorites = dispatch.read_trusted(root, 'src/js/cloud.js', 262144, sha)
+    worker = dispatch.read_trusted(root, 'sw.js', 65536, sha)
+    return (b'listing:listings!inner(' in favorites,
+            b'X-NakGo-Offline-Asset' in worker)
+
+
+def prepare(root, base_sha, head_sha, output, trusted_root=dispatch.TRUSTED_ROOT,
+            publication_output=None):
     root = Path(root).resolve()
     trusted_root = Path(trusted_root).resolve()
     dispatch.checked_base(root, head_sha)
@@ -25,8 +33,20 @@ def prepare(root, base_sha, head_sha, output, trusted_root=dispatch.TRUSTED_ROOT
         overlay = dispatch.read_trusted(trusted_root, 'tests/gate/product-replay.patch', 262144, base_sha)
         if not overlay:
             raise ValueError('missing_product_replay')
+    previous = publication_contract(trusted_root, base_sha)
+    candidate = publication_contract(root, head_sha)
+    publication = b''
+    if previous != candidate:
+        if previous != (False, False) or candidate != (True, True) or not product:
+            raise ValueError('unsupported_publication_contract_transition')
+        publication = dispatch.read_trusted(trusted_root, 'tests/gate/publication-replay.patch', 262144, base_sha)
+        if not publication or publication_output is None:
+            raise ValueError('missing_publication_replay')
     with Path(output).open('xb') as patch:
         patch.write(overlay)
+    if publication_output is not None:
+        with Path(publication_output).open('xb') as patch:
+            patch.write(publication)
     print(f'Trusted regression contract: {fixture.stem}')
 
 
@@ -36,5 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--base-sha', required=True)
     parser.add_argument('--head-sha', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--publication-output', required=True)
     args = parser.parse_args()
-    prepare(args.root, args.base_sha, args.head_sha, args.output)
+    prepare(args.root, args.base_sha, args.head_sha, args.output,
+            publication_output=args.publication_output)

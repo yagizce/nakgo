@@ -72,9 +72,11 @@ yalnızca güvenilir base commit'teki `tests/gate/product-replay.patch` uygulan�
 Güncel ürün tabana girdikten sonra kendi güvenilir testleri doğrudan çalışır.
 Bu fark eski arayüz beklentilerini günceller ve RLS/Storage için yalnız PGlite içinde
 `service_role` oluşturur. Kaydedilen ilanların ham telefon alanını istememesi
-denetimi iki sözleşmede de korunur. Bakım PR'ı eski güvenilir tabana karşı
-çalışırken bu tabanın regresyon paketi olduğu gibi çalışır. Uyuşmayan manifest,
-base veya test farkı işi başarısız kılar.
+denetimi korunur. #48'in yayın süresi ve özel PWA önbelleği birlikte devreye
+girdiğinde ikinci bir main kaynaklı test farkı, favori ve çevrimdışı kabuk
+senaryolarını yeni davranışla çalıştırır. Eski ve yeni güvenilir tabanlar kendi
+paketlerini kullanır. Kısmi geçiş, geri dönüş, uyuşmayan manifest, base veya
+test farkı işi başarısız kılar.
 
 Bu paket statik uygulamanın yerel/demo davranışını ve güvenli render'ını doğrular; gerçek backend, gerçek ödeme, iki ayrı gerçek kullanıcı veya fiziksel telefon/Safari doğrulaması değildir. npm audit yalnızca production bağımlılıklarında high/critical bulguda fail eder; ağ/registry hatasında da sonuç bilinmediği için kapı kapalı kalır. Güvenlik metin denemeleri script, img onerror, svg onload, attribute kırma ve javascript: dizgilerini açıklama/ad/not/mesaj çiziminde kullanır. Bu kontroller güvenlik incelemesinin yerine geçmez.
 

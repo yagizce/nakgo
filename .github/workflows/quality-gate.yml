@@ -102,13 +102,15 @@ jobs:
           MERGE_SHA: ${{ needs.snapshot.outputs.merge }}
         run: |
           git ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" { bad = 1 } END { exit bad }'
-          replay_patch="$(mktemp -d "$RUNNER_TEMP/nakgo-replay.XXXXXX")/product.patch"
-          python -I ../baseline/tests/gate/prepare-replay.py --root . --base-sha "$SOURCE_SHA" --head-sha "$MERGE_SHA" --output "$replay_patch"
+          replay="$(mktemp -d "$RUNNER_TEMP/nakgo-replay.XXXXXX")"
+          python -I ../baseline/tests/gate/prepare-replay.py --root . --base-sha "$SOURCE_SHA" --head-sha "$MERGE_SHA" --output "$replay/product.patch" --publication-output "$replay/publication.patch"
           git restore --source="$SOURCE_SHA" --worktree -- tests supabase/tests tools .github
-          if [ -s "$replay_patch" ]; then
-            git apply --check "$replay_patch"
-            git apply "$replay_patch"
-          fi
+          for patch in "$replay/product.patch" "$replay/publication.patch"; do
+            if [ -s "$patch" ]; then
+              git apply --check "$patch"
+              git apply "$patch"
+            fi
+          done
       - name: Trusted bundle verification
         run: node tools/bundle.js --check
       - name: Install trusted regression dependencies
