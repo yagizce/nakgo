@@ -7,7 +7,6 @@ Yerelde:
 ```sh
 npm ci --ignore-scripts
 npm test
-npm run test:guard
 npm run test:gate
 npm run test:static
 npm run test:e2e
@@ -15,13 +14,15 @@ npm run test:browser
 npm audit --omit=dev --audit-level=high
 ```
 
-Browser kurulumu [geliştirme belgesindedir](development.md). Guard'ın karşılaştırma tabanı `origin/main`dir; başka tabanı yalnızca kontrollü bakım doğrulamasında `node tests/guard.js --base-ref <sha>` ile seçin. Actionlint 1.7.12 GitHub Actions YAML/ifade denetimini yapar; CI indirdiği dosyanın sabit SHA-256 değerini doğrular. Uygulamaya runtime bağımlılığı eklenmemiştir.
+Browser kurulumu [geliştirme belgesindedir](development.md). Actionlint 1.7.12 GitHub Actions YAML/ifade denetimini yapar; CI indirdiği dosyanın sabit SHA-256 değerini doğrular. Uygulamaya runtime bağımlılığı eklenmemiştir.
 
 ## Güven sınırı
 
-CI kontrol kodunu olayın base commit'indeki main kopyasından çalıştırır. Birim ve E2E testleri düzenlenebilir veya eklenebilir. Mevcut testler silinemez veya boş bırakılamaz. Guard, test çalıştırıcısı, komutlar, workflow'lar ve bağımsız kontroller koruma kapsamındadır. `tests/` veya `.github/` değişikliği içeren PR otomatik birleşmez. Güvenilir kontrol tabanını güncellemek insan tarafından incelenen ayrı bakım işidir.
+CI bağımsız kontrol kodunu olayın base commit'indeki main kopyasından çalıştırır. `tests/` veya `.github/` değişikliği içeren PR otomatik birleşmez. Aday testleri ayrı çalışır ve zorunlu güvenilir regresyonların yerine geçmez.
 
-İlk kurulumda main üzerinde kontrol dosyaları henüz yoktur. Yalnızca `1a626359026a08f2e5658ba28fb8ed4eb6d9ee00` tabanında bootstrap istisnası vardır; bu kurulum PR'ı tüm kontroller geçtikten sonra incelemeyle birleştirilir. Sonraki PR'larda main kopyası zorunludur. İlk kurulum PR'ı kendi kendini otomatik birleştiremez.
+**Geçiş önkoşulu:** Dosya Guard'ı kaldırılmadan önce `verify` ve `quality-gate` için adayın değiştiremediği workflow kaynağı GitHub'da zorunlu olmalıdır. Kontrol adı ve GitHub Actions uygulama kimliği tek başına workflow kaynağını doğrulamaz. GitHub'ın [zorunlu workflow kuralı](https://docs.github.com/en/enterprise-cloud@latest/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets#require-workflows-to-pass-before-merging) organizasyon veya enterprise kapsamında uygulanır. Kaynak kuralı etkinleştikten sonra gerçek bir deneme PR'ında aynı adlı sahte işler, atlanan işler ve eski SHA sonuçları birleşmeyi açamamalıdır. Bu kabul tamamlanmadan Guard kaldırma dalı main'e alınmaz.
+
+Tek seferlik geçişte önce incelenmiş yeni workflow güvenilir bir ref'ten zorunlu kılınır. Bu kaynak kuralı bakım PR'ının tam head SHA'sında başarılı olduktan sonra eski ad temelli `quality-gate` şartı yetkili bakımda değiştirilir. Zorunlu güvenilir `verify` ve `quality-gate` çalışmaları bu değişiklik boyunca geçerli kalır.
 
 `run-name` PR numarası, head SHA ve base SHA'yı çalışma kaydına bağlar. Yeni commit geldiğinde eski başarılı sonuç kullanılamaz; main ilerlerse dal güncellenmeli ve testler yeniden çalışmalıdır. Skipped, cancelled, neutral, timed-out veya eksik adımlar başarı sayılmaz. Kurulum sonrası main dalı için `quality-gate` ve mevcut `verify` sonuçları, güncel taban ve PR şartı zorunlu olmalıdır; kural yöneticiler için de uygulanmalıdır.
 
