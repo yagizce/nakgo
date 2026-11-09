@@ -101,7 +101,7 @@ jobs:
           SOURCE_SHA: ${{ needs.snapshot.outputs.source }}
           MERGE_SHA: ${{ needs.snapshot.outputs.merge }}
         run: |
-          git ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" { bad = 1 } END { exit bad }'
+          git -c core.quotePath=false ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" || /[\t\/]node_modules\// { bad = 1 } END { exit bad }'
           replay="$(mktemp -d "$RUNNER_TEMP/nakgo-replay.XXXXXX")"
           python -I ../baseline/tests/gate/prepare-replay.py --root . --base-sha "$SOURCE_SHA" --head-sha "$MERGE_SHA" --output "$replay/product.patch" --publication-output "$replay/publication.patch"
           git restore --source="$SOURCE_SHA" --worktree -- tests supabase/tests tools .github
@@ -119,6 +119,9 @@ jobs:
           python -I -m playwright install --with-deps chromium
           cd "$RUNNER_TEMP"
           npm install --prefix "$RUNNER_TEMP/nakgo-admin-db" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite@0.3.14
+          mkdir -p "$RUNNER_TEMP/nakgo-unit"
+          cp "$GITHUB_WORKSPACE/baseline/tests/gate/isolated-deps/"package*.json "$RUNNER_TEMP/nakgo-unit/"
+          npm ci --prefix "$RUNNER_TEMP/nakgo-unit" --ignore-scripts --no-fund --no-audit
       - name: Trusted browser regressions
         run: |
           python -E -s tests/e2e.py
@@ -127,7 +130,10 @@ jobs:
       - name: Trusted RLS and Storage regressions
         run: NODE_PATH="$RUNNER_TEMP/nakgo-admin-db/node_modules" node tools/admin-db-check.cjs
       - name: Trusted unit tests
-        run: node tests/run.js
+        run: |
+          export NAKGO_UNIT_RUNTIME="$RUNNER_TEMP/nakgo-unit"
+          node --test tests/gate/isolated-js.test.cjs
+          node tests/run.js --isolated
   quality-gate:
     name: quality-gate
     needs: [snapshot, candidate-tests, baseline-regressions]

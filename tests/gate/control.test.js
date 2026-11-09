@@ -74,7 +74,7 @@ test('Aday yürütmesi bağımsız kontrollerin ortamını veya dosyalarını de
     .map(([,id,body])=>[id,body]));
   assert.match(jobs['candidate-tests'],/run: npm test/);
   assert.match(jobs['baseline-regressions'],/git restore --source="\$SOURCE_SHA" --worktree -- tests supabase\/tests/);
-  assert.match(jobs['baseline-regressions'],/run: node tests\/run\.js/);
+  assert.match(jobs['baseline-regressions'],/node tests\/run\.js --isolated/);
   assert.match(jobs['baseline-regressions'],/python -E -s tests\/e2e\.py/);
   const independent=jobs['quality-gate'];
   assert.match(independent,/needs: \[snapshot, candidate-tests, baseline-regressions\]/);
