@@ -1,0 +1,42 @@
+name: NakGo trusted CI publisher
+on:
+  workflow_call:
+    inputs:
+      snapshot:
+        type: string
+        required: true
+      verify:
+        type: string
+        required: true
+      regressions:
+        type: string
+        required: true
+      gate:
+        type: string
+        required: true
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: nakgo-ci-publisher
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Publish App check for exact test merge commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CI_CALLER_REF: ${{ github.workflow_ref }}
+          CI_CALLER_SHA: ${{ github.workflow_sha }}
+          CI_APP_KEY: ${{ secrets.NAKGO_CI_APP_KEY }}
+          CI_APP_ID: ${{ vars.NAKGO_CI_APP_ID }}
+          CI_INSTALLATION_ID: ${{ vars.NAKGO_CI_INSTALLATION_ID }}
+          CI_SNAPSHOT: ${{ inputs.snapshot }}
+          CI_VERIFY: ${{ inputs.verify }}
+          CI_REGRESSIONS: ${{ inputs.regressions }}
+          CI_GATE: ${{ inputs.gate }}
+        run: node .github/scripts/trusted-ci.js publish

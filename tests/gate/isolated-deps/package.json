@@ -1,0 +1,8 @@
+{
+  "name": "nakgo-trusted-unit-runtime",
+  "private": true,
+  "dependencies": {
+    "acorn": "8.16.0",
+    "ses": "2.3.0"
+  }
+}

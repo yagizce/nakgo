@@ -1,0 +1,1217 @@
+diff --git a/supabase/tests/admin-moderation.sql b/supabase/tests/admin-moderation.sql
+index 5d5488b..e79e80f 100644
+--- a/supabase/tests/admin-moderation.sql
++++ b/supabase/tests/admin-moderation.sql
+@@ -10,15 +10,16 @@ insert into auth.users(id,email_confirmed_at) values(current_setting('nakgo.mod_
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
+ insert into public.profiles(id,display_name,account_type) values(current_setting('nakgo.mod_owner')::uuid,'Synthetic moderation owner','owner'),(current_setting('nakgo.mod_carrier')::uuid,'Synthetic moderation carrier','carrier');
+ set local role authenticated;
+-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
+- values('load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic accepted load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date+2) returning set_config('nakgo.mod_accepted_load',id::text,true);
+-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
+- values('load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic pending load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date+2) returning set_config('nakgo.mod_pending_load',id::text,true);
++insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic accepted load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date+2) returning set_config('nakgo.mod_accepted_load',id::text,true);
++insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic pending load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date+2) returning set_config('nakgo.mod_pending_load',id::text,true);
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_carrier'),true);
+ select set_config('nakgo.mod_accepted_job',(public.nakgo_request_transport(current_setting('nakgo.mod_accepted_load')::bigint)).id::text,true),
+- set_config('nakgo.mod_pending_job',(public.nakgo_request_transport(current_setting('nakgo.mod_pending_load')::bigint)).id::text,true),
+- set_config('nakgo.mod_conversation',(public.nakgo_open_conversation(current_setting('nakgo.mod_accepted_load')::bigint)).id::text,true);
++ set_config('nakgo.mod_pending_job',(public.nakgo_request_transport(current_setting('nakgo.mod_pending_load')::bigint)).id::text,true);
++-- Synthetic historical message creation by fixture owner only, not an application grant.
++reset role;
++select set_config('nakgo.mod_conversation',(public.nakgo_open_conversation(current_setting('nakgo.mod_accepted_load')::bigint)).id::text,true);
+ select public.nakgo_send_message(current_setting('nakgo.mod_conversation')::bigint,'Synthetic moderation history',gen_random_uuid());
++set local role authenticated;
+ select set_config('nakgo.mod_application',(public.nakgo_create_carrier_application('CE')).id::text,true);
+ select set_config('nakgo.mod_file',(public.nakgo_reserve_document(current_setting('nakgo.mod_application')::bigint,'src',gen_random_uuid())).id::text,true);
+ insert into storage.objects(bucket_id,name,owner_id,metadata) select 'carrier-documents',object_path,auth.uid()::text,'{"mimetype":"image/jpeg","size":100}'::jsonb from public.carrier_document_files where id=current_setting('nakgo.mod_file')::uuid;
+@@ -53,7 +54,7 @@ do $$begin
+  begin perform public.nakgo_create_carrier_application('C');raise exception 'FAIL suspended document';exception when insufficient_privilege then null;end;
+  begin insert into storage.objects(bucket_id,name,owner_id,metadata) select 'carrier-documents',current_setting('nakgo.mod_carrier')||'/'||current_setting('nakgo.mod_application')||'/'||current_setting('nakgo.mod_reserved')||'.jpg',auth.uid()::text,'{"mimetype":"image/jpeg","size":100}'::jsonb;raise exception 'FAIL suspended storage insert';exception when insufficient_privilege then null;end;
+  if exists(select 1 from storage.objects where bucket_id='carrier-documents' and name like auth.uid()::text||'/%') then raise exception 'FAIL suspended storage read';end if;
+- if not exists(select 1 from public.listing_conversations where id=current_setting('nakgo.mod_conversation')::bigint) then raise exception 'FAIL suspended participant history';end if;
++ begin perform 1 from public.listing_conversations;raise exception 'FAIL retired history API';exception when insufficient_privilege then null;end;
+  perform public.nakgo_transition_transport(current_setting('nakgo.mod_accepted_job')::bigint,'loaded');
+ end $$;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
+@@ -68,8 +69,8 @@ do $$begin
+  begin perform public.nakgo_admin_moderate('listing',current_setting('nakgo.mod_pending_load'),'restore','Synthetic stale listing revision',0);raise exception 'FAIL stale listing revision';exception when serialization_failure then null;end;
+ end $$;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
+-do $$begin
+- begin update public.listings set status='active' where id=current_setting('nakgo.mod_pending_load')::bigint;raise exception 'FAIL republish removed';exception when insufficient_privilege then null;end;
++do $$declare affected integer;begin
++ begin update public.listings set status='active' where id=current_setting('nakgo.mod_pending_load')::bigint;get diagnostics affected=row_count;if affected<>0 then raise exception 'FAIL republish removed';end if;exception when insufficient_privilege then null;end;
+ end $$;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_admin'),true);
+ select public.nakgo_admin_moderate('listing',current_setting('nakgo.mod_pending_load'),'restore','Synthetic rollback restoration',1);
+@@ -79,10 +80,12 @@ do $$declare result jsonb;begin
+ end $$;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
+ do $$begin
+- if (select status from public.listings where id=current_setting('nakgo.mod_pending_load')::bigint)<>'closed' then raise exception 'FAIL restoration republished listing';end if;
++ if exists(select 1 from public.listings where id=current_setting('nakgo.mod_pending_load')::bigint) then raise exception 'FAIL closed listing visible to owner';end if;
+  if (select stage from public.transport_jobs where id=current_setting('nakgo.mod_accepted_job')::bigint)<>3 then raise exception 'FAIL accepted work completion';end if;
+ end $$;
+ reset role;
++do $$begin if (select status from public.listings where id=current_setting('nakgo.mod_pending_load')::bigint) is distinct from 'closed' then raise exception 'FAIL restoration republished listing';end if;end $$;
++do $$begin if not exists(select 1 from public.listing_conversations where id=current_setting('nakgo.mod_conversation')::bigint) then raise exception 'FAIL retained history';end if;end $$;
+ -- Revoke inside this uncommitted transaction only; the real membership is restored by ROLLBACK.
+ update private.admin_members set active=false where user_id=current_setting('nakgo.mod_admin')::uuid;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_admin'),true);
+diff --git a/supabase/tests/listing-contact.sql b/supabase/tests/listing-contact.sql
+new file mode 100644
+index 0000000..d0ed9c0
+--- /dev/null
++++ b/supabase/tests/listing-contact.sql
+@@ -0,0 +1,81 @@
++-- In-memory/local fixture only. Every synthetic account and row is rolled back.
++begin;
++do $$
++declare
++ owner_id uuid:=gen_random_uuid(); reader_id uuid:=gen_random_uuid();
++ other_id uuid:=gen_random_uuid(); unverified uuid:=gen_random_uuid();
++ ids bigint[]; listing_id bigint; at timestamptz:=statement_timestamp();
++begin
++ insert into auth.users(id,email_confirmed_at) values(owner_id,at),(reader_id,at),(other_id,at),(unverified,null);
++ perform set_config('request.jwt.claim.sub',owner_id::text,true);
++ with seeded as (
++  insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,loading_text,contact_phone,contact_consent)
++  select 'load','İstanbul','Ankara','Tır','Tenteli',20,'Synthetic','bugün','+905321234567',true
++  from generate_series(1,6) returning id
++ ) select array_agg(id order by id) into ids from seeded;
++
++ -- Shift only fixture timestamps; production triggers remain part of the test schema.
++ alter table public.listings disable trigger user;
++ update public.listings set published_at=at-interval '6 hours',expires_at=at where id=ids[2];
++ update public.listings set status='closed' where id=ids[3];
++ update public.listings set contact_consent=false where id=ids[4];
++ update public.listings set published_at=at+interval '1 hour',expires_at=at+interval '7 hours' where id=ids[5];
++ alter table public.listings enable trigger user;
++ insert into private.listing_moderation(listing_id,removed) values(ids[6],true);
++
++ perform set_config('request.jwt.claim.sub',reader_id::text,true);
++ set local role authenticated;
++ if public.nakgo_listing_contact(ids[1]) is distinct from '+905321234567' then raise exception 'FAIL consented active RPC';end if;
++ perform public.nakgo_set_favorite(ids[1],true);
++ if not exists(select 1 from public.listing_favorites f join public.listings l on l.id=f.listing_id where l.id=ids[1]) then raise exception 'FAIL safe favorite projection';end if;
++ begin perform l.contact_phone from public.listing_favorites f join public.listings l on l.id=f.listing_id where l.id=ids[1];raise exception 'FAIL raw favorite contact';exception when insufficient_privilege then null;end;
++ begin perform l.contact_phone from public.listings l where l.id=ids[1];raise exception 'FAIL raw listing contact';exception when insufficient_privilege then null;end;
++ begin perform l.* from public.listings l where l.id=ids[1];raise exception 'FAIL wildcard contact';exception when insufficient_privilege then null;end;
++ foreach listing_id in array ids[2:6] loop
++  begin perform public.nakgo_listing_contact(listing_id);raise exception 'FAIL unavailable listing contact %',listing_id;exception when insufficient_privilege then null;end;
++ end loop;
++ perform set_config('request.jwt.claim.sub',unverified::text,true);
++ begin perform public.nakgo_listing_contact(ids[1]);raise exception 'FAIL unverified contact';exception when insufficient_privilege then null;end;
++ perform set_config('request.jwt.claim.sub',reader_id::text,true);
++ perform set_config('request.jwt.claims','{"is_anonymous":true}',true);
++ begin perform public.nakgo_listing_contact(ids[1]);raise exception 'FAIL anonymous auth session';exception when insufficient_privilege then null;end;
++ perform set_config('request.jwt.claims','',true);
++ perform set_config('request.jwt.claim.sub',other_id::text,true);
++ if exists(select 1 from public.listing_favorites f where f.listing_id=ids[1]) then raise exception 'FAIL another account can see the favorite';end if;
++ begin
++  update public.listings l set contact_phone='+905333456789' where l.id=ids[1];
++  if found then raise exception 'FAIL another account can change listing contact';end if;
++ exception when insufficient_privilege then null;end;
++ if public.nakgo_listing_contact(ids[1]) is distinct from '+905321234567' then raise exception 'FAIL unauthorized contact edit changed the number';end if;
++ begin perform public.nakgo_listing_contact(ids[2]);raise exception 'FAIL another account can contact expired listing';exception when insufficient_privilege then null;end;
++ begin perform public.nakgo_listing_contact(null);raise exception 'FAIL null contact request';exception when insufficient_privilege then null;end;
++ perform set_config('request.jwt.claim.sub','',true);
++ begin perform public.nakgo_listing_contact(ids[1]);raise exception 'FAIL authenticated role without an actor';exception when insufficient_privilege then null;end;
++ reset role;
++
++ perform set_config('request.jwt.claim.sub',owner_id::text,true);
++ set local role authenticated;
++ begin perform l.contact_phone from public.listings l where l.id=ids[1];raise exception 'FAIL owner raw contact';exception when insufficient_privilege then null;end;
++ update public.listings l set contact_phone='+905322345678' where l.id=ids[1];
++ if public.nakgo_listing_contact(ids[1]) is distinct from '+905322345678' then raise exception 'FAIL owner authorized edit';end if;
++ reset role;
++
++ insert into private.account_moderation(user_id,suspended) values(reader_id,true);
++ perform set_config('request.jwt.claim.sub',reader_id::text,true);
++ set local role authenticated;
++ begin perform public.nakgo_listing_contact(ids[1]);raise exception 'FAIL suspended reader contact';exception when insufficient_privilege then null;end;
++ reset role;
++ insert into private.account_moderation(user_id,suspended) values(owner_id,true);
++ perform set_config('request.jwt.claim.sub',other_id::text,true);
++ set local role authenticated;
++ begin perform public.nakgo_listing_contact(ids[1]);raise exception 'FAIL suspended seller contact';exception when insufficient_privilege then null;end;
++ reset role;
++
++ -- The anon role must be denied even with a synthetic verified subject.
++ perform set_config('request.jwt.claim.sub',other_id::text,true);
++ set local role anon;
++ begin perform public.nakgo_listing_contact(ids[1]);raise exception 'FAIL anon RPC';exception when insufficient_privilege then null;end;
++ begin perform l.contact_phone from public.listings l;raise exception 'FAIL anon raw contact';exception when insufficient_privilege then null;end;
++ reset role;
++end $$;
++rollback;
+diff --git a/supabase/tests/listing-favorites.sql b/supabase/tests/listing-favorites.sql
+index b97e7be..830a4eb 100644
+--- a/supabase/tests/listing-favorites.sql
++++ b/supabase/tests/listing-favorites.sql
+@@ -4,11 +4,9 @@ select set_config('nakgo.fav_owner',gen_random_uuid()::text,true),set_config('na
+ insert into auth.users(id,email_confirmed_at) values(current_setting('nakgo.fav_owner')::uuid,now()),(current_setting('nakgo.fav_a')::uuid,now()),(current_setting('nakgo.fav_b')::uuid,now());
+ -- Fixture writes use a synthetic actor under the current moderation guards.
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.fav_owner'),true);
+-insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
+- values(current_setting('nakgo.fav_owner')::uuid,'load','İstanbul','Ankara','Tır','Tenteli',10,'Favorite rollback load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date)
++insert into public.listings(contact_phone,contact_consent,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,current_setting('nakgo.fav_owner')::uuid,'load','İstanbul','Ankara','Tır','Tenteli',10,'Favorite rollback load','Synthetic owner',(now() at time zone 'Europe/Istanbul')::date)
+  returning set_config('nakgo.fav_load',id::text,true);
+-insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
+- values(current_setting('nakgo.fav_owner')::uuid,'truck','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic owner',(now() at time zone 'Europe/Istanbul')::date)
++insert into public.listings(contact_phone,contact_consent,owner_id,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on) values('+905321234567',true,current_setting('nakgo.fav_owner')::uuid,'truck','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic owner',(now() at time zone 'Europe/Istanbul')::date)
+  returning set_config('nakgo.fav_truck',id::text,true);
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.fav_a'),true);
+ set local role authenticated;
+diff --git a/supabase/tests/listing-photo.sql b/supabase/tests/listing-photo.sql
+index b4fa304..b446452 100644
+--- a/supabase/tests/listing-photo.sql
++++ b/supabase/tests/listing-photo.sql
+@@ -5,11 +5,9 @@ select set_config('nakgo.test_b',gen_random_uuid()::text,true);
+ insert into auth.users(id) values(current_setting('nakgo.test_a')::uuid),(current_setting('nakgo.test_b')::uuid);
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
+ set local role authenticated;
+-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
+- values('load','İstanbul','Ankara','Tır','Tenteli',22,'Test yük','Test A',(now() at time zone 'Europe/Istanbul')::date)
++insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',22,'Test yük','Test A',(now() at time zone 'Europe/Istanbul')::date)
+  returning set_config('nakgo.listing_a',id::text,true);
+-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
+- values('truck','Ankara','İzmir','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date)
++insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on) values('+905321234567',true,'truck','Ankara','İzmir','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date)
+  returning set_config('nakgo.truck_a',id::text,true);
+ do $$ begin
+  if (select owner_id from public.listings where id=current_setting('nakgo.listing_a')::bigint)<>auth.uid() then raise exception 'FAIL owner assigned by database'; end if;
+@@ -79,10 +77,10 @@ end $$;
+ reset role;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
+ set local role authenticated;
+-update public.listings set status='closed' where id=current_setting('nakgo.listing_a')::bigint;
+-update public.listings set status='archived' where id=current_setting('nakgo.truck_a')::bigint;
++select public.nakgo_close_listing(current_setting('nakgo.listing_a')::bigint,'closed');
++select public.nakgo_close_listing(current_setting('nakgo.truck_a')::bigint,'archived');
+ do $$ begin
+- if (select count(*) from public.listings where owner_id=auth.uid())<>2 then raise exception 'FAIL owner history'; end if;
++ if (select count(*) from public.listings where owner_id=auth.uid())<>0 then raise exception 'FAIL owner archive privacy'; end if;
+ end $$;
+ reset role;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.test_b'),true);
+diff --git a/supabase/tests/listing-time.sql b/supabase/tests/listing-time.sql
+index 9266f1d..55464fb 100644
+--- a/supabase/tests/listing-time.sql
++++ b/supabase/tests/listing-time.sql
+@@ -3,8 +3,7 @@ select set_config('nakgo.test_time',gen_random_uuid()::text,true);
+ insert into auth.users(id) values(current_setting('nakgo.test_time')::uuid);
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.test_time'),true);
+ set local role authenticated;
+-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on,available_time)
+- values('load','İstanbul','Ankara','Tır','Tenteli',1,'Test','Test',(now() at time zone 'Europe/Istanbul')::date,'14:30');
++insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on,available_time) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',1,'Test','Test',(now() at time zone 'Europe/Istanbul')::date,'14:30');
+ do $$ begin
+  if not exists(select 1 from public.listings where owner_id=auth.uid() and available_time='14:30') then raise exception 'FAIL time persistence';end if;
+  begin
+diff --git a/supabase/tests/listings.sql b/supabase/tests/listings.sql
+index 09438d8..ab3adae 100644
+--- a/supabase/tests/listings.sql
++++ b/supabase/tests/listings.sql
+@@ -5,11 +5,9 @@ select set_config('nakgo.test_b',gen_random_uuid()::text,true);
+ insert into auth.users(id) values(current_setting('nakgo.test_a')::uuid),(current_setting('nakgo.test_b')::uuid);
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
+ set local role authenticated;
+-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
+- values('load','İstanbul','Ankara','Tır','Tenteli',22,'Test yük','Test A',(now() at time zone 'Europe/Istanbul')::date)
++insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',22,'Test yük','Test A',(now() at time zone 'Europe/Istanbul')::date)
+  returning set_config('nakgo.listing_a',id::text,true);
+-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
+- values('truck','Ankara','İzmir','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date)
++insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on) values('+905321234567',true,'truck','Ankara','İzmir','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date)
+  returning set_config('nakgo.truck_a',id::text,true);
+ do $$ begin
+  if (select owner_id from public.listings where id=current_setting('nakgo.listing_a')::bigint)<>auth.uid() then raise exception 'FAIL owner assigned by database'; end if;
+@@ -63,10 +61,10 @@ end $$;
+ reset role;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
+ set local role authenticated;
+-update public.listings set status='closed' where id=current_setting('nakgo.listing_a')::bigint;
+-update public.listings set status='archived' where id=current_setting('nakgo.truck_a')::bigint;
++select public.nakgo_close_listing(current_setting('nakgo.listing_a')::bigint,'closed');
++select public.nakgo_close_listing(current_setting('nakgo.truck_a')::bigint,'archived');
+ do $$ begin
+- if (select count(*) from public.listings where owner_id=auth.uid())<>2 then raise exception 'FAIL owner history'; end if;
++ if (select count(*) from public.listings where owner_id=auth.uid())<>0 then raise exception 'FAIL owner archive privacy'; end if;
+ end $$;
+ reset role;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.test_b'),true);
+diff --git a/supabase/tests/load-timing-text.sql b/supabase/tests/load-timing-text.sql
+index 22d805c..2d11456 100644
+--- a/supabase/tests/load-timing-text.sql
++++ b/supabase/tests/load-timing-text.sql
+@@ -9,8 +9,7 @@ select set_config('request.jwt.claim.sub',current_setting('nakgo.timing_carrier'
+ insert into public.profiles(id,display_name,account_type) values(current_setting('nakgo.timing_carrier')::uuid,'Timing carrier','carrier');
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.timing_owner'),true);
+ set local role authenticated;
+-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,loading_text)
+- values('load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic timing test','Timing owner','yarın sabah') returning set_config('nakgo.timing_listing',id::text,true);
++insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,loading_text) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',10,'Synthetic timing test','Timing owner','yarın sabah') returning set_config('nakgo.timing_listing',id::text,true);
+ do $$ begin
+  if (select available_on is not null or loading_text<>'yarın sabah' from public.listings where id=current_setting('nakgo.timing_listing')::bigint) then raise exception 'FAIL invented date/text loss'; end if;
+  begin update public.listings set loading_text='   ' where id=current_setting('nakgo.timing_listing')::bigint; raise exception 'FAIL whitespace accepted'; exception when check_violation then null; end;
+@@ -18,7 +17,7 @@ do $$ begin
+  begin update public.listings set loading_text=repeat('x',33) where id=current_setting('nakgo.timing_listing')::bigint; raise exception 'FAIL overlong accepted'; exception when check_violation then null; end;
+  begin update public.listings set loading_text=null where id=current_setting('nakgo.timing_listing')::bigint; raise exception 'FAIL missing timing accepted'; exception when check_violation then null; end;
+  begin update public.listings set available_on=current_date where id=current_setting('nakgo.timing_listing')::bigint; raise exception 'FAIL conflicting date accepted'; exception when check_violation then null; end;
+- begin insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,loading_text) values('truck','İstanbul','Ankara','Tır','Tenteli',10,'Timing owner','bugün'); raise exception 'FAIL truck free text accepted'; exception when check_violation then null; end;
++ begin insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,owner_label,loading_text) values('+905321234567',true,'truck','İstanbul','Ankara','Tır','Tenteli',10,'Timing owner','bugün'); raise exception 'FAIL truck free text accepted'; exception when check_violation then null; end;
+  update public.listings set loading_text='Ne zaman uygun olursa' where id=current_setting('nakgo.timing_listing')::bigint;
+ end $$;
+ reset role;
+@@ -29,14 +28,14 @@ do $$ declare job public.transport_jobs; begin
+  update public.listings set loading_text='forged' where id=current_setting('nakgo.timing_listing')::bigint;
+  if found then raise exception 'FAIL other account edit'; end if;
+  perform public.nakgo_set_favorite(current_setting('nakgo.timing_listing')::bigint,true);
+- perform public.nakgo_open_conversation(current_setting('nakgo.timing_listing')::bigint);
++ begin perform public.nakgo_open_conversation(current_setting('nakgo.timing_listing')::bigint);raise exception 'FAIL retired conversation allowed';exception when insufficient_privilege then null;end;
+  job:=public.nakgo_request_transport(current_setting('nakgo.timing_listing')::bigint);
+  if job.listing_snapshot->>'dateText'<>'Ne zaman uygun olursa' then raise exception 'FAIL transport timing snapshot'; end if;
+ end $$;
+ reset role;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.timing_owner'),true);
+ set local role authenticated;
+-update public.listings set status='closed' where id=current_setting('nakgo.timing_listing')::bigint;
++select public.nakgo_close_listing(current_setting('nakgo.timing_listing')::bigint,'closed');
+ reset role;
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.timing_carrier'),true);
+ set local role authenticated;
+@@ -44,4 +43,4 @@ do $$ begin
+  if exists(select 1 from public.listings where id=current_setting('nakgo.timing_listing')::bigint) then raise exception 'FAIL closed load visible'; end if;
+ end $$;
+ reset role;
+-rollback;
++rollback;
+diff --git a/supabase/tests/private-messages.sql b/supabase/tests/private-messages.sql
+index a70d9cf..c0e43b1 100644
+--- a/supabase/tests/private-messages.sql
++++ b/supabase/tests/private-messages.sql
+@@ -5,75 +5,38 @@ insert into auth.users(id,email_confirmed_at) values(current_setting('nakgo.msg_
+ -- Fixture writes use a synthetic actor under the current moderation guards.
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.msg_owner'),true);
+ insert into public.profiles(id,display_name,account_type) values(current_setting('nakgo.msg_owner')::uuid,'Message owner','owner'),(current_setting('nakgo.msg_guest')::uuid,'Message guest','carrier'),(current_setting('nakgo.msg_out')::uuid,'Outsider','carrier'),(current_setting('nakgo.msg_unverified')::uuid,'Unverified','carrier') on conflict(id) do nothing;
+-insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
+- values(current_setting('nakgo.msg_owner')::uuid,'load','İstanbul','Ankara','Tır','Tenteli',10,'Rollback conversation load','Message owner',(now() at time zone 'Europe/Istanbul')::date) returning set_config('nakgo.msg_load',id::text,true);
+-insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
+- values(current_setting('nakgo.msg_owner')::uuid,'truck','İstanbul','Ankara','Tır','Tenteli',10,'Message owner',(now() at time zone 'Europe/Istanbul')::date) returning set_config('nakgo.msg_truck',id::text,true);
++insert into public.listings(contact_phone,contact_consent,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,current_setting('nakgo.msg_owner')::uuid,'load','İstanbul','Ankara','Tır','Tenteli',10,'Rollback conversation load','Message owner',(now() at time zone 'Europe/Istanbul')::date) returning set_config('nakgo.msg_load',id::text,true);
++insert into public.listings(contact_phone,contact_consent,owner_id,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on) values('+905321234567',true,current_setting('nakgo.msg_owner')::uuid,'truck','İstanbul','Ankara','Tır','Tenteli',10,'Message owner',(now() at time zone 'Europe/Istanbul')::date) returning set_config('nakgo.msg_truck',id::text,true);
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.msg_guest'),true);
++
++-- Seed history with database-owner access to prove records survive API retirement.
++select set_config('nakgo.msg_conv',(public.nakgo_open_conversation(current_setting('nakgo.msg_load')::bigint)).id::text,true);
++select public.nakgo_send_message(current_setting('nakgo.msg_conv')::bigint,'Synthetic retained history',gen_random_uuid());
+ set local role authenticated;
+-do $$ declare c public.listing_conversations;m public.conversation_messages;again public.conversation_messages;begin
+- c:=public.nakgo_open_conversation(current_setting('nakgo.msg_load')::bigint);
+- perform set_config('nakgo.msg_conv',c.id::text,true);
+- if c.guest_id<>auth.uid() or c.owner_id<>current_setting('nakgo.msg_owner')::uuid then raise exception 'FAIL server participants';end if;
+- if (public.nakgo_open_conversation(current_setting('nakgo.msg_load')::bigint)).id<>c.id then raise exception 'FAIL duplicate conversation';end if;
+- perform public.nakgo_open_conversation(current_setting('nakgo.msg_truck')::bigint);
+- if(select count(*) from public.message_inbox)<>2 then raise exception 'FAIL truck/duplicate';end if;
+- m:=public.nakgo_send_message(c.id,'<img src=x onerror=alert(1)>',current_setting('nakgo.msg_nonce')::uuid);perform set_config('nakgo.msg_message',m.id::text,true);
+- again:=public.nakgo_send_message(c.id,'<img src=x onerror=alert(1)>',current_setting('nakgo.msg_nonce')::uuid);
+- if m.id<>again.id or m.sender_id<>auth.uid() or (select count(*) from public.conversation_messages)<>1 then raise exception 'FAIL idempotent sender';end if;
+- begin perform public.nakgo_send_message(c.id,'Different text',current_setting('nakgo.msg_nonce')::uuid);raise exception 'FAIL reused nonce';exception when invalid_parameter_value then null;end;
+- begin perform public.nakgo_send_message(c.id,' ',gen_random_uuid());raise exception 'FAIL empty';exception when invalid_parameter_value then null;end;
+- begin perform public.nakgo_send_message(c.id,repeat('x',501),gen_random_uuid());raise exception 'FAIL length';exception when invalid_parameter_value then null;end;
+- begin update public.listing_conversations set guest_id=current_setting('nakgo.msg_out')::uuid;raise exception 'FAIL direct participant update';exception when insufficient_privilege then null;end;
+- begin insert into public.conversation_messages(conversation_id,sender_id,body,client_nonce) values(c.id,current_setting('nakgo.msg_owner')::uuid,'Forged',gen_random_uuid());raise exception 'FAIL direct insert';exception when insufficient_privilege then null;end;
+- begin delete from public.conversation_messages;raise exception 'FAIL direct delete';exception when insufficient_privilege then null;end;
++do $$declare actor text;begin
++ foreach actor in array array[current_setting('nakgo.msg_owner'),current_setting('nakgo.msg_guest'),current_setting('nakgo.msg_out'),current_setting('nakgo.msg_unverified')] loop
++  perform set_config('request.jwt.claim.sub',actor,true);
++  begin perform public.nakgo_open_conversation(current_setting('nakgo.msg_load')::bigint);raise exception 'FAIL retired open';exception when insufficient_privilege then null;end;
++  begin perform public.nakgo_send_message(current_setting('nakgo.msg_conv')::bigint,'Forbidden',gen_random_uuid());raise exception 'FAIL retired send';exception when insufficient_privilege then null;end;
++  begin perform public.nakgo_read_conversation(current_setting('nakgo.msg_conv')::bigint,1);raise exception 'FAIL retired read';exception when insufficient_privilege then null;end;
++  begin perform public.nakgo_message_unread_count();raise exception 'FAIL retired count';exception when insufficient_privilege then null;end;
++  begin perform 1 from public.message_inbox;raise exception 'FAIL retired inbox';exception when insufficient_privilege then null;end;
++  begin perform 1 from public.listing_conversations;raise exception 'FAIL retired conversations';exception when insufficient_privilege then null;end;
++  begin perform 1 from public.conversation_messages;raise exception 'FAIL retired messages';exception when insufficient_privilege then null;end;
++  begin update public.listing_conversations set guest_id=auth.uid() where id=current_setting('nakgo.msg_conv')::bigint;raise exception 'FAIL direct participant update';exception when insufficient_privilege then null;end;
++  begin insert into public.conversation_messages(conversation_id,sender_id,body,client_nonce) values(current_setting('nakgo.msg_conv')::bigint,auth.uid(),'Forged',gen_random_uuid());raise exception 'FAIL direct insert';exception when insufficient_privilege then null;end;
++  begin delete from public.conversation_messages where conversation_id=current_setting('nakgo.msg_conv')::bigint;raise exception 'FAIL direct delete';exception when insufficient_privilege then null;end;
++ end loop;
+ end $$;
+ reset role;
+-select set_config('request.jwt.claim.sub',current_setting('nakgo.msg_out'),true);
+-set local role authenticated;
+-do $$ begin
+- if exists(select 1 from public.listing_conversations) or exists(select 1 from public.conversation_messages) or exists(select 1 from public.message_inbox) then raise exception 'FAIL third-party read';end if;
+- begin perform public.nakgo_send_message(current_setting('nakgo.msg_conv')::bigint,'Intruder',gen_random_uuid());raise exception 'FAIL third-party send';exception when insufficient_privilege then null;end;
+- begin perform public.nakgo_read_conversation(current_setting('nakgo.msg_conv')::bigint,current_setting('nakgo.msg_message')::bigint);raise exception 'FAIL third-party read marker';exception when insufficient_privilege then null;end;
+-end $$;
+-reset role;
+-select set_config('request.jwt.claim.sub',current_setting('nakgo.msg_owner'),true);
+-set local role authenticated;
+-do $$ declare c bigint:=current_setting('nakgo.msg_conv')::bigint;m public.conversation_messages;begin
+- if public.nakgo_message_unread_count()<>1 then raise exception 'FAIL recipient unread';end if;
+- perform public.nakgo_read_conversation(c,current_setting('nakgo.msg_message')::bigint);
+- if public.nakgo_message_unread_count()<>0 then raise exception 'FAIL read marker';end if;
+- begin perform public.nakgo_read_conversation(c,9007199254740991);raise exception 'FAIL future read';exception when invalid_parameter_value then null;end;
+- begin perform public.nakgo_open_conversation(current_setting('nakgo.msg_load')::bigint);raise exception 'FAIL self conversation';exception when insufficient_privilege then null;end;
+- m:=public.nakgo_send_message(c,'Reply',gen_random_uuid());
+-end $$;
+-reset role;
+-update public.listings set status='closed' where id in(current_setting('nakgo.msg_load')::bigint,current_setting('nakgo.msg_truck')::bigint);
+-select set_config('request.jwt.claim.sub',current_setting('nakgo.msg_out'),true);
+-set local role authenticated;
+-do $$ begin
+- begin perform public.nakgo_open_conversation(current_setting('nakgo.msg_load')::bigint);raise exception 'FAIL closed new conversation';exception when insufficient_privilege then null;end;
++do $$begin
++ if not exists(select 1 from public.conversation_messages where conversation_id=current_setting('nakgo.msg_conv')::bigint and body='Synthetic retained history') then raise exception 'FAIL history lost';end if;
+ end $$;
+-reset role;
+-select set_config('request.jwt.claim.sub',current_setting('nakgo.msg_guest'),true);
+-set local role authenticated;
+-do $$ begin
+- if (public.nakgo_open_conversation(current_setting('nakgo.msg_load')::bigint)).id<>current_setting('nakgo.msg_conv')::bigint then raise exception 'FAIL history after close';end if;
+- if public.nakgo_message_unread_count()<>1 then raise exception 'FAIL reply unread';end if;
+-end $$;
+-reset role;
+-select set_config('request.jwt.claim.sub',current_setting('nakgo.msg_unverified'),true);
+-set local role authenticated;
+-do $$ begin
+- begin perform public.nakgo_send_message(current_setting('nakgo.msg_conv')::bigint,'Unverified',gen_random_uuid());raise exception 'FAIL unverified send';exception when insufficient_privilege then null;end;
+-end $$;
+-reset role;
+-select set_config('request.jwt.claim.sub','',true);
+ set local role anon;
+-do $$ begin
++do $$begin
+  begin perform public.nakgo_open_conversation(current_setting('nakgo.msg_load')::bigint);raise exception 'FAIL anonymous open';exception when insufficient_privilege then null;end;
+- begin perform count(*) from public.conversation_messages;raise exception 'FAIL anonymous read';exception when insufficient_privilege then null;end;
++ begin perform 1 from public.conversation_messages;raise exception 'FAIL anonymous read';exception when insufficient_privilege then null;end;
++ begin perform public.nakgo_message_unread_count();raise exception 'FAIL anonymous count';exception when insufficient_privilege then null;end;
+ end $$;
+ reset role;
+ rollback;
+-select 'PASS: private messages, participants, idempotency, unread boundaries and lifecycle; fixtures rolled back' as result;
+diff --git a/supabase/tests/transport-jobs.sql b/supabase/tests/transport-jobs.sql
+index d5a275d..594aef4 100644
+--- a/supabase/tests/transport-jobs.sql
++++ b/supabase/tests/transport-jobs.sql
+@@ -7,8 +7,7 @@ select set_config('request.jwt.claim.sub',current_setting('nakgo.owner'),true);
+ insert into public.profiles(id,display_name) values(current_setting('nakgo.owner')::uuid,'Test owner'),(current_setting('nakgo.carrier')::uuid,'Test carrier'),(current_setting('nakgo.other')::uuid,'Test other');
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.owner'),true);
+ set local role authenticated;
+-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on)
+-values('load','İstanbul','Ankara','Tır','Tenteli',20,'Test job load','Test owner',(now() at time zone 'Europe/Istanbul')::date)
++insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,'load','İstanbul','Ankara','Tır','Tenteli',20,'Test job load','Test owner',(now() at time zone 'Europe/Istanbul')::date)
+ returning set_config('nakgo.load',id::text,true);
+ do $$ begin
+  begin perform public.nakgo_request_transport(current_setting('nakgo.load')::bigint);raise exception 'FAIL self request';exception when insufficient_privilege then null;end;
+@@ -63,7 +62,7 @@ do $$ declare j public.transport_jobs; begin
+  j:=public.nakgo_transition_transport(current_setting('nakgo.job')::bigint,'accept');if j.status<>'ok' then raise exception 'FAIL acceptance';end if;
+  begin perform public.nakgo_transition_transport(j.id,'confirm');raise exception 'FAIL premature confirmation';exception when check_violation then null;end;
+  begin perform public.nakgo_transition_transport(j.id,'loaded');raise exception 'FAIL owner loading';exception when insufficient_privilege then null;end;
+- update public.listings set status='archived' where id=j.listing_id;
++ perform public.nakgo_close_listing(j.listing_id,'archived');
+  if not exists(select 1 from public.transport_jobs where id=j.id) then raise exception 'FAIL history after archive';end if;
+ end $$;
+ reset role;
+@@ -82,11 +81,9 @@ do $$ declare j public.transport_jobs; begin
+  if (public.nakgo_transition_transport(j.id,'confirm')).confirmed_at<>j.confirmed_at then raise exception 'FAIL repeated confirm';end if;
+ end $$;
+ reset role;
+-insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
+-values(current_setting('nakgo.owner')::uuid,'truck','İstanbul','Ankara','Tır','Tenteli',20,'Test owner',(now() at time zone 'Europe/Istanbul')::date)
++insert into public.listings(contact_phone,contact_consent,owner_id,kind,from_city,to_city,vehicle,body,amount,owner_label,available_on) values('+905321234567',true,current_setting('nakgo.owner')::uuid,'truck','İstanbul','Ankara','Tır','Tenteli',20,'Test owner',(now() at time zone 'Europe/Istanbul')::date)
+ returning set_config('nakgo.truck',id::text,true);
+-insert into public.listings(owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on,status)
+-values(current_setting('nakgo.owner')::uuid,'load','İstanbul','Ankara','Tır','Tenteli',20,'Closed test','Test owner',(now() at time zone 'Europe/Istanbul')::date,'closed')
++insert into public.listings(contact_phone,contact_consent,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on,status) values('+905321234567',true,current_setting('nakgo.owner')::uuid,'load','İstanbul','Ankara','Tır','Tenteli',20,'Closed test','Test owner',(now() at time zone 'Europe/Istanbul')::date,'closed')
+ returning set_config('nakgo.closed',id::text,true);
+ select set_config('request.jwt.claim.sub',current_setting('nakgo.carrier'),true);
+ set local role authenticated;
+diff --git a/tests/admin_panel_browser.py b/tests/admin_panel_browser.py
+index b5f7ec7..c5f95b3 100644
+--- a/tests/admin_panel_browser.py
++++ b/tests/admin_panel_browser.py
+@@ -17,6 +17,7 @@ with sync_playwright() as p:
+           window.adminRows=[{id:'00000000-0000-4000-8000-000000000003',display_name:'<img src=x onerror=alert(1)>',city:'İzmir',account_type:'carrier',created_at:'2026-10-26T00:00:00Z',revision:0,suspended:false}];
+           window.adminListings=[{id:7,owner_label:'Test Owner',kind:'load',from_city:'İzmir',to_city:'Manisa',status:'active',removed:false,revision:0}];
+           nakgoMarket.active=()=>true;nakgoMarket.token=()=>window.adminTestAccount;
++          nakgoAuth.dataCapabilities=async()=>['privacy_cases'];
+           nakgoAuth.adminPage=async(section)=>section==='overview'?{users:2,listings:3,documents:1,jobs:1}:section==='users'?window.adminRows:section==='listings'?window.adminListings:[];
+           nakgoAuth.adminModerate=async(...args)=>{window.adminCalls.push(args);await new Promise(r=>setTimeout(r,150));if(window.adminFail)throw {code:'40001'};if(args[0]==='user'){window.adminRows[0].suspended=args[2]==='suspend';window.adminRows[0].revision++;}else{window.adminListings[0].removed=args[2]==='remove';window.adminListings[0].revision++;}return {changed:true};};
+           return openAdminPanel();
+diff --git a/tests/auth_google_browser.py b/tests/auth_google_browser.py
+index 639549f..2ad6e45 100644
+--- a/tests/auth_google_browser.py
++++ b/tests/auth_google_browser.py
+@@ -37,7 +37,12 @@ with sync_playwright() as p:
+                     return route.fulfill(status=204,headers={**headers,'access-control-allow-headers':'*','access-control-allow-methods':'*'})
+                 if '/authorize?' in url:
+                     q=urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+-                    assert q['provider']==['google'] and q['redirect_to']==[BASE]
++                    assert q['provider']==['google'] and len(q['redirect_to'])==1
++                    redirect=urllib.parse.urlparse(q['redirect_to'][0]);base=urllib.parse.urlparse(BASE)
++                    assert redirect._replace(query='')==base
++                    flow=urllib.parse.parse_qs(redirect.query)
++                    assert set(flow)=={'sb_flow_id'} and len(flow['sb_flow_id'])==1
++                    assert len(flow['sb_flow_id'][0])==32 and all(c in '0123456789abcdef' for c in flow['sb_flow_id'][0])
+                     assert q['code_challenge_method']==['s256'] and q['code_challenge'][0]
+                     assert 'client_secret' not in q and 'access_type' not in q
+                     state['challenge']=q['code_challenge'][0];state['authorizes']+=1
+diff --git a/tests/e2e.py b/tests/e2e.py
+index 50e56f5..f7501e2 100644
+--- a/tests/e2e.py
++++ b/tests/e2e.py
+@@ -20,7 +20,7 @@ def take_shots():
+         pg.goto("file://" + os.path.join(ROOT, "index.html"))
+         pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(out, "01_splash.png"))
+         pg.wait_for_timeout(2200); pg.screenshot(path=os.path.join(out, "02_liste.png"))
+-        for name, js in (("03_detay", "openLoad(1)"), ("04_karsilastirma", "closeSheet();toggleCmp(1);toggleCmp(2);openCompare()"),
++        for name, js in (("03_detay", "openLoad(1)"), ("04_iletisim", "closeSheet();openLoad(2)"),
+                          ("05_profil", "closeSheet();offers=[{...loads[0],offer:28500,status:'ok',loadId:1,bidder:'',stage:3,doneAt:Date.now()}];tab='me';setNav();render()"),
+                          ("06_yakinimda", "tab='list';setNav();render();toggleNear()")):
+             pg.evaluate(js); pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(out, name + ".png"))
+@@ -86,24 +86,18 @@ with sync_playwright() as p:
+     n1 = cards(); check(f"araç filtresi listeyi daraltır ({n0}→{n1})", 0 < n1 < n0)
+     pg.evaluate("F=F0();render()"); pg.wait_for_timeout(200)
+ 
+-    # 5) Karşılaştırma
+-    for i in (0, 1):
+-        pg.locator(".load[data-id]").nth(i).click(); pg.wait_for_selector("#sheet.open"); pg.click("#cp2"); pg.wait_for_timeout(250)
+-    check("iki ilan seçilince karşılaştır çubuğu çıkar", pg.is_visible("#cmpgo"))
+-    pg.click("#cmpgo"); pg.wait_for_selector("#sheet.open")
+-    check("karşılaştırma tablosu açılır", "İlanları karşılaştır" in pg.inner_text("#sheetBody") and pg.locator("#sheetBody .win").count() > 0)
+-    pg.keyboard.press("Escape"); pg.click("#cmpx"); pg.wait_for_timeout(200)
+-
+-    # 6) Taşıma talebi ve simüle yanıt
+-    pg.locator(".load[data-id]").first.click(); pg.wait_for_selector("#sheet.open"); pg.click("#mg"); pg.click("#buy"); pg.locator(".load[data-id]").first.click(); pg.click("#mg"); pg.fill("#mi", "Yük hakkında görüşelim."); pg.click("#ms")
+-    check("mesajlaşma ve mevcut iş kaydı korunur", pg.evaluate("offers.length == 1 && Object.values(chats).some(a => a.some(m => m.me))")); pg.click("#close")
+-    nav("mine"); pg.wait_for_timeout(300)
++    # 5) Removed comparison/messaging; direct contact stays visible.
++    pg.locator(".load[data-id]").first.click();pg.wait_for_selector("#sheet.open")
++    check("Ara ve WhatsApp var; karşılaştırma ve sohbet yok", pg.is_visible('#call') and pg.is_visible('#wa') and pg.locator('#cp2,#mg').count()==0)
++    pg.click('#close')
++    # 6) Existing job lifecycle remains intact independently of contact UI.
++    pg.evaluate('requestLoad(loads[0])');nav('mine');pg.wait_for_timeout(300)
+     check("taşıma talebi bekleniyor görünür", "Yanıt bekleniyor" in pg.inner_text("#main"))
+     pg.wait_for_timeout(3600)
+     check("simüle yanıt gelir", "Yanıt bekleniyor" not in pg.inner_text("#main"))
+ 
+     # 7) İlan verme ve istatistik
+-    nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); pg.fill("#d", typed_day()); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.click("#go"); pg.wait_for_timeout(300)
++    nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); pg.fill("#d", typed_day()); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.fill('#post-phone','05321234567');pg.check('#post-consent');pg.click("#go"); pg.wait_for_timeout(300)
+     check("ilan yayınlanır", "İlan yayınlandı" in toast())
+     nav("me"); pg.wait_for_timeout(300)
+     check("İlanlarım'da yeni ilan ve istatistik satırı var", "görüntülenme" in pg.inner_text("#main") and pg.locator("[data-st2]").count() >= 1)
+@@ -131,7 +125,10 @@ with sync_playwright() as p:
+     pg.click("#pm1"); pg.wait_for_selector("#buy"); pg.click("#buy"); pg.wait_for_timeout(300)
+     check("test modunda üyelik açılır", "Aktif" in pg.inner_text("#main"))
+     nav("list"); pg.locator('.load[data-id="1"]').click(); pg.wait_for_selector("#sheet.open"); pg.click("#call"); pg.wait_for_timeout(250)
+-    check("örnek telefon gerçek arama sunmaz", "Örnek telefon" in pg.inner_text("#sheetBody")); pg.evaluate('callTo("0555 123 45 67")'); check("Premium gerçek numara için tel bağlantısı verir", pg.locator('#sheetBody a[href^="tel:"]').count()==1)
++    check("numarasız örnek ilan arama başlatmaz", "İletişim numarası kullanılamıyor" in toast())
++    pg.evaluate('prem.until=0')
++    check("Ara ve WhatsApp üyelik olmadan görünür", pg.is_visible('#call') and pg.is_visible('#wa'))
++    pg.evaluate('prem.until=Date.now()+86400000;save()')
+     pg.keyboard.press("Escape")
+ 
+     # 9) Tema düğmesi üst barda ve kalıcı
+@@ -184,18 +181,12 @@ with sync_playwright() as p:
+             check(prefix+"ana menü ve ilan araçları ekranın altında",nav_box['y']>=740 and abs(nav_box['y']-dock_box['y']-dock_box['height'])<2)
+             page.locator('#main').evaluate('e=>e.scrollTop=e.scrollHeight')
+             check(prefix+"filtre, sıralama ve yakınlık kaydırmada erişilir",all(page.is_visible(s) for s in ('#fb','#s','#nr0')) and abs(page.locator('.list-actions').bounding_box()['y']-dock_box['y'])<2)
+-            page.evaluate('cmp=[loads[0].id,loads[1].id];render()')
+-            cmp_box=page.locator('.cmpbar').bounding_box();filter_box=page.locator('#fb').bounding_box()
+-            check(prefix+"karşılaştırma alt işlemlerle çakışmaz",cmp_box['y']+cmp_box['height']<=filter_box['y']+1)
+-            page.evaluate('cmp=[];render()');page.locator('#main').evaluate('e=>e.scrollTop=0')
++            check(prefix+"karşılaştırma kaldırıldı",page.locator('.cmpbar').count()==0)
++            page.locator('#main').evaluate('e=>e.scrollTop=0')
+             page.select_option('#route-from','İstanbul');page.select_option('#route-to','Ankara')
+             check(prefix+"güzergâh filtresi",page.locator('.load[data-id]').count()==1)
+-            page.locator('[data-id]').first.click();page.click('#mg')
+-            check(prefix+"mesajlaşma Premium ister",'NakGo Premium' in page.inner_text('#sheetBody'))
+-            page.click('#buy');page.locator('[data-id]').first.click();page.click('#mg')
+-
+-            page.fill('#mi','Test mesajı');page.click('#ms')
+-            check(prefix+"mesaj yazılır ve demo açıklaması görünür","Test mesajı" in page.inner_text('#msgs') and 'Demo sohbet' in page.inner_text('#sheetBody'))
++            page.locator('[data-id]').first.click()
++            check(prefix+"doğrudan iletişim",page.is_visible('#call') and page.is_visible('#wa') and page.locator('#mg').count()==0)
+             page.keyboard.press('Escape');page.click('nav [data-t=post]');page.click('[data-pm=load]')
+             page.click('#post-next');page.fill('#c','Uzun şehir adlarıyla hassas test yükü');page.fill('#w','18');page.fill('#d',typed_day());page.click('#post-next')
+             page.fill('#n','Uzun not. '*40)
+@@ -216,7 +207,7 @@ with sync_playwright() as p:
+                 page.set_viewport_size({'width':390,'height':430});page.fill('#n','Klavye alanında deneme')
+                 publish=page.locator('#go').bounding_box();check(prefix+"küçük klavye alanında yayınla görünür",publish['y']>=0 and publish['y']+publish['height']<=430)
+                 page.set_viewport_size({'width':390,'height':844})
+-            page.click('#go');check(prefix+"yayın sonrası taslak temizlenir",page.evaluate("!JSON.parse(localStorage.getItem('ng-post-drafts')).load"))
++            page.fill('#post-phone','05321234567');page.check('#post-consent');page.click('#go');check(prefix+"yayın sonrası taslak temizlenir",page.evaluate("!JSON.parse(localStorage.getItem('ng-post-drafts')).load"))
+             page.click('nav [data-t=me]');page.fill('#myph','0555 123 45 67');page.click('#phs2')
+             check(prefix+"profil telefonu kaydedilir",page.evaluate("myCar.phone==='0555 123 45 67'"))
+             check(prefix+"profilde tekrar eden rol ve işler yok",page.locator('#profile-jobs,[data-ro]').count()==0 and page.is_visible('#profile-map'))
+@@ -236,14 +227,14 @@ with sync_playwright() as p:
+             check(prefix+"pencere kapanınca profil ve odak geri gelir",page.evaluate("!document.querySelector('#main').inert&&document.activeElement.id==='profile-map'"))
+             page.locator('summary',has_text='Taşıyıcı belgeleri ve güven').click()
+             check(prefix+"belge formu erişilir",page.is_visible('#lic'))
+-            page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.fill('#d',typed_day());page.click('#go')
++            page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.fill('#d',typed_day());page.fill('#post-phone','05321234567');page.check('#post-consent');page.click('#go')
+             check(prefix+"boş araç yayınlanır ve filtre arkasında kalmaz",page.evaluate("trucks.some(t=>t.mine&&t.from==='Afyonkarahisar'&&t.to==='Kahramanmaraş'&&t.cap===20)&&document.querySelectorAll('.load[data-tid]').length===trucks.length"))
+             page.locator('.load[data-tid]').first.click();check(prefix+"araç detayını kapatmak erişilir",page.is_visible('.detail-top #close'))
+-            message=page.locator('#mg').bounding_box();page.locator('.detail-scroll').evaluate('e=>e.scrollTop=e.scrollHeight')
+-            check(prefix+"araç detayı mesaj düğmesi altta sabit",page.locator('.contact-dock #mg').count()==1 and abs(page.locator('#mg').bounding_box()['y']-message['y'])<2 and message['y']+message['height']<=844)
++            message=page.locator('#wa').bounding_box();page.locator('.detail-scroll').evaluate('e=>e.scrollTop=e.scrollHeight')
++            check(prefix+"araç detayı WhatsApp düğmesi altta sabit",page.locator('.contact-dock #wa').count()==1 and abs(page.locator('#wa').bounding_box()['y']-message['y'])<2 and message['y']+message['height']<=844)
+             route=page.inner_text('.detail-summary .route');page.click('[data-map-expand]');page.wait_for_selector('#map-back')
+             check(prefix+"büyütülen haritada ilana dön erişilir",page.is_visible('#map-back') and page.evaluate("document.querySelector('#sheetBody').contains(document.activeElement)"))
+-            page.click('#map-back');check(prefix+"aynı araç ilanına iletişim işlemleriyle dönülür",page.inner_text('.detail-summary .route')==route and page.is_visible('#call') and page.is_visible('#mg') and page.locator('#map-back').count()==0)
++            page.click('#map-back');check(prefix+"aynı araç ilanına iletişim işlemleriyle dönülür",page.inner_text('.detail-summary .route')==route and page.is_visible('#call') and page.is_visible('#wa') and page.locator('#map-back').count()==0)
+             page.click('#close')
+             for screen in ('list','post','mine','me'):
+                 page.click(f'nav [data-t={screen}]')
+diff --git a/tests/forms.py b/tests/forms.py
+index ff4f4be..5ce0a2c 100644
+--- a/tests/forms.py
++++ b/tests/forms.py
+@@ -22,7 +22,7 @@ def run_forms(page, check):
+     p.fill('#c','Taslak yük');p.fill('#w','0.5');p.fill('#d',datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y'))
+     check('ondalıklı tonaj formda geçerlidir',p.locator('#w').evaluate('e=>e.validity.valid'))
+     p.click('#post-next');p.fill('#n','Korunan not')
+-    p.click('#addit');p.fill('[data-in]','Palet');p.fill('[data-iq]','-1');p.click('#go')
++    p.click('#addit');p.fill('[data-in]','Palet');p.fill('[data-iq]','-1');p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go')
+     check('negatif kalem miktarı yayınlanmaz',p.is_visible('#go') and p.evaluate("!loads.some(l=>l.cargo==='Taslak yük')"))
+     p.fill('[data-iq]','2')
+     p.evaluate("window.__setItem=window.__setItem||Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new DOMException('full','QuotaExceededError')};void 0")
+@@ -41,7 +41,7 @@ def run_forms(page, check):
+     p.evaluate('window.__pickImg=pickImg;pickImg=callback=>{window.__photoReady=callback};void 0')
+     p.click('#ph');p.click('[data-pm=truck]');p.evaluate("window.__photoReady('data:image/jpeg;base64,AAAA');pickImg=window.__pickImg;void 0")
+     check('geç tamamlanan yük fotoğrafı araç taslağına yazılmaz',p.evaluate("postImg===''&&getPostDrafts().truck.image===''"))
+-    p.click('[data-pm=load]');p.click('#go');p.reload()
++    p.click('[data-pm=load]');p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go');p.reload()
+     check('geçerli kalemli yük kalıcı yayınlanır',p.evaluate("loads.some(l=>l.cargo==='Taslak yük'&&l.ton===.5&&l.items[0].q===2)"))
+     check('yayınlanan yük taslağı temizlenir',p.evaluate("!getPostDrafts().load"))
+     # Kaydetmeden geri çekme ve sahte başarı bildirimi oluşmamalı.
+@@ -72,6 +72,6 @@ def run_forms(page, check):
+     check('eski taslakta kaldırılmış seçenekler formu kilitlemez',p.evaluate("cities.includes(document.querySelector('#f').value)&&vehicles.includes(document.querySelector('#v').value)&&bodies.includes(document.querySelector('#b').value)&&document.querySelector('#d').value==='Eski gün'"))
+     check('eski taslağın geçerli metinleri korunur',p.input_value('#c')=='Korunan yük' and p.input_value('#n')=='Korunan açıklama')
+     p.click('#post-prev');p.fill('#d','   ');p.click('#post-next')
+-    p.click('#go');check('boş yükleme tarihi kullanıcı düzeltmeden yayınlanmaz',p.is_visible('#go') and p.evaluate("!loads.some(l=>l.cargo==='Korunan yük')"))
+-    p.click('#post-prev');p.fill('#d','Uygun olduğunda');p.click('#post-next');p.click('#go');check('serbest metinle düzeltilen taslak yayınlanabilir',p.evaluate("loads.some(l=>l.cargo==='Korunan yük'&&l.dateText==='Uygun olduğunda')&&tab==='list'"))
++    p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go');check('boş yükleme tarihi kullanıcı düzeltmeden yayınlanmaz',p.is_visible('#go') and p.evaluate("!loads.some(l=>l.cargo==='Korunan yük')"))
++    p.click('#post-prev');p.fill('#d','Uygun olduğunda');p.click('#post-next');p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go');check('serbest metinle düzeltilen taslak yayınlanabilir',p.evaluate("loads.some(l=>l.cargo==='Korunan yük'&&l.dateText==='Uygun olduğunda')&&tab==='list'"))
+     p.context.close()
+diff --git a/tests/reliability.py b/tests/reliability.py
+index 60f6d0b..def72a8 100644
+--- a/tests/reliability.py
++++ b/tests/reliability.py
+@@ -17,7 +17,7 @@ def run_reliability(browser, url, check, errors, root):
+     p=page()
+     p.click('[data-md=truck]')
+     payload='<img src="missing-test-image" onerror="window.__unsafe=1">'
+-    form(p,payload);p.fill('#n','<svg onload="window.__unsafe=2">');p.click('#go')
++    form(p,payload);p.fill('#n','<svg onload="window.__unsafe=2">');p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go')
+     check('yeni yük boş araç sekmesinden yük listesine döner',p.evaluate("tab==='list'&&mode==='load'&&loads[0].mine"))
+     check('gerçek formdan HTML kodu çalışmaz',p.evaluate("!window.__unsafe") and payload in p.inner_text('#main'))
+     own=p.evaluate('loads[0].id');p.locator('[data-id="'+str(own)+'"]').click()
+@@ -27,17 +27,16 @@ def run_reliability(browser, url, check, errors, root):
+     check('yeni ilanın zamanı ve yazılan yükleme metni kalıcıdır',p.evaluate("expected=>loads.find(l=>l.mine).ts>0&&loads.find(l=>l.mine).dateText===expected&&loads.find(l=>l.mine).date===''",datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y')))
+     check('30 gün sonra kullanıcı ilanı bugün sayılmaz ve kapanır',p.evaluate("(()=>{const now=Date.now;Date.now=()=>now()+30*864e5;try{const l=loads.find(l=>l.mine);return expired(l,'load')&&dateLabel(l)!=='Bugün'}finally{Date.now=now}})()"))
+     p.fill('#q','" autofocus onfocus="window.__unsafe=3');check('arama öznitelikleri güvenli',p.evaluate('!window.__unsafe'));p.fill('#q','')
+-    p.click('nav [data-t=me]');p.fill('#myph','05551234567');p.click('#phs2');p.click('nav [data-t=list]');p.locator('[data-id="'+str(own)+'"]').click();p.click('#call');p.click('#buy')
+-    p.locator('[data-id="'+str(own)+'"]').click();p.click('#call')
+-    check('telefon sonradan eklendiğinde eski ilana yansır','0555 123 45 67' in p.inner_text('#sheetBody'));p.click('#close')
++    p.click('nav [data-t=me]');p.fill('#myph','05551234567');p.click('#phs2');p.click('nav [data-t=list]')
++    check('profil telefonu izinli ilan telefonunu değiştirmez',p.evaluate("id=>phoneOf(loads.find(l=>l.id===id))==='+905321234567'",own))
+     form(p,'Depolama hata denemesi');p.fill('#n','Bu taslak korunmalı')
+     p.evaluate("()=>{window.__setItem=Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new DOMException('full','QuotaExceededError')}}")
+-    p.click('#go')
++    p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go')
+     check('dolu depolamada başarı mesajı çıkmaz ve form açık kalır',p.is_visible('#go') and 'Kaydedilemedi' in p.inner_text('#toast'))
+     check('kaydedilmeyen ilan bellekte yayınlanmış sayılmaz',p.evaluate("!loads.some(l=>l.cargo==='Depolama hata denemesi')"))
+     p.evaluate('()=>{Storage.prototype.setItem=window.__setItem}');p.reload();p.click('nav [data-t=post]')
+     check('başarısız yayından sonra taslak yenilemede korunur',p.input_value('#c')=='Depolama hata denemesi' and p.input_value('#n')=='Bu taslak korunmalı')
+-    p.click('#go');check('depolama düzeldikten sonra aynı taslak yayınlanır',p.evaluate("loads.some(l=>l.cargo==='Depolama hata denemesi')&&tab==='list'"))
++    p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go');check('depolama düzeldikten sonra aynı taslak yayınlanır',p.evaluate("loads.some(l=>l.cargo==='Depolama hata denemesi')&&tab==='list'"))
+     p.click('nav [data-t=me]');p.locator('summary').filter(has_text='Taşıyıcı belgeleri ve güven').click()
+     with p.expect_file_chooser() as chooser:p.click('[data-dp=src]')
+     chooser.value.set_files(os.path.join(root,'assets','brand','logo.png'))
+@@ -46,13 +45,13 @@ def run_reliability(browser, url, check, errors, root):
+     check('belge fotoğrafı yenilemeden sonra gerçekten bulunur',p.evaluate("imageDataOK(cdocs['local/src'])&&myCar.docs.src"))
+     p.evaluate("viewDoc('local','src')");p.wait_for_selector('#pi img');check('saklanan belge açılır',p.locator('#pi img').count()==1);p.click('#close')
+     p.click('nav [data-t=list]');p.evaluate("loads.find(l=>l.id===1).closed=true;openLoad(1)")
+-    check('kapalı ilan detayında iki yeni iletişim işlemi de kapalı',p.is_disabled('#call') and p.is_disabled('#mg') and 'Bu ilan kapalı' in p.inner_text('#sheetBody'));p.click('#close')
+-    p.evaluate("openLoad(2)");p.click('#mg');p.fill('#mi','Gönderilmemesi gereken mesaj');p.evaluate("loads.find(l=>l.id===2).closed=true")
+-    p.click('#ms');check('mesaj gönderilirken ilan durumu yeniden kontrol edilir',p.input_value('#mi')=='Gönderilmemesi gereken mesaj' and p.evaluate("!offers.some(o=>o.id===2)"));p.click('#close')
++    check('kapalı ilan detayı açılamaz',p.locator('#sheet.open').count()==0 and 'İlan bulunamadı' in p.inner_text('#toast'))
++    p.evaluate("openLoad(2);loads.find(l=>l.id===2).closed=true")
++    p.click('#wa');check('iletişim tıklamasında kapanan ilan yeniden kontrol edilir','süresi doldu' in p.inner_text('#toast') and p.evaluate("typeof openChat==='undefined'"));p.click('#close')
+     p.evaluate("loads.find(l=>l.id===3).ts=Date.now()-30*864e5;q='İstanbul';render()")
+     count=p.locator('.listing-count>span').first.inner_text().split()[0];p.click('#fb')
+     check('arama ve kapalı ilanlarla filtre sayacı listeye eşit',p.inner_text('#fs').startswith(count+' '));p.click('#fs');p.fill('#q','')
+-    p.evaluate("loads=[{id:91,from:'İstanbul',to:'Ankara',cargo:'Uzak',ton:2,veh:'Tır',date:'Bugün',km:450},{id:92,from:'Mersin',to:'Adana',cargo:'Yakın',ton:2,veh:'Tır',date:'Bugün'}];sort='km';render()")
++    p.evaluate("loads=[{id:91,ts:Date.now(),from:'İstanbul',to:'Ankara',cargo:'Uzak',ton:2,veh:'Tır',date:'Bugün',km:450},{id:92,ts:Date.now(),from:'Mersin',to:'Adana',cargo:'Yakın',ton:2,veh:'Tır',date:'Bugün'}];sort='km';render()")
+     check('yeni ilanın hesaplanan mesafesi sıralamada kullanılır',p.locator('.load[data-id]').first.get_attribute('data-id')=='92')
+     p.context.close()
+     for raw in ['{}','null','{invalid','[]',json.dumps({'loads':[],'offers':None,'trucks':[],'calc':'bad','chats':[]})]:
+diff --git a/tests/unit/app.test.js b/tests/unit/app.test.js
+index 82529d0..9bd1866 100644
+--- a/tests/unit/app.test.js
++++ b/tests/unit/app.test.js
+@@ -25,8 +25,8 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+   });
+ 
+   run("İlan süresi (TTL)", (r, ok) => {
+-    r("loads.unshift({id:901,from:'İzmir',to:'Bursa',cargo:'Eski',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-20*864e5});loads.unshift({id:902,from:'İzmir',to:'Bursa',cargo:'Yeni',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-2*864e5});mode='load';tab='list';F=F0();render()");
+-    const h = r("return main()"); ok(!h.includes('data-id="901"'), "14 günü geçen ilan gizli"); ok(h.includes('data-id="902"') && h.includes("2 gün önce"), "yeni ilan ve yaş");
++    r("loads.unshift({id:901,from:'İzmir',to:'Bursa',cargo:'Eski',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-20*864e5});loads.unshift({id:902,from:'İzmir',to:'Bursa',cargo:'Yeni',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-2*36e5});mode='load';tab='list';F=F0();render()");
++    const h = r("return main()"); ok(!h.includes('data-id="901"'), "altı saati geçen ilan gizli"); ok(h.includes('data-id="902"') && h.includes("dk kaldı"), "yeni ilan ve yaş");
+     ok(r("return offerExp({status:'wait',ots:Date.now()-4*864e5})") === true && r("return offerExp({status:'wait',ots:Date.now()-864e5})") === false, "teklif süresi");
+   });
+ 
+@@ -37,7 +37,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+ 
+   run("Sayfalama ve puan sıralaması", (r, ok) => {
+     const cards = h => (h.match(/class="load[ "]/g) || []).length;
+-    r("for(let i=0;i<30;i++)loads.push({id:2000+i,from:'İzmir',to:'Bursa',cargo:'T'+i,ton:3,veh:'Kamyon',price:9000+i,date:'Cuma'});mode='load';tab='list';F=F0();render()");
++    r("for(let i=0;i<30;i++)loads.push({ts:Date.now(),id:2000+i,from:'İzmir',to:'Bursa',cargo:'T'+i,ton:3,veh:'Kamyon',price:9000+i,date:'Cuma'});mode='load';tab='list';F=F0();render()");
+     let h = r("return main()"); ok(cards(h) === 20 && h.includes('id="more"'), "ilk 20 ilan ve daha fazla düğmesi (" + cards(h) + ")");
+     r("shown+=20;render()"); h = r("return main()"); ok(cards(h) === 40, "20 ilan daha (" + cards(h) + ")");
+     r("q='Zzz';render();q='';render()"); ok(r("return shown") === 20, "filtre değişince sıfırlanır");
+@@ -54,11 +54,9 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+     r("navigator.geolocation={getCurrentPosition:(s,e)=>e({code:1})};myPos=null;toggleNear()"); ok(r("return nearOn") === false, "izin reddedilirse açılmaz");
+   });
+ 
+-  run("İlan karşılaştırma", (r, ok) => {
+-    r("toggleCmp(1);toggleCmp(2);mode='load';tab='list';F=F0();render()");
+-    ok(r("return cmp.join()") === "1,2" && r("return main()").includes('id="cmpgo"'), "iki ilan seçilir, çubuk görünür");
+-    r("openCompare()"); const h = r("return sheet()"); ok(h.includes("İlanları karşılaştır") && h.includes('class="win"'), "tablo ve kazanan vurgusu");
+-    r("toggleCmp(3)"); ok(r("return cmp.join()") === "2,3", "üçüncü seçim en eskisini çıkarır");
++  run("İlan karşılaştırma kaldırıldı", (r,ok)=>{
++    ok(r("return typeof openCompare==='undefined'&&typeof toggleCmp==='undefined'"),"eski giriş noktaları yok");
++    r("tab='me';render()");ok(!r("return main()").includes('Karşılaştır'),"profilde karşılaştırma yok");
+   });
+ 
+   // ===== offers =====
+@@ -67,13 +65,13 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+     ok(r("return main()").includes("Yük sahibini puanla"), "puanlama düğmesi");
+     r("setCar({lic:'CE',src:true,kb:true,ruh:true})"); ok(r("return cOk(myCar)") === true, "belge tamam");
+     ok(r("return [lvT({approved:true}),lvT({verified:true}),lvT({})].join()") === "2,1,0", "rozet seviyeleri");
+-    r("F=F0();F.from='İstanbul';addAlert();loads.unshift({id:920,from:'İstanbul',to:'İzmir',cargo:'Y',ton:2,veh:'Kamyon',price:8000,date:'Bugün'})");
++    r("F=F0();F.from='İstanbul';addAlert();loads.unshift({ts:Date.now(),id:920,from:'İstanbul',to:'İzmir',cargo:'Y',ton:2,veh:'Kamyon',price:8000,date:'Bugün'})");
+     ok(r("return notifs().filter(x=>x.k.startsWith('a')&&!seen.has(x.k)).length") === 1, "alarm bildirimi");
+   });
+ 
+   // ===== safety =====
+   run("Şikayet, engelleme, yardım", (r, ok) => {
+-    r("loads.unshift({id:910,from:'İzmir',to:'Bursa',cargo:'X',ton:3,veh:'Kamyon',price:9000,date:'Cuma',uid:'bad'});mode='load';tab='list';F=F0();render()");
++    r("loads.unshift({ts:Date.now(),id:910,from:'İzmir',to:'Bursa',cargo:'X',ton:3,veh:'Kamyon',price:9000,date:'Cuma',uid:'bad'});mode='load';tab='list';F=F0();render()");
+     ok(r("return main()").includes('data-id="910"'), "engel öncesi görünür");
+     r("blockUser('bad')"); ok(!r("return main()").includes('data-id="910"'), "engellenen kullanıcının ilanı gizli");
+     r("openReport('l',910)"); ok(r("return sheet()").includes("Şikayet et"), "şikayet ekranı");
+@@ -120,13 +118,11 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+   });
+ 
+   // ===== premium =====
+-  run("Premium ve arama", (r, ok) => {
++  run("Demo Premium ve profil telefonu", (r, ok) => {
+     ok(r("return isPrem()") === false, "başta üye değil");
+-    r("callTo(phoneOf(loads[0]))"); ok(r("return sheet()").includes("NakGo Premium"), "paywall açılır");
++    r("openPaywall('')"); ok(r("return sheet()").includes("NakGo Premium"), "demo üyelik ekranı açılır");
+     ok(/299/.test(r("return sheet()")) && /3\.099/.test(r("return sheet()")), "iki plan");
+     r("el('#buy').onclick()"); ok(r("return isPrem()") === true, "satın alma (test)");
+-    r("callTo(phoneOf(loads[0]))"); ok(r("return sheet()").includes("Örnek telefon")&&!r("return sheet()").includes("tel:"), "demo numarası aranmaz");
+-    r("callTo('0555 123 45 67')"); ok(r("return sheet()").includes("tel:05551234567"), "gerçek numara için arama ekranı");
+     r("el('#myph').value='0532 111 22 33';savePhone()"); ok(r("return myCar.phone") === "0532 111 22 33", "geçerli numara");
+     r("el('#myph').value='123';savePhone()"); ok(r("return myCar.phone") === "0532 111 22 33", "geçersiz numara reddedilir");
+   });
+@@ -136,7 +132,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+     ok(r("return [3,6,12,24,72].map(h=>featPrice('t',h)).join()") === "19,32,61,99,267", "sabit fiyat listesi (boş araç)");
+     ok(!/hourMult|FEAT\.peak|FEAT\.low/.test(html), "saat çarpanı kodu kalmadı");
+     ok(r("const a=featPrice('l',6);return a")===32 && r("return featPrice('l',24)")===99, "fiyat saatten bağımsız");
+-    r("loads.unshift({id:800,from:'İzmir',to:'Bursa',cargo:'Öne',ton:3,veh:'Kamyon',price:9000,date:'Cuma',mine:true});trucks.unshift({id:'t900',from:'İzmir',to:'Ankara',veh:'Tır',cap:10,body:'Tenteli',date:'Yarın',mine:true,rate:'Yeni'})");
++    r("loads.unshift({ts:Date.now(),id:800,from:'İzmir',to:'Bursa',cargo:'Öne',ton:3,veh:'Kamyon',price:9000,date:'Cuma',mine:true});trucks.unshift({ts:Date.now(),id:'t900',from:'İzmir',to:'Ankara',veh:'Tır',cap:10,body:'Tenteli',date:'Yarın',mine:true,rate:'Yeni'})");
+     r("openFeature('l',800)"); let h = r("return sheet()"); ok(h.includes("İlanını öne çıkar") && h.includes("3 gün") && !h.includes("Yoğun"), "yük için fiyat ekranı, saat çubuğu yok");
+     r("el('#fbuy').onclick()"); ok(r("return isF(findIt('l',800))") === true && r("return findIt('l',800).featPaid") === 32, "yük öne çıkar, 6 saat 32 ₺");
+     r("openFeature('t','t900')"); h = r("return sheet()"); ok(h.includes("Boş araç ilanını öne çıkar"), "boş araç için fiyat ekranı");
+diff --git a/tests/unit/contact.test.js b/tests/unit/contact.test.js
+index 3709fec..eb19f81 100644
+--- a/tests/unit/contact.test.js
++++ b/tests/unit/contact.test.js
+@@ -11,7 +11,7 @@ module.exports = function register({run}) {
+     r("offers=[{...loads[0],offer:28500,counter:30000,status:'counter',loadId:1,bidder:'',stage:0},{...loads[1],offer:14000,status:'ok',loadId:2,bidder:'',stage:2}];save();tab='mine';render()");
+     const h=r("return main()");ok(!/28.500|30.000|14.000|Fotoğraf|Teslim ettim/.test(h),"eski fiyat ve teslim aşamaları ekranda yok");
+     ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].counter")===30000,"eski veriler silinmez");
+-    r("tab='me';render();openInbox()");ok(r("return sheet()").includes('data-conv="0"'),"eski görüşmeye profil üzerinden erişilir");
++    r("tab='me';render()");ok(r("return typeof openInbox==='undefined'")&&!r("return main()").includes('profile-messages'),"mesajlaşma giriş noktası kaldırıldı; iş geçmişi korunur");
+   });
+   run("Profil kullanıcı verileri güvenli ve kalıcı",(r,ok)=>{
+     r("setCar({displayName:'<firma>',city:'Ankara',about:'<script>alert(1)</script>'});tab='me';render()");
+diff --git a/tests/unit/form-state.test.js b/tests/unit/form-state.test.js
+index fa4988d..27d7176 100644
+--- a/tests/unit/form-state.test.js
++++ b/tests/unit/form-state.test.js
+@@ -26,7 +26,7 @@ module.exports = ({run,test,boot}) => {
+     ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].stage")===3,"onay kalıcı");
+   });
+   run("Yük ve araç formu ortak kurallarla doğrulanır",(r,ok)=>{
+-    r("loads[0]={id:1,from:'İstanbul',to:'Ankara',cargo:'Palet',ton:.5,cap:.5,veh:vehicles[0],body:bodies[0],date:'Bugün'}");
++    r("loads[0]={phone:'05321234567',contactConsent:true,id:1,from:'İstanbul',to:'Ankara',cargo:'Palet',ton:.5,cap:.5,veh:vehicles[0],body:bodies[0],date:'Bugün'}");
+     ok(r("return postError(loads[0])")==="","ondalıklı pozitif tonaj geçerli");
+     for(const value of ["0","-1","Infinity","NaN","1e308"])
+       ok(r("return !!postError({...loads[0],ton:"+value+"})"),"geçersiz tonaj "+value);
+@@ -38,9 +38,9 @@ module.exports = ({run,test,boot}) => {
+     ok(r("return normalizeListing({...loads[0],items:[{n:'Koli',q:Infinity,u:'adet'}]}).items[0].q")===0,"eski sonsuz miktar güvenle düzeltilir");
+   });
+   run("Haftalık ilan tarihini koruma ve yeniden açma",(r,ok)=>{
+-    r("loads[0]={...loads[0],mine:true,date:localDay(),dateEnd:dateFields('Bu hafta').dateEnd,closed:true};openEdit('l',loads[0].id,true);el('#ed').value=loads[0].date;el('#en').value='Yeni not';el('#es').onclick()");
++    r("loads[0]={...loads[0],mine:true,date:localDay(),dateEnd:dateFields('Bu hafta').dateEnd,closed:true};openEdit('l',loads[0].id,true);el('#ed').value=loads[0].date;el('#en').value='Yeni not';el('#edit-phone').value='05321234567';el('#edit-consent').checked=true;el('#es').onclick()");
+     ok(r("return !loads[0].closed&&loads[0].dateEnd===dateFields('Bu hafta').dateEnd"),"aynı hafta aralığı korunur");
+-    r("openEdit('l',loads[0].id);el('#ed').value='Yarın';el('#en').value='Yeni gün';el('#es').onclick()");
++    r("openEdit('l',loads[0].id);el('#ed').value='Yarın';el('#en').value='Yeni gün';el('#edit-phone').value='05321234567';el('#es').onclick()");
+     ok(r("return loads[0].date===dateFields('Yarın').date&&!loads[0].dateEnd"),"tek gün seçimi eski hafta sonunu kaldırır");
+     r("loads[0].closed=true;loads[0].date='2020-01-01';save();openEdit('l',loads[0].id,true);el('#ed').value='2020-01-01';el('#es').onclick()");
+     ok(r("return loads[0].closed"),"eski tarihle yeniden açılmaz");
+diff --git a/tests/unit/listing-clock-skew.test.js b/tests/unit/listing-clock-skew.test.js
+new file mode 100644
+index 0000000..0ca245d
+--- /dev/null
++++ b/tests/unit/listing-clock-skew.test.js
+@@ -0,0 +1,7 @@
++module.exports=({run})=>{
++ run('İlan süresi saat farkında 360 dakikayı aşmaz',(r,ok)=>{
++  ok(r("return listingRemaining({expiresAt:Date.now()+6*36e5+30000})")==='360 dk kaldı','server clock slightly ahead');
++  ok(r("return listingRemaining({expiresAt:Date.now()+60000})")==='1 dk kaldı','one minute remains');
++  ok(r("return listingRemaining({expiresAt:Date.now()})")==='Süresi doldu','exact expiry');
++ });
++};
+diff --git a/tests/unit/listing-lifecycle.test.js b/tests/unit/listing-lifecycle.test.js
+new file mode 100644
+index 0000000..31f2baa
+--- /dev/null
++++ b/tests/unit/listing-lifecycle.test.js
+@@ -0,0 +1,28 @@
++/* Six-hour listings, consented contact and removed public identity / messaging. */
++module.exports=({run})=>{
++ run('Telefon zorunlu, izinli ve Türkiye biçiminde',(r,ok)=>{
++  for(const value of ['0532 123 45 67','+90 (532) 123-45-67','00905321234567','5321234567','905321234567'])ok(r('return normalizeListingPhone('+JSON.stringify(value)+')')==='+905321234567','mobile: '+value);
++  ok(r("return normalizeListingPhone('0212 123 45 67')")==='+902121234567','geographic number');
++  for(const value of ['','+44 7700 900123','123','05321234567 dahili 1','5555555555','+905321234567<script>'])ok(r('return !normalizeListingPhone('+JSON.stringify(value)+')'),'reject invalid: '+value);
++  r("window.draft={from:'İstanbul',to:'Ankara',veh:'Tır',body:'Tenteli',ton:10,cargo:'Palet',dateText:'bugün',phone:'05321234567',contactConsent:true}");
++  ok(r("return postError(window.draft)===''"),'phone-only contact, no name required');
++  ok(r("return !!postError({...window.draft,phone:''})&&!!postError({...window.draft,contactConsent:false})"),'missing phone or consent cannot publish');
++  ok(r("return postError({...window.draft,phone:'',contactConsent:false},false,1)===''"),'notes step remains accessible');
++ },{win:{}});
++ run('Altı saat sınırı yükleme metninden bağımsız',(r,ok)=>{
++  ok(r("const now=Date.now();return !expired({ts:now-6*36e5+1000})&&expired({ts:now-6*36e5})&&expired({ts:now-6*36e5-1000})"),'boundary before/equal/after');
++  ok(r("return expired({ts:Date.now(),expiresAt:Date.now()-1})"),'server expiry overrides local creation');
++  ok(r("return !expired({ts:Date.now(),dateText:'istediğim zaman'})"),'free loading text preserved');
++  r("loads[0].owner='Hidden owner';loads[0].phone='05321234567';loads[0].expiresAt=Date.now()+3600000;tab='list';render();openLoad(loads[0].id)");
++  ok(!r('return main()+sheet()').includes('Hidden owner'),'public card and detail hide owner');
++  ok(r("return main().includes('dk kaldı')&&sheet().includes('id=\"wa\"')&&sheet().includes('id=\"call\"')"),'remaining time and contact actions');
++  r("loads[0].expiresAt=Date.now()-1;render()");ok(!r('return main()').includes('data-id="1"'),'expired listing removed from list');
++ });
++ run('Ara ve WhatsApp aynı izinli numaraya gider',async(r,ok)=>{
++  r("loads[0].phone='0532 123 45 67';openLoad(loads[0].id)");
++  await r("return el('#call').onclick()");ok(r('return window.location.href')==='tel:+905321234567','call normalized');
++  await r("return el('#wa').onclick()");ok(r('return window.location.href')==='https://wa.me/905321234567','WhatsApp same number');
++  r("window.location.href='unchanged';loads[0].expiresAt=Date.now()-1");await r("return el('#wa').onclick()");ok(r('return window.location.href')==='unchanged','expired contact cannot navigate');
++  ok(r("return typeof openInbox==='undefined'&&typeof openChat==='undefined'&&typeof openCompare==='undefined'&&typeof nakgoAuth.sendMessage==='undefined'"),'retired UI and API absent');
++ },{win:{location:{href:''}}});
++};
+diff --git a/tests/unit/listing-refresh.test.js b/tests/unit/listing-refresh.test.js
+index 424679a..41df8a9 100644
+--- a/tests/unit/listing-refresh.test.js
++++ b/tests/unit/listing-refresh.test.js
+@@ -28,14 +28,14 @@ module.exports = function register({ run }) {
+     ok(h.indexOf('route-search') < h.indexOf('class="seg"') && h.indexOf('market-stats') > h.indexOf('data-id="1"'), "arama başta, istatistik ilanlardan sonra");
+     ok(!h.includes('id="fuel-home"') && h.includes('Demo modu'), "ilanlarda mazot kısayolu yok, demo açıklaması görünür");
+     ok(card.includes('Bugün') && !card.includes('Acil'), "Bugün ayrı aciliyet verisi olmadan Acil olmaz");
+-    ok(!card.includes("Taşıma ücreti") && card.includes("Ara veya mesajlaş"), "fiyat yerine iletişim vurgusu gelir");
++    ok(!card.includes("Taşıma ücreti") && card.includes("Ara veya WhatsApp"), "fiyat yerine iletişim vurgusu gelir");
+     r("cloud=true;render()");
+     ok(!r("return main()").includes('Demo modu'), "bulut modunda demo açıklaması görünmez");
+   });
+   run("Detaydan tutarsız taşıma talebi ve kalıcılık", (r,ok)=>{
+     r("openLoad(1)");const h=r("return sheet()");
+-    ok(['Yük bilgileri','Taşıma bilgileri','Yük sahibi','Tahmini mesafe'].every(t=>h.includes(t)), "bilgi grupları korunur");
+-    ok(h.includes('dual-contact')&&['sh','call','pf','cp2','rp','close','mg'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
++    ok(['Yük bilgileri','Taşıma bilgileri','Tahmini mesafe'].every(t=>h.includes(t)), "bilgi grupları korunur");
++    ok(h.includes('dual-contact')&&['sh','call','wa','rp','close'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
+     ok(!h.includes('id="send"')&&!h.includes('id="cc"'), 'ilan detayında talep düğmesi ve mazot hesabı yok');
+     r("requestLoad(loads.find(x=>x.id===1));tab='mine';render()");
+     ok(r("return offers[0].offer===0&&offers[0].loadId===1&&offers[0].status==='wait'"), "talep tutarsız kaydedilir");
+diff --git a/tests/unit/listing-session.test.js b/tests/unit/listing-session.test.js
+index 9eaac06..f8fc2cd 100644
+--- a/tests/unit/listing-session.test.js
++++ b/tests/unit/listing-session.test.js
+@@ -22,7 +22,9 @@ module.exports=({run})=>{
+   await r('return nakgoMarket.update("l",800,{date:loads[0].date,note:"Edited"});');
+   ok(r('return window.lastPatch.available_until')===end,'unchanged weekly date keeps its end');
+   await r('return nakgoMarket.update("l",800,{closed:true});');
+-  ok(r('return loads[0].closed'),'close uses persisted server state');
++  ok(r('return loads.length===0'),'closed row and private content leave the user cache');
++  let hidden=false;try{await r('return nakgoMarket.update("l",800,{archived:true});');}catch{hidden=true;}ok(hidden,'hidden closed row cannot be edited again from cache');
++  await r('return nakgoMarket.create({from:"İstanbul",to:"Ankara",veh:"Tır",body:"Tenteli",ton:22,cargo:"Test",date:"Bu hafta"});');
+   await r('return nakgoMarket.update("l",800,{archived:true});');
+   ok(r('return loads.length===0'),'archived row leaves list');
+   r('nakgoAuth.createListing=async()=>{throw Error("offline");};');
+diff --git a/tests/unit/listings-api.test.js b/tests/unit/listings-api.test.js
+index 8aa520e..5da8604 100644
+--- a/tests/unit/listings-api.test.js
++++ b/tests/unit/listings-api.test.js
+@@ -2,19 +2,24 @@ module.exports=({test,fs,path,ROOT})=>{
+  test('Supabase listings adapter excludes private fields and rejects stale sessions',async()=>{
+   const vm=require('node:vm'),out=[],ok=(v,m)=>out.push([!!v,m]);
+   let callback,call,error=null,finish=null,delay=false;
+-  const sdk={auth:{onAuthStateChange(cb){callback=cb;},async getSession(){return {data:{session:{}},error:null};},async getUser(){return {data:{user:{id:'account-a',email:'test@example.test'}},error:null};}},from(table){
++  const sdk={async rpc(name,args){call={rpc:name,args};const result={error,data:{id:args.p_id,status:args.p_status}};if(delay)return new Promise(resolve=>{finish=()=>resolve(result);});return result;},auth:{onAuthStateChange(cb){callback=cb;},async getSession(){return {data:{session:{}},error:null};},async getUser(){return {data:{user:{id:'account-a',email:'test@example.test'}},error:null};}},from(table){
+    const request={table,filters:[]};call=request;
+    const result=()=>({error,data:table==='profiles'?{id:'account-a',display_name:'Account A'}:request.mode==='read'?[{id:1}]:{id:1,...request.values}});
+-   const q={select(){return q;},order(k,v){request.order=[k,v];return q;},limit(n){request.limit=n;return q;},eq(k,v){request.filters.push([k,v]);return q;},lt(k,v){request.before=[k,v];return q;},insert(v){request.mode='insert';request.values=v;return q;},update(v){request.mode='update';request.values=v;return q;},async maybeSingle(){return result();},async single(){if(delay)return new Promise(resolve=>{finish=()=>resolve(result());});return result();},then(resolve,reject){request.mode='read';return Promise.resolve(result()).then(resolve,reject);}};return q;
++   const q={select(columns){request.columns=columns;return q;},order(k,v){request.order=[k,v];return q;},limit(n){request.limit=n;return q;},eq(k,v){request.filters.push([k,v]);return q;},gt(k,v){request.filters.push([k,v]);return q;},lt(k,v){request.before=[k,v];return q;},insert(v){request.mode='insert';request.values=v;return q;},update(v){request.mode='update';request.values=v;return q;},async maybeSingle(){return result();},async single(){if(delay)return new Promise(resolve=>{finish=()=>resolve(result());});return result();},then(resolve,reject){request.mode='read';return Promise.resolve(result()).then(resolve,reject);}};return q;
+   }};
+   const ctx={URL,AbortSignal,setTimeout,clearTimeout,tab:'list',render(){},location:{href:'https://preview.example/',origin:'https://preview.example'},localStorage:{getItem:()=>null},sessionStorage:{getItem:()=>null,removeItem(){}},document:{createElement:()=>({remove(){}}),head:{appendChild:s=>queueMicrotask(()=>s.onload())}},window:{fetch:async()=>({ok:true,json:async()=>({enabled:true,url:'https://abcdefghijklmnopqrst.supabase.co',publishableKey:'sb_publishable_abcdefghijklmnopqrst'})}),supabase:{createClient:()=>sdk}}};
+   vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8')+';this.auth=nakgoAuth;',ctx);await ctx.auth.init();
+   await ctx.auth.createListing({kind:'load',from_city:'Ankara',to_city:'İzmir',amount:12,owner_id:'attacker',phone:'05555555555',premium:true,created_at:'forged',status:'archived'});
+-  ok(call.values.owner_label==='Account A'&&!('owner_id' in call.values)&&!('phone' in call.values)&&!('premium' in call.values)&&!('created_at' in call.values)&&!('status' in call.values),'creation keeps identity and private fields server-owned');
+-  await ctx.auth.updateListing(1,{note:'Updated',owner_id:'b',kind:'truck',status:'closed'});
+-  ok(JSON.stringify(call.values)==='{"note":"Updated","status":"closed"}'&&JSON.stringify(call.filters)==='[["id",1],["owner_id","account-a"]]','update is explicitly scoped and whitelisted');
++  const safeProjection=()=>!!call.columns&&!/\*|phone|owner_label/.test(call.columns);
++  ok(!('owner_label' in call.values)&&!('owner_id' in call.values)&&!('phone' in call.values)&&!('premium' in call.values)&&!('created_at' in call.values)&&!('status' in call.values)&&safeProjection(),'creation keeps private fields out of the response');
++  await ctx.auth.updateListing(1,{note:'Updated',owner_id:'b',kind:'truck'});
++  ok(JSON.stringify(call.values)==='{"note":"Updated"}'&&JSON.stringify(call.filters)==='[["id",1],["owner_id","account-a"]]'&&safeProjection(),'update is owner-scoped and returns no private fields');
++  await ctx.auth.updateListing(1,{status:'closed'});ok(call.rpc==='nakgo_close_listing'&&call.args.p_id===1&&call.args.p_status==='closed','closing uses scoped server action without archive content');
++  let mixed=false;try{await ctx.auth.updateListing(1,{status:'closed',note:'mixed'});}catch{mixed=true;}ok(mixed,'mixed close/edit rejected instead of discarding fields');
+   await ctx.auth.listListings({own:true,before:50});
+-  ok(call.limit===50&&JSON.stringify(call.before)==='["id",50]'&&call.filters[0][1]==='account-a','bounded own listings pagination');
++  const safeOwnerPage=safeProjection()&&call.limit===50&&JSON.stringify(call.before)==='["id",50]'&&call.filters[0][1]==='account-a';
++  await ctx.auth.listListings();
++  ok(safeOwnerPage&&safeProjection()&&call.filters.some(([key,value])=>key==='status'&&value==='active'),'own and public pages return no phone');
+   let denied=false;try{await ctx.auth.updateListing(-1,{note:'x'});}catch{denied=true;}ok(denied,'invalid identifiers rejected');
+   error={code:'network'};denied=false;try{await ctx.auth.createListing({kind:'truck'});}catch{denied=true;}ok(denied,'write failure propagates instead of false success');
+   error=null;delay=true;const pending=ctx.auth.updateListing(1,{status:'closed'});callback('SIGNED_OUT');finish();denied=false;try{await pending;}catch{denied=true;}ok(denied,'late result cannot cross sign-out');
+diff --git a/tests/unit/message-resilience.test.js b/tests/unit/message-resilience.test.js
+index 58702f6..4737142 100644
+--- a/tests/unit/message-resilience.test.js
++++ b/tests/unit/message-resilience.test.js
+@@ -1,62 +1,15 @@
+-module.exports=({run,test,boot})=>{
+- const setup='nakgoMarket.sync({marketplace:true,user:{id:"a"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"a"},profile:{display_name:"A"}});nakgoAuth.unreadMessages=async()=>0;nakgoAuth.readConversation=async()=>1;window.crypto={randomUUID:()=>"00000000-0000-4000-8000-000000000001"};';
+- const convo='({id:7,owner_id:"owner",guest_id:"a",owner_label:"Owner",guest_label:"A",from_city:"İstanbul",to_city:"Ankara"})';
+- const settle=async r=>{for(let i=0;i<8;i++)await r('return Promise.resolve()');};
+- const storage=()=>{const data=new Map();return {getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,String(v)),removeItem:k=>data.delete(k)};};
+- run('Read receipts require visible latest messages and are not rewritten on every poll',async(r,ok)=>{
+-  r(setup+'window.reads=[];nakgoAuth.readConversation=async(id,through)=>window.reads.push(through);nakgoAuth.listMessages=async()=>[{id:20,body:"New",sender_id:"owner"}];document.visibilityState="visible";el("#msgs").clientHeight=100;el("#msgs").scrollHeight=1000;el("#msgs").scrollTop=50;nakgoMessages.openConversation('+convo+');');await settle(r);
+-  ok(r('return window.reads.length===0'),'reading older history does not mark the unseen latest message read');
+-  r('el("#msgs").scrollTop=900;');await r('return nakgoMessages.acknowledge()');await r('return nakgoMessages.acknowledge()');
+-  ok(r('return JSON.stringify(window.reads)==="[20]"'),'bottom visibility acknowledges once and repeated calls do not write');
+-  r('document.visibilityState="hidden";nakgoAuth.listMessages=async()=>[{id:21,body:"Another",sender_id:"owner"},{id:20,body:"New",sender_id:"owner"}];');await r('return nakgoMessages.refreshMessages()');
+-  ok(r('return window.reads.length===1'),'background tab does not acknowledge a new message');
+-  r('document.visibilityState="visible";');await r('return nakgoMessages.acknowledge()');ok(r('return JSON.stringify(window.reads)==="[20,21]"'),'returning to visible latest messages advances the boundary');
++/* Account transitions must not reactivate the retired private message module. */
++module.exports=({run,test,fs,path,ROOT})=>{
++ run('Account switching clears old account data without restoring message UI',(r,ok)=>{
++  r('nakgoMarket.sync({marketplace:true,user:{id:"account-a"},profile:null});chats={a:[{t:"PRIVATE-ACCOUNT-A"}]};');
++  r('nakgoMarket.sync({marketplace:true,user:{id:"account-b"},profile:null});tab="me";render();');
++  ok(r('return Object.keys(chats).length===0'),'previous account history cleared');
++  ok(!r('return main()').includes('PRIVATE-ACCOUNT-A'),'previous account text cannot render');
++  r('nakgoMarket.sync({marketplace:true,user:null,profile:null});');
++  ok(r('return typeof nakgoMessages==="undefined"&&typeof paintAccountMessages==="undefined"'),'sign out cannot restore a polling module');
+  },{win:{}});
+- test('Ambiguous send retry survives conversation changes and a page reload with the same nonce',async()=>{
+-  const out=[],ok=(v,m)=>out.push([!!v,m]),win={sessionStorage:storage()},r=boot({win});
+-  r(setup+'nakgoAuth.listMessages=async()=>[];nakgoMessages.openConversation('+convo+');');await settle(r);
+-  const server=new Map();let attempts=[];
+-  win.send=async(id,body,nonce)=>{attempts.push(nonce);if(!server.has(nonce))server.set(nonce,{id:50,conversation_id:id,body,client_nonce:nonce,sender_id:'a'});throw Error('Reply lost after commit');};
+-  r('nakgoAuth.sendMessage=(...args)=>window.send(...args);');try{await r('return nakgoMessages.send("Persisted draft")');}catch{}
+-  r('closeSheet();nakgoMessages.openInbox();nakgoMessages.openConversation('+convo+');');await settle(r);
+-  ok(r('return nakgoMessages.state().draft==="Persisted draft"'),'leaving and reopening a conversation preserves the pending draft');
+-  const next=boot({win});next(setup+'nakgoAuth.listMessages=async()=>[];nakgoMessages.openConversation('+convo+');');await settle(next);
+-  ok(next('return nakgoMessages.state().draft==="Persisted draft"'),'same-account page reload restores only its session draft');
+-  win.send=async(id,body,nonce)=>{attempts.push(nonce);return server.get(nonce);};next('nakgoAuth.sendMessage=(...args)=>window.send(...args);');await next('return nakgoMessages.send("Persisted draft")');
+-  ok(server.size===1&&attempts[0]===attempts[1],'explicit retry after reload uses the original nonce and cannot duplicate the committed row');
+-  ok(next('return nakgoMessages.state().draft===""'),'confirmed success clears the draft journal');
+-  return out;
++ test('The production bundle cannot load the retired inbox source',()=>{
++  const sources=require(path.join(ROOT,'tools/project.js')).js;
++  return [[!sources.includes('src/js/screens/inbox.js'),'retired inbox is outside the source loading graph'],[!fs.existsSync(path.join(ROOT,'src/js/screens/inbox.js')),'no legacy inbox entry to serve']];
+  });
+- run('Failed draft storage prevents sending and account changes clear private draft state',async(r,ok)=>{
+-  r(setup+'nakgoAuth.listMessages=async()=>[];nakgoMessages.openConversation('+convo+');');await settle(r);
+-  r('window.writes=0;window.sessionStorage={getItem:()=>null,setItem:()=>{throw Error("quota");},removeItem(){}};nakgoAuth.sendMessage=async()=>{window.writes++;};');
+-  let failed=false;try{await r('return nakgoMessages.send("Do not lose me")');}catch{failed=true;}
+-  ok(failed&&r('return window.writes===0&&nakgoMessages.state().draft==="Do not lose me"&&!!nakgoMessages.state().sendError'),'storage failure keeps the text and issues no ambiguous network write');
+-  r('nakgoMarket.sync({marketplace:true,user:{id:"b"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"b"},profile:{}});');ok(r('return !nakgoMessages.state().current&&nakgoMessages.state().draft===""'),'private draft never enters the next account');
+- },{win:{}});
+- test('Polling backs off after failures and cannot restart after closing a pending read',async()=>{
+-  const out=[],ok=(v,m)=>out.push([!!v,m]),tasks=new Map();let seq=0;
+-  const win={setTimeout:(fn,ms)=>{tasks.set(++seq,{fn,ms});return seq;},clearTimeout:id=>tasks.delete(id)},r=boot({win});
+-  r(setup+'nakgoAuth.listMessages=async()=>[];nakgoMessages.openConversation('+convo+');');await settle(r);
+-  const take=()=>{const [id,t]=[...tasks][0];tasks.delete(id);return t;};
+-  ok([...tasks.values()][0].ms===8000,'healthy visible conversation polls at the normal interval');
+-  r('nakgoAuth.listMessages=async()=>{throw Error("offline");};');await take().fn();ok([...tasks.values()][0].ms===16000,'first failure backs off');
+-  await take().fn();ok([...tasks.values()][0].ms===32000,'continued failure increases the delay');
+-  r('nakgoAuth.listMessages=()=>new Promise(done=>window.finishRead=done);');const running=take().fn();r('closeSheet();window.finishRead([]);');await running;
+-  ok(tasks.size===0,'completion of an old request cannot resurrect a closed polling loop');return out;
+- });
+- run('History rendering preserves scroll position and does not rebuild unchanged message nodes',async(r,ok)=>{
+-  r(setup+'nakgoAuth.listMessages=async()=>[{id:20,body:"Latest",sender_id:"owner"}];nakgoMessages.openConversation('+convo+');');await settle(r);
+-  r('el("#msgs").clientHeight=100;el("#msgs").scrollHeight=1000;el("#msgs").scrollTop=70;el("#msgs").innerHTML="selection sentinel";paintAccountMessages();');
+-  ok(r('return el("#msgs").innerHTML==="selection sentinel"&&el("#msgs").scrollTop===70'),'unchanged polls retain DOM selection and scroll anchor');
+-  r('nakgoAuth.listMessages=async()=>[{id:21,body:"Arrived",sender_id:"owner"},{id:20,body:"Latest",sender_id:"owner"}];');await r('return nakgoMessages.refreshMessages()');ok(r('return el("#msgs").scrollTop===70'),'new arrivals do not move a user reading older messages');
+- },{win:{}});
+- test('A previous inbox failure does not slow a healthy conversation',async()=>{
+-  const out=[],tasks=new Map();let seq=0;const win={setTimeout:(fn,ms)=>{tasks.set(++seq,{fn,ms});return seq;},clearTimeout:id=>tasks.delete(id)},r=boot({win});
+-  r(setup+'nakgoAuth.listConversations=async()=>{throw Error("inbox offline");};nakgoMessages.openInbox();');await settle(r);
+-  r('nakgoAuth.listMessages=async()=>[];nakgoMessages.openConversation('+convo+');');await settle(r);
+-  const [id,t]=[...tasks][0];tasks.delete(id);await t.fn();
+-  out.push([[...tasks.values()][0].ms===8000,'healthy conversation keeps normal polling despite a prior inbox error']);return out;
+- });
+-
+ };
+diff --git a/tests/unit/messages-api.test.js b/tests/unit/messages-api.test.js
+index 8b1cd07..87ce254 100644
+--- a/tests/unit/messages-api.test.js
++++ b/tests/unit/messages-api.test.js
+@@ -1,22 +1,10 @@
+-module.exports=({test,fs,path,ROOT})=>{
+- test('Private message API keeps identity server-derived and bounds every page',async()=>{
+-  const vm=require('node:vm'),out=[],ok=(v,m)=>out.push([!!v,m]);let event,call,fail=false,delay=false,finish;
+-  const sdk={auth:{onAuthStateChange(cb){event=cb;},async getSession(){return {data:{session:{}},error:null};},async getUser(){return {data:{user:{id:'a'}},error:null};}},from(table){
+-   call={table,filters:[],orders:[]};const req=call;const result=()=>({error:fail?Error('offline'):null,data:table==='profiles'?{id:'a',display_name:'A'}:[]});
+-   const q={select(columns){req.columns=columns;return q;},eq(k,v){req.filters.push([k,v]);return q;},lt(k,v){req.before=[k,v];return q;},or(v){req.cursor=v;return q;},order(k,v){req.orders.push([k,v]);return q;},limit(n){req.limit=n;return q;},async maybeSingle(){return result();},then(resolve,reject){return Promise.resolve(result()).then(resolve,reject);}};return q;
+-  },async rpc(name,args){call={name,args};const result=()=>({error:fail?Error('offline'):null,data:name==='nakgo_message_unread_count'?2:{id:7}});if(delay)return new Promise(done=>finish=()=>done(result()));return result();}};
+-  const ctx={URL,AbortSignal,setTimeout,clearTimeout,tab:'list',render(){},location:{href:'https://preview.example/',origin:'https://preview.example'},localStorage:{getItem:()=>null},sessionStorage:{getItem:()=>null,removeItem(){}},document:{createElement:()=>({remove(){}}),head:{appendChild:s=>queueMicrotask(()=>s.onload())}},window:{fetch:async()=>({ok:true,json:async()=>({enabled:true,url:'https://abcdefghijklmnopqrst.supabase.co',publishableKey:'sb_publishable_abcdefghijklmnopqrst'})}),supabase:{createClient:()=>sdk}}};
+-  vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8')+';this.auth=nakgoAuth;',ctx);await ctx.auth.init();
+-  await ctx.auth.listConversations({activity:100,id:9});ok(call.table==='message_inbox'&&call.limit===50&&call.cursor==='last_message_id.lt.100,and(last_message_id.eq.100,id.lt.9)','inbox uses stable compound cursor and bounded private view');
+-  ok(!call.columns.includes('phone')&&!call.columns.includes('email'),'private contacts are absent');
+-  await ctx.auth.listMessages(7,40);ok(call.table==='conversation_messages'&&call.limit===50&&JSON.stringify(call.filters)==='[["conversation_id",7]]'&&JSON.stringify(call.before)==='["id",40]','history pages are conversation scoped');
+-  await ctx.auth.openConversation(16);ok(JSON.stringify(call)==='{"name":"nakgo_open_conversation","args":{"p_listing_id":16}}','client never submits participant IDs or labels');
+-  const nonce='00000000-0000-4000-8000-000000000001';await ctx.auth.sendMessage(7,' Hello ',nonce);ok(JSON.stringify(call.args)==='{"p_conversation_id":7,"p_body":"Hello","p_client_nonce":"'+nonce+'"}','explicit trimmed body and idempotency nonce');
+-  await ctx.auth.readConversation(7,40);ok(call.name==='nakgo_read_conversation'&&call.args.p_through_id===40,'read marker uses observed message boundary');
+-  ok(await ctx.auth.unreadMessages()===2,'unread summary is server scoped');
+-  let rejected=0;for(const f of [()=>ctx.auth.listConversations({activity:'1,unsafe',id:9}),()=>ctx.auth.sendMessage(7,'',nonce),()=>ctx.auth.sendMessage(7,'x'.repeat(501),nonce),()=>ctx.auth.sendMessage(7,'Hello','invalid'),()=>ctx.auth.listMessages(0),()=>ctx.auth.readConversation(7,0)])try{await f();}catch{rejected++;}ok(rejected===6,'invalid cursors, bodies and IDs fail before requests');
+-  fail=true;let denied=false;try{await ctx.auth.sendMessage(7,'Hi',nonce);}catch{denied=true;}ok(denied,'database failures propagate');
+-  fail=false;delay=true;const pending=ctx.auth.sendMessage(7,'Hi',nonce);event('SIGNED_OUT');finish();denied=false;try{await pending;}catch{denied=true;}ok(denied,'late writes after sign out are rejected');
+-  return out;
+- });
++/* Retired messaging is denied, including after authentication becomes active. */
++module.exports=({run})=>{
++ run('Retired message SDK methods never become callable for an account',(r,ok)=>{
++  const methods=['listConversations','listMessages','openConversation','sendMessage','readConversation','unreadMessages'];
++  for(const account of [null,'account-a','account-b']){
++   r('nakgoMarket.sync({marketplace:true,user:'+JSON.stringify(account?{id:account}:null)+',profile:null})');
++   for(const method of methods)ok(r('return typeof nakgoAuth['+JSON.stringify(method)+']==="undefined"'),'retired '+method+' for '+account);
++  }
++ },{win:{}});
+ };
+diff --git a/tests/unit/post-wizard-date.test.js b/tests/unit/post-wizard-date.test.js
+index b24a393..06a5650 100644
+--- a/tests/unit/post-wizard-date.test.js
++++ b/tests/unit/post-wizard-date.test.js
+@@ -1,6 +1,6 @@
+ module.exports=({run})=>{
+  run('Load timing is required free text; notes step and truck calendar stay unchanged',async(r,ok)=>{
+-  r("window.loadDraft={from:'İstanbul',to:'Ankara',veh:'Tır',body:'Tenteli',ton:10,cargo:'Synthetic',date:'',time:'',dateText:''};");
++  r("window.loadDraft={phone:'05321234567',contactConsent:true,from:'İstanbul',to:'Ankara',veh:'Tır',body:'Tenteli',ton:10,cargo:'Synthetic',date:'',time:'',dateText:''};");
+   ok(r('return postError(window.loadDraft,false,1)===""'),'notes transition does not require timing');
+   for(const value of ['', '   '])ok(r('return !!postError({...window.loadDraft,dateText:'+JSON.stringify(value)+'})'),'empty timing cannot publish');
+   for(const value of ['bugün','yarın sabah','Haftaya uygun olduğunda','28.10.2026 25:70','2020-01-01','<img src=x onerror=alert(1)>']){
+@@ -19,4 +19,4 @@ module.exports=({run})=>{
+   await r('return nakgoMarket.update("l",800,{dateText:"Gelecek hafta"});');
+   ok(r('return window.patch.loading_text==="Gelecek hafta"&&window.patch.available_on===null&&dateLabel(loads[0])==="Gelecek hafta"'),'cloud edit preserves text and clears calendar fields');
+  },{win:{}});
+-};
++};
+diff --git a/tests/unit/private-messages.test.js b/tests/unit/private-messages.test.js
+index b868ea3..cc6e49a 100644
+--- a/tests/unit/private-messages.test.js
++++ b/tests/unit/private-messages.test.js
+@@ -1,31 +1,15 @@
++/* Preserve legacy local records without exposing or reactivating conversations. */
+ module.exports=({run})=>{
+- const setup='nakgoMarket.sync({marketplace:true,user:{id:"a"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"a"},profile:{display_name:"A"}});nakgoAuth.unreadMessages=async()=>0;nakgoAuth.readConversation=async()=>1;window.crypto={randomUUID:()=>"00000000-0000-4000-8000-000000000001"};';
+- const convo='({id:7,owner_id:"owner",guest_id:"a",owner_label:"Owner",guest_label:"A",from_city:"İstanbul",to_city:"Ankara"})';
+- run('Private messages confirm sends, reuse retry nonce and never enter demo storage',async(r,ok)=>{
+-  const store=r('return localStorage.getItem("yy2")');r(setup+'nakgoAuth.listMessages=async()=>[];nakgoMessages.openConversation('+convo+');');
+-  await r('return Promise.resolve()');await r('return Promise.resolve()');
+-  r('window.requests=[];nakgoAuth.sendMessage=async(id,body,nonce)=>{window.requests.push(nonce);throw Error("network");};');
+-  let failed=false;try{await r('return nakgoMessages.send("Hello")');}catch{failed=true;}
+-  ok(failed&&r('return nakgoMessages.state().messages.length===0&&!!nakgoMessages.state().sendError'),'failed send never claims success or loses retry state');
+-  r('nakgoAuth.sendMessage=(id,body,nonce)=>{window.requests.push(nonce);return new Promise(done=>window.finishSend=()=>done({id:19,conversation_id:id,sender_id:"a",client_nonce:nonce,body}));};');
+-  const pending=r('return nakgoMessages.send("Hello")');const duplicate=await r('return nakgoMessages.send("Hello")');ok(duplicate===null&&r('return window.requests.length===2'),'double clicks do not issue a second write');
+-  r('window.finishSend();');await pending;
+-  ok(r('return window.requests[0]===window.requests[1]&&nakgoMessages.state().messages[0].body==="Hello"'),'retry uses the same nonce and server-confirmed row');
+-  ok(r('return localStorage.getItem("yy2")')===store&&r('return Object.keys(chats).length===0'),'private chat never writes demo persistence');
+- },{win:{}});
+- run('Late private message reads and sends cannot enter another account',async(r,ok)=>{
+-  r(setup+'nakgoAuth.listMessages=()=>new Promise(done=>window.finishRead=done);nakgoMessages.openConversation('+convo+');');
+-  r('nakgoMarket.sync({marketplace:true,user:{id:"b"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"b"},profile:{}});window.finishRead([{id:99,body:"Private A"}]);');
+-  await r('return Promise.resolve()');await r('return Promise.resolve()');ok(r('return !nakgoMessages.state().current&&nakgoMessages.state().messages.length===0'),'late read is discarded after reset');
+-  r('nakgoAuth.listMessages=async()=>[];nakgoMessages.openConversation({...'+convo+',guest_id:"b"});');await r('return Promise.resolve()');
+-  r('nakgoAuth.sendMessage=(id,body,nonce)=>new Promise(done=>window.finishWrite=()=>done({id:1,conversation_id:id,sender_id:"b",client_nonce:nonce,body}));');const pending=r('return nakgoMessages.send("Private B")');
+-  r('nakgoMarket.sync({marketplace:true,user:null});window.finishWrite();');let failed=false;try{await pending;}catch{failed=true;}ok(failed&&r('return !nakgoMessages.state().current&&!nakgoMessages.state().messages.length'),'late send cannot reopen or populate signed-out state');
+- },{win:{}});
+- run('Private message history paginates, escapes text and preserves errors',async(r,ok)=>{
+-  r(setup+'window.cursors=[];nakgoAuth.listMessages=async(id,before)=>{window.cursors.push(before);return before===null?Array.from({length:50},(_,i)=>({id:100-i,body:i?"Message":"<img src=x onerror=alert(1)>",sender_id:"owner"})):[{id:50,body:"Older",sender_id:"owner"}];};nakgoMessages.openConversation('+convo+');');
+-  await r('return Promise.resolve()');await r('return Promise.resolve()');await r('return nakgoMessages.refreshMessages(true)');
+-  ok(r('return nakgoMessages.state().messages.length===51&&window.cursors[1]===51&&!nakgoMessages.state().messageMore'),'history uses the oldest displayed ID and retains prior messages');
+-  ok(r('return el("#msgs").innerHTML.includes("&lt;img")&&!el("#msgs").innerHTML.includes("<img")'),'message text is escaped before rendering');
+-  r('nakgoAuth.listMessages=async()=>{throw Error("offline");};');await r('return nakgoMessages.refreshMessages()');ok(r('return nakgoMessages.state().messages.length===51&&!!nakgoMessages.state().messageError'),'failed refresh preserves existing history and shows retry');
+- },{win:{}});
++ run('Legacy message content stays stored and never enters public screens',(r,ok)=>{
++  r('chats={legacy:[{me:1,t:"PRIVATE-HISTORY-<img src=x onerror=boom>"}]};save();');
++  const stored=r('return localStorage.getItem("yy2")');
++  for(const tab of ['list','me','mine']){
++   r('tab='+JSON.stringify(tab)+';render();');
++   ok(!r('return main()').includes('PRIVATE-HISTORY'),'history absent from '+tab);
++  }
++  r('openLoad(loads[0].id)');
++  ok(!r('return sheet()').includes('PRIVATE-HISTORY'),'history absent from details');
++  ok(r('return localStorage.getItem("yy2")')===stored,'rendering never deletes or rewrites old history');
++  ok(r('return typeof openChat==="undefined"&&typeof openInbox==="undefined"'),'legacy UI entry points absent');
++ });
+ };
+diff --git a/tests/unit/reliability.test.js b/tests/unit/reliability.test.js
+index 2e7045d..6433141 100644
+--- a/tests/unit/reliability.test.js
++++ b/tests/unit/reliability.test.js
+@@ -4,7 +4,7 @@ module.exports = ({run,test,boot}) => {
+     r("loads[0].cargo='<img src=x onerror=boom>';loads[0].note='<svg onload=boom>';loads[0].owner='A & B <firma>';render()");
+     ok(!r("return main()").includes('<img src=x'),"kartta HTML çalışmaz");
+     r("openLoad(loads[0].id)");const h=r("return sheet()");
+-    ok(h.includes('&lt;img src=x')&&h.includes('&lt;svg onload')&&h.includes('A &amp; B &lt;firma&gt;'),"detay, not ve ad bir kez kaçışlanır");
++    ok(h.includes('&lt;img src=x')&&h.includes('&lt;svg onload')&&!h.includes('A &amp; B &lt;firma&gt;'),"detay ve not kaçışlı; isim gizli");
+     r("q='\" autofocus onfocus=boom x=\"';render()");
+     ok(r("return main()").includes('value="&quot; autofocus'),"arama özniteliğinden çıkamaz");
+     r("openProfile({name:'<img src=x onerror=boom>'})");
+@@ -43,17 +43,17 @@ module.exports = ({run,test,boot}) => {
+     ok(r("return dateFields('Yarın',new Date('2026-10-11T12:00:00').getTime()).date")==='2026-10-12',"yarın gerçek tarih");
+     ok(r("return dateFields('Bu hafta',new Date('2026-10-05T12:00:00').getTime()).dateEnd")==='2026-10-11',"hafta sonu sabit");
+     ok(r("return dateLabel({date:'2026-10-11'},new Date('2026-10-12T12:00:00').getTime())")!=='Bugün',"bugün etiketi ertesi gün eskir");
+-    ok(r("return expired({date:'2020-01-01',ts:Date.now()},'load')"),"geçmiş yükleme tarihi kapalı");
++    ok(r("return !expired({date:'2020-01-01',ts:Date.now()},'load')"),"yayın süresi yükleme metninden bağımsız");
+     ok(r("return expired(normalizeListing({id:Date.now()-30*864e5,mine:true,from:'A',to:'B',date:'Bugün'}),'load')"),"eski yerel kimlikten tarih taşınır");
+     ok(r("return !validDay('2026-02-31')"),"geçersiz takvim günü reddedilir");
+   });
+   run("Güncel telefon, mesafe ve kapalı ilan kuralları",(r,ok)=>{
+     r("myCar.phone='0555 111 22 33';loads[0].mine=true;loads[0].phone='Eski'");
+-    ok(r("return phoneOf(loads[0])")==='0555 111 22 33',"eski ilan güncel profil telefonunu kullanır");
++    ok(r("return phoneOf(loads[0])")==='',"profil telefonu izinli ilan telefonu yerine geçmez");
+     r("sort='km'");
+     ok(r("return sortL([{id:1,km:450},{id:2,from:'Mersin',to:'Adana'}])[0].id")===2,"hesaplanan mesafe sıralamaya katılır");
+     r("loads[1].closed=true");ok(r("return requestLoad(loads[1])")===false,"kapalı ilana iş açılmaz");
+-    r("loads[2].date='2020-01-01'");ok(r("return requestLoad(loads[2])")===false,"süresi dolmuş ilana iş açılmaz");
++    r("loads[2].ts=Date.now()-7*36e5");ok(r("return requestLoad(loads[2])")===false,"süresi dolmuş ilana iş açılmaz");
+     r("q='İstanbul';openFilter()");
+     ok(r("return el('#fs').textContent").startsWith(String(r("return loads.filter(x=>visibleListing(x)).length"))),"filtre ve liste sayısı aynı");
+   });
+diff --git a/tests/unit/road-map.test.js b/tests/unit/road-map.test.js
+index 50258f2..b4beee1 100644
+--- a/tests/unit/road-map.test.js
++++ b/tests/unit/road-map.test.js
+@@ -1,15 +1,9 @@
+ /* Premium erişimi, harita koordinatları ve profil tekrarları */
+ module.exports = function register({run}) {
+-  run('Premium olmadan iki iletişim yolu da kapalı',(r,ok)=>{
+-    r("prem.until=0;openLoad(1);el('#mg').onclick()");
+-    ok(r("return sheet().includes('NakGo Premium')&&!sheet().includes('id=\"mi\"')&&Object.keys(chats).length===0&&offers.length===0"),'sohbet, mesaj ve talep oluşturulmaz');
+-    r("openTruck(trucks[0].id);el('#mg').onclick()");ok(r("return sheet().includes('NakGo Premium')&&Object.keys(chats).length===0"),'boş araç sohbeti de üyelik ister');
+-    r("callTo('')");ok(r("return sheet().includes('NakGo Premium')"),'telefon eksik olsa da üyelik kontrol edilir');
+-    r("openChat('otest','Firma')");ok(!r("return sheet()").includes('id="mi"'),'profil görüşmesi doğrudan açılarak atlanamaz');
+-  });
+-  run('Üyelik mesaj gönderirken yeniden kontrol edilir',(r,ok)=>{
+-    r("prem.until=Date.now()+10000;openChat('test','Firma',()=>offers.push({loadId:1}));el('#mi').value='Mesaj';prem.until=0;el('#ms').onclick()");
+-    ok(r("return !chats.test.some(x=>x.me)&&offers.length===0&&sheet().includes('NakGo Premium')"),'süresi dolan üyelik mesaj veya taşıma talebi yazamaz');
++  run('Doğrudan iletişim üyelik istemez; mesajlaşma kaldırıldı',(r,ok)=>{
++    r("prem.until=0;openLoad(1)");
++    ok(r("return sheet().includes('id=\"call\"')&&sheet().includes('id=\"wa\"')&&!sheet().includes('id=\"mg\"')"),'Ara ve WhatsApp düğmeleri');
++    ok(r("return typeof openChat==='undefined'&&typeof nakgoMessages==='undefined'"),'mesaj API ve ekran modülü kaldırıldı');
+   });
+   run('Harita gerçek coğrafi koordinatları kullanır',(r,ok)=>{
+     ok(r("return cities.every(c=>{const p=roadUnproject(roadProject(LL[c],12),12);return Math.abs(p[0]-LL[c][0])<1e-7&&Math.abs(p[1]-LL[c][1])<1e-7})"),'81 şehir Web Mercator dönüşümünde kaybolmaz');
+diff --git a/tools/admin-db-check.cjs b/tools/admin-db-check.cjs
+index db02149..412a6a4 100644
+--- a/tools/admin-db-check.cjs
++++ b/tools/admin-db-check.cjs
+@@ -11,7 +11,7 @@ const root=path.resolve(__dirname,'..');
+  const denied=async(fn,code,label)=>{try{await fn();assert.fail(label+' unexpectedly succeeded');}catch(error){assert.equal(error.code,code,label+': '+error.message);checks++;}};
+  const ids=Array.from({length:5},(_,i)=>'00000000-0000-4000-8000-'+String(i+1).padStart(12,'0'));
+  const [admin,partner,owner,carrier,unverified]=ids;
+- await db.exec(`create role anon;create role authenticated;create schema auth;create schema storage;
++ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create schema storage;
+  create table auth.users(id uuid primary key,email_confirmed_at timestamptz);
+  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+  grant usage on schema auth,storage to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;
+@@ -23,6 +23,8 @@ const root=path.resolve(__dirname,'..');
+  await query('insert into private.admin_members(user_id,active) values($1,true),($2,false),($3,false)',[admin,partner,unverified]);
+  const page=(id,section='users')=>as(id,'select public.nakgo_admin_page($1,0,\'\') data',[section]);
+  const moderate=(id,kind,target,action,rev=0,reason='Synthetic test reason')=>as(id,'select public.nakgo_admin_moderate($1,$2,$3,$4,$5) data',[kind,String(target),action,reason,rev]);
++ await denied(()=>page(admin),'42501','general admin without privacy grant cannot browse users');
++ await query("insert into private.data_access_grants(user_id,capability) values($1,'privacy_cases')",[admin]);
+  check((await page(admin))[0].data.length===5,'admin sees users');await denied(()=>page(partner),'42501','other account has no general admin access');
+  check((await as(admin,'select public.nakgo_admin_role() authorized'))[0].authorized===true,'single administrator role true');
+  check((await as(owner,'select public.nakgo_admin_role() authorized'))[0].authorized===false,'ordinary account role false');
+@@ -34,18 +36,19 @@ const root=path.resolve(__dirname,'..');
+  await denied(()=>moderate(admin,'user',admin,'suspend'),'42501','protect active administrator');
+  await denied(()=>moderate(admin,'user',admin,'suspend'),'42501','protect self');
+  await denied(()=>moderate(admin,'user',owner,'suspend',0,'x'),'22023','reason required');
+- const createListing=async id=>(await as(id,"insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('load','İzmir','Manisa','Tır','Tenteli',10,'Test','Owner',current_date+2) returning id"))[0].id;
++ const createListing=async id=>(await as(id,"insert into public.listings(contact_phone,contact_consent,kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,available_on) values('+905321234567',true,'load','İzmir','Manisa','Tır','Tenteli',10,'Test','Owner',current_date+2) returning id"))[0].id;
+  const listing=await createListing(owner);
+  const job=(await as(carrier,'select (public.nakgo_request_transport($1)).id',[listing]))[0].id;
+  await as(owner,"select public.nakgo_transition_transport($1,'accept')",[job]);
+- const conversation=(await as(carrier,'select (public.nakgo_open_conversation($1)).id',[listing]))[0].id;
++ const conversation=(await as(carrier,'select (public.nakgo_open_conversation($1)).id',[listing],'postgres'))[0].id;
+  const moderated=await moderate(admin,'listing',listing,'remove');check(moderated[0].data.revision===1,'listing removal advances revision');
+  check((await as(carrier,'select id from public.listings where id=$1',[listing])).length===0,'removed listing hidden from other users');
+- await denied(()=>as(owner,"update public.listings set status='active' where id=$1",[listing]),'42501','owner cannot republish removed listing');
++ check((await as(owner,"update public.listings set status='active' where id=$1 returning id",[listing])).length===0,'RLS prevents owner from republishing hidden removed listing');
++ check((await query('select status from public.listings where id=$1',[listing]))[0].status==='archived','denied hidden update leaves archived status unchanged');
+  await denied(()=>moderate(admin,'listing',listing,'restore',0),'40001','stale partner rejected');
+  await moderate(admin,'listing',listing,'restore',1);
+  check((await query('select status from public.listings where id=$1',[listing]))[0].status==='closed','restored listing stays closed');
+- await as(owner,"update public.listings set status='active' where id=$1",[listing]);
++ check((await as(owner,"update public.listings set status='active' where id=$1 returning id",[listing])).length===0,'closed archive is not republished through legacy owner update');
+  check((await moderate(admin,'user',carrier,'suspend'))[0].data.revision===1,'suspend account');
+  await denied(()=>createListing(carrier),'42501','suspended listing creation denied');
+  await denied(()=>as(carrier,"update public.profiles set display_name='Changed' where id=$1",[carrier]),'42501','suspended profile mutation denied');
+@@ -58,11 +61,11 @@ const root=path.resolve(__dirname,'..');
+  await as(carrier,"select public.nakgo_transition_transport($1,'loaded')",[job]);
+  await as(owner,"select public.nakgo_transition_transport($1,'confirm')",[job]);
+  check((await query('select stage from public.transport_jobs where id=$1',[job]))[0].stage===3,'existing work can complete');
+- check((await as(carrier,'select id from public.listing_conversations where id=$1',[conversation])).length===1,'history retained for participant');
++ check((await query('select id from public.listing_conversations where id=$1',[conversation])).length===1,'history retained without public access');await denied(()=>as(carrier,'select id from public.listing_conversations'),'42501','retired history API denied');
+  await denied(()=>moderate(admin,'user',carrier,'resume',0),'40001','stale account action rejected');
+  await moderate(admin,'user',carrier,'resume',1);
+- await as(carrier,'select public.nakgo_send_message($1,\'After resume\',gen_random_uuid())',[conversation]);
+- check((await query('select count(*)::int n from public.conversation_messages'))[0].n===1,'resumed message succeeds');
++ await denied(()=>as(carrier,'select public.nakgo_send_message($1,\'After resume\',gen_random_uuid())',[conversation]),'42501','retired message send denied after resume');
++ check((await query('select count(*)::int n from public.conversation_messages'))[0].n===0,'resumed account cannot write retired messages');
+  const auditBefore=(await page(admin,'moderation'))[0].data.length;
+  check((await moderate(admin,'user',carrier,'resume',2))[0].data.changed===false,'same-state retry is no-op');
+  check((await page(admin,'moderation'))[0].data.length===auditBefore,'no duplicate audit for no-op');
+diff --git a/tools/project.js b/tools/project.js
+index cb866e3..ebd535f 100644
+--- a/tools/project.js
++++ b/tools/project.js
+@@ -23,7 +23,6 @@ module.exports={root:path.resolve(__dirname,".."),js:[
+   "src/js/screens/offers.js",
+   "src/js/screens/profile.js",
+   "src/js/screens/admin.js",
+-  "src/js/screens/inbox.js",
+   "src/js/screens/road-map.js",
+   "src/js/screens/details.js",
+   "src/js/screens/main.js",
+diff --git a/tests/unit/favorites-api.test.js b/tests/unit/favorites-api.test.js
+index 25ff2ab..ad998ad 100644
+--- a/tests/unit/favorites-api.test.js
++++ b/tests/unit/favorites-api.test.js
+@@ -10,7 +10,7 @@ module.exports=({test,fs,path,ROOT})=>{
+   vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8')+';this.auth=nakgoAuth;',ctx);await ctx.auth.init();
+   await ctx.auth.listFavorites();ok(call.columns==='listing_id'&&call.limit===200,'membership reads only IDs in bounded pages');
+   await ctx.auth.listFavorites({before:100,details:true});ok(call.table==='listing_favorites'&&call.limit===50&&JSON.stringify(call.before)==='["listing_id",100]','saved listing page has separate stable pagination');
+-  ok(call.columns.startsWith('listing_id,listing:listings(')&&!call.columns.includes('!inner')&&!call.columns.includes('phone'),'left join retains unavailable bookmarks without copying private contacts');
++  ok(call.columns.startsWith('listing_id,listing:listings(')&&!call.columns.includes('!inner')&&!/\*|phone|owner_label/.test(call.columns),'left join retains unavailable bookmarks without private contact or owner fields');
+   await ctx.auth.setFavorite(17,false);ok(JSON.stringify(call)==='{"name":"nakgo_set_favorite","args":{"p_listing_id":17,"p_saved":false}}','unsave uses explicit false and never accepts a client user ID');
+   let denied=0;for(const [id,saved] of [[0,true],[17,'true'],[NaN,false]])try{await ctx.auth.setFavorite(id,saved);}catch{denied++;}ok(denied===3,'invalid arguments fail before sending');
+   fail=true;denied=false;try{await ctx.auth.setFavorite(17,true);}catch{denied=true;}ok(denied,'database errors are propagated');
