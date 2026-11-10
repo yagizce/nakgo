@@ -118,7 +118,7 @@ function openBell() {
 }
 
 function addAlert() {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     const al = { id: Date.now(), from: F.from || "", to: F.to || "", veh: F.veh[0] || "" };
     if (alerts.some(x => x.from === al.from && x.to === al.to && x.veh === al.veh))
         return toast("Bu alarm zaten kurulu");
@@ -139,7 +139,7 @@ const alertsCard = () => `<div class="load" style="cursor:default"><b>Rota alarm
 // Teklif sohbeti (gerçek kullanıcılar arasında canlı, örnek ilanlarda hazır cevaplı).
 
 function openChat(key, who, onFirstSend, guard) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     if (!isPrem()) return openPaywall("Uygulama içi mesajlaşma");
     const live = cloud && /^o\d+_./.test(key), B = $("#sheetBody");
     B.dataset.k = key;

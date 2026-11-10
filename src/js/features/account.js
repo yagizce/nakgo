@@ -280,7 +280,7 @@ const lvT = t => nakgoMarket.active()?(nakgoDocuments.isApproved(t.uid)?2:0):(t.
 const vbadge = l => l === 2 ? VA : l === 1 ? VB : "";
 
 function docPhoto(k) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     pickImg(u => {
         cdocs[(me || "local") + "/" + k] = u;
         if (cloud)
@@ -311,7 +311,7 @@ const adminCard = () => {
 };
 
 function setCar(patch) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     Object.assign(myCar, patch);
     if (!save()) return false;
     const d = { displayName: myCar.displayName || "", city: myCar.city || "", about: myCar.about || "", phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
@@ -348,7 +348,7 @@ const carCard = () => {
 // Şikayet, engelleme, yardım ve sık sorulan sorular.
 
 function openReport(kind, id) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     const B = $("#sheetBody");
     B.dataset.k = "";
     B.innerHTML = `<b style="font-size:19px">Şikayet et</b><label>Sebep</label><select id="rr">${["Sahte ilan", "Dolandırıcılık şüphesi", "Uygunsuz içerik", "Yanlış bilgi", "Diğer"].map(x => `<option>${x}</option>`).join("")}</select><label>Açıklama (isteğe bağlı)</label><input id="rn" maxlength="200" placeholder="Ne oldu?"><button class="btn" id="rg">Gönder</button><button class="btn alt" id="close">Vazgeç</button>`;
@@ -367,7 +367,7 @@ function openReport(kind, id) {
 }
 
 function blockUser(u) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     if (!u || u === me)
         return;
     if (!blocked.includes(u))

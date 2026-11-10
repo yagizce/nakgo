@@ -221,7 +221,7 @@ const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
 
 function postTruck(t) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     const error = postError(t, true);
     if (error) { toast(error); return false; }
     Object.assign(t, dateFields(t.date), {ts:Date.now()});
@@ -361,7 +361,7 @@ const expired = (x, k) => !!(!x._remote && x.ts && Date.now()-x.ts>TTL[k]*864e5)
 const availableListing = (x,isT=false) => !!x && !x.archived && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
 const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||x.who||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
 function contactAllowed(x,isT=false,allowOwn=false) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     const current=x&&findIt(isT?"t":"l",x.id);
     if(!availableListing(current,isT)) { toast("Bu ilan artık açık değil. Yeni iletişim başlatılamaz."); return false; }
     if(!allowOwn && ((cloud && current.uid===me)||(!cloud&&current.mine))) { toast("Kendi ilanına mesaj gönderemezsin"); return false; }

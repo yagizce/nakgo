@@ -52,6 +52,7 @@
   "git": {
     "deploymentEnabled": {
       "main": false,
+      "claude/public-listings": false,
       "claude/auth-config-timeout-fallback": false,
       "codex/nakgo-ci-publisher-direct": false,
       "codex/nakgo-trusted-ci": false,
