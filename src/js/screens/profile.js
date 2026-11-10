@@ -8,20 +8,17 @@ function privateProfile() {
     const s=nakgoAuth.snapshot();
     return s.user ? (s.profile || {}) : null;
 }
-function profileIdentityHTML(own,active,done,name,rating) {
+function profileIdentityHTML(own,name) {
     const profile=privateProfile();
     return `<div class="profile-cover">
         <div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div>
         <div><span class="profile-eyebrow">NAKGO HESABIM</span>
-            <b>${esc(profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim')}${profile ? vbadge(nakgoDocuments.isApproved(nakgoAuth.snapshot().user?.id)?2:0) : vbadge(appr[me||'local']===true?2:cOk(myCar)?1:0)}</b>
+            <b>${esc(profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim')}</b>
             <div class="profile-caption">${(profile ? profile.account_type : role)==='owner'?'Yük sahibi':(profile && !profile.account_type ? 'Hesabım' : 'Taşıyıcı')}${(profile ? profile.city : myCar.city)?' · '+esc(profile ? profile.city : myCar.city):''}</div>
-            <div class="profile-caption">${rating?'★ '+rating.avg.toFixed(1)+' · '+rating.n+' değerlendirme':'Henüz değerlendirme yok'}</div>
         </div>
     </div>
     <div class="stat profile-stats">
         <div><b>${own}</b><span>Aktif ilanım</span></div>
-        <div><b>${active}</b><span>Devam eden iş</span></div>
-        <div><b>${done}</b><span>Onaylanan iş</span></div>
     </div>`;
 }
 
@@ -63,27 +60,17 @@ function profileInfoHTML() {
 
 function renderProfile(main) {
     const own=[...mineL(),...mineT()].filter(item=>!item.closed&&!expired(item,typeof item.id==='string'?'truck':'load'));
-    const jobs=[...offers,...incoming];
-    const summary=nakgoMarket.active()?nakgoJobs.summary():null;
-    const unknown=summary?.error?'—':'…';
-    const done=summary?(summary.ready?summary.done:unknown):jobs.filter(job=>job.status==='ok'&&jobStage(job)===3).length;
-    const active=summary?(summary.ready?summary.active:unknown):jobs.filter(job=>job.status==='ok'&&jobStage(job)!==3).length;
-    const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim',rating=profile ? null : ratingOf(me||'local');
-    main.innerHTML=`${profileIdentityHTML(own.length,active,done,name,rating)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar, işler ve diğer işlemler cihazdaki demodur.</p>' : demoNotice()}${profileToolsHTML()}
+    const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim';
+    main.innerHTML=`${profileIdentityHTML(own.length,name)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar ve diğer işlemler cihazdaki demodur.</p>' : demoNotice()}${profileToolsHTML()}
         <div class="profile-grid">
             <section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
             <section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}
-                <details class="profile-panel"><summary>Taşıyıcı belgeleri ve güven</summary>${carCard()}</details>
-                ${rating?'<button class="chip" id="profile-ratings">Değerlendirmelerimi gör</button>':''}
             </section>
             <section class="profile-group"><h2>Üyelik ve destek</h2>${authCardHTML()}${premCard()}${nakgoAdminAccess.isAdmin()?'<button class="chip" id="profile-admin">Yönetici paneli</button>':''}
-                <details class="profile-panel"><summary>Güvenlik ve destek</summary>${adminCard()}${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details>
+                <details class="profile-panel"><summary>Güvenlik ve destek</summary>${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details>
             </section>
         </div>`;
-    if(summary)main.innerHTML+=(summary.error?'<p role="alert">'+esc(summary.error)+'</p>':'')+'<button class="chip" id="profile-jobs-retry" '+(summary.busy?'disabled':'')+'>İş sayaçlarını yenile</button>';
-    if(summary)$('#profile-jobs-retry').onclick=()=>nakgoJobs.refreshSummary();
-    if(summary&&!summary.ready&&!summary.busy&&!summary.error)nakgoJobs.refreshSummary();
-    carBind();listBind();
+    listBind();
     bindAuthCard();
     if(nakgoAuth.snapshot().profile)nakgoAdminAccess.ensure();
     if($('#profile-admin'))$('#profile-admin').onclick=openAdminPanel;
@@ -103,5 +90,4 @@ function renderProfile(main) {
     $('#profile-fuel').onclick=()=>openCalc();
     $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
     $('#profile-map').onclick=()=>openRoadMap();
-    if($('#profile-ratings'))$('#profile-ratings').onclick=()=>openProfile({uid:me||'local',name:myCar.displayName||myName||'Profilim',lv:appr[me||'local']===true?2:cOk(myCar)?1:0});
 }

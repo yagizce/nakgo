@@ -89,6 +89,5 @@ function restoreState() {
     // İlk başarısız yazmada da bellek güvenli başlangıç durumuna dönebilir.
     savedState=JSON.stringify(stateData());
     if (!recoveryBlocked) save(false);
-    offers.filter(o=>o.status==="wait").forEach(o=>simulate(o.id));
 
 }

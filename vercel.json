@@ -52,6 +52,7 @@
   "git": {
     "deploymentEnabled": {
       "main": false,
+      "claude/group-b-removals": false,
       "claude/group-a-ui": false,
       "claude/public-listings": false,
       "claude/auth-config-timeout-fallback": false,

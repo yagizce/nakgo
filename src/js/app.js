@@ -152,10 +152,6 @@ try {
         tab = "post";
         setNav();
     }
-    else if (go === "mine") {
-        tab = "mine";
-        setNav();
-    }
     else if (go === "near") {
         tab = "list";
         setNav();
