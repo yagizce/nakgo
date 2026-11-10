@@ -43,13 +43,12 @@ let blocked = [];
 let calc = { km: 450, cons: 32, fuel: 95, toll: 1200, other: 500, back: false };
 let role = "";
 
-// --- Filtre, yakınımda ve karşılaştırma ---
+// --- Filtre ve yakınımda ---
 let F = F0();
 let myPos = null;
 let myCity = "";
 let nearOn = false;
 let nearR = 0;
-let cmp = [];
 
 // --- Hesap ve oturum ---
 let cloud = false;

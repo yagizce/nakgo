@@ -98,19 +98,3 @@ function pickImg(cb, max, lim) {
     i.click();
 }
 
-function showImg(u, t) {
-    const B = $("#sheetBody");
-    B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:17px">${esc(t)}</b><div id="pi" style="margin-top:12px"></div><button class="btn alt" id="close">Kapat</button>`;
-    if (imageDataOK(u)) {
-        const im = new Image();
-        im.src = u;
-        im.alt = t;
-        im.style.cssText = "width:100%;border-radius:12px";
-        $("#pi").appendChild(im);
-    }
-    else
-        $("#pi").textContent = "Fotoğraf bulunamadı.";
-    $("#sheet").classList.add("open");
-    $("#close").onclick = closeSheet;
-}

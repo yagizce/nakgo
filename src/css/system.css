@@ -64,7 +64,6 @@ header p { font-family:'Trebuchet MS','Segoe UI',sans-serif; font-size:11px; fon
 #thh+.bell { margin-left:0; }
 main { background:var(--bg); }
 #main[data-screen=list],#main[data-screen=post] { padding-bottom:160px; scroll-padding-bottom:160px; }
-#main[data-screen=list][data-comparing=true] { padding-bottom:210px; scroll-padding-bottom:210px; }
 nav { flex:none; height:var(--nav-height); padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px)); gap:6px; border-radius:24px 24px 0 0; box-shadow:0 -6px 24px #003e4510; z-index:3; }
 nav button { justify-content:center; border-radius:16px; padding:7px 2px; gap:5px; font-size:10px; }
 nav button svg { width:23px; height:23px; }
