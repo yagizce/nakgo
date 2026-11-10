@@ -33,7 +33,7 @@ function profileToolsHTML() {
     const tools=[
         ['messages','message','Mesajlar',messageCaption],
         ['favorites','heart','Kaydettiklerim',favoriteCaption],
-        ['fuel','fuel','Mazot hesabı','Yol giderini planla']
+        ['fuel','fuel','Mazot ve Gider Hesaplama','Yol giderini planla']
     ];
     return `<div class="profile-shortcuts">
         <button class="profile-tool road-tool" id="profile-map">
