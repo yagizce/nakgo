@@ -64,8 +64,7 @@ function toggleTheme() {
 function openCalc() {
     const m = $("#sheetBody"); m.dataset.k = "";
     const num = (k,t,u) => `<div><label for="calc-${k}">${t}</label><div class="unit"><input id="calc-${k}" data-k="${k}" type="number" min="0" inputmode="decimal" value="${calc[k]}"><em>${u}</em></div></div>`;
-    const cur = vehicles.find(v=>CONS[v]===calc.cons) || "";
-    m.innerHTML = `<div class="load-detail fuel-detail"><div class="detail-top"><b>Mazot hesabı</b><button class="chip detail-close" id="cx">Kapat ×</button></div><div class="fuel-result" id="res" role="status" aria-live="polite"></div><div class="detail-scroll"><section class="detail-group"><h2>Yol ve araç</h2><label for="cv">Araç tipi</label><select id="cv"><option value="" hidden>Özel tüketim</option>${vehicles.map(v=>`<option ${v===cur?"selected":""}>${v}</option>`).join("")}</select>${num("km","Tek yön mesafe","km")}<label class="chk"><input type="checkbox" id="bk" ${calc.back?"checked":""}> Boş dönüşü de hesapla</label></section><section class="detail-group"><h2>Mazot ve tüketim</h2><div class="row">${num("fuel","Litre fiyatı","₺/L")}${num("cons","Tüketim","L/100 km")}</div><p class="estimate-note">Litre fiyatı hesaplama varsayımıdır. Güncel pompa fiyatını kendin gir.</p></section><details class="profile-panel"><summary>Otoyol ve diğer giderler</summary><div class="row">${num("toll","Otoyol / köprü","₺")}${num("other","Diğer giderler","₺")}</div></details><p class="estimate-note">Sonuç yaklaşık giderdir; trafik, yük ve sürüş koşullarına göre değişir. Boş dönüş seçimi mesafeyi iki katına çıkarır. Girdilerin cihazında saklanır.</p></div></div>`;
+    m.innerHTML = `<div class="load-detail fuel-detail"><div class="detail-top"><b>Mazot ve Gider Hesaplama</b><button class="chip detail-close" id="cx">Kapat ×</button></div><div class="fuel-result" id="res" role="status" aria-live="polite"></div><div class="detail-scroll"><section class="detail-group"><h2>Yol</h2>${num("km","Tek yön mesafe","km")}<label class="chk"><input type="checkbox" id="bk" ${calc.back?"checked":""}> Boş dönüşü de hesapla</label></section><section class="detail-group"><h2>Mazot ve tüketim</h2><div class="row">${num("fuel","Litre fiyatı","₺/L")}${num("cons","Tüketim","L/100 km")}</div><p class="estimate-note">Litre fiyatı hesaplama varsayımıdır. Güncel pompa fiyatını kendin gir.</p></section><details class="profile-panel"><summary>Otoyol ve diğer giderler</summary><div class="row">${num("toll","Otoyol / köprü","₺")}${num("other","Diğer giderler","₺")}</div></details><p class="estimate-note">Sonuç yaklaşık giderdir; trafik, yük ve sürüş koşullarına göre değişir. Boş dönüş seçimi mesafeyi iki katına çıkarır. Girdilerin cihazında saklanır.</p></div></div>`;
     const out=()=>{
         const value=fuelEstimate(calc);
         if(!value){$("#res").textContent="Hesaplamak için geçerli değerler gir.";return;}
@@ -82,11 +81,9 @@ function openCalc() {
             m.querySelectorAll("[data-k]").forEach(i=>i.value=calc[i.dataset.k]);
             $("#bk").checked=calc.back;
         }
-        $("#cv").value=vehicles.find(v=>CONS[v]===calc.cons)||"";
         out();
     };
     m.querySelectorAll("[data-k]").forEach(i=>i.oninput=()=>update({[i.dataset.k]:+i.value}));
-    $("#cv").onchange=e=>{update({cons:CONS[e.target.value]||calc.cons});m.querySelector('[data-k="cons"]').value=calc.cons;};
     $("#bk").onchange=e=>update({back:e.target.checked});
     out();syncDetailViewport();$("#cx").onclick=closeSheet;$("#sheet").classList.add("open");
 }

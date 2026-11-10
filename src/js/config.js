@@ -16,7 +16,6 @@ const vehicles = ["Tır", "Kırkayak", "Kamyon", "Kamyonet", "Panelvan", "Tanker
 
 const bodies = ["Tenteli", "Kapalı kasa", "Açık kasa", "Frigorifik", "Damperli", "Tanker", "Lowbed", "Konteyner"];
 
-const CONS = { Tır: 32, Kırkayak: 30, Kamyon: 22, Kamyonet: 9, Panelvan: 8, Tanker: 35, Lowbed: 42, Konteyner: 34 };
 
 const STT = { wait: "Yanıt bekleniyor", ok: "Kabul edildi", counter: "Görüşme bekleniyor", no: "Reddedildi" };
 
