@@ -83,19 +83,25 @@ test('Aday yürütmesi bağımsız kontrollerin ortamını veya dosyalarını de
   assert.match(independent,/needs\.baseline-regressions\.result/);
   assert.match(independent,/baseline\/tests\/gate\/browser\.py --root candidate --base-sha "\$BASE_SHA"/);
   assert.doesNotMatch(independent,/npm test|npm run|npm ci|working-directory: candidate|GITHUB_ENV|GITHUB_PATH|\$CONTROLS/);
-  const caller = jobs.publish;
-  const publisher = fs.readFileSync(path.join(root,'.github/workflows/trusted-ci-publish.yml'),'utf8');
+  const publisher = jobs.publish;
   assert.match(workflow,/^  pull_request_target:/m);
-  assert.match(caller,/uses: \.\/\.github\/workflows\/trusted-ci-publish\.yml/);
+  assert.doesNotMatch(publisher,/^    uses:/m);
   assert.match(publisher,/ref: \$\{\{ github\.sha \}\}/);
   assert.match(publisher,/environment: nakgo-ci-publisher/);
-  assert.match(caller,/needs: \[snapshot, candidate-tests, baseline-regressions, quality-gate\]/);
+  assert.match(publisher,/needs: \[snapshot, candidate-tests, baseline-regressions, quality-gate\]/);
   for (const name of ['snapshot', 'candidate-tests', 'baseline-regressions', 'quality-gate']) {
-    assert.ok(caller.includes(`needs.${name}.result == 'success'`));
+    assert.ok(publisher.includes(`needs.${name}.result == 'success'`));
     assert.doesNotMatch(jobs[name],/secrets\.|environment:|\bwrite\b/);
     if (name !== 'snapshot') assert.doesNotMatch(jobs[name],/^\s+outputs:/m);
   }
-  assert.doesNotMatch(publisher,/outputs\.merge.*\n.*persist-credentials|npm |candidate\//);
+  assert.match(publisher,/CI_APP_KEY: \$\{\{ secrets\.NAKGO_CI_APP_KEY \}\}/);
+  assert.match(publisher,/CI_SNAPSHOT: \$\{\{ toJSON\(needs\.snapshot\.outputs\) \}\}/);
+  assert.match(publisher,/permissions:\n      contents: read\n      pull-requests: read/);
+  assert.equal([...publisher.matchAll(/^      - /gm)].length,2);
+  assert.equal([...publisher.matchAll(/^\s+ref:/gm)].length,1);
+  assert.match(publisher,/persist-credentials: false/);
+  assert.match(publisher,/run: node \.github\/scripts\/trusted-ci\.js publish/);
+  assert.doesNotMatch(publisher,/outputs\.merge|\bnpm\b|candidate\/|\bwrite\b|secrets:\s+inherit/);
   assert.doesNotMatch(workflow,/actions\/(?:upload-artifact|download-artifact|cache)/);
   for(const [name,job] of Object.entries(jobs)) if(name!=='publish') assert.match(job,/runs-on: ubuntu-24\.04/);
   assert.match(publisher,/runs-on: ubuntu-24\.04/);
