@@ -202,12 +202,27 @@ jobs:
   publish:
     needs: [snapshot, candidate-tests, baseline-regressions, quality-gate]
     if: ${{ always() && needs.snapshot.result == 'success' && needs.candidate-tests.result == 'success' && needs.baseline-regressions.result == 'success' && needs.quality-gate.result == 'success' }}
-    uses: ./.github/workflows/trusted-ci-publish.yml
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read
-    with:
-      snapshot: ${{ toJSON(needs.snapshot.outputs) }}
-      verify: ${{ needs.candidate-tests.result }}
-      regressions: ${{ needs.baseline-regressions.result }}
-      gate: ${{ needs.quality-gate.result }}
+    environment: nakgo-ci-publisher
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Publish App check for the verified PR head
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CI_CALLER_REF: ${{ github.workflow_ref }}
+          CI_CALLER_SHA: ${{ github.workflow_sha }}
+          CI_APP_KEY: ${{ secrets.NAKGO_CI_APP_KEY }}
+          CI_APP_ID: ${{ vars.NAKGO_CI_APP_ID }}
+          CI_INSTALLATION_ID: ${{ vars.NAKGO_CI_INSTALLATION_ID }}
+          CI_SNAPSHOT: ${{ toJSON(needs.snapshot.outputs) }}
+          CI_VERIFY: ${{ needs.candidate-tests.result }}
+          CI_REGRESSIONS: ${{ needs.baseline-regressions.result }}
+          CI_GATE: ${{ needs.quality-gate.result }}
+        run: node .github/scripts/trusted-ci.js publish
