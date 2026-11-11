@@ -99,7 +99,7 @@ function bindPhoneContact(item, isTruck) {
 }
 
 function contactDockHTML(unavailable=false,mine=false) {
-    const phoneDock=(off,note)=>'<div class="contact-dock dual-contact phone-contact">'+(note?'<p class="contact-unavailable" role="status">'+note+'</p>':'')+'<button class="btn contact-call" id="call" '+off+'><span>'+uiIcon("phone")+' Ara</span></button><button class="btn wa-btn" id="wa" '+off+'><span>'+uiIcon("message")+' WhatsApp</span></button></div>';
+    const phoneDock=(off,note)=>'<div class="contact-dock dual-contact phone-contact">'+(note?'<p class="contact-unavailable" role="status">'+note+'</p>':'')+'<button class="btn contact-call" id="call" '+off+'><span>'+uiIcon("phone")+' Ara</span></button><button class="btn wa-btn" id="wa" '+off+'><span><img class="wa-glyph" src="icons/whatsapp-glyph-white.svg" alt="" width="20" height="20"> WhatsApp</span></button></div>';
     if(nakgoMarket.guest())return phoneDock(unavailable?'disabled':'',unavailable?'Bu ilan kapalı veya süresi dolmuş.':'Aramak veya WhatsApp\'tan yazmak için ücretsiz kayıt ol ya da giriş yap.');
     if(nakgoMarket.active())return phoneDock(unavailable||mine?'disabled':'',unavailable?'Bu ilan kapalı veya süresi dolmuş.':'');
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
