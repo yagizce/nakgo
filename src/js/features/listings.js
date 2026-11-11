@@ -213,6 +213,9 @@ function openEdit(k, id, reopen=false) {
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
     B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label>${L && 'dateText' in it ? `<input id="ed" type="text" maxlength="32" required value="${esc(it.dateText)}">` : `<select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>`}${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<label for="edit-phone">İletişim telefonu</label><input id="edit-phone" type="tel" maxlength="32" value="${esc(it.phone||'')}"><label><input type="checkbox" id="edit-consent"> Bu numarayı ilanda yayınlama yetkim ve iznim var.</label><button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
+    // Phone numbers are not part of the listing projection; the owner reads its own via RPC.
+    const phoneInput=$('#edit-phone');
+    if(it._remote&&!it.phone)nakgoAuth.listingContact(it.remoteId).then(p=>{if(typeof p!=='string')return;it.phone=p;if(!phoneInput.value)phoneInput.value=p;}).catch(()=>{});
     $("#es").onclick = async () => {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))

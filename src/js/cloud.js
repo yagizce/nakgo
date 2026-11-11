@@ -362,7 +362,7 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,contact_phone,published_at,expires_at,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
+    const listingColumns='id,owner_id,kind,from_city,to_city,vehicle,body,amount,cargo,note,published_at,expires_at,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
     const listingFields=['from_city','to_city','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data','contact_phone','contact_consent'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
