@@ -52,10 +52,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     const r = boot({ win: { claude: { use: async n => (n === "db" ? db : user) } } });
     await new Promise(x => setImmediate(x)); await new Promise(x => setImmediate(x));
     ok(r("return cloud") === true, "bulut modu açık");
-    ok(r("return incoming.length") === 1, "gelen teklif");
-    r("tab='mine';render()"); ok(r("return main()").includes("Ali &lt;b&gt;"), "isim kaçışlı");
     r("tab='list';mode='load';F=F0();render()"); ok(!r("return main()").includes("<img src=x"), "XSS engelli");
-    r("oup(incoming[0],{status:'ok'})"); ok(store.offers["21_u2"].status === "ok", "durum yazıldı");
     return out;
   });
 

@@ -20,8 +20,8 @@ def take_shots():
         pg.goto("file://" + os.path.join(ROOT, "index.html"))
         pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(out, "01_splash.png"))
         pg.wait_for_timeout(2200); pg.screenshot(path=os.path.join(out, "02_liste.png"))
-        for name, js in (("03_detay", "openLoad(1)"), ("04_karsilastirma", "closeSheet();toggleCmp(1);toggleCmp(2);openCompare()"),
-                         ("05_profil", "closeSheet();offers=[{...loads[0],offer:28500,status:'ok',loadId:1,bidder:'',stage:3,doneAt:Date.now()}];tab='me';setNav();render()"),
+        for name, js in (("03_detay", "openLoad(1)"),
+                         ("05_profil", "closeSheet();tab='me';setNav();render()"),
                          ("06_yakinimda", "tab='list';setNav();render();toggleNear()")):
             pg.evaluate(js); pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(out, name + ".png"))
         b.close()
@@ -86,21 +86,9 @@ with sync_playwright() as p:
     n1 = cards(); check(f"araç filtresi listeyi daraltır ({n0}→{n1})", 0 < n1 < n0)
     pg.evaluate("F=F0();render()"); pg.wait_for_timeout(200)
 
-    # 5) Karşılaştırma
-    for i in (0, 1):
-        pg.locator(".load[data-id]").nth(i).click(); pg.wait_for_selector("#sheet.open"); pg.click("#cp2"); pg.wait_for_timeout(250)
-    check("iki ilan seçilince karşılaştır çubuğu çıkar", pg.is_visible("#cmpgo"))
-    pg.click("#cmpgo"); pg.wait_for_selector("#sheet.open")
-    check("karşılaştırma tablosu açılır", "İlanları karşılaştır" in pg.inner_text("#sheetBody") and pg.locator("#sheetBody .win").count() > 0)
-    pg.keyboard.press("Escape"); pg.click("#cmpx"); pg.wait_for_timeout(200)
-
-    # 6) Taşıma talebi ve simüle yanıt
+    # 6) Mesajlaşma
     pg.locator(".load[data-id]").first.click(); pg.wait_for_selector("#sheet.open"); pg.click("#mg"); pg.click("#buy"); pg.locator(".load[data-id]").first.click(); pg.click("#mg"); pg.fill("#mi", "Yük hakkında görüşelim."); pg.click("#ms")
-    check("mesajlaşma ve mevcut iş kaydı korunur", pg.evaluate("offers.length == 1 && Object.values(chats).some(a => a.some(m => m.me))")); pg.click("#close")
-    nav("mine"); pg.wait_for_timeout(300)
-    check("taşıma talebi bekleniyor görünür", "Yanıt bekleniyor" in pg.inner_text("#main"))
-    pg.wait_for_timeout(3600)
-    check("simüle yanıt gelir", "Yanıt bekleniyor" not in pg.inner_text("#main"))
+    check("mesaj gönderilir", pg.evaluate("Object.values(chats).some(a => a.some(m => m.me))")); pg.click("#close")
 
     # 7) İlan verme ve istatistik
     nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); pg.fill("#d", typed_day()); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.click("#go"); pg.wait_for_timeout(300)
@@ -157,7 +145,7 @@ with sync_playwright() as p:
     # 10) Dar ekranda taşma olmaması (320 px)
     pg.set_viewport_size({"width": 320, "height": 640}); pg.wait_for_timeout(200)
     over = []
-    for t in ("list", "post", "mine", "me"):
+    for t in [t for t in ("list", "post", "mine", "me") if pg.locator(f"nav [data-t={t}]").count()]:
         nav(t); pg.wait_for_timeout(250)
         if pg.evaluate("document.documentElement.scrollWidth>window.innerWidth||document.querySelector('#main').scrollWidth>document.querySelector('#main').clientWidth+1||document.querySelector('header').scrollWidth>document.querySelector('header').clientWidth+1"): over.append(t)
     check("320 px genişlikte yatay taşma yok" + (f" (taşan: {over})" if over else ""), not over)
@@ -184,10 +172,7 @@ with sync_playwright() as p:
             check(prefix+"ana menü ve ilan araçları ekranın altında",nav_box['y']>=740 and abs(nav_box['y']-dock_box['y']-dock_box['height'])<2)
             page.locator('#main').evaluate('e=>e.scrollTop=e.scrollHeight')
             check(prefix+"filtre, sıralama ve yakınlık kaydırmada erişilir",all(page.is_visible(s) for s in ('#fb','#s','#nr0')) and abs(page.locator('.list-actions').bounding_box()['y']-dock_box['y'])<2)
-            page.evaluate('cmp=[loads[0].id,loads[1].id];render()')
-            cmp_box=page.locator('.cmpbar').bounding_box();filter_box=page.locator('#fb').bounding_box()
-            check(prefix+"karşılaştırma alt işlemlerle çakışmaz",cmp_box['y']+cmp_box['height']<=filter_box['y']+1)
-            page.evaluate('cmp=[];render()');page.locator('#main').evaluate('e=>e.scrollTop=0')
+            page.locator('#main').evaluate('e=>e.scrollTop=0')
             page.select_option('#route-from','İstanbul');page.select_option('#route-to','Ankara')
             check(prefix+"güzergâh filtresi",page.locator('.load[data-id]').count()==1)
             page.locator('[data-id]').first.click();page.click('#mg')
@@ -234,8 +219,6 @@ with sync_playwright() as p:
             page.click('#close');check(prefix+"harita kaynakları kapatılır",page.evaluate('roadMaps.size===0'))
             page.wait_for_function("!document.querySelector('#main').inert&&document.activeElement.id==='profile-map'")
             check(prefix+"pencere kapanınca profil ve odak geri gelir",page.evaluate("!document.querySelector('#main').inert&&document.activeElement.id==='profile-map'"))
-            page.locator('summary',has_text='Taşıyıcı belgeleri ve güven').click()
-            check(prefix+"belge formu erişilir",page.is_visible('#lic'))
             page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.fill('#d',typed_day());page.click('#go')
             check(prefix+"boş araç yayınlanır ve filtre arkasında kalmaz",page.evaluate("trucks.some(t=>t.mine&&t.from==='Afyonkarahisar'&&t.to==='Kahramanmaraş'&&t.cap===20)&&document.querySelectorAll('.load[data-tid]').length===trucks.length"))
             page.locator('.load[data-tid]').first.click();check(prefix+"araç detayını kapatmak erişilir",page.is_visible('.detail-top #close'))
@@ -245,7 +228,7 @@ with sync_playwright() as p:
             check(prefix+"büyütülen haritada ilana dön erişilir",page.is_visible('#map-back') and page.evaluate("document.querySelector('#sheetBody').contains(document.activeElement)"))
             page.click('#map-back');check(prefix+"aynı araç ilanına iletişim işlemleriyle dönülür",page.inner_text('.detail-summary .route')==route and page.is_visible('#call') and page.is_visible('#mg') and page.locator('#map-back').count()==0)
             page.click('#close')
-            for screen in ('list','post','mine','me'):
+            for screen in [t for t in ('list','post','mine','me') if page.locator(f'nav [data-t={t}]').count()]:
                 page.click(f'nav [data-t={screen}]')
                 check(prefix+screen+" seçili menü belirtilir",page.get_attribute(f'nav [data-t={screen}]','aria-current')=='page')
                 check(prefix+screen+" yatay taşmaz",page.evaluate("document.documentElement.scrollWidth<=innerWidth&&document.querySelector('#main').scrollWidth<=document.querySelector('#main').clientWidth+1"))

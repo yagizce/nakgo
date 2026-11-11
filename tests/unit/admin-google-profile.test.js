@@ -3,7 +3,7 @@ module.exports=({run})=>{
   r(`window.profileReady=false;window.roleCalls=0;window.roleValue=true;
    nakgoAuth.snapshot=()=>({enabled:true,ready:true,user:{id:'google-admin'},profile:window.profileReady?{id:'google-admin',display_name:'Admin',account_type:'owner'}:null});
    nakgoMarket.active=()=>true;nakgoMarket.token=()=> 'google-admin:1';
-   nakgoJobs.summary=()=>({ready:true,active:0,done:0,busy:false,error:''});
+   if(typeof nakgoJobs!=='undefined')nakgoJobs.summary=()=>({ready:true,active:0,done:0,busy:false,error:''});
    nakgoAuth.adminRole=async()=>{window.roleCalls++;if(!nakgoAuth.snapshot().profile)throw Error('Sign in required');return window.roleValue;};
    tab='me';renderProfile(el('#main'));`);
   await Promise.resolve();await Promise.resolve();

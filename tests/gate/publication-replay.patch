@@ -1,5 +1,5 @@
 diff --git a/tests/e2e.py b/tests/e2e.py
-index f7501e2..69e0f33 100644
+index 8bb2301..00548ad 100644
 --- a/tests/e2e.py
 +++ b/tests/e2e.py
 @@ -34,6 +34,16 @@ if "--shots" in sys.argv:
@@ -19,7 +19,7 @@ index f7501e2..69e0f33 100644
  srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=ROOT))
  threading.Thread(target=srv.serve_forever, daemon=True).start()
  URL = os.environ.get("NAKGO_E2E_URL") or f"http://127.0.0.1:{srv.server_address[1]}/index.html"
-@@ -161,7 +171,9 @@ with sync_playwright() as p:
+@@ -156,7 +166,9 @@ with sync_playwright() as p:
      pg.set_viewport_size({"width": 390, "height": 844})
  
      # 11) Çevrimdışı açılış (servis çalışanı)

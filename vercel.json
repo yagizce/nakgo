@@ -52,6 +52,7 @@
   "git": {
     "deploymentEnabled": {
       "main": false,
+      "claude/test-maintenance": false,
       "claude/gate-selftest": false,
       "claude/public-listings": false,
       "claude/auth-config-timeout-fallback": false,
