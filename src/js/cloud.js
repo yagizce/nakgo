@@ -506,6 +506,7 @@ const nakgoAuth = (() => {
     async function unreadMessages() {
         const account=listingAccount();return messageResult(requireClient().rpc('nakgo_message_unread_count'),account);
     }
+    async function whatsappRPC(name,args={}){if(!['page','detail','change','retry'].includes(name))throw Error('Invalid action');const account=listingAccount();return messageResult(requireClient().rpc('nakgo_wa_'+name,args),account);}
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
     async function adminPage(section,offset=0,search=''){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_page',{p_section:section,p_offset:offset,p_search:search}),account);}
     async function adminModerate(kind,target,action,reason,expectedRevision){
@@ -513,7 +514,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
+    return {whatsappRPC,adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -552,7 +553,7 @@ const nakgoMarket = (() => {
     }
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
-            from:r.from_city,to:r.to_city,fromD:r.from_district||'',toD:r.to_district||'',veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
+            from:r.from_city,to:r.to_city,fromD:r.from_district||'',toD:r.to_district||'',veh:r.vehicle,body:r.body,ton:r.amount==null?null:Number(r.amount),cap:r.amount==null?null:Number(r.amount),cargo:r.cargo,
             owner:r.owner_label||'NakGo üyesi',who:r.owner_label||'NakGo üyesi',date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note||'',
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active'||Date.parse(r.expires_at)<=Date.now(),archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};

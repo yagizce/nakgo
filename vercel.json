@@ -69,7 +69,8 @@
       "claude/route-alerts": false,
       "claude/districts-expiry": false,
       "claude/profile-districts": false,
-      "claude/whatsapp-core": false
+      "claude/whatsapp-core": false,
+      "claude/whatsapp-review": false
     }
   }
 }

@@ -127,3 +127,4 @@ header p { opacity:1; }
 .contact-dock .btn.wa-btn:active { background:#178a45; }
 .wa-glyph { width:20px; height:20px; flex:none; }
 .field-note { font-size:12.5px; color:var(--mute); margin:6px 2px 0; }
+.wa-source { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--tag-bg); color:var(--ink); border-radius:12px; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; max-height:220px; overflow:auto; }

@@ -1954,6 +1954,7 @@ header p { opacity:1; }
 .contact-dock .btn.wa-btn:active { background:#178a45; }
 .wa-glyph { width:20px; height:20px; flex:none; }
 .field-note { font-size:12.5px; color:var(--mute); margin:6px 2px 0; }
+.wa-source { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--tag-bg); color:var(--ink); border-radius:12px; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; max-height:220px; overflow:auto; }
 
 /* Ortak tasarım sistemi ve telefon düzeni */
 
@@ -3382,6 +3383,7 @@ const nakgoAuth = (() => {
     async function unreadMessages() {
         const account=listingAccount();return messageResult(requireClient().rpc('nakgo_message_unread_count'),account);
     }
+    async function whatsappRPC(name,args={}){if(!['page','detail','change','retry'].includes(name))throw Error('Invalid action');const account=listingAccount();return messageResult(requireClient().rpc('nakgo_wa_'+name,args),account);}
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
     async function adminPage(section,offset=0,search=''){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_page',{p_section:section,p_offset:offset,p_search:search}),account);}
     async function adminModerate(kind,target,action,reason,expectedRevision){
@@ -3389,7 +3391,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
+    return {whatsappRPC,adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -3428,7 +3430,7 @@ const nakgoMarket = (() => {
     }
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
-            from:r.from_city,to:r.to_city,fromD:r.from_district||'',toD:r.to_district||'',veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
+            from:r.from_city,to:r.to_city,fromD:r.from_district||'',toD:r.to_district||'',veh:r.vehicle,body:r.body,ton:r.amount==null?null:Number(r.amount),cap:r.amount==null?null:Number(r.amount),cargo:r.cargo,
             owner:r.owner_label||'NakGo üyesi',who:r.owner_label||'NakGo üyesi',date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note||'',
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active'||Date.parse(r.expires_at)<=Date.now(),archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};
@@ -3801,6 +3803,9 @@ function rmF(k, v) {
     render();
 }
 
+// WhatsApp ilanlarında tonaj ve yük cinsi mesajda yoksa boş kalır; uydurulmaz.
+const amountText = v => v == null || v === "" ? "Tonaj belirtilmedi" : v + " ton";
+const cargoText = c => c || "Yük cinsi belirtilmedi";
 const place = (city, district) => esc(city) + (district ? `<small class="district">${esc(district)}</small>` : "");
 const routeText = x => [[x.from, x.fromD], [x.to, x.toD]].map(([c, d]) => d ? `${c} (${d})` : c).join(" → ");
 const routeHTML = x => `${place(x.from, x.fromD)}<i></i>${place(x.to, x.toD)}`;
@@ -3809,14 +3814,14 @@ const routeTitle = x => `<div class="route route-title"><span>${place(x.from, x.
 const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${place(x.from, x.fromD)}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${place(x.to, x.toD)}</b></div></div>`;
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
-const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
+const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(amountText(l.ton))} yük, ilanı aç">
     ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
-    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
+    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(cargoText(l.cargo))}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton">${l.ton == null ? "Tonaj belirtilmedi" : `<b>${esc(l.ton)}</b> ton`}</span></div>
     <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
     <div class="listing-footer"><span class="listing-trust"><span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b></span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust"><span>${nearTxt(t)}${ago(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(amountText(t.cap))} boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${t.cap == null ? "—" : `${esc(t.cap)}<small> ton</small>`}</strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b></span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body || "Kasa belirtilmedi")}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust"><span>${nearTxt(t)}${ago(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
@@ -4000,7 +4005,7 @@ function askDel(k, id) {
 }
 
 const myListHTML = () => {
-    const a = [...mineL().map(l => ({ k: "l", id: l.id, r: routeText(l), v: l.ton + " ton", c: l.closed || expired(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: routeText(t), v: t.cap + " ton", c: t.closed || expired(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))];
+    const a = [...mineL().map(l => ({ k: "l", id: l.id, r: routeText(l), v: amountText(l.ton), c: l.closed || expired(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: routeText(t), v: t.cap + " ton", c: t.closed || expired(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))];
     return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" && !nakgoMarket.active() ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${esc(x.id)}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
 };
 
@@ -4894,7 +4899,7 @@ function deep() {
 function shareLoad(l) {
     track("sh", l.id);
     if(l._remote)return toast("Gerçek ilan paylaşımı henüz hazır değil.");
-    const url = APPURL + "#l=" + l.id, text = l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton";
+    const url = APPURL + "#l=" + l.id, text = l.from + " → " + l.to + " · " + cargoText(l.cargo) + " · " + amountText(l.ton);
     const copy = () => {
         if (navigator.clipboard)
             navigator.clipboard.writeText(text + " " + url).then(() => toast("Bağlantı kopyalandı")).catch(() => toast("Kopyalanamadı"));
@@ -5728,7 +5733,7 @@ async function openAdminPanel() {
     if(!nakgoMarket.active())return;
     const generation=++adminPanelGeneration,account=nakgoMarket.token(), body=$('#sheetBody');
     let section='overview',offset=0,search='',request=0;
-    const titles={overview:'Genel bakış',users:'Kullanıcılar',listings:'İlanlar',moderation:'Yönetim işlem geçmişi'};
+    const titles={overview:'Genel bakış',whatsapp:'WhatsApp ilanları',users:'Kullanıcılar',listings:'İlanlar',moderation:'Yönetim işlem geçmişi'};
     const valid=()=>generation===adminPanelGeneration&&account===nakgoMarket.token()&&body.dataset.k==='admin';
     const date=value=>new Date(value).toLocaleString('tr-TR');
     body.dataset.k='admin';$('#sheet').classList.add('open');
@@ -5739,9 +5744,59 @@ async function openAdminPanel() {
         $('#admin-close').onclick=closeSheet;
         body.querySelectorAll('[data-admin-section]').forEach(button=>button.onclick=()=>{section=button.dataset.adminSection;offset=0;search='';load();});
     }
+    // WhatsApp taslakları: yalnız mesajda yazılı numara, güzergâh ve araç tipi zorunlu; yayın her zaman yönetici onayıyla.
+    const waStatus=v=>({draft:'Taslak',published:'Yayında',rejected:'Reddedildi',withdrawn:'Yayından kaldırıldı',purged:'Saklama süresi doldu'})[v]||v;
+    const waPoint=p=>p&&p.city?p.city+(p.district?' ('+p.district+')':''):'?';
+    const waReady=f=>!!(f&&f.from&&f.from.city&&f.destinations&&f.destinations[0]&&f.destinations[0].city&&f.vehicle&&f.contactPhone);
+    async function whatsappPage(ticket){
+        const data=await nakgoAuth.whatsappRPC('page',{p_offset:offset});
+        if(!valid()||ticket!==request)return;
+        const rows=data.drafts.slice(0,20),more=data.drafts.length>20;
+        frame('<h2>WhatsApp ilanları</h2><p>İşlenmeyi bekleyen mesaj: '+esc(String(data.pending))+' · Hatalı: '+esc(String(data.failed))+'</p>'+(data.failed?'<button class="chip" id="wa-retry">Hatalı mesajları tekrar dene</button>':'')+
+            (rows.map(r=>{const f=r.fields||{};return '<article class="load"><b>#'+esc(String(r.id))+' · '+esc(waPoint(f.from))+' → '+esc(waPoint((f.destinations||[])[0]))+'</b><p>'+esc((f.vehicle||'Araç belirsiz')+' · '+(f.contactPhone||'Numara yok'))+'</p><p>'+esc(waStatus(r.status))+(r.status==='draft'?(waReady(f)?' · Yayına hazır':' · Eksik bilgi'):'')+'</p><button class="chip" data-wa-open="'+esc(String(r.id))+'">İncele</button></article>';}).join('')||'<p>Henüz WhatsApp mesajı yok.</p>')+
+            '<div class="admin-tabs"><button class="chip" id="wa-prev" '+(offset===0?'disabled':'')+'>Önceki</button><button class="chip" id="wa-refresh">Yenile</button><button class="chip" id="wa-next" '+(more?'':'disabled')+'>Sonraki</button></div>',true);
+        body.querySelectorAll('[data-wa-open]').forEach(b=>b.onclick=()=>whatsappDetail(Number(b.dataset.waOpen)));
+        $('#wa-prev').onclick=()=>{offset=Math.max(0,offset-20);load();};$('#wa-next').onclick=()=>{offset+=20;load();};$('#wa-refresh').onclick=load;
+        if($('#wa-retry'))$('#wa-retry').onclick=async()=>{try{await nakgoAuth.whatsappRPC('retry');if(valid())load();}catch{if(valid())toast('Tekrar deneme başlatılamadı');}};
+    }
+    async function whatsappDetail(id){
+        const ticket=++request;frame('<p role="status">Taslak yükleniyor…</p>');
+        try{
+            const d=await nakgoAuth.whatsappRPC('detail',{p_id:id});if(!valid()||ticket!==request)return;
+            const f=d.fields||{},dest=(f.destinations||[])[0]||{},o=(list,v,empty)=>(empty?'<option value="">'+empty+'</option>':'')+list.map(x=>'<option '+(x===v?'selected':'')+'>'+esc(x)+'</option>').join('');
+            const cityOpts=v=>o(cities,v,'Seç');
+            frame('<h2>WhatsApp taslağı #'+esc(String(id))+'</h2><p>'+esc(waStatus(d.status))+'</p>'+
+                '<h3>Kaynak mesaj (değiştirilemez)</h3><pre class="wa-source">'+esc((d.source&&d.source.text)||'Kaynak saklama süresi dolmuş.')+'</pre>'+
+                '<form id="wa-form"><label for="wa-kind">İlan türü</label><select id="wa-kind"><option value="load" '+(f.kind!=='truck'?'selected':'')+'>Yük</option><option value="truck" '+(f.kind==='truck'?'selected':'')+'>Boş araç</option></select>'+
+                '<div class="row"><div><label for="wa-from">Nereden</label><select id="wa-from">'+cityOpts(f.from&&f.from.city)+'</select></div><div><label for="wa-fromd">İlçe</label><input id="wa-fromd" maxlength="40" value="'+esc((f.from&&f.from.district)||'')+'"></div></div>'+
+                '<div class="row"><div><label for="wa-to">Nereye</label><select id="wa-to">'+cityOpts(dest.city)+'</select></div><div><label for="wa-tod">İlçe</label><input id="wa-tod" maxlength="40" value="'+esc(dest.district||'')+'"></div></div>'+
+                '<label for="wa-vehicle">Araç tipi</label><select id="wa-vehicle">'+o(vehicles,f.vehicle,'Seç')+'</select>'+
+                '<label for="wa-phone">Mesajdaki telefon</label><input id="wa-phone" type="tel" maxlength="32" value="'+esc(f.contactPhone||'')+'">'+
+                '<label for="wa-body">Kasa tipi (isteğe bağlı)</label><select id="wa-body">'+o(bodies,f.body,'Belirtilmedi')+'</select>'+
+                '<div class="row"><div><label for="wa-amount">Tonaj (isteğe bağlı)</label><input id="wa-amount" type="number" min="0" step="any" value="'+esc(f.amount==null?'':String(f.amount))+'"></div><div><label for="wa-cargo">Yük cinsi (isteğe bağlı)</label><input id="wa-cargo" maxlength="120" value="'+esc(f.cargo||'')+'"></div></div>'+
+                '<label for="wa-timing">Yükleme zamanı (isteğe bağlı)</label><input id="wa-timing" maxlength="32" value="'+esc(f.timing||'')+'">'+
+                '<label for="wa-note">İlan notu (isteğe bağlı)</label><textarea id="wa-note" maxlength="1000" rows="2">'+esc(f.publicNote||'')+'</textarea>'+
+                '<label for="wa-basis">Yayın gerekçesi</label><input id="wa-basis" maxlength="1000" value="Kendi paylaştığı grup ilanı (alenileştirme)">'+
+                '<p id="wa-error" role="alert"></p><div class="admin-tabs"><button class="btn" type="button" data-wa-action="publish">Yayınla</button><button class="chip" type="button" data-wa-action="save">Kaydet</button>'+
+                (d.status==='published'?'<button class="chip" type="button" data-wa-action="withdraw">Yayından kaldır</button>':'<button class="chip" type="button" data-wa-action="reject">Reddet</button>')+'<button class="chip" type="button" id="wa-back">Listeye dön</button></div></form>');
+            $('#wa-back').onclick=load;let sending=false;
+            body.querySelectorAll('[data-wa-action]').forEach(b=>b.onclick=async()=>{
+                if(sending||!valid())return;const action=b.dataset.waAction,v=s=>$(s).value.trim();
+                const amount=v('#wa-amount'),phone=normalizeListingPhone(v('#wa-phone'));
+                const next={...f,kind:v('#wa-kind'),from:{city:v('#wa-from')||null,district:v('#wa-fromd')||null},destinations:[{city:v('#wa-to')||null,district:v('#wa-tod')||null},...(f.destinations||[]).slice(1)],
+                    vehicle:v('#wa-vehicle')||null,body:v('#wa-body')||null,amount:amount===''?null:Number(amount),cargo:v('#wa-cargo')||null,timing:v('#wa-timing')||null,publicNote:v('#wa-note')||null,contactPhone:phone||null};
+                if(action==='publish'&&!waReady(next)){$('#wa-error').textContent='Yayın için nereden, nereye, araç tipi ve mesajdaki telefon gerekli.';return;}
+                if(next.amount!==null&&!(next.amount>0)){$('#wa-error').textContent='Tonaj sıfırdan büyük olmalı ya da boş bırakılmalı.';return;}
+                sending=true;body.querySelectorAll('button').forEach(x=>x.disabled=true);
+                try{await nakgoAuth.whatsappRPC('change',{p_id:id,p_revision:d.revision,p_action:action,p_fields:next,p_basis:action==='publish'?v('#wa-basis'):null});if(valid())await whatsappDetail(id);}
+                catch(e){if(!valid())return;frame('<p role="alert">'+esc(e&&e.code==='40001'?'Kayıt başka bir yerde değişmiş. Güncel kaydı yükle.':'İşlem doğrulanamadı. Alanları ve yayın gerekçesini kontrol et.')+'</p><button class="chip" id="wa-reload">Güncel kaydı yükle</button>');$('#wa-reload').onclick=()=>whatsappDetail(id);}
+            });
+        }catch{if(valid()&&ticket===request){frame('<p role="alert">Taslak açılamadı. Yetkini ve bağlantını kontrol et.</p><button class="chip" id="wa-back">Listeye dön</button>');$('#wa-back').onclick=load;}}
+    }
     async function load(){
         const ticket=++request;frame('<p role="status">Yönetici erişimi kontrol ediliyor…</p>');
         try{
+            if(section==='whatsapp'){await whatsappPage(ticket);return;}
             const data=await nakgoAuth.adminPage(section,offset,search);
             if(!valid()||ticket!==request)return;
             if(section==='overview'){
@@ -5957,7 +6012,7 @@ function openLoad(id) {
         <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${esc(dateLabel(l))}</span>${isF(l) ? `<span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span>` : ""}</div></section>
         ${!cloud && !nakgoMarket.locked() ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
         ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
-        <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", esc(l.cargo)], ["Tonaj", esc(l.ton) + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", esc(dateLabel(l))], ...(postedAt(l,true) ? [["İlan yayın zamanı", esc(postedAt(l,true))]] : [])])}${l.note ? `<p class="detail-note">${esc(l.note)}</p>` : ""}</section>
+        <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", esc(cargoText(l.cargo))], ["Tonaj", esc(amountText(l.ton))], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", esc(dateLabel(l))], ...(postedAt(l,true) ? [["İlan yayın zamanı", esc(postedAt(l,true))]] : [])])}${l.note ? `<p class="detail-note">${esc(l.note)}</p>` : ""}</section>
         <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
         <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${esc(l.owner || (l.uid ? nm(l.uid) : "Bireysel"))}</b></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button></div></section>
@@ -5993,7 +6048,7 @@ function openTruck(id) {
     const t = findIt("t",id);
     if (!t) return toast("İlan bulunamadı");
     const unavailable = !availableListing(t,true);
-    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", esc(t.who || nm(t.uid))], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))], ...(postedAt(t,true) ? [["İlan yayın zamanı", esc(postedAt(t,true))]] : [])].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me && !t.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
+    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags" style="margin-top:14px"><span class="tag">${esc(amountText(t.cap))} boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div style="margin-top:10px">${[["Taşıyıcı", esc(t.who || nm(t.uid))], ["Araç", esc(t.veh + " · " + (t.body || "Kasa belirtilmedi"))], ["Boş kapasite", esc(amountText(t.cap))], ["Müsait", esc(dateLabel(t))], ...(postedAt(t,true) ? [["İlan yayın zamanı", esc(postedAt(t,true))]] : [])].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips" style="margin-top:14px"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me && !t.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openTruck(id));
