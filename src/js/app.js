@@ -190,7 +190,8 @@ render();
 deep();
 
 try {
-    if (!localStorage.getItem("yy-onb"))
+    if (ADMIN_HOST) document.body.classList.add("admin-host");
+    else if (!localStorage.getItem("yy-onb"))
         openOnb();
 }
 catch (e) { }

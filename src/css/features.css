@@ -1008,3 +1008,10 @@
   letter-spacing:.2px;
   animation:rise .55s .5s both;
 }
+/* admin.* adresi: alt menü yok, panel kartı ortada. */
+body.admin-host #nav { display:none; }
+.admin-host-card { max-width:520px; margin:24px auto; display:grid; gap:12px; }
+@media (min-width:760px) {
+  body.admin-host #app { max-width:1100px; }
+  body.admin-host .sheet>div { max-width:1000px; }
+}
