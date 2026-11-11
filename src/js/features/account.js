@@ -105,12 +105,8 @@ function setRole(r, go) {
     render();
 }
 
-// Tanıtım çizimleri yalnız tema renklerini kullanır; açık ve koyu temada aynı görünür.
-const OB_ART = {
-    market: `<svg viewBox="0 0 280 180" aria-hidden="true"><rect x="18" y="30" width="150" height="58" rx="14" class="ob-a-card"/><rect x="32" y="44" width="70" height="9" rx="4" class="ob-a-ink"/><rect x="32" y="62" width="46" height="8" rx="4" class="ob-a-soft"/><rect x="124" y="46" width="30" height="26" rx="8" class="ob-a-accent"/><rect x="112" y="98" width="150" height="58" rx="14" class="ob-a-card"/><rect x="126" y="112" width="58" height="9" rx="4" class="ob-a-ink"/><rect x="126" y="130" width="84" height="8" rx="4" class="ob-a-soft"/><path d="M222 112h18l10 11v15h-28z" class="ob-a-brand"/><circle cx="230" cy="140" r="5" class="ob-a-ink"/><path d="M96 98c8 14 4 26-6 34" class="ob-a-line"/><circle cx="90" cy="134" r="4" class="ob-a-accent"/></svg>`,
-    route: `<svg viewBox="0 0 280 180" aria-hidden="true"><rect x="24" y="22" width="232" height="136" rx="18" class="ob-a-card"/><path d="M58 128c30-6 34-52 72-56s46 30 92-24" class="ob-a-route"/><circle cx="58" cy="128" r="9" class="ob-a-brand"/><path d="M222 30c-9 0-15 7-15 15 0 11 15 24 15 24s15-13 15-24c0-8-6-15-15-15z" class="ob-a-accent"/><circle cx="222" cy="45" r="5" class="ob-a-card"/><rect x="46" y="38" width="86" height="34" rx="10" class="ob-a-soft"/><rect x="56" y="48" width="36" height="7" rx="3" class="ob-a-ink"/><rect x="56" y="59" width="56" height="5" rx="2.5" class="ob-a-mute"/></svg>`,
-    contact: `<svg viewBox="0 0 280 180" aria-hidden="true"><rect x="92" y="14" width="96" height="156" rx="20" class="ob-a-ink"/><rect x="100" y="28" width="80" height="128" rx="12" class="ob-a-card"/><rect x="110" y="42" width="44" height="7" rx="3.5" class="ob-a-ink"/><rect x="110" y="54" width="60" height="6" rx="3" class="ob-a-mute"/><rect x="110" y="120" width="28" height="24" rx="8" class="ob-a-brand"/><rect x="142" y="120" width="28" height="24" rx="8" class="ob-a-accent"/><path d="M118 128c1 4 4 7 8 8l2-2 3 2-1 3c-6 0-12-6-12-12l3-1 2 3z" class="ob-a-ink"/><circle cx="56" cy="62" r="22" class="ob-a-soft"/><path d="M47 62l6 6 12-12" class="ob-a-check"/><circle cx="226" cy="110" r="18" class="ob-a-soft"/><path d="M218 110h16M226 102v16" class="ob-a-check"/></svg>`
-};
+// Tanıtımda uygulamanın gerçek ekranları gösterilir (örnek ilanlarla, misafir görünümü).
+const obShot = (k, alt) => `<div class="ob-phone"><img class="ob-shot ob-light" src="icons/onboarding/${k}-light.webp" width="600" height="1000" alt="${alt}" decoding="async"><img class="ob-shot ob-dark" src="icons/onboarding/${k}-dark.webp" width="600" height="1000" alt="" aria-hidden="true" decoding="async"></div>`;
 
 function openOnb() {
     let el = $("#onb");
@@ -126,14 +122,14 @@ function openOnb() {
     const draw = () => {
         if (i < 3) {
             const [art, t, x] = SL[i];
-            el.innerHTML = `${top(i)}<div class="ob-hero">${OB_ART[art] || ""}</div><div class="ob-body ob-slide"><p class="ob-step">${i + 1} / 3</p><h2 id="ob-title">${t}</h2><p>${x}</p></div>${dots(i)}<div class="ob-actions">${i ? '<button class="chip ob-back" id="ob-back">Geri</button>' : ""}<button class="btn" id="ob-next">${i < 2 ? "İleri" : "Başlayalım"}</button></div>`;
+            el.innerHTML = `${top(i)}<div class="ob-hero">${obShot(art, SL[i][3])}</div><div class="ob-body ob-slide"><p class="ob-step">${i + 1} / 3</p><h2 id="ob-title">${t}</h2><p>${x}</p></div>${dots(i)}<div class="ob-actions">${i ? '<button class="chip ob-back" id="ob-back">Geri</button>' : ""}<button class="btn" id="ob-next">${i < 2 ? "İleri" : "Başlayalım"}</button></div>`;
             $("#ob-next").onclick = () => { i++; draw(); };
             if ($("#ob-back")) $("#ob-back").onclick = () => { i--; draw(); };
             $("#ob-skip").onclick = () => { i = 3; draw(); };
             $("#ob-next").focus({ preventScroll: true });
         }
         else {
-            el.innerHTML = `${top(i)}<div class="ob-body ob-roles"><h2 id="ob-title">Seni tanıyalım</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilinden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="role-txt"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></span></button><button class="rolebtn" id="r-o"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span class="role-txt"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></span></button><p class="ob-note">Kayıt olmadan ilanlara göz atabilirsin. Aramak ve WhatsApp için ücretsiz hesap gerekir.</p></div>${dots(3)}`;
+            el.innerHTML = `${top(i)}<div class="ob-body ob-roles"><h2 id="ob-title">Seni tanıyalım</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilinden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="role-txt"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></span></button><button class="rolebtn" id="r-o"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span class="role-txt"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></span></button><p class="ob-note">Kayıt olmadan ilanlara göz atabilirsin. Aramak ve mesaj göndermek için ücretsiz hesap gerekir.</p></div>${dots(3)}`;
             $("#r-c").onclick = () => setRole("carrier", 1);
             $("#r-o").onclick = () => setRole("owner", 1);
         }

@@ -815,26 +815,38 @@
 }
 
 .ob-hero {
-  flex:0 1 auto;
+  flex:1 1 0;
+  min-height:170px;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  overflow:hidden;
   border-radius:24px;
   background:var(--gradient-brand-soft);
   border:1px solid var(--line);
-  display:grid;
-  place-items:center;
-  padding:18px 10px;
-  min-height:180px;
+  padding:18px 18px 0;
 }
 
-.ob-hero svg { width:100%; max-width:320px; height:auto; }
-.ob-a-card { fill:var(--card); stroke:var(--line); stroke-width:1.5; }
-.ob-a-ink { fill:var(--ink); }
-.ob-a-mute { fill:var(--mute); opacity:.55; }
-.ob-a-soft { fill:var(--brand-soft); }
-.ob-a-brand { fill:var(--brand); }
-.ob-a-accent { fill:var(--accent); }
-.ob-a-line { fill:none; stroke:var(--mute); stroke-width:2; stroke-dasharray:4 5; }
-.ob-a-route { fill:none; stroke:var(--brand); stroke-width:5; stroke-linecap:round; stroke-dasharray:1 11; }
-.ob-a-check { fill:none; stroke:var(--brand-ink); stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; }
+/* Telefonun üst kısmı: kenarlık ve yuvarlak köşe ile gerçek cihaz görünümü */
+.ob-phone {
+  width:min(80%,290px);
+  flex:none;
+  aspect-ratio:600/1000;
+  border:7px solid var(--ink);
+  border-radius:30px;
+  overflow:hidden;
+  background:var(--card);
+  box-shadow:0 10px 30px rgba(18,57,95,.18);
+}
+
+.ob-shot { display:block; width:100%; height:100%; object-fit:cover; object-position:top; }
+.ob-dark { display:none; }
+:root[data-theme="dark"] .ob-light { display:none; }
+:root[data-theme="dark"] .ob-dark { display:block; }
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) .ob-light { display:none; }
+  :root:not([data-theme="light"]) .ob-dark { display:block; }
+}
 
 .ob-body {
   flex:1;
@@ -846,7 +858,7 @@
   gap:10px;
 }
 
-.ob-slide { justify-content:center; }
+.ob-slide { flex:0 0 auto; padding:6px 0 4px; }
 
 .ob-step {
   margin:0;
@@ -945,7 +957,6 @@
 
 .ob-note { font-size:13px !important; max-width:300px; }
 
-@media (min-height:760px) { .ob-hero { min-height:240px; } }
 @media (prefers-reduced-motion:reduce) { .dots i { transition:none; } }
 
 .splash {

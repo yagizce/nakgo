@@ -22,8 +22,8 @@ const FI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="
 
 const D = [[450, 480, 155, 700, 660, 940, 1130, 790, 740, 1100, 950], [580, 380, 540, 260, 490, 680, 320, 410, 780, 480], [330, 470, 580, 920, 1100, 830, 980, 1350, 850], [620, 520, 850, 1050, 700, 700, 1050, 800], [320, 550, 850, 640, 850, 1250, 480], [340, 640, 330, 700, 1050, 330], [330, 350, 760, 1100, 70], [460, 850, 1000, 340], [500, 720, 420], [340, 810], [1130]];
 
-// İlk açılış tanıtımı: [çizim, başlık, metin]. Çizimler features/account.js içinde.
-const SL = [["market", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar boş aracını duyurur. Aracın boş kalmasın, yükün beklemesin."], ["route", "Yolunu gör, giderini planla", "Çıkış ve varışı haritada gör, mazot ve yol giderini önceden hesapla."], ["contact", "İlan sahibine doğrudan ulaş", "İlanlara giriş yapmadan göz at. Aramak ve WhatsApp’tan yazmak için ücretsiz hesap aç."]];
+// İlk açılış tanıtımı: [ekran görüntüsü, başlık, metin, görüntü açıklaması]. Görüntüler icons/onboarding içinde.
+const SL = [["list", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar boş aracını duyurur. Aracın boş kalmasın, yükün beklemesin.", "İlanlar ekranı: rota arama ve Mersin–Ankara yük ilanı"], ["calc", "Giderini önceden planla", "Mesafeyi ve tüketimi gir; mazot ve yol giderini yola çıkmadan gör.", "Mazot ve Gider Hesaplama ekranı: tahmini toplam gider"], ["detail", "İlan sahibine doğrudan ulaş", "İlanlara giriş yapmadan göz at. Aramak ve mesaj göndermek için ücretsiz hesap aç.", "İlan detayı: taşıma bilgileri ile Ara ve Mesaj gönder düğmeleri"]];
 
 const PLANS = [{ id: "m", name: "Aylık", price: 299, days: 30 }, { id: "y", name: "Yıllık", price: 3099, days: 365 }];
 
