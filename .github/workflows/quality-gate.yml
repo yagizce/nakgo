@@ -63,7 +63,7 @@ jobs:
       - name: Install browser runner
         run: |
           python -m pip install -r tests/requirements.txt
-          python -m playwright install --with-deps chromium
+          python -m playwright install chromium
       - name: Existing browser tests
         run: npm run test:e2e
       - name: Mobile output
@@ -117,7 +117,7 @@ jobs:
       - name: Install trusted regression dependencies
         run: |
           python -I -m pip install -r tests/requirements.txt
-          python -I -m playwright install --with-deps chromium
+          python -I -m playwright install chromium
           cd "$RUNNER_TEMP"
           npm install --prefix "$RUNNER_TEMP/nakgo-admin-db" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite@0.3.14
           mkdir -p "$RUNNER_TEMP/nakgo-unit"
@@ -194,7 +194,7 @@ jobs:
       - name: Install browser runner
         run: |
           python -I -m pip install -r baseline/tests/requirements.txt
-          python -I -m playwright install --with-deps chromium
+          python -I -m playwright install chromium
       - name: Independent browser tests
         env:
           BASE_SHA: ${{ needs.snapshot.outputs.source }}
