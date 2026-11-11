@@ -67,7 +67,8 @@
       "claude/onboarding-refresh": false,
       "claude/ci-no-apt": false,
       "claude/route-alerts": false,
-      "claude/districts-expiry": false
+      "claude/districts-expiry": false,
+      "claude/profile-districts": false
     }
   }
 }
