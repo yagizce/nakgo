@@ -22,7 +22,7 @@ module.exports = ({run,fs,path,ROOT}) => {
         ok(!/Taşıyıcı belgeleri|Devam eden iş|Onaylanan iş|değerlendirme|Değerlendirmelerimi/.test(me),'profilde belge, iş ve puan alanı yok');
         ok(me.includes('Yardım ve destek')&&me.includes('Mazot ve Gider Hesaplama'),'yardım ve hesaplama girişi duruyor');
         const faq=r('return FAQ.map(x=>x.join(" ")).join(" ")');
-        ok(!/puan|belge|rozet|taşıma talebi|İşlerim/i.test(faq)&&faq.includes('Mesaj gönder'),'yardım soruları kaldırılan özelliklerden söz etmez');
+        ok(!/puan|belge|rozet|taşıma talebi|İşlerim/i.test(faq)&&(faq.includes('Mesaj gönder')||/Ara veya WhatsApp/.test(faq)),'yardım soruları kaldırılan özelliklerden söz etmez');
         r("openProfile({uid:'u-9',name:'Firma'})");
         ok(!/★|değerlendirme|Onaylanan iş|Yorum/.test(r('return sheet()')),'herkese açık profilde puan ve iş sayısı yok');
     });
