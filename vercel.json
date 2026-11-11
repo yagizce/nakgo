@@ -66,7 +66,8 @@
       "claude/session-resilience": false,
       "claude/onboarding-refresh": false,
       "claude/ci-no-apt": false,
-      "claude/route-alerts": false
+      "claude/route-alerts": false,
+      "claude/districts-expiry": false
     }
   }
 }

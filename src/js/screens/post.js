@@ -6,10 +6,21 @@
 function postValues() {
     const truck = postMode === "truck";
     return {
-        from: $("#f").value, to: $("#t").value, veh: $("#v").value,
+        from: $("#f").value, to: $("#t").value, fromD: ($("#fd")||{}).value||"", toD: ($("#td")||{}).value||"", veh: $("#v").value,
         body: $(truck ? "#bd" : "#b").value, ...(truck ? parsePostDate($('#d').value) : {date:'',time:'',dateText:$('#d').value.trim()}), note: $("#n").value.trim().slice(0,1000),
         ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
     };
+}
+
+// İlçe isteğe bağlıdır; liste seçili şehre göre yenilenir.
+const districtField = id => `<label>İlçe (isteğe bağlı)</label><select id="${id}"></select>`;
+function bindDistricts() {
+    for (const [c, d] of [["f", "fd"], ["t", "td"]]) {
+        const city = $("#" + c), sel = $("#" + d);
+        if (!city || !sel) continue;
+        const fill = () => { sel.innerHTML = '<option value="">Tüm ilçeler</option>' + (DISTRICTS[city.value] || []).map(x => `<option>${esc(x)}</option>`).join(""); };
+        city.onchange = fill; fill();
+    }
 }
 
 function renderPost(m) {
@@ -28,8 +39,9 @@ function renderPost(m) {
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select><label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select><div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" required><label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3"></textarea><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>${districtField("fd")}<label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>${districtField("td")}<div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" required><label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3"></textarea><button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
+            bindDistricts();
             const publishButton = $("#go");
             publishButton.onclick = async () => {
                 if (tab !== "post" || $("#go") !== publishButton) return;
@@ -51,8 +63,8 @@ function renderPost(m) {
             initPostWizard(m);
             return;
         }
-        m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>
-    <label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>
+        m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>${districtField("fd")}
+    <label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>${districtField("td")}
     <label>Yük cinsi</label><input id="c" maxlength="120" placeholder="Örn. Paletli gıda">
     <div class="row"><div><label>Ağırlık (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div>
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
@@ -62,6 +74,7 @@ function renderPost(m) {
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
     <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
         pb();
+        bindDistricts();
         itemsUI();
         const publishButton = $("#go");
         publishButton.onclick = async () => {

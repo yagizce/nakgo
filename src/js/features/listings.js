@@ -74,9 +74,10 @@ function rmF(k, v) {
     render();
 }
 
-const routeTitle = x => `<div class="route route-title"><span>${esc(x.from)}</span><i aria-hidden="true"></i><span>${esc(x.to)}</span></div>`;
+const place = (city, district) => esc(city) + (district ? `<small class="district">${esc(district)}</small>` : "");
+const routeTitle = x => `<div class="route route-title"><span>${place(x.from, x.fromD)}</span><i aria-hidden="true"></i><span>${place(x.to, x.toD)}</span></div>`;
 
-const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${esc(x.from)}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${esc(x.to)}</b></div></div>`;
+const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${place(x.from, x.fromD)}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${place(x.to, x.toD)}</b></div></div>`;
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
