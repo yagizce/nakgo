@@ -65,6 +65,7 @@
       "codex/nakgo-guard-approval": false,
       "claude/session-resilience": false,
       "claude/onboarding-refresh": false,
+      "claude/ci-no-apt": false,
       "claude/route-alerts": false
     }
   }
