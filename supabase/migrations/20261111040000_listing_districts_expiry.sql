@@ -6,7 +6,10 @@ alter table public.listings
  add column to_district text check (to_district is null or char_length(to_district) between 1 and 40),
  add column expires_at timestamptz;
 -- Existing listings get the same rule: six hours after they were published.
+-- One-time backfill: skip write guards so old dates, suspensions and updated_at are untouched.
+alter table public.listings disable trigger listings_write_guard, disable trigger moderation_listing;
 update public.listings set expires_at=created_at+interval '6 hours';
+alter table public.listings enable trigger listings_write_guard, enable trigger moderation_listing;
 alter table public.listings alter column expires_at set default (now()+interval '6 hours'), alter column expires_at set not null;
 grant insert(from_district,to_district),update(from_district,to_district) on public.listings to authenticated;
 
