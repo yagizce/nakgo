@@ -385,8 +385,8 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,from_district,to_district,expires_at,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
-    const listingFields=['from_city','to_city','from_district','to_district','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data'];
+    const listingColumns='id,owner_id,kind,from_city,to_city,from_district,to_district,expires_at,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at,contact_consent';
+    const listingFields=['from_city','to_city','from_district','to_district','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data','contact_phone','contact_consent'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
         return {id:state.user.id, revision};
@@ -432,6 +432,7 @@ const nakgoAuth = (() => {
         if(!Object.keys(values).length)throw Error('No editable fields');
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
+    async function listingContact(id){const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');return listingResult(await requireClient().rpc('nakgo_listing_contact',{p_id:id}),account);}
     async function listFavorites({before=null,details=false}={}) {
         const account=listingAccount();
         let q=requireClient().from('listing_favorites').select(details?'listing_id,listing:listings('+listingColumns+')':'listing_id')
@@ -512,7 +513,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
+    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -588,7 +589,8 @@ const nakgoMarket = (() => {
         const dates=!truck&&'dateText' in x?{date:null,dateEnd:''}:dateFields(x.date);
         return {kind:truck?'truck':'load',from_city:x.from,to_city:x.to,from_district:x.fromD||null,to_district:x.toD||null,vehicle:x.veh,body:x.body,amount:truck?x.cap:x.ton,
             cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,available_time:x.time||'',...(!truck&&'dateText' in x?{loading_text:x.dateText}:{}),
-            items:truck?[]:x.items||[],image_data:truck?'':x.img||''};
+            items:truck?[]:x.items||[],image_data:truck?'':x.img||'',
+            ...('contactConsent' in x?{contact_phone:normalizeListingPhone(x.phone)||null,contact_consent:x.contactConsent===true}:{})};
     }
     async function create(x,truck=false) {
         const owner=token(), row=await nakgoAuth.createListing(payload(x,truck));

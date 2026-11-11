@@ -120,3 +120,10 @@ header p { opacity:1; }
 
 .contact-unavailable{grid-column:1/-1;margin:0;color:var(--ink);font-size:13px;line-height:1.5}
 .contact-dock button:disabled{opacity:.55;cursor:default}
+.phone-contact { grid-template-columns:1fr 1fr; }
+.phone-contact .btn { font-size:16px; font-weight:700; }
+.phone-contact .btn .ui-icon { width:19px; height:19px; }
+.contact-dock .btn.wa-btn { background:#1fa855; color:#fff; box-shadow:0 6px 16px #25d36640; }
+.contact-dock .btn.wa-btn:active { background:#178a45; }
+.wa-glyph { width:20px; height:20px; flex:none; }
+.field-note { font-size:12.5px; color:var(--mute); margin:6px 2px 0; }

@@ -1947,6 +1947,13 @@ header p { opacity:1; }
 
 .contact-unavailable{grid-column:1/-1;margin:0;color:var(--ink);font-size:13px;line-height:1.5}
 .contact-dock button:disabled{opacity:.55;cursor:default}
+.phone-contact { grid-template-columns:1fr 1fr; }
+.phone-contact .btn { font-size:16px; font-weight:700; }
+.phone-contact .btn .ui-icon { width:19px; height:19px; }
+.contact-dock .btn.wa-btn { background:#1fa855; color:#fff; box-shadow:0 6px 16px #25d36640; }
+.contact-dock .btn.wa-btn:active { background:#178a45; }
+.wa-glyph { width:20px; height:20px; flex:none; }
+.field-note { font-size:12.5px; color:var(--mute); margin:6px 2px 0; }
 
 /* Ortak tasarım sistemi ve telefon düzeni */
 
@@ -2566,6 +2573,15 @@ trucks.push({ id: "t4", verified: true, approved: true, who: "Yılmaz Ağır Nak
  * Tarih, mesafe ve kayıt doğrulama; metinler ham saklanır, çizim sınırında kaçışlanır.
  */
 const isRecord = v => !!v && typeof v === "object" && !Array.isArray(v);
+// Turkish mobile and geographic numbers; no letters, extensions or foreign prefixes.
+function normalizeListingPhone(value) {
+    if(typeof value!=='string'||!/^[+0-9 ()\- .]+$/.test(value)||value.length>32)return '';
+    let digits=value.replace(/\D/g,'');
+    if(digits.startsWith('0090'))digits=digits.slice(4);
+    else if(digits.length===12&&digits.startsWith('90'))digits=digits.slice(2);
+    else if(digits.length===11&&digits.startsWith('0'))digits=digits.slice(1);
+    return /^[235][0-9]{9}$/.test(digits)&&!/^([0-9])\1{9}$/.test(digits)?'+90'+digits:'';
+}
 const localDay = (value = Date.now()) => {
     const d = new Date(value);
     return Number.isFinite(d.getTime()) ? [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-") : "";
@@ -2631,6 +2647,10 @@ function postError(x, isTruck = false, step = 2) {
         if (!loadingTextOK(x.dateText)) return 'Yükleme tarihini yaz';
     } else if (!postDateOK(x.date) || dateFields(x.date).date < localDay()) return isTruck ? 'Güncel bir müsaitlik tarihi seç' : 'Güncel bir yükleme tarihi seç';
     if (Array.isArray(x.items) && x.items.some(i => !positiveAmount(i.q) || !ITEM_UNITS.includes(i.u))) return "Yük kalemlerine geçerli, sıfırdan büyük miktar ve birim gir";
+    if ('contactConsent' in x) {
+        if (!normalizeListingPhone(x.phone)) return "Geçerli bir Türkiye telefon numarası gir";
+        if (x.contactConsent !== true) return "Telefon numaranın ilanda paylaşılmasına izin vermelisin";
+    }
     return "";
 }
 function fuelEstimate(values) {
@@ -3241,8 +3261,8 @@ const nakgoAuth = (() => {
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
     }
-    const listingColumns='id,owner_id,kind,from_city,to_city,from_district,to_district,expires_at,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at';
-    const listingFields=['from_city','to_city','from_district','to_district','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data'];
+    const listingColumns='id,owner_id,kind,from_city,to_city,from_district,to_district,expires_at,vehicle,body,amount,cargo,note,owner_label,available_on,available_until,available_time,loading_text,items,image_data,status,created_at,updated_at,contact_consent';
+    const listingFields=['from_city','to_city','from_district','to_district','vehicle','body','amount','cargo','note','available_on','available_until','available_time','loading_text','items','image_data','contact_phone','contact_consent'];
     function listingAccount() {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
         return {id:state.user.id, revision};
@@ -3288,6 +3308,7 @@ const nakgoAuth = (() => {
         if(!Object.keys(values).length)throw Error('No editable fields');
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
+    async function listingContact(id){const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');return listingResult(await requireClient().rpc('nakgo_listing_contact',{p_id:id}),account);}
     async function listFavorites({before=null,details=false}={}) {
         const account=listingAccount();
         let q=requireClient().from('listing_favorites').select(details?'listing_id,listing:listings('+listingColumns+')':'listing_id')
@@ -3368,7 +3389,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
+    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -3444,7 +3465,8 @@ const nakgoMarket = (() => {
         const dates=!truck&&'dateText' in x?{date:null,dateEnd:''}:dateFields(x.date);
         return {kind:truck?'truck':'load',from_city:x.from,to_city:x.to,from_district:x.fromD||null,to_district:x.toD||null,vehicle:x.veh,body:x.body,amount:truck?x.cap:x.ton,
             cargo:truck?'':x.cargo,note:x.note||'',available_on:dates.date,available_until:dates.dateEnd||null,available_time:x.time||'',...(!truck&&'dateText' in x?{loading_text:x.dateText}:{}),
-            items:truck?[]:x.items||[],image_data:truck?'':x.img||''};
+            items:truck?[]:x.items||[],image_data:truck?'':x.img||'',
+            ...('contactConsent' in x?{contact_phone:normalizeListingPhone(x.phone)||null,contact_consent:x.contactConsent===true}:{})};
     }
     async function create(x,truck=false) {
         const owner=token(), row=await nakgoAuth.createListing(payload(x,truck));
@@ -5255,7 +5277,7 @@ function initPostWizard(m) {
     const savedDraft=getPostDrafts()[postMode], draft=isRecord(savedDraft)?savedDraft:null;
     postStep=draft ? Math.max(0,Math.min(2,+draft.step||0)) : 0;
     if (draft) {
-        for(const id of ['f','t','v','w','bd','d','c','b','n']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=id==='d' && postMode==='truck' && postDateOK(value) ? postDateText(dateFields(value).date) : value; }
+        for(const id of ['f','t','v','w','bd','d','c','b','n','post-phone']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=id==='d' && postMode==='truck' && postDateOK(value) ? postDateText(dateFields(value).date) : value; }
         bindDistricts();
         for(const id of ['fd','td']) { const value=isRecord(draft.fields)?draft.fields[id]:undefined; const e=m.querySelector('#'+id); if(e&&typeof value==='string'&&(e.tagName!=='SELECT'||[...e.options].some(o=>o.value===value)))e.value=id==='d' && postMode==='truck' && postDateOK(value) ? postDateText(dateFields(value).date) : value; }
         if(postMode==='load') {
@@ -5469,10 +5491,17 @@ function postValues() {
     return {
         from: $("#f").value, to: $("#t").value, fromD: ($("#fd")||{}).value||"", toD: ($("#td")||{}).value||"", veh: $("#v").value,
         body: $(truck ? "#bd" : "#b").value, ...(truck ? parsePostDate($('#d').value) : {date:'',time:'',dateText:$('#d').value.trim()}), note: $("#n").value.trim().slice(0,1000),
-        ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
+        ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)}),
+        ...($("#post-phone") ? {phone: $("#post-phone").value, contactConsent: true} : {})
     };
 }
 
+// Gerçek hesapta ilan telefonu zorunludur; ilanı bu bilgiyle yayınlamak numaranın gösterilmesine izin sayılır.
+function listingContactFields() {
+    if (!nakgoMarket.active()) return "";
+    const s = nakgoAuth.snapshot(), suggested = s.profile && s.profile.phone ? s.profile.phone : "";
+    return `<label for="post-phone">İletişim telefonu</label><input id="post-phone" type="tel" inputmode="tel" maxlength="32" required placeholder="05xx xxx xx xx" value="${esc(suggested)}"><p class="field-note">Numaran ilanda kayıtlı kullanıcılara Ara ve WhatsApp için gösterilir.</p>`;
+}
 // İlçe isteğe bağlıdır; liste seçili şehre göre yenilenir.
 const districtField = id => `<label>İlçe (isteğe bağlı)</label><select id="${id}"></select>`;
 function bindDistricts() {
@@ -5500,7 +5529,7 @@ function renderPost(m) {
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>${districtField("fd")}<label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>${districtField("td")}<div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" required><label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3"></textarea><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>${districtField("fd")}<label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>${districtField("td")}<div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" required><label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3"></textarea>${listingContactFields()}<button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             bindDistricts();
             const publishButton = $("#go");
@@ -5533,7 +5562,7 @@ function renderPost(m) {
     </div>
     <label>Yükleme tarihi</label><input id="d" type="text" maxlength="32" required>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
-    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
+    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div>${listingContactFields()}<button class="btn" id="go">İlanı yayınla</button>`;
         pb();
         bindDistricts();
         itemsUI();
@@ -5612,10 +5641,8 @@ function profileIdentityHTML(own,name) {
 function profileToolsHTML() {
     const saved=nakgoMarket.active()?nakgoFavorites.state():null;
     const favoriteCaption=saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
-    const messageState=nakgoMarket.active()?nakgoMessages.state().unread:null;
-    const messageCaption=messageState?(messageState.ready?(messageState.count?messageState.count+' okunmamış mesaj':'Görüşmelerin'):messageState.error||'Mesajlar yükleniyor…'):'Görüşmelerin';
+    // Uygulama içi mesajlaşma kapalı: iletişim ilan detayındaki Ara ve WhatsApp ile yapılır.
     const tools=[
-        ['messages','message','Mesajlar',messageCaption],
         ['favorites','heart','Kaydettiklerim',favoriteCaption],
         ['fuel','fuel','Mazot ve Gider Hesaplama','Yol giderini planla']
     ];
@@ -5673,7 +5700,6 @@ function renderProfile(main) {
             toast('Profilin kaydedildi');
         }
     };
-    $('#profile-messages').onclick=openInbox;
     $('#profile-fuel').onclick=()=>openCalc();
     $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
     $('#profile-map').onclick=()=>openRoadMap();
@@ -5951,10 +5977,11 @@ function openLoad(id) {
         callTo(phoneOf(l));
     };
     $("#pf").onclick = () => openProfile({ uid: l.uid, name: l.owner || (l.uid ? nm(l.uid) : "Yük sahibi") });
+    bindPhoneContact(l, false);
     $("#rp").onclick = () => openReport("l", l.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
-    $("#mg").onclick = () => {
+    if ($("#mg")) $("#mg").onclick = () => {
         if(l._remote)return nakgoMessages.openListing(l.remoteId);
         if (!contactAllowed(l)) return;
         openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => true, () => contactAllowed(l));
@@ -5971,17 +5998,38 @@ function openTruck(id) {
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openTruck(id));
     $("#close").onclick = closeSheet;
-    $("#mg").onclick = () => { if(t._remote)return nakgoMessages.openListing(t.remoteId); if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
+    if ($("#mg")) $("#mg").onclick = () => { if(t._remote)return nakgoMessages.openListing(t.remoteId); if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
     $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
     $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid) });
+    bindPhoneContact(t, true);
     $("#rp").onclick = () => openReport("t", t.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(t.uid);
 }
 
+// Gerçek ilanlarda numara yalnız sunucudaki izinli iletişim fonksiyonundan alınır.
+function bindPhoneContact(item, isTruck) {
+    if (nakgoMarket.guest() && $("#wa")) { $("#call").onclick = $("#wa").onclick = () => nakgoMarket.requireAccount(); return; }
+    if (!nakgoMarket.active() || !item._remote || !$("#wa")) return;
+    const go = async channel => {
+        if (!availableListing(item, isTruck)) return toast("İlanın süresi doldu");
+        const account = nakgoMarket.token();
+        try {
+            const n = normalizeListingPhone(await nakgoAuth.listingContact(item.remoteId));
+            if (account !== nakgoMarket.token()) return;
+            if (!n) return toast("Bu ilanda paylaşılan bir telefon numarası yok.");
+            if (!isTruck) track("c", item.id);
+            window.location.href = channel === "call" ? "tel:" + n : "https://wa.me/" + n.slice(1);
+        } catch (e) { toast("İlan veya iletişim izni artık geçerli değil"); }
+    };
+    $("#call").onclick = () => go("call");
+    $("#wa").onclick = () => go("whatsapp");
+}
+
 function contactDockHTML(unavailable=false,mine=false) {
-    if(nakgoMarket.guest())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">'+(unavailable?'Bu ilan kapalı veya süresi dolmuş.':'Aramak veya mesaj göndermek için ücretsiz kayıt ol ya da giriş yap.')+'</p><button class="btn" id="call" '+(unavailable?'disabled':'')+'>Ara</button><button class="btn alt" id="mg" '+(unavailable?'disabled':'')+'>Mesaj gönder</button></div>';
-    if(nakgoMarket.active())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">Telefon bağlantısı hazırlanıyor. Test sürümünde mesajlaşabilirsin.</p><button class="btn" id="call" disabled>Ara</button><button class="btn alt" id="mg" '+(unavailable||mine?'disabled':'')+'>Mesaj gönder</button></div>';
+    const phoneDock=(off,note)=>'<div class="contact-dock dual-contact phone-contact">'+(note?'<p class="contact-unavailable" role="status">'+note+'</p>':'')+'<button class="btn contact-call" id="call" '+off+'><span>'+uiIcon("phone")+' Ara</span></button><button class="btn wa-btn" id="wa" '+off+'><span><img class="wa-glyph" src="icons/whatsapp-glyph-white.svg" alt="" width="20" height="20"> WhatsApp</span></button></div>';
+    if(nakgoMarket.guest())return phoneDock(unavailable?'disabled':'',unavailable?'Bu ilan kapalı veya süresi dolmuş.':'Aramak veya WhatsApp\'tan yazmak için ücretsiz kayıt ol ya da giriş yap.');
+    if(nakgoMarket.active())return phoneDock(unavailable||mine?'disabled':'',unavailable?'Bu ilan kapalı veya süresi dolmuş.':'');
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
     return `<div class="contact-dock dual-contact">${unavailable?'<p class="contact-unavailable" role="status">Bu ilan kapalı veya süresi dolmuş. Yeni görüşme başlatılamaz.</p>':""}<button class="btn contact-call" id="call" ${unavailable?"disabled":""}><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg" ${unavailable?"disabled":""}><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
 }

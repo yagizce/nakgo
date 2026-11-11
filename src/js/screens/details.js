@@ -49,10 +49,11 @@ function openLoad(id) {
         callTo(phoneOf(l));
     };
     $("#pf").onclick = () => openProfile({ uid: l.uid, name: l.owner || (l.uid ? nm(l.uid) : "Yük sahibi") });
+    bindPhoneContact(l, false);
     $("#rp").onclick = () => openReport("l", l.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
-    $("#mg").onclick = () => {
+    if ($("#mg")) $("#mg").onclick = () => {
         if(l._remote)return nakgoMessages.openListing(l.remoteId);
         if (!contactAllowed(l)) return;
         openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => true, () => contactAllowed(l));
@@ -69,17 +70,38 @@ function openTruck(id) {
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openTruck(id));
     $("#close").onclick = closeSheet;
-    $("#mg").onclick = () => { if(t._remote)return nakgoMessages.openListing(t.remoteId); if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
+    if ($("#mg")) $("#mg").onclick = () => { if(t._remote)return nakgoMessages.openListing(t.remoteId); if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
     $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
     $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid) });
+    bindPhoneContact(t, true);
     $("#rp").onclick = () => openReport("t", t.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(t.uid);
 }
 
+// Gerçek ilanlarda numara yalnız sunucudaki izinli iletişim fonksiyonundan alınır.
+function bindPhoneContact(item, isTruck) {
+    if (nakgoMarket.guest() && $("#wa")) { $("#call").onclick = $("#wa").onclick = () => nakgoMarket.requireAccount(); return; }
+    if (!nakgoMarket.active() || !item._remote || !$("#wa")) return;
+    const go = async channel => {
+        if (!availableListing(item, isTruck)) return toast("İlanın süresi doldu");
+        const account = nakgoMarket.token();
+        try {
+            const n = normalizeListingPhone(await nakgoAuth.listingContact(item.remoteId));
+            if (account !== nakgoMarket.token()) return;
+            if (!n) return toast("Bu ilanda paylaşılan bir telefon numarası yok.");
+            if (!isTruck) track("c", item.id);
+            window.location.href = channel === "call" ? "tel:" + n : "https://wa.me/" + n.slice(1);
+        } catch (e) { toast("İlan veya iletişim izni artık geçerli değil"); }
+    };
+    $("#call").onclick = () => go("call");
+    $("#wa").onclick = () => go("whatsapp");
+}
+
 function contactDockHTML(unavailable=false,mine=false) {
-    if(nakgoMarket.guest())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">'+(unavailable?'Bu ilan kapalı veya süresi dolmuş.':'Aramak veya mesaj göndermek için ücretsiz kayıt ol ya da giriş yap.')+'</p><button class="btn" id="call" '+(unavailable?'disabled':'')+'>Ara</button><button class="btn alt" id="mg" '+(unavailable?'disabled':'')+'>Mesaj gönder</button></div>';
-    if(nakgoMarket.active())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">Telefon bağlantısı hazırlanıyor. Test sürümünde mesajlaşabilirsin.</p><button class="btn" id="call" disabled>Ara</button><button class="btn alt" id="mg" '+(unavailable||mine?'disabled':'')+'>Mesaj gönder</button></div>';
+    const phoneDock=(off,note)=>'<div class="contact-dock dual-contact phone-contact">'+(note?'<p class="contact-unavailable" role="status">'+note+'</p>':'')+'<button class="btn contact-call" id="call" '+off+'><span>'+uiIcon("phone")+' Ara</span></button><button class="btn wa-btn" id="wa" '+off+'><span><img class="wa-glyph" src="icons/whatsapp-glyph-white.svg" alt="" width="20" height="20"> WhatsApp</span></button></div>';
+    if(nakgoMarket.guest())return phoneDock(unavailable?'disabled':'',unavailable?'Bu ilan kapalı veya süresi dolmuş.':'Aramak veya WhatsApp\'tan yazmak için ücretsiz kayıt ol ya da giriş yap.');
+    if(nakgoMarket.active())return phoneDock(unavailable||mine?'disabled':'',unavailable?'Bu ilan kapalı veya süresi dolmuş.':'');
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
     return `<div class="contact-dock dual-contact">${unavailable?'<p class="contact-unavailable" role="status">Bu ilan kapalı veya süresi dolmuş. Yeni görüşme başlatılamaz.</p>':""}<button class="btn contact-call" id="call" ${unavailable?"disabled":""}><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg" ${unavailable?"disabled":""}><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
 }
