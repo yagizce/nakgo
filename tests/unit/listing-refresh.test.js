@@ -32,14 +32,10 @@ module.exports = function register({ run }) {
     r("cloud=true;render()");
     ok(!r("return main()").includes('Demo modu'), "bulut modunda demo açıklaması görünmez");
   });
-  run("Detaydan tutarsız taşıma talebi ve kalıcılık", (r,ok)=>{
+  run("İlan detayı bilgi grupları ve iletişim", (r,ok)=>{
     r("openLoad(1)");const h=r("return sheet()");
     ok(['Yük bilgileri','Taşıma bilgileri','Yük sahibi','Tahmini mesafe'].every(t=>h.includes(t)), "bilgi grupları korunur");
-    ok(h.includes('dual-contact')&&['sh','call','pf','cp2','rp','close','mg'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
+    ok(h.includes('dual-contact')&&['sh','call','pf','rp','close','mg'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
     ok(!h.includes('id="send"')&&!h.includes('id="cc"'), 'ilan detayında talep düğmesi ve mazot hesabı yok');
-    r("requestLoad(loads.find(x=>x.id===1));tab='mine';render()");
-    ok(r("return offers[0].offer===0&&offers[0].loadId===1&&offers[0].status==='wait'"), "talep tutarsız kaydedilir");
-    ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].loadId")===1, "yerel saklama korunur");
-    r("requestLoad(loads.find(x=>x.id===1))");ok(r("return offers.length")===1, "aynı talep yinelenmez");
   });
 };

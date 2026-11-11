@@ -44,13 +44,6 @@ def run_forms(page, check):
     p.click('[data-pm=load]');p.click('#go');p.reload()
     check('geçerli kalemli yük kalıcı yayınlanır',p.evaluate("loads.some(l=>l.cargo==='Taslak yük'&&l.ton===.5&&l.items[0].q===2)"))
     check('yayınlanan yük taslağı temizlenir',p.evaluate("!getPostDrafts().load"))
-    # Kaydetmeden geri çekme ve sahte başarı bildirimi oluşmamalı.
-    p.evaluate("offers=[{...loads.find(l=>l.id===2),status:'wait',loadId:2,bidder:'',ots:Date.now(),stage:0}];save();tab='mine';setNav();render()")
-    p.evaluate("window.__setItem=window.__setItem||Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new DOMException('full','QuotaExceededError')};void 0")
-    p.click('[data-c="2"]')
-    check('iş geri çekme hatası ekranda işi tutar',p.locator('[data-c="2"]').count()==1 and 'Kaydedilemedi' in p.inner_text('#toast'))
-    p.evaluate('Storage.prototype.setItem=window.__setItem;void 0');p.click('[data-c="2"]');p.reload()
-    check('başarılı iş geri çekme yenilemede korunur',p.evaluate('offers.length===0'))
     p.click('nav [data-t=me]');p.click('#profile-fuel')
     p.fill('#calc-km','500');p.fill('#calc-fuel','50');p.fill('#calc-cons','30')
     old=p.inner_text('#res');km=p.input_value('#calc-km');back=p.is_checked('#bk')

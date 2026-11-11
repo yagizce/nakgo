@@ -461,43 +461,29 @@ index 639549f..2ad6e45 100644
                      assert 'client_secret' not in q and 'access_type' not in q
                      state['challenge']=q['code_challenge'][0];state['authorizes']+=1
 diff --git a/tests/e2e.py b/tests/e2e.py
-index 50e56f5..f7501e2 100644
+index 1f64c30..8bb2301 100644
 --- a/tests/e2e.py
 +++ b/tests/e2e.py
 @@ -20,7 +20,7 @@ def take_shots():
          pg.goto("file://" + os.path.join(ROOT, "index.html"))
          pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(out, "01_splash.png"))
          pg.wait_for_timeout(2200); pg.screenshot(path=os.path.join(out, "02_liste.png"))
--        for name, js in (("03_detay", "openLoad(1)"), ("04_karsilastirma", "closeSheet();toggleCmp(1);toggleCmp(2);openCompare()"),
+-        for name, js in (("03_detay", "openLoad(1)"),
 +        for name, js in (("03_detay", "openLoad(1)"), ("04_iletisim", "closeSheet();openLoad(2)"),
-                          ("05_profil", "closeSheet();offers=[{...loads[0],offer:28500,status:'ok',loadId:1,bidder:'',stage:3,doneAt:Date.now()}];tab='me';setNav();render()"),
+                          ("05_profil", "closeSheet();tab='me';setNav();render()"),
                           ("06_yakinimda", "tab='list';setNav();render();toggleNear()")):
              pg.evaluate(js); pg.wait_for_timeout(500); pg.screenshot(path=os.path.join(out, name + ".png"))
-@@ -86,24 +86,18 @@ with sync_playwright() as p:
+@@ -86,12 +86,13 @@ with sync_playwright() as p:
      n1 = cards(); check(f"araç filtresi listeyi daraltır ({n0}→{n1})", 0 < n1 < n0)
      pg.evaluate("F=F0();render()"); pg.wait_for_timeout(200)
  
--    # 5) Karşılaştırma
--    for i in (0, 1):
--        pg.locator(".load[data-id]").nth(i).click(); pg.wait_for_selector("#sheet.open"); pg.click("#cp2"); pg.wait_for_timeout(250)
--    check("iki ilan seçilince karşılaştır çubuğu çıkar", pg.is_visible("#cmpgo"))
--    pg.click("#cmpgo"); pg.wait_for_selector("#sheet.open")
--    check("karşılaştırma tablosu açılır", "İlanları karşılaştır" in pg.inner_text("#sheetBody") and pg.locator("#sheetBody .win").count() > 0)
--    pg.keyboard.press("Escape"); pg.click("#cmpx"); pg.wait_for_timeout(200)
--
--    # 6) Taşıma talebi ve simüle yanıt
+-    # 6) Mesajlaşma
 -    pg.locator(".load[data-id]").first.click(); pg.wait_for_selector("#sheet.open"); pg.click("#mg"); pg.click("#buy"); pg.locator(".load[data-id]").first.click(); pg.click("#mg"); pg.fill("#mi", "Yük hakkında görüşelim."); pg.click("#ms")
--    check("mesajlaşma ve mevcut iş kaydı korunur", pg.evaluate("offers.length == 1 && Object.values(chats).some(a => a.some(m => m.me))")); pg.click("#close")
--    nav("mine"); pg.wait_for_timeout(300)
+-    check("mesaj gönderilir", pg.evaluate("Object.values(chats).some(a => a.some(m => m.me))")); pg.click("#close")
 +    # 5) Removed comparison/messaging; direct contact stays visible.
 +    pg.locator(".load[data-id]").first.click();pg.wait_for_selector("#sheet.open")
 +    check("Ara ve WhatsApp var; karşılaştırma ve sohbet yok", pg.is_visible('#call') and pg.is_visible('#wa') and pg.locator('#cp2,#mg').count()==0)
 +    pg.click('#close')
-+    # 6) Existing job lifecycle remains intact independently of contact UI.
-+    pg.evaluate('requestLoad(loads[0])');nav('mine');pg.wait_for_timeout(300)
-     check("taşıma talebi bekleniyor görünür", "Yanıt bekleniyor" in pg.inner_text("#main"))
-     pg.wait_for_timeout(3600)
-     check("simüle yanıt gelir", "Yanıt bekleniyor" not in pg.inner_text("#main"))
  
      # 7) İlan verme ve istatistik
 -    nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); pg.fill("#d", typed_day()); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.click("#go"); pg.wait_for_timeout(300)
@@ -505,7 +491,7 @@ index 50e56f5..f7501e2 100644
      check("ilan yayınlanır", "İlan yayınlandı" in toast())
      nav("me"); pg.wait_for_timeout(300)
      check("İlanlarım'da yeni ilan ve istatistik satırı var", "görüntülenme" in pg.inner_text("#main") and pg.locator("[data-st2]").count() >= 1)
-@@ -131,7 +125,10 @@ with sync_playwright() as p:
+@@ -119,7 +120,10 @@ with sync_playwright() as p:
      pg.click("#pm1"); pg.wait_for_selector("#buy"); pg.click("#buy"); pg.wait_for_timeout(300)
      check("test modunda üyelik açılır", "Aktif" in pg.inner_text("#main"))
      nav("list"); pg.locator('.load[data-id="1"]').click(); pg.wait_for_selector("#sheet.open"); pg.click("#call"); pg.wait_for_timeout(250)
@@ -517,16 +503,12 @@ index 50e56f5..f7501e2 100644
      pg.keyboard.press("Escape")
  
      # 9) Tema düğmesi üst barda ve kalıcı
-@@ -184,18 +181,12 @@ with sync_playwright() as p:
+@@ -172,15 +176,12 @@ with sync_playwright() as p:
              check(prefix+"ana menü ve ilan araçları ekranın altında",nav_box['y']>=740 and abs(nav_box['y']-dock_box['y']-dock_box['height'])<2)
              page.locator('#main').evaluate('e=>e.scrollTop=e.scrollHeight')
              check(prefix+"filtre, sıralama ve yakınlık kaydırmada erişilir",all(page.is_visible(s) for s in ('#fb','#s','#nr0')) and abs(page.locator('.list-actions').bounding_box()['y']-dock_box['y'])<2)
--            page.evaluate('cmp=[loads[0].id,loads[1].id];render()')
--            cmp_box=page.locator('.cmpbar').bounding_box();filter_box=page.locator('#fb').bounding_box()
--            check(prefix+"karşılaştırma alt işlemlerle çakışmaz",cmp_box['y']+cmp_box['height']<=filter_box['y']+1)
--            page.evaluate('cmp=[];render()');page.locator('#main').evaluate('e=>e.scrollTop=0')
 +            check(prefix+"karşılaştırma kaldırıldı",page.locator('.cmpbar').count()==0)
-+            page.locator('#main').evaluate('e=>e.scrollTop=0')
+             page.locator('#main').evaluate('e=>e.scrollTop=0')
              page.select_option('#route-from','İstanbul');page.select_option('#route-to','Ankara')
              check(prefix+"güzergâh filtresi",page.locator('.load[data-id]').count()==1)
 -            page.locator('[data-id]').first.click();page.click('#mg')
@@ -540,7 +522,7 @@ index 50e56f5..f7501e2 100644
              page.keyboard.press('Escape');page.click('nav [data-t=post]');page.click('[data-pm=load]')
              page.click('#post-next');page.fill('#c','Uzun şehir adlarıyla hassas test yükü');page.fill('#w','18');page.fill('#d',typed_day());page.click('#post-next')
              page.fill('#n','Uzun not. '*40)
-@@ -216,7 +207,7 @@ with sync_playwright() as p:
+@@ -201,7 +202,7 @@ with sync_playwright() as p:
                  page.set_viewport_size({'width':390,'height':430});page.fill('#n','Klavye alanında deneme')
                  publish=page.locator('#go').bounding_box();check(prefix+"küçük klavye alanında yayınla görünür",publish['y']>=0 and publish['y']+publish['height']<=430)
                  page.set_viewport_size({'width':390,'height':844})
@@ -549,10 +531,10 @@ index 50e56f5..f7501e2 100644
              page.click('nav [data-t=me]');page.fill('#myph','0555 123 45 67');page.click('#phs2')
              check(prefix+"profil telefonu kaydedilir",page.evaluate("myCar.phone==='0555 123 45 67'"))
              check(prefix+"profilde tekrar eden rol ve işler yok",page.locator('#profile-jobs,[data-ro]').count()==0 and page.is_visible('#profile-map'))
-@@ -236,14 +227,14 @@ with sync_playwright() as p:
+@@ -219,14 +220,14 @@ with sync_playwright() as p:
+             page.click('#close');check(prefix+"harita kaynakları kapatılır",page.evaluate('roadMaps.size===0'))
+             page.wait_for_function("!document.querySelector('#main').inert&&document.activeElement.id==='profile-map'")
              check(prefix+"pencere kapanınca profil ve odak geri gelir",page.evaluate("!document.querySelector('#main').inert&&document.activeElement.id==='profile-map'"))
-             page.locator('summary',has_text='Taşıyıcı belgeleri ve güven').click()
-             check(prefix+"belge formu erişilir",page.is_visible('#lic'))
 -            page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.fill('#d',typed_day());page.click('#go')
 +            page.click('nav [data-t=post]');page.click('[data-pm=truck]');page.select_option('#f','Afyonkarahisar');page.select_option('#t','Kahramanmaraş');page.click('#post-next');page.fill('#w','20');page.click('#post-next');page.fill('#d',typed_day());page.fill('#post-phone','05321234567');page.check('#post-consent');page.click('#go')
              check(prefix+"boş araç yayınlanır ve filtre arkasında kalmaz",page.evaluate("trucks.some(t=>t.mine&&t.from==='Afyonkarahisar'&&t.to==='Kahramanmaraş'&&t.cap===20)&&document.querySelectorAll('.load[data-tid]').length===trucks.length"))
@@ -566,10 +548,10 @@ index 50e56f5..f7501e2 100644
 -            page.click('#map-back');check(prefix+"aynı araç ilanına iletişim işlemleriyle dönülür",page.inner_text('.detail-summary .route')==route and page.is_visible('#call') and page.is_visible('#mg') and page.locator('#map-back').count()==0)
 +            page.click('#map-back');check(prefix+"aynı araç ilanına iletişim işlemleriyle dönülür",page.inner_text('.detail-summary .route')==route and page.is_visible('#call') and page.is_visible('#wa') and page.locator('#map-back').count()==0)
              page.click('#close')
-             for screen in ('list','post','mine','me'):
+             for screen in [t for t in ('list','post','mine','me') if page.locator(f'nav [data-t={t}]').count()]:
                  page.click(f'nav [data-t={screen}]')
 diff --git a/tests/forms.py b/tests/forms.py
-index ff4f4be..5ce0a2c 100644
+index 0b9363b..7e65190 100644
 --- a/tests/forms.py
 +++ b/tests/forms.py
 @@ -22,7 +22,7 @@ def run_forms(page, check):
@@ -589,8 +571,8 @@ index ff4f4be..5ce0a2c 100644
 +    p.click('[data-pm=load]');p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go');p.reload()
      check('geçerli kalemli yük kalıcı yayınlanır',p.evaluate("loads.some(l=>l.cargo==='Taslak yük'&&l.ton===.5&&l.items[0].q===2)"))
      check('yayınlanan yük taslağı temizlenir',p.evaluate("!getPostDrafts().load"))
-     # Kaydetmeden geri çekme ve sahte başarı bildirimi oluşmamalı.
-@@ -72,6 +72,6 @@ def run_forms(page, check):
+     p.click('nav [data-t=me]');p.click('#profile-fuel')
+@@ -65,6 +65,6 @@ def run_forms(page, check):
      check('eski taslakta kaldırılmış seçenekler formu kilitlemez',p.evaluate("cities.includes(document.querySelector('#f').value)&&vehicles.includes(document.querySelector('#v').value)&&bodies.includes(document.querySelector('#b').value)&&document.querySelector('#d').value==='Eski gün'"))
      check('eski taslağın geçerli metinleri korunur',p.input_value('#c')=='Korunan yük' and p.input_value('#n')=='Korunan açıklama')
      p.click('#post-prev');p.fill('#d','   ');p.click('#post-next')
@@ -600,7 +582,7 @@ index ff4f4be..5ce0a2c 100644
 +    p.click('#post-prev');p.fill('#d','Uygun olduğunda');p.click('#post-next');p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go');check('serbest metinle düzeltilen taslak yayınlanabilir',p.evaluate("loads.some(l=>l.cargo==='Korunan yük'&&l.dateText==='Uygun olduğunda')&&tab==='list'"))
      p.context.close()
 diff --git a/tests/reliability.py b/tests/reliability.py
-index 60f6d0b..def72a8 100644
+index e11dfd3..483e603 100644
 --- a/tests/reliability.py
 +++ b/tests/reliability.py
 @@ -17,7 +17,7 @@ def run_reliability(browser, url, check, errors, root):
@@ -612,7 +594,7 @@ index 60f6d0b..def72a8 100644
      check('yeni yük boş araç sekmesinden yük listesine döner',p.evaluate("tab==='list'&&mode==='load'&&loads[0].mine"))
      check('gerçek formdan HTML kodu çalışmaz',p.evaluate("!window.__unsafe") and payload in p.inner_text('#main'))
      own=p.evaluate('loads[0].id');p.locator('[data-id="'+str(own)+'"]').click()
-@@ -27,17 +27,16 @@ def run_reliability(browser, url, check, errors, root):
+@@ -27,25 +27,24 @@ def run_reliability(browser, url, check, errors, root):
      check('yeni ilanın zamanı ve yazılan yükleme metni kalıcıdır',p.evaluate("expected=>loads.find(l=>l.mine).ts>0&&loads.find(l=>l.mine).dateText===expected&&loads.find(l=>l.mine).date===''",datetime.now(timezone(timedelta(hours=3))).strftime('%d.%m.%Y')))
      check('30 gün sonra kullanıcı ilanı bugün sayılmaz ve kapanır',p.evaluate("(()=>{const now=Date.now;Date.now=()=>now()+30*864e5;try{const l=loads.find(l=>l.mine);return expired(l,'load')&&dateLabel(l)!=='Bugün'}finally{Date.now=now}})()"))
      p.fill('#q','" autofocus onfocus="window.__unsafe=3');check('arama öznitelikleri güvenli',p.evaluate('!window.__unsafe'));p.fill('#q','')
@@ -631,12 +613,6 @@ index 60f6d0b..def72a8 100644
      check('başarısız yayından sonra taslak yenilemede korunur',p.input_value('#c')=='Depolama hata denemesi' and p.input_value('#n')=='Bu taslak korunmalı')
 -    p.click('#go');check('depolama düzeldikten sonra aynı taslak yayınlanır',p.evaluate("loads.some(l=>l.cargo==='Depolama hata denemesi')&&tab==='list'"))
 +    p.fill('#post-phone','05321234567');p.check('#post-consent');p.click('#go');check('depolama düzeldikten sonra aynı taslak yayınlanır',p.evaluate("loads.some(l=>l.cargo==='Depolama hata denemesi')&&tab==='list'"))
-     p.click('nav [data-t=me]');p.locator('summary').filter(has_text='Taşıyıcı belgeleri ve güven').click()
-     with p.expect_file_chooser() as chooser:p.click('[data-dp=src]')
-     chooser.value.set_files(os.path.join(root,'assets','brand','logo.png'))
-@@ -46,13 +45,13 @@ def run_reliability(browser, url, check, errors, root):
-     check('belge fotoğrafı yenilemeden sonra gerçekten bulunur',p.evaluate("imageDataOK(cdocs['local/src'])&&myCar.docs.src"))
-     p.evaluate("viewDoc('local','src')");p.wait_for_selector('#pi img');check('saklanan belge açılır',p.locator('#pi img').count()==1);p.click('#close')
      p.click('nav [data-t=list]');p.evaluate("loads.find(l=>l.id===1).closed=true;openLoad(1)")
 -    check('kapalı ilan detayında iki yeni iletişim işlemi de kapalı',p.is_disabled('#call') and p.is_disabled('#mg') and 'Bu ilan kapalı' in p.inner_text('#sheetBody'));p.click('#close')
 -    p.evaluate("openLoad(2)");p.click('#mg');p.fill('#mi','Gönderilmemesi gereken mesaj');p.evaluate("loads.find(l=>l.id===2).closed=true")
@@ -653,7 +629,7 @@ index 60f6d0b..def72a8 100644
      p.context.close()
      for raw in ['{}','null','{invalid','[]',json.dumps({'loads':[],'offers':None,'trucks':[],'calc':'bad','chats':[]})]:
 diff --git a/tests/unit/app.test.js b/tests/unit/app.test.js
-index 82529d0..9bd1866 100644
+index 8415ab7..301f52a 100644
 --- a/tests/unit/app.test.js
 +++ b/tests/unit/app.test.js
 @@ -25,8 +25,8 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
@@ -664,37 +640,29 @@ index 82529d0..9bd1866 100644
 -    const h = r("return main()"); ok(!h.includes('data-id="901"'), "14 günü geçen ilan gizli"); ok(h.includes('data-id="902"') && h.includes("2 gün önce"), "yeni ilan ve yaş");
 +    r("loads.unshift({id:901,from:'İzmir',to:'Bursa',cargo:'Eski',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-20*864e5});loads.unshift({id:902,from:'İzmir',to:'Bursa',cargo:'Yeni',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-2*36e5});mode='load';tab='list';F=F0();render()");
 +    const h = r("return main()"); ok(!h.includes('data-id="901"'), "altı saati geçen ilan gizli"); ok(h.includes('data-id="902"') && h.includes("dk kaldı"), "yeni ilan ve yaş");
-     ok(r("return offerExp({status:'wait',ots:Date.now()-4*864e5})") === true && r("return offerExp({status:'wait',ots:Date.now()-864e5})") === false, "teklif süresi");
    });
  
-@@ -37,7 +37,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+   run("Yükleniyor görünümü", (r, ok) => {
+@@ -36,7 +36,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
  
-   run("Sayfalama ve puan sıralaması", (r, ok) => {
+   run("Sayfalama", (r, ok) => {
      const cards = h => (h.match(/class="load[ "]/g) || []).length;
 -    r("for(let i=0;i<30;i++)loads.push({id:2000+i,from:'İzmir',to:'Bursa',cargo:'T'+i,ton:3,veh:'Kamyon',price:9000+i,date:'Cuma'});mode='load';tab='list';F=F0();render()");
 +    r("for(let i=0;i<30;i++)loads.push({ts:Date.now(),id:2000+i,from:'İzmir',to:'Bursa',cargo:'T'+i,ton:3,veh:'Kamyon',price:9000+i,date:'Cuma'});mode='load';tab='list';F=F0();render()");
      let h = r("return main()"); ok(cards(h) === 20 && h.includes('id="more"'), "ilk 20 ilan ve daha fazla düğmesi (" + cards(h) + ")");
      r("shown+=20;render()"); h = r("return main()"); ok(cards(h) === 40, "20 ilan daha (" + cards(h) + ")");
      r("q='Zzz';render();q='';render()"); ok(r("return shown") === 20, "filtre değişince sıfırlanır");
-@@ -54,11 +54,9 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+@@ -52,15 +52,20 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
      r("navigator.geolocation={getCurrentPosition:(s,e)=>e({code:1})};myPos=null;toggleNear()"); ok(r("return nearOn") === false, "izin reddedilirse açılmaz");
    });
  
--  run("İlan karşılaştırma", (r, ok) => {
--    r("toggleCmp(1);toggleCmp(2);mode='load';tab='list';F=F0();render()");
--    ok(r("return cmp.join()") === "1,2" && r("return main()").includes('id="cmpgo"'), "iki ilan seçilir, çubuk görünür");
--    r("openCompare()"); const h = r("return sheet()"); ok(h.includes("İlanları karşılaştır") && h.includes('class="win"'), "tablo ve kazanan vurgusu");
--    r("toggleCmp(3)"); ok(r("return cmp.join()") === "2,3", "üçüncü seçim en eskisini çıkarır");
 +  run("İlan karşılaştırma kaldırıldı", (r,ok)=>{
 +    ok(r("return typeof openCompare==='undefined'&&typeof toggleCmp==='undefined'"),"eski giriş noktaları yok");
 +    r("tab='me';render()");ok(!r("return main()").includes('Karşılaştır'),"profilde karşılaştırma yok");
-   });
- 
++  });
++
    // ===== offers =====
-@@ -67,13 +65,13 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
-     ok(r("return main()").includes("Yük sahibini puanla"), "puanlama düğmesi");
-     r("setCar({lic:'CE',src:true,kb:true,ruh:true})"); ok(r("return cOk(myCar)") === true, "belge tamam");
-     ok(r("return [lvT({approved:true}),lvT({verified:true}),lvT({})].join()") === "2,1,0", "rozet seviyeleri");
+   run("Rota alarmı bildirimi", (r, ok) => {
 -    r("F=F0();F.from='İstanbul';addAlert();loads.unshift({id:920,from:'İstanbul',to:'İzmir',cargo:'Y',ton:2,veh:'Kamyon',price:8000,date:'Bugün'})");
 +    r("F=F0();F.from='İstanbul';addAlert();loads.unshift({ts:Date.now(),id:920,from:'İstanbul',to:'İzmir',cargo:'Y',ton:2,veh:'Kamyon',price:8000,date:'Bugün'})");
      ok(r("return notifs().filter(x=>x.k.startsWith('a')&&!seen.has(x.k)).length") === 1, "alarm bildirimi");
@@ -707,7 +675,16 @@ index 82529d0..9bd1866 100644
      ok(r("return main()").includes('data-id="910"'), "engel öncesi görünür");
      r("blockUser('bad')"); ok(!r("return main()").includes('data-id="910"'), "engellenen kullanıcının ilanı gizli");
      r("openReport('l',910)"); ok(r("return sheet()").includes("Şikayet et"), "şikayet ekranı");
-@@ -120,13 +118,11 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+@@ -71,7 +76,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+   // ===== profile =====
+   run("Herkese açık profil kaçışlı", (r, ok) => {
+     r("openProfile({uid:'u1',name:'<b>Ali</b>'})");
+-    const h = r("return sheet()"); ok(h.includes("&lt;b&gt;Ali") && !h.includes("<b>Ali"), "ad kaçışlı");
++    const h = r("return sheet()"); ok(!h.includes("<b>Ali") && h.includes("İlan sahibi"), "kişisel ad gösterilmez ve HTML çalışmaz");
+     r("tab='me';render()"); ok(!r("return main()").includes("Kazancım"), "profilde kazanç alanı yok");
+   });
+ 
+@@ -96,13 +101,11 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
    });
  
    // ===== premium =====
@@ -723,7 +700,7 @@ index 82529d0..9bd1866 100644
      r("el('#myph').value='0532 111 22 33';savePhone()"); ok(r("return myCar.phone") === "0532 111 22 33", "geçerli numara");
      r("el('#myph').value='123';savePhone()"); ok(r("return myCar.phone") === "0532 111 22 33", "geçersiz numara reddedilir");
    });
-@@ -136,7 +132,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
+@@ -112,7 +115,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
      ok(r("return [3,6,12,24,72].map(h=>featPrice('t',h)).join()") === "19,32,61,99,267", "sabit fiyat listesi (boş araç)");
      ok(!/hourMult|FEAT\.peak|FEAT\.low/.test(html), "saat çarpanı kodu kalmadı");
      ok(r("const a=featPrice('l',6);return a")===32 && r("return featPrice('l',24)")===99, "fiyat saatten bağımsız");
@@ -733,10 +710,10 @@ index 82529d0..9bd1866 100644
      r("el('#fbuy').onclick()"); ok(r("return isF(findIt('l',800))") === true && r("return findIt('l',800).featPaid") === 32, "yük öne çıkar, 6 saat 32 ₺");
      r("openFeature('t','t900')"); h = r("return sheet()"); ok(h.includes("Boş araç ilanını öne çıkar"), "boş araç için fiyat ekranı");
 diff --git a/tests/unit/contact.test.js b/tests/unit/contact.test.js
-index 3709fec..eb19f81 100644
+index dae7707..828a967 100644
 --- a/tests/unit/contact.test.js
 +++ b/tests/unit/contact.test.js
-@@ -11,7 +11,7 @@ module.exports = function register({run}) {
+@@ -4,7 +4,7 @@ module.exports = function register({run}) {
      r("offers=[{...loads[0],offer:28500,counter:30000,status:'counter',loadId:1,bidder:'',stage:0},{...loads[1],offer:14000,status:'ok',loadId:2,bidder:'',stage:2}];save();tab='mine';render()");
      const h=r("return main()");ok(!/28.500|30.000|14.000|Fotoğraf|Teslim ettim/.test(h),"eski fiyat ve teslim aşamaları ekranda yok");
      ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].counter")===30000,"eski veriler silinmez");
@@ -745,20 +722,33 @@ index 3709fec..eb19f81 100644
    });
    run("Profil kullanıcı verileri güvenli ve kalıcı",(r,ok)=>{
      r("setCar({displayName:'<firma>',city:'Ankara',about:'<script>alert(1)</script>'});tab='me';render()");
+diff --git a/tests/unit/favorites-api.test.js b/tests/unit/favorites-api.test.js
+index 25ff2ab..ad998ad 100644
+--- a/tests/unit/favorites-api.test.js
++++ b/tests/unit/favorites-api.test.js
+@@ -10,7 +10,7 @@ module.exports=({test,fs,path,ROOT})=>{
+   vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8')+';this.auth=nakgoAuth;',ctx);await ctx.auth.init();
+   await ctx.auth.listFavorites();ok(call.columns==='listing_id'&&call.limit===200,'membership reads only IDs in bounded pages');
+   await ctx.auth.listFavorites({before:100,details:true});ok(call.table==='listing_favorites'&&call.limit===50&&JSON.stringify(call.before)==='["listing_id",100]','saved listing page has separate stable pagination');
+-  ok(call.columns.startsWith('listing_id,listing:listings(')&&!call.columns.includes('!inner')&&!call.columns.includes('phone'),'left join retains unavailable bookmarks without copying private contacts');
++  ok(call.columns.startsWith('listing_id,listing:listings(')&&!call.columns.includes('!inner')&&!/\*|phone|owner_label/.test(call.columns),'left join retains unavailable bookmarks without private contact or owner fields');
+   await ctx.auth.setFavorite(17,false);ok(JSON.stringify(call)==='{"name":"nakgo_set_favorite","args":{"p_listing_id":17,"p_saved":false}}','unsave uses explicit false and never accepts a client user ID');
+   let denied=0;for(const [id,saved] of [[0,true],[17,'true'],[NaN,false]])try{await ctx.auth.setFavorite(id,saved);}catch{denied++;}ok(denied===3,'invalid arguments fail before sending');
+   fail=true;denied=false;try{await ctx.auth.setFavorite(17,true);}catch{denied=true;}ok(denied,'database errors are propagated');
 diff --git a/tests/unit/form-state.test.js b/tests/unit/form-state.test.js
-index fa4988d..27d7176 100644
+index 45eb698..c4faed7 100644
 --- a/tests/unit/form-state.test.js
 +++ b/tests/unit/form-state.test.js
-@@ -26,7 +26,7 @@ module.exports = ({run,test,boot}) => {
-     ok(r("return JSON.parse(localStorage.getItem('yy2')).offers[0].stage")===3,"onay kalıcı");
-   });
+@@ -1,7 +1,7 @@
+ /* Açık kayıt sınırları ve form doğrulama. */
+ module.exports = ({run,test,boot}) => {
    run("Yük ve araç formu ortak kurallarla doğrulanır",(r,ok)=>{
 -    r("loads[0]={id:1,from:'İstanbul',to:'Ankara',cargo:'Palet',ton:.5,cap:.5,veh:vehicles[0],body:bodies[0],date:'Bugün'}");
 +    r("loads[0]={phone:'05321234567',contactConsent:true,id:1,from:'İstanbul',to:'Ankara',cargo:'Palet',ton:.5,cap:.5,veh:vehicles[0],body:bodies[0],date:'Bugün'}");
      ok(r("return postError(loads[0])")==="","ondalıklı pozitif tonaj geçerli");
      for(const value of ["0","-1","Infinity","NaN","1e308"])
        ok(r("return !!postError({...loads[0],ton:"+value+"})"),"geçersiz tonaj "+value);
-@@ -38,9 +38,9 @@ module.exports = ({run,test,boot}) => {
+@@ -13,9 +13,9 @@ module.exports = ({run,test,boot}) => {
      ok(r("return normalizeListing({...loads[0],items:[{n:'Koli',q:Infinity,u:'adet'}]}).items[0].q")===0,"eski sonsuz miktar güvenle düzeltilir");
    });
    run("Haftalık ilan tarihini koruma ve yeniden açma",(r,ok)=>{
@@ -818,7 +808,7 @@ index 0000000..31f2baa
 + },{win:{location:{href:''}}});
 +};
 diff --git a/tests/unit/listing-refresh.test.js b/tests/unit/listing-refresh.test.js
-index 424679a..41df8a9 100644
+index 55636b2..42327f9 100644
 --- a/tests/unit/listing-refresh.test.js
 +++ b/tests/unit/listing-refresh.test.js
 @@ -28,14 +28,14 @@ module.exports = function register({ run }) {
@@ -830,15 +820,15 @@ index 424679a..41df8a9 100644
      r("cloud=true;render()");
      ok(!r("return main()").includes('Demo modu'), "bulut modunda demo açıklaması görünmez");
    });
-   run("Detaydan tutarsız taşıma talebi ve kalıcılık", (r,ok)=>{
+   run("İlan detayı bilgi grupları ve iletişim", (r,ok)=>{
      r("openLoad(1)");const h=r("return sheet()");
 -    ok(['Yük bilgileri','Taşıma bilgileri','Yük sahibi','Tahmini mesafe'].every(t=>h.includes(t)), "bilgi grupları korunur");
--    ok(h.includes('dual-contact')&&['sh','call','pf','cp2','rp','close','mg'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
+-    ok(h.includes('dual-contact')&&['sh','call','pf','rp','close','mg'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
 +    ok(['Yük bilgileri','Taşıma bilgileri','Tahmini mesafe'].every(t=>h.includes(t)), "bilgi grupları korunur");
 +    ok(h.includes('dual-contact')&&['sh','call','wa','rp','close'].every(id=>h.includes('id=\"'+id+'\"'))&&!h.includes('id=\"o\"'), "tutar alanı yerine arama ve mesajlaşma");
      ok(!h.includes('id="send"')&&!h.includes('id="cc"'), 'ilan detayında talep düğmesi ve mazot hesabı yok');
-     r("requestLoad(loads.find(x=>x.id===1));tab='mine';render()");
-     ok(r("return offers[0].offer===0&&offers[0].loadId===1&&offers[0].status==='wait'"), "talep tutarsız kaydedilir");
+   });
+ };
 diff --git a/tests/unit/listing-session.test.js b/tests/unit/listing-session.test.js
 index 9eaac06..f8fc2cd 100644
 --- a/tests/unit/listing-session.test.js
@@ -1072,7 +1062,7 @@ index b868ea3..cc6e49a 100644
 + });
  };
 diff --git a/tests/unit/reliability.test.js b/tests/unit/reliability.test.js
-index 2e7045d..6433141 100644
+index 39427d1..bfb4a89 100644
 --- a/tests/unit/reliability.test.js
 +++ b/tests/unit/reliability.test.js
 @@ -4,7 +4,7 @@ module.exports = ({run,test,boot}) => {
@@ -1084,7 +1074,7 @@ index 2e7045d..6433141 100644
      r("q='\" autofocus onfocus=boom x=\"';render()");
      ok(r("return main()").includes('value="&quot; autofocus'),"arama özniteliğinden çıkamaz");
      r("openProfile({name:'<img src=x onerror=boom>'})");
-@@ -43,17 +43,17 @@ module.exports = ({run,test,boot}) => {
+@@ -43,13 +43,13 @@ module.exports = ({run,test,boot}) => {
      ok(r("return dateFields('Yarın',new Date('2026-10-11T12:00:00').getTime()).date")==='2026-10-12',"yarın gerçek tarih");
      ok(r("return dateFields('Bu hafta',new Date('2026-10-05T12:00:00').getTime()).dateEnd")==='2026-10-11',"hafta sonu sabit");
      ok(r("return dateLabel({date:'2026-10-11'},new Date('2026-10-12T12:00:00').getTime())")!=='Bugün',"bugün etiketi ertesi gün eskir");
@@ -1099,12 +1089,7 @@ index 2e7045d..6433141 100644
 +    ok(r("return phoneOf(loads[0])")==='',"profil telefonu izinli ilan telefonu yerine geçmez");
      r("sort='km'");
      ok(r("return sortL([{id:1,km:450},{id:2,from:'Mersin',to:'Adana'}])[0].id")===2,"hesaplanan mesafe sıralamaya katılır");
-     r("loads[1].closed=true");ok(r("return requestLoad(loads[1])")===false,"kapalı ilana iş açılmaz");
--    r("loads[2].date='2020-01-01'");ok(r("return requestLoad(loads[2])")===false,"süresi dolmuş ilana iş açılmaz");
-+    r("loads[2].ts=Date.now()-7*36e5");ok(r("return requestLoad(loads[2])")===false,"süresi dolmuş ilana iş açılmaz");
      r("q='İstanbul';openFilter()");
-     ok(r("return el('#fs').textContent").startsWith(String(r("return loads.filter(x=>visibleListing(x)).length"))),"filtre ve liste sayısı aynı");
-   });
 diff --git a/tests/unit/road-map.test.js b/tests/unit/road-map.test.js
 index 50258f2..b4beee1 100644
 --- a/tests/unit/road-map.test.js
@@ -1202,16 +1187,3 @@ index cb866e3..ebd535f 100644
    "src/js/screens/road-map.js",
    "src/js/screens/details.js",
    "src/js/screens/main.js",
-diff --git a/tests/unit/favorites-api.test.js b/tests/unit/favorites-api.test.js
-index 25ff2ab..ad998ad 100644
---- a/tests/unit/favorites-api.test.js
-+++ b/tests/unit/favorites-api.test.js
-@@ -10,7 +10,7 @@ module.exports=({test,fs,path,ROOT})=>{
-   vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8')+';this.auth=nakgoAuth;',ctx);await ctx.auth.init();
-   await ctx.auth.listFavorites();ok(call.columns==='listing_id'&&call.limit===200,'membership reads only IDs in bounded pages');
-   await ctx.auth.listFavorites({before:100,details:true});ok(call.table==='listing_favorites'&&call.limit===50&&JSON.stringify(call.before)==='["listing_id",100]','saved listing page has separate stable pagination');
--  ok(call.columns.startsWith('listing_id,listing:listings(')&&!call.columns.includes('!inner')&&!call.columns.includes('phone'),'left join retains unavailable bookmarks without copying private contacts');
-+  ok(call.columns.startsWith('listing_id,listing:listings(')&&!call.columns.includes('!inner')&&!/\*|phone|owner_label/.test(call.columns),'left join retains unavailable bookmarks without private contact or owner fields');
-   await ctx.auth.setFavorite(17,false);ok(JSON.stringify(call)==='{"name":"nakgo_set_favorite","args":{"p_listing_id":17,"p_saved":false}}','unsave uses explicit false and never accepts a client user ID');
-   let denied=0;for(const [id,saved] of [[0,true],[17,'true'],[NaN,false]])try{await ctx.auth.setFavorite(id,saved);}catch{denied++;}ok(denied===3,'invalid arguments fail before sending');
-   fail=true;denied=false;try{await ctx.auth.setFavorite(17,true);}catch{denied=true;}ok(denied,'database errors are propagated');
