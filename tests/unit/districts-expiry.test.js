@@ -7,6 +7,7 @@ module.exports = ({run,test,fs,path,ROOT}) => {
         const html=r('return cardRoute({from:"İzmir",fromD:"<b>Bornova",to:"Ankara",toD:""})');
         ok(html.includes('&lt;b&gt;Bornova')&&!html.includes('<b>Bornova'),'ilçe kaçışlanarak gösterilir');
         ok((html.match(/class="district"/g)||[]).length===1,'ilçesiz şehirde ek satır yok');
+        ok(r('return routeText({from:"İstanbul",fromD:"Bağcılar",to:"Aksaray",toD:""})')==='İstanbul (Bağcılar) → Aksaray','profil listesinde şehir yanında ilçe');
     });
     test('İlçe ve süre alanları sunucuya doğru eşlenir',async()=>{
         const out=[],ok=(v,m)=>out.push([!!v,m]);

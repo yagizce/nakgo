@@ -83,7 +83,7 @@ function openFeature(kind, id) {
     let dur = 6;
     const draw = () => {
         const price = featPrice(kind, dur);
-        B.innerHTML = `<b style="font-size:19px">${L ? "İlanını" : "Boş araç ilanını"} öne çıkar</b><div class="route" style="margin-top:10px">${esc(it.from)}<i></i>${esc(it.to)}</div>
+        B.innerHTML = `<b style="font-size:19px">${L ? "İlanını" : "Boş araç ilanını"} öne çıkar</b><div class="route" style="margin-top:10px">${routeHTML(it)}</div>
   <p style="font-size:13px;color:var(--mute);margin:8px 0 12px">Öne çıkan ${L ? "ilanlar" : "boş araç ilanları"} listenin en üstünde "Öne çıkan" etiketiyle gösterilir.${active ? ` Şu an ${left} saat daha öne çıkıyor, yeni süre bitince başlar.` : ""}</p>
   <div class="fopts">${FDUR.map(([h, t]) => {
             const p = featPrice(kind, h);
@@ -191,7 +191,7 @@ function openStats(id) {
         return `<div title="${v}"><i style="height:${v ? Math.max(6, Math.round(v / mx * 60)) : 3}px;${v ? "" : "background:var(--line)"}"></i><span>${d.toLocaleDateString("tr-TR", { weekday: "short" })}</span></div>`;
     }).join("");
     const tile = (n, t) => `<div><b>${n}</b><span>${t}</span></div>`;
-    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${esc(l.from)}<i></i>${esc(l.to)}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${routeHTML(l)}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
 }
