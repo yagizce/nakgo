@@ -5,24 +5,29 @@ select set_config('nakgo.test_b',gen_random_uuid()::text,true);
 insert into auth.users(id,email_confirmed_at) values(current_setting('nakgo.test_a')::uuid,now()),(current_setting('nakgo.test_b')::uuid,now());
 select set_config('request.jwt.claim.sub',current_setting('nakgo.test_a'),true);
 set local role authenticated;
-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,note,image_data,loading_text)
- values('load','İstanbul','Ankara','Tır','Tenteli',22,'Test yük','Test A Kişisel Ad','Not: 05000000000','','bugün')
+insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,note,image_data,loading_text,contact_phone,contact_consent)
+ values('load','İstanbul','Ankara','Tır','Tenteli',22,'Test yük','Test A Kişisel Ad','Not: 05000000000','','bugün','+905321234567',true)
  returning set_config('nakgo.open_load',id::text,true);
-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
- values('truck','Ankara','İzmir','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date)
+insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on,contact_phone,contact_consent)
+ values('truck','Ankara','İzmir','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date,'+905321234567',true)
  returning set_config('nakgo.open_truck',id::text,true);
-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
- values('truck','Bursa','Konya','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date)
+insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on,contact_phone,contact_consent)
+ values('truck','Bursa','Konya','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date,'+905321234567',true)
  returning set_config('nakgo.closed_truck',id::text,true);
-update public.listings set status='closed' where id=current_setting('nakgo.closed_truck')::bigint;
-insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on)
- values('truck','Adana','Mersin','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date)
+select public.nakgo_close_listing(current_setting('nakgo.closed_truck')::bigint,'closed');
+insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on,contact_phone,contact_consent)
+ values('truck','Adana','Mersin','Kamyon','Kapalı kasa',10,'Test A',(now() at time zone 'Europe/Istanbul')::date,'+905321234567',true)
  returning set_config('nakgo.past_truck',id::text,true);
+insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,loading_text,contact_phone,contact_consent)
+ values('load','İzmir','Bursa','Kamyon','Tenteli',5,'Süresi dolan','Test A','bugün','+905321234567',true)
+ returning set_config('nakgo.expired_load',id::text,true);
 reset role;
 -- An active listing whose calendar date has passed stays hidden, as for signed-in readers.
-alter table public.listings disable trigger listings_write_guard;
+-- DEV lifecycle: a listing past its 6-hour window stays hidden too.
+alter table public.listings disable trigger user;
 update public.listings set available_on=available_on-2 where id=current_setting('nakgo.past_truck')::bigint;
-alter table public.listings enable trigger listings_write_guard;
+update public.listings set expires_at=now()-interval '1 minute' where id=current_setting('nakgo.expired_load')::bigint;
+alter table public.listings enable trigger user;
 set local role anon;
 select set_config('request.jwt.claim.sub','',true);
 do $$
@@ -39,10 +44,12 @@ begin
   raise exception 'FAIL closed listing public'; end if;
  if exists(select 1 from public.nakgo_public_listings() p where p.id=current_setting('nakgo.past_truck')::bigint) then
   raise exception 'FAIL past-date listing public'; end if;
+ if exists(select 1 from public.nakgo_public_listings() p where p.id=current_setting('nakgo.expired_load')::bigint) then
+  raise exception 'FAIL expired listing public'; end if;
  select to_jsonb(p) j into r from public.nakgo_public_listings() p where p.id=current_setting('nakgo.open_load')::bigint;
  if r.j ?| array['owner_id','owner_label','note','image_data','contact_phone','updated_at'] then
   raise exception 'FAIL private column exposed: %',r.j; end if;
- if r.j::text like '%05000000000%' or r.j::text like '%Kişisel%' then raise exception 'FAIL personal text exposed'; end if;
+ if r.j::text like '%05000000000%' or r.j::text like '%5321234567%' or r.j::text like '%Kişisel%' then raise exception 'FAIL personal text exposed'; end if;
  if r.j->>'loading_text'<>'bugün' or r.j->>'cargo'<>'Test yük' then raise exception 'FAIL listing facts missing'; end if;
  if exists(select 1 from public.nakgo_public_listings(current_setting('nakgo.open_truck')::bigint) p
   where p.id>=current_setting('nakgo.open_truck')::bigint) then raise exception 'FAIL cursor'; end if;
