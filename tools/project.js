@@ -2,7 +2,6 @@
 const path=require("path");
 module.exports={root:path.resolve(__dirname,".."),js:[
   "src/js/config.js",
-  "src/js/districts.js",
   "src/js/state.js",
   "src/js/data.js",
   "src/js/core.js",
