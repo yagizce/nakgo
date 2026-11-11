@@ -16,15 +16,27 @@
     {
       "source": "/",
       "headers": [
-        { "key": "X-NakGo-Offline-Asset", "value": "1" },
-        { "key": "Cache-Control", "value": "public, max-age=0" }
+        {
+          "key": "X-NakGo-Offline-Asset",
+          "value": "1"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0"
+        }
       ]
     },
     {
       "source": "/icons/(.*)",
       "headers": [
-        { "key": "X-NakGo-Offline-Asset", "value": "1" },
-        { "key": "Cache-Control", "value": "public, max-age=0" }
+        {
+          "key": "X-NakGo-Offline-Asset",
+          "value": "1"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0"
+        }
       ]
     },
     {
@@ -47,8 +59,14 @@
     {
       "source": "/manifest.webmanifest",
       "headers": [
-        { "key": "X-NakGo-Offline-Asset", "value": "1" },
-        { "key": "Cache-Control", "value": "public, max-age=0" },
+        {
+          "key": "X-NakGo-Offline-Asset",
+          "value": "1"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0"
+        },
         {
           "key": "Content-Type",
           "value": "application/manifest+json"
@@ -71,13 +89,22 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "main": false,
-      "codex/nakgo-ci-unlock-safety": false,
-      "codex/nakgo-guard-approval": false,
       "codex/nakgo-cloudflare-dev": false,
       "codex/nakgo-listing-lifecycle": false,
       "codex/nakgo-retention-dev": false,
       "codex/nakgo-group-capacity": false,
+      "main": false,
+      "claude/group-ab": false,
+      "claude/test-maintenance": false,
+      "claude/gate-selftest": false,
+      "claude/public-listings": false,
+      "claude/auth-config-timeout-fallback": false,
+      "codex/nakgo-ci-publisher-direct": false,
+      "codex/nakgo-trusted-ci": false,
+      "codex/nakgo-retire-file-guard": false,
+      "codex/nakgo-guard-replay-maintenance": false,
+      "codex/nakgo-ci-unlock-safety": false,
+      "codex/nakgo-guard-approval": false,
       "codex/nakgo-engineering-skills": false,
       "codex/nakgo-local-ui-fixes": false
     }

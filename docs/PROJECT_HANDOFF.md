@@ -1,5 +1,10 @@
 # NakGo proje devir rehberi
 
+Son güncelleme: **10 Kasım 2026 — Europe/Istanbul**.
+Önce [AGENTS.md](../AGENTS.md), sonra bu rehber okunur. Bu dosya mevcut ürünü,
+kararları ve kabul kanıtlarını yeni ajana devreder; yeni özellik veya yetki
+vermez. Bir sonraki ürün/entegrasyon işini kullanıcı ayrıca belirleyecektir.
+
 7 Kasım yerel açılış/PWA düzeltmesi: kayıtlı yük sahibi rolü normal açılışı artık
 Boş Araçlar'a çevirmez; varsayılan Yükler'dir. Görünür ilan ekranı, geri dönüşte
 ve bağlantı gelince mevcut hesap/filtrelerle yenilenir; profil taslağı yeniden çizilmez.
@@ -112,6 +117,49 @@ Production değişikliği ve main birleştirmesi yapılmadı. [Teknik devir](wha
 
 ## 1. Güncel durum ve tamamlanan kabul
 
+### 10 Kasım 2026 güncellemesi
+
+Bu bölüm aşağıdaki 28 Ekim tablosunun yerine geçen satırları verir; tablonun
+geri kalanı tarihsel kabul kaydıdır.
+
+| Konu | 10 Kasım 2026 durumu |
+| --- | --- |
+| Main / canlı uygulama | Main `2236d76` ([PR #59](https://github.com/yagizce/nakgo/pull/59)); Production yayını `dpl_8Q4VAJxKMuDtwncbfxsUarhCVBQE`, READY, `nakgo.vercel.app` alias'ı bu yayında |
+| Uygulama kabuğu | `nakgo-v46-public-listings`; canlı sw.js HTTP 200 |
+| Vercel yayını | Main için otomatik yayın `vercel.json` ile kapalı ([PR #47](https://github.com/yagizce/nakgo/pull/47)). Main'e birleşme siteyi değiştirmez; yayın ayrı onayla Vercel'de main commit'inden elle başlatılır. Yeni dallar da `deploymentEnabled` listesine `false` olarak eklenir |
+| Migration | Production son sürüm `20261110010000_public_listings` (16 kayıt). DEV'e uygulanmadı; DEV şeması PR #44/#48 dalını izler |
+| CI | Eski dosya kilitleyen Guard [PR #53](https://github.com/yagizce/nakgo/pull/53) ile kaldırıldı; `npm run test:guard` yok. PR'larda `verify`, `admin-regression`, `quality-gate` ve GitHub App (`nakgo-trusted-ci`) kaynaklı `nakgo/trusted-ci` çalışır. Branch protection ayarları bu oturumda okunamadı (API 403) |
+| Otomatik birleşme | `auto-merge.yml` yalnız taslak olmayan, main hedefli `codex/` dallarını kontroller geçince birleştirir. `claude/` dalları kapsam dışıdır; taslaktan çıkarmak `codex/` dalında birleşme adımı sayılır |
+
+**PR #58 — eski Android girişi:** `/api/auth/config` isteği `AbortSignal.timeout`
+kullanıyordu; Chrome/WebView 103 öncesinde hata sessizce yutulup uygulama demo
+modunda kalıyordu. AbortController yedeğiyle düzeltildi. Aynı korumasız satır
+PR #44/#48 dallarında da var; dallar main ile güncellendiğinde düzeltme çakışmasız
+gelir (yalnız `sw.js` sürümü ve #44'te `vercel.json` çakışır).
+
+**PR #59 — misafir (girişsiz) görünüm:** Hesaplar açıkken girişsiz ziyaretçi
+demo ilan görmez; gerçek açık ilanları `public.nakgo_public_listings(p_before)`
+ile görür. Fonksiyon yalnız güzergâh, araç, kasa, tonaj, yük türü/kalemleri ve
+yükleme zamanını döndürür; sahip kimliği/adı, not, fotoğraf ve iletişim dönmez.
+`listings` tablosu ve RLS anon için kapalı kalır. Görünürlük `listings_read` ile
+aynıdır; moderasyonla kaldırılan ve askıdaki hesaba ait ilanlar ayrıca gizlenir.
+Ara, mesaj, taşıma talebi, favori, şikâyet/engelleme ve ilan verme giriş ekranını
+açar. Hesaplar kapalıyken eski demo davranışı sürer. Ürün kararı: uygulama ilk
+3-4 ay ücretsiz; kayıt olmayan ilan görür, arama/WhatsApp yönlendirmesi yapamaz.
+Not ve fotoğrafın ziyaretçiye açılması ayrı karardır (notlarda telefon olabilir).
+
+Kabul: `npm test` 656/656, E2E 407/407, yönetici ve auth browser testleri, yeni
+SQL testi PGlite'ta; Production'da anon rolüyle salt okunur doğrulama (anon tablo
+okuyamaz, fonksiyon yalnız izinli alanları döndürür). Kullanıcı laptopta çıkış
+yaptıktan sonra canlı ilanları ve Ara'nın giriş istediğini doğruladı. Profil
+sekmesinde ziyaretçiye boş örnek profil formu görünmesi bilinen küçük eksiktir.
+
+Açık PR'lar (10 Kasım, hepsi taslak): #38→#39→#40→#41 ve #44→#48 zinciri,
+CI doğrulama PR'ları #52, #54, #55, #57. Cloudflare DEV Worker `nakgo-app-dev`
+PR #48 dalından yayındadır ve PR #58 düzeltmesini içermez.
+
+### 28 Ekim 2026 kaydı
+
 Mobil uygulama Production'da gerçek hesaplarla çalışmaktadır. Auth kapalı,
 Production boş veya yönetici yalnız DEV'de gibi eski notlar güncel değildir.
 
@@ -165,7 +213,7 @@ Logo/splash/ikonları veya ürün alanları sebepsiz değiştirilmez.
 | [src/js/data.js](../src/js/data.js) | Veri normalizasyonu, tarih/metin ve form kuralları |
 | [src/js/screens/post.js](../src/js/screens/post.js), [src/js/ui/post-draft.js](../src/js/ui/post-draft.js) | İlan formu, adımlar ve hesaba göre taslak |
 | [src/js/features/listings.js](../src/js/features/listings.js) | Kart, düzenleme, kapatma/arşiv, süre ve ilan davranışı |
-| [src/js/features/offers.js](../src/js/features/offers.js), [src/js/screens/offers.js](../src/js/screens/offers.js) | Demo iş davranışı ve gerçek hesap iş ekranı |
+| [src/js/features/offers.js](../src/js/features/offers.js) | Bildirimler, rota alarmı ve demo sohbet (İşlerim ekranı ve taşıma talebi akışı kaldırıldı) |
 | [src/js/features/account.js](../src/js/features/account.js) | Hesap, özel belge başvuruları ve nakgoDocuments durumu |
 | [src/js/screens/profile.js](../src/js/screens/profile.js), [src/js/screens/admin.js](../src/js/screens/admin.js) | Profil, rol görünürlüğü ve yönetici paneli |
 | src/js/screens/inbox.js (mesajlaşma arayüzü bu dalda kaldırıldı) | Görüşme/mesaj arayüzü |
@@ -280,7 +328,7 @@ adımlarını da içerir; mevcut ortama migration'ları yeniden uygulamayın.
 | Ortam | Supabase project ref | Son doğrulanan durum |
 | --- | --- | --- |
 | DEV / nakgo-dev | `axkotffqrsddbrazhcwj` | Son iki migration ledger'da kayıtlı; eski 13 sürümün ledger geçmişi tamamlanmış değildir |
-| Production / nakgo-production | `fimlifldsivecezbxwuo` | 15 kaynak sürümüne ulaşan kurulum; son migration tek kayıtla doğrulandı |
+| Production / nakgo-production | `fimlifldsivecezbxwuo` | 10 Kasım: 16 kaynak sürümü; `20261110010000_public_listings` aynı transaction'da ledger'a kaydedildi |
 
 Üç önemli son sürüm:
 
@@ -332,7 +380,6 @@ npm run bundle
 npm test
 npm run test:static
 npm run test:gate
-npm run test:guard
 npm run test:e2e
 npm run test:browser
 ```
@@ -396,8 +443,10 @@ Yeni sohbet için kısa başlangıç metni:
 > koruyup uzak main/PR/CI ve hedef ortamı doğrula. Production Auth açık; tek
 > genel yönetici ile belge inceleyici ayrı. Yükleme tarihi yükte zorunlu serbest
 > metin; Not ve ekler geçişi aynı, araç takvim doğrulaması ayrı. Kullanıcı iPhone
-> kabulünü tamamladı. Son iki migration kurulu; ledger eksikliğini yeniden
-> çalıştırmayla çözme. Eski bypass iznini kullanma. Yalnız yeni kullanıcı talebinin
+> kabulünü tamamladı. Girişsiz ziyaretçi açık ilan fonksiyonuyla gerçek ilanları
+> görür, iletişim için hesap gerekir. Kurulu migration'ları tekrar çalıştırma;
+> ledger eksikliğini yeniden çalıştırmayla çözme. Main yayını Vercel'de elle ve
+> ayrı onayla yapılır. Eski bypass iznini kullanma. Yalnız yeni kullanıcı talebinin
 > kapsamındaki işi yap; sır veya hesap kimliği yayımlama.
 
 ## 10. WhatsApp V2 DEV / Preview kabulü

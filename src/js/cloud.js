@@ -74,7 +74,6 @@ async function initCloud() {
             ids.forEach(i => names[i] = String((pr[i] && pr[i].name) || "") || "Kullanıcı");
             soft();
         };
-        const sim = new Set();
         db.collection("loads").onSnapshot(sn => {
             loads = sn.docs.map(x => normalizeListing(x.data())).filter(Boolean).sort(ts);
             who(loads.map(l => l.uid));
@@ -94,10 +93,6 @@ async function initCloud() {
         db.collection("offers").onSnapshot(sn => {
             allO = sn.docs.map(x => x.data());
             rebuild();
-            offers.filter(o => o.status === "wait" && !o.ownerUid && !sim.has(o.id)).forEach(o => {
-                sim.add(o.id);
-                simulate(o.id);
-            });
             refreshCloudState();
         }, () => { });
         let first = true;
@@ -169,7 +164,7 @@ async function initCloud() {
 // The pinned official browser SDK owns PKCE, session refresh and sign-out.
 const nakgoAuth = (() => {
     let client = null, revision = 0, started = false;
-    const state = {enabled:false, ready:false, user:null, profile:null, recovery:false, error:''};
+    const state = {enabled:false, ready:false, checked:false, user:null, profile:null, recovery:false, error:''};
     const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
     const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'mine') render(); };
     const message = error => ({
@@ -185,6 +180,12 @@ const nakgoAuth = (() => {
         bad_code_verifier:'Bu bağlantı tarayıcıdaki sıfırlama isteğiyle eşleşmiyor. Buradan yeni bağlantı iste ve en son gelen e-postayı kullan.'
     }[error?.code] || 'İşlem tamamlanamadı. Bağlantını kontrol edip tekrar dene.');
     const configOK = c => c?.enabled === true && /^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(c.url) && /^sb_publishable_[A-Za-z0-9_-]{16,200}$/.test(c.publishableKey);
+    // Chrome/WebView < 103 has no AbortSignal.timeout; without this the config request throws and sign-in stays hidden.
+    const timeoutSignal = ms => {
+        if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') return AbortSignal.timeout(ms);
+        if (typeof AbortController === 'undefined') return undefined;
+        const controller = new AbortController(); setTimeout(() => controller.abort(), ms); return controller.signal;
+    };
     const requireClient = () => { if (!client || !state.ready) throw Error('Auth unavailable'); return client; };
     const redirectTo = () => new URL('/', location.origin).href;
 
@@ -193,14 +194,14 @@ const nakgoAuth = (() => {
         const {data:{session}, error:sessionError} = await client.auth.getSession();
         if (sessionError) throw sessionError;
         if (current !== revision) return;
-        if (!session) { state.user=null; state.profile=null; state.recovery=false; changed(); return; }
+        if (!session) { state.user=null; state.profile=null; state.recovery=false; state.checked=true; changed(); return; }
         // Never use the locally cached user as proof of a valid identity.
         const {data, error} = await client.auth.getUser();
         if (error) { if(current===revision) {state.user=null;state.profile=null;} throw error; }
         if (current !== revision) return;
         const user = data.user;
         state.user = {id:user.id, email:user.email || ''};
-        state.profile = null; changed();
+        state.profile = null; state.checked=true; changed();
         // Password recovery needs a verified identity, not a successful profile query.
         if (state.recovery) { state.error=''; changed(); return; }
         let result = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).maybeSingle();
@@ -252,7 +253,7 @@ const nakgoAuth = (() => {
             }
         };
         try {
-            const response = await window.fetch('/api/auth/config', {cache:'no-store', signal:AbortSignal.timeout(8000)});
+            const response = await window.fetch('/api/auth/config', {cache:'no-store', signal:timeoutSignal(8000)});
             if (!response.ok) return;
             const config = await response.json();
             if (!configOK(config)) return;
@@ -295,7 +296,7 @@ const nakgoAuth = (() => {
                 if(!state.error)state.error='Sıfırlama oturumu doğrulanamadı. En son e-postadaki bağlantıyı kullan veya buradan yeni bağlantı iste.';
                 showReturn();
             } else if(callbackError) {tab='me';setNav();changed();}
-        } catch(error) { if(state.enabled) {state.error=message(error); changed(); if(recoveryReturn||callbackError)showReturn();} }
+        } catch(error) { if(state.enabled) {state.error=message(error); state.checked=!!client; changed(); if(recoveryReturn||callbackError)showReturn();} }
     }
 
     async function signIn(email,password) {
@@ -372,6 +373,16 @@ const nakgoAuth = (() => {
         if(account.revision!==revision || state.user?.id!==account.id)throw Error('Account changed');
         return result.data;
     }
+    // Signed-out browsing: route and load facts only; contact stays behind an account.
+    async function publicListings({before=null}={}) {
+        if(before!==null&&(!Number.isSafeInteger(before)||before<1))throw Error('Invalid cursor');
+        // Not account data: a sign-out racing this read is harmless; the market discards it if the mode changed.
+        const result=await requireClient().rpc('nakgo_public_listings',{p_before:before});
+        if(result.error)throw result.error;
+        if(state.user)throw Error('Account changed');
+        if(!Array.isArray(result.data))throw Error('Invalid listings');
+        return result.data;
+    }
     async function listListings({own=false,before=null}={}) {
         const account=listingAccount();
         let query=requireClient().from('listings').select(listingColumns).order('id',{ascending:false}).limit(50);
@@ -400,13 +411,6 @@ const nakgoAuth = (() => {
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
     async function listingContact(id){const account=listingAccount();return listingResult(await requireClient().rpc('nakgo_listing_contact',{p_id:id}),account);}
-    const jobColumns='id,listing_id,owner_id,carrier_id,carrier_label,listing_snapshot,status,stage,created_at,updated_at,expires_at,loaded_at,confirmed_at';
-    async function listJobs(before=null) {
-        const account=listingAccount();
-        let q=requireClient().from('transport_jobs').select(jobColumns).order('id',{ascending:false}).limit(50);
-        if(before!==null){if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');q=q.lt('id',before);}
-        return listingResult(await q,account);
-    }
     async function listFavorites({before=null,details=false}={}) {
         const account=listingAccount();
         const favoriteColumns=listingColumns.split(',').filter(column=>column!=='contact_phone').join(',');
@@ -420,59 +424,8 @@ const nakgoAuth = (() => {
         if(!Number.isSafeInteger(id)||id<1||typeof saved!=='boolean')throw Error('Invalid favorite');
         return listingResult(await requireClient().rpc('nakgo_set_favorite',{p_listing_id:id,p_saved:saved}),account);
     }
-    async function jobCounts() {
-        const account=listingAccount();
-        const count=async(done)=>{
-            let q=requireClient().from('transport_jobs').select('id',{count:'exact',head:true}).eq('status','ok');
-            q=done?q.eq('stage',3):q.lt('stage',3);
-            const result=await q;listingResult(result,account);
-            if(!Number.isSafeInteger(result.count)||result.count<0)throw Error('Job count unavailable');
-            return result.count;
-        };
-        const [active,done]=await Promise.all([count(false),count(true)]);
-        return {active,done};
-    }
     const messageResult=async(q,account)=>listingResult(await (typeof q.abortSignal==='function'&&typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?q.abortSignal(AbortSignal.timeout(15000)):q),account);
     const messageID=id=>Number.isSafeInteger(id)&&id>0;
-    const applicationColumns='id,owner_id,owner_label,license_class,status,revision,created_at,submitted_at,reviewed_at,reviewed_by,review_note,updated_at';
-    const documentColumns='id,application_id,owner_id,kind,object_path,status,byte_size,created_at,updated_at';
-    const documentUUID=id=>typeof id==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id);
-    const documentPath=f=>f&&documentUUID(f.id)&&documentUUID(f.owner_id)&&messageID(f.application_id)&&f.object_path===f.owner_id+'/'+f.application_id+'/'+f.id+'.jpg';
-    async function documentRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_document_reviewer'),account);}
-    async function documentApplications(review=false,before=null){
-        const account=listingAccount();if(typeof review!=='boolean'||(before!==null&&!messageID(before)))throw Error('Invalid document query');
-        let q=requireClient().from('carrier_applications').select(applicationColumns).order('id',{ascending:false}).limit(20);
-        q=review?q.neq('owner_id',account.id).eq('status','submitted'):q.eq('owner_id',account.id);
-        if(before!==null)q=q.lt('id',before);return messageResult(q,account);
-    }
-    async function documentApplication(id){const account=listingAccount();if(!messageID(id))throw Error('Invalid application');return messageResult(requireClient().from('carrier_applications').select(applicationColumns).eq('id',id).maybeSingle(),account);}
-    async function documentFiles(id){const account=listingAccount();if(!messageID(id))throw Error('Invalid application');return messageResult(requireClient().from('carrier_document_files').select(documentColumns).eq('application_id',id).neq('status','removed').limit(3),account);}
-    async function createDocumentApplication(license){const account=listingAccount();if(!['B','C','CE','D'].includes(license))throw Error('Invalid license');return messageResult(requireClient().rpc('nakgo_create_carrier_application',{p_license:license}),account);}
-    async function reserveDocument(id,kind,fileID){const account=listingAccount();if(!messageID(id)||!['src','kb','ruh'].includes(kind)||!documentUUID(fileID))throw Error('Invalid document');return messageResult(requireClient().rpc('nakgo_reserve_document',{p_application_id:id,p_kind:kind,p_file_id:fileID}),account);}
-    async function finalizeDocument(id){const account=listingAccount();if(!documentUUID(id))throw Error('Invalid document');return messageResult(requireClient().rpc('nakgo_finalize_document',{p_file_id:id}),account);}
-    async function storageDeadline(operation){let timer;try{return await Promise.race([operation,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Storage timeout')),30000);})]);}finally{clearTimeout(timer);}}
-    async function uploadDocument(file,blob){
-        const account=listingAccount();if(!documentPath(file)||file.owner_id!==account.id||file.status!=='reserved'||blob?.type!=='image/jpeg'||!Number.isSafeInteger(blob.size)||blob.size<1||blob.size>1048576)throw Error('Invalid upload');
-        return listingResult(await storageDeadline(requireClient().storage.from('carrier-documents').upload(file.object_path,blob,{contentType:'image/jpeg',upsert:false,cacheControl:'0'})),account);
-    }
-    async function downloadDocument(file){const account=listingAccount();if(!documentPath(file)||file.status!=='ready')throw Error('Invalid document');return listingResult(await storageDeadline(requireClient().storage.from('carrier-documents').download(file.object_path)),account);}
-    async function removeDocument(file){
-        const account=listingAccount();if(!documentPath(file)||file.owner_id!==account.id)throw Error('Invalid document');
-        listingResult(await storageDeadline(requireClient().storage.from('carrier-documents').remove([file.object_path])),account);
-        return messageResult(requireClient().rpc('nakgo_remove_document',{p_file_id:file.id}),account);
-    }
-    async function transitionDocuments(id,action,revision){const account=listingAccount();if(!messageID(id)||!messageID(revision)||!['submit','withdraw'].includes(action))throw Error('Invalid application transition');return messageResult(requireClient().rpc('nakgo_transition_documents',{p_application_id:id,p_action:action,p_revision:revision}),account);}
-    async function reviewDocuments(id,decision,note,revision){const account=listingAccount();if(!messageID(id)||!messageID(revision)||!['approved','rejected'].includes(decision)||typeof note!=='string'||note.trim().length>500||(decision==='rejected'&&note.trim().length<3))throw Error('Invalid review');return messageResult(requireClient().rpc('nakgo_review_documents',{p_application_id:id,p_decision:decision,p_note:note.trim(),p_revision:revision}),account);}
-    async function carrierVerifications(ids){const account=listingAccount();if(!Array.isArray(ids)||ids.length>100||!ids.every(documentUUID))throw Error('Invalid user list');return messageResult(requireClient().rpc('nakgo_carrier_verifications',{p_users:[...new Set(ids)]}),account);}
-    async function requestTransport(id) {
-        const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
-        return listingResult(await requireClient().rpc('nakgo_request_transport',{p_listing_id:id}),account);
-    }
-    async function transitionTransport(id,action) {
-        const account=listingAccount();
-        if(!Number.isSafeInteger(id)||id<1||!['accept','reject','withdraw','loaded','confirm'].includes(action))throw Error('Invalid transition');
-        return listingResult(await requireClient().rpc('nakgo_transition_transport',{p_job_id:id,p_action:action}),account);
-    }
     async function whatsappRPC(name,args={}){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_wa_'+name,args),account);}
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
     async function archiveList(search='',before=null,filters={}){
@@ -490,15 +443,19 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {maintenanceStatus,archiveAction,privacyRPC,listingContact,whatsappRPC,adminRole,adminModerate,archiveList,archiveDetail,dataCapabilities,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,listListings,createListing,updateListing,listJobs,jobCounts,listFavorites,setFavorite,documentRole,documentApplications,documentApplication,documentFiles,createDocumentApplication,reserveDocument,finalizeDocument,uploadDocument,downloadDocument,removeDocument,transitionDocuments,reviewDocuments,carrierVerifications,requestTransport,transitionTransport};
+    return {maintenanceStatus,archiveAction,privacyRPC,listingContact,whatsappRPC,adminRole,adminModerate,archiveList,archiveDetail,dataCapabilities,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,createListing,updateListing,listFavorites,setFavorite};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
 const nakgoMarket = (() => {
-    let account='', generation=0, writes=0, demo=null, busy=false, error='', feedBefore=null, ownBefore=null, feedMore=false, ownMore=false;
+    let account='', guestMode=false, generation=0, writes=0, demo=null, busy=false, error='', feedBefore=null, ownBefore=null, feedMore=false, ownMore=false;
     const active=()=>!!account;
-    const token=()=>account+':'+generation;
-    const pending=()=>{toast('Bu özellik gerçek hesaplar için henüz hazır değil.');return false;};
+    // Signed-out visitor while accounts are available: real listings, no demo data, no contact.
+    const guest=()=>guestMode;
+    const locked=()=>!!account||guestMode;
+    const token=()=>(account||(guestMode?'guest':''))+':'+generation;
+    const requireAccount=()=>{toast('Aramak, mesaj göndermek ve ilan vermek için ücretsiz kayıt ol veya giriş yap.');if(typeof openAuth==='function')openAuth('signin');return false;};
+    const pending=()=>{if(guestMode)return requireAccount();toast('Bu özellik gerçek hesaplar için henüz hazır değil.');return false;};
     function empty() {
         loads=[]; trucks=[]; offers=[]; incoming=[]; chats={}; favs=[]; alerts=[]; blocked=[]; reports=[]; rates=[]; cdocs={};
         myCar={lic:'',src:false,kb:false,ruh:false}; prem={until:0,plan:''};
@@ -506,22 +463,27 @@ const nakgoMarket = (() => {
     }
     function sync(s) {
         const next=s.marketplace && s.user && !s.recovery ? s.user.id : '';
-        if(next!==account) {
+        const nextGuest=!next && !s.user && s.enabled===true && s.marketplace===true;
+        if(next!==account || nextGuest!==guestMode) {
             generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
-            if(!account && next) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
-            empty(); account=next; nakgoJobs.reset(); nakgoFavorites.reset(); nakgoDocuments.reset(); nakgoAdminAccess.reset();
-            if(!next && demo) {
+            if(!locked() && (next||nextGuest)) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
+            const startup=!account&&!guestMode;
+            empty(); account=next; guestMode=nextGuest; nakgoFavorites.reset(); nakgoAdminAccess.reset();
+            if(!next && !nextGuest && demo) {
                 applyState(demo.data); ({incoming,carriers,names,appr,events,allO,seen}=demo); demo=null;
             }
-            closeSheet(); $('#sheetBody').innerHTML=''; loaded=!next; render();
+            // Entering guest browsing at start-up must not close a sheet the visitor opened.
+            if(!(startup&&nextGuest)){closeSheet(); $('#sheetBody').innerHTML='';}
+            loaded=!next&&!nextGuest; render();
         }
         if(next && s.profile && !loaded && !busy) refresh();
+        if(nextGuest && s.ready && s.checked && !loaded && !busy) refresh();
         if(next && s.profile)nakgoFavorites.ensure();
     }
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
             from:r.from_city,to:r.to_city,veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
-            owner:'',who:'',phone:r.contact_phone||'',publishedAt:Date.parse(r.published_at),expiresAt:Date.parse(r.expires_at),date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note,
+            owner:'',who:'',phone:r.contact_phone||'',publishedAt:Date.parse(r.published_at),expiresAt:Date.parse(r.expires_at),date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note||'',
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active',archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};
     }
@@ -532,9 +494,16 @@ const nakgoMarket = (() => {
         loads=all.filter(x=>typeof x.id==='number'); trucks=all.filter(x=>typeof x.id==='string');
     }
     async function refresh(more=false) {
-        if(!account || busy)return;
+        if(!locked() || busy)return;
         const owner=token(), startedWrites=writes; busy=true; error=''; if(!more)loaded=false; render();
         try {
+            if(guestMode) {
+                const rows=await nakgoAuth.publicListings({before:more?feedBefore:null});
+                if(owner!==token())return;
+                feedMore=rows.length===50;feedBefore=rows.at(-1)?.id||null;ownMore=false;
+                put(rows,!more);
+                return;
+            }
             const [feed,own]=await Promise.all([
                 !more||feedMore?nakgoAuth.listListings({before:more?feedBefore:null}):Promise.resolve([]),
                 !more||ownMore?nakgoAuth.listListings({own:true,before:more?ownBefore:null}):Promise.resolve([])
@@ -543,7 +512,6 @@ const nakgoMarket = (() => {
             if(!more||feedMore){feedMore=feed.length===50;feedBefore=feed.at(-1)?.id||null;}
             if(!more||ownMore){ownMore=own.length===50;ownBefore=own.at(-1)?.id||null;}
             put([...feed,...own],!more);
-            nakgoDocuments.refreshPublic([...new Set([...loads,...trucks].map(x=>x.uid))]);
         } catch(e) {if(owner===token())error='İlanlar yüklenemedi. Bağlantını kontrol edip yeniden dene.';}
         finally {if(owner===token()){busy=false;loaded=true;render();}}
     }
@@ -571,53 +539,13 @@ const nakgoMarket = (() => {
         if(owner!==token())throw Error('Account changed'); writes++;if(['closed','archived'].includes(row.status)){loads=loads.filter(item=>item.remoteId!==row.id);trucks=trucks.filter(item=>item.remoteId!==row.id);}else put([row]);nakgoFavorites.updateListing(row);render();return true;
     }
     function controls() {
+        if(guestMode)return '<p class="demo-note" role="status">'+(error?esc(error):'İlanları herkes görebilir. Aramak, mesaj göndermek ve ilan vermek için ücretsiz kayıt ol.')+'</p>'+
+            '<div class="chips"><button class="chip" id="market-signin">Kayıt ol / Giriş yap</button><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+(feedMore?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
         if(!active())return '';
         return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar, fotoğraflar, taşıma talepleri, favorilerin hesabında saklanır.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
     }
-    return {active,token,sync,refresh,create,update,pending,controls,mapped};
-})();
-
-// Transport jobs are held only in the verified account session, never the demo store.
-const nakgoJobs = (() => {
-    let rows=[],busy=false,ready=false,error='',before=null,more=false,version=0;
-    let counts={active:0,done:0,ready:false,busy:false,error:''};
-    const pending=new Set();
-    const reset=()=>{rows=[];busy=false;ready=false;error='';before=null;more=false;version++;pending.clear();counts={active:0,done:0,ready:false,busy:false,error:''};};
-    const summary=()=>({...counts});
-    async function refreshSummary() {
-        const auth=nakgoAuth.snapshot();
-        if(!nakgoMarket.active()||counts.busy||!auth.user||!auth.profile||auth.recovery)return;
-        const account=nakgoMarket.token(),revision=version;counts.busy=true;counts.error='';
-        try {
-            const data=await nakgoAuth.jobCounts();
-            if(account===nakgoMarket.token()&&revision===version)counts={...data,ready:true,busy:true,error:''};
-        } catch(e){if(account===nakgoMarket.token()&&revision===version)counts.error='İş sayaçları yüklenemedi. Yeniden dene.';}
-        finally {if(account===nakgoMarket.token()){counts.busy=false;if(tab==='me')render();}}
-    }
-    const state=()=>({rows:rows.map(r=>({...r,listing_snapshot:{...r.listing_snapshot}})),busy,ready,error,more});
-    const put=(list,replace=false)=>{const all=new Map((replace?[]:rows).map(r=>[r.id,r]));list.forEach(r=>all.set(r.id,r));rows=[...all.values()].sort((a,b)=>b.id-a.id);};
-    async function refresh(append=false,showBusy=true) {
-        const auth=nakgoAuth.snapshot();
-        if(!nakgoMarket.active()||busy||!auth.user||!auth.profile||auth.recovery)return;
-        const account=nakgoMarket.token(),revision=version;busy=true;error='';if(showBusy&&tab==='mine')render();
-        try {
-            const data=await nakgoAuth.listJobs(append?before:null);
-            if(account!==nakgoMarket.token()||revision!==version)return;
-            put(data,!append);more=data.length===50;before=data.at(-1)?.id||null;ready=true;counts.ready=false;
-        } catch(e){if(account===nakgoMarket.token())error='İşler yüklenemedi. Yeniden dene.';}
-        finally {if(account===nakgoMarket.token()){busy=false;if(tab==='mine')render();}}
-    }
-    async function write(key,operation) {
-        if(!nakgoMarket.active())throw Error('Sign in required');
-        if(pending.has(key))return null;
-        pending.add(key);const account=nakgoMarket.token();
-        try {const row=await operation();if(account!==nakgoMarket.token())throw Error('Account changed');version++;put([row]);error='';counts.ready=false;counts.error='';if(tab==='me')render();return row;}
-        finally {if(account===nakgoMarket.token())pending.delete(key);}
-    }
-    const request=id=>write('listing:'+id,()=>nakgoAuth.requestTransport(id));
-    const transition=(id,action)=>write('job:'+id,()=>nakgoAuth.transitionTransport(id,action));
-    return {reset,state,summary,refreshSummary,refresh,request,transition};
+    return {active,guest,locked,requireAccount,token,sync,refresh,create,update,pending,controls,mapped};
 })();
 
 // Private favorite membership and pages never enter the device demo store.

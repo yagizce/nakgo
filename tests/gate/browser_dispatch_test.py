@@ -23,28 +23,45 @@ class DispatchTests(unittest.TestCase):
         if b'  "src/js/screens/inbox.js",\n' not in data:
             data=data.replace(b'  "src/js/screens/road-map.js",\n',b'  "src/js/screens/inbox.js",\n  "src/js/screens/road-map.js",\n')
         (self.root/'tools/project.js').write_bytes(data)
+    def trusted(self):
+        # A committed copy of the reviewed fixtures. The surrounding checkout may be a
+        # trusted replay whose restored files differ from its merge HEAD, so it is not
+        # used as the trust anchor here; the dispatcher's own checks are unchanged.
+        trusted=Path(tempfile.mkdtemp(dir=self.temp.name))
+        for name in ['tools/project.js','tests/gate/legacy-browser.py','tests/gate/product-browser.py']:
+            dest=trusted/name
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes((ROOT/name).read_bytes().replace(b'\r\n',b'\n'))
+        def git(*args):
+            subprocess.run(['git','-C',str(trusted),*args],check=True,capture_output=True)
+        git('init')
+        git('add','--all')
+        git('-c','user.name=Synthetic fixture','-c','user.email=fixture@invalid',
+            '-c','commit.gpgsign=false','-c','core.autocrlf=false','commit','-m','Trusted browser fixtures')
+        return trusted
     def test_legacy_uses_trusted_fixture(self):
         self.project()
-        self.assertEqual(dispatch.select_fixture(self.root)[0].name, 'legacy-browser.py')
+        self.assertEqual(dispatch.select_fixture(self.root,self.trusted())[0].name, 'legacy-browser.py')
     def test_product_uses_trusted_fixture(self):
         self.project()
         project=self.root/'tools/project.js'
         project.write_bytes(project.read_bytes().replace(b'\r\n',b'\n').replace(b'  "src/js/screens/inbox.js",\n',b''))
         (self.root/'tests/gate').mkdir(parents=True)
         (self.root/'tests/gate/browser.py').write_text("raise Exception('must never execute candidate tests')")
-        self.assertEqual(dispatch.select_fixture(self.root)[0].parent, ROOT/'tests/gate')
-        self.assertEqual(dispatch.select_fixture(self.root)[0].name, 'product-browser.py')
+        trusted=self.trusted()
+        self.assertEqual(dispatch.select_fixture(self.root,trusted)[0].parent, trusted.resolve()/'tests/gate')
+        self.assertEqual(dispatch.select_fixture(self.root,trusted)[0].name, 'product-browser.py')
     def test_candidate_ledger_cannot_approve_unknown_contract(self):
         (self.root/'tools/project.js').write_text('unreviewed')
         (self.root/'.github').mkdir()
         (self.root/'.github/reviewed-controls.json').write_text('{"version":1,"reviews":[]}')
         with self.assertRaisesRegex(ValueError,'unknown_product_contract'):
-            dispatch.select_fixture(self.root)
+            dispatch.select_fixture(self.root,self.trusted())
     def test_empty_contract_rejected(self):
         (self.root/'tools/project.js').write_text('')
-        with self.assertRaises(ValueError):dispatch.select_fixture(self.root)
+        with self.assertRaisesRegex(ValueError,'unknown_product_contract'):dispatch.select_fixture(self.root,self.trusted())
     def test_missing_contract_rejected(self):
-        with self.assertRaises(ValueError):dispatch.select_fixture(self.root)
+        with self.assertRaisesRegex(ValueError,'invalid_control_file'):dispatch.select_fixture(self.root,self.trusted())
     def test_trusted_fixture_tampering_rejected(self):
         self.project()
         trusted=self.root/'trusted'

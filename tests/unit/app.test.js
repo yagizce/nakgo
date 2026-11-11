@@ -27,7 +27,6 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
   run("İlan süresi (TTL)", (r, ok) => {
     r("loads.unshift({id:901,from:'İzmir',to:'Bursa',cargo:'Eski',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-20*864e5});loads.unshift({id:902,from:'İzmir',to:'Bursa',cargo:'Yeni',ton:3,veh:'Kamyon',price:9000,date:'Cuma',ts:Date.now()-2*36e5});mode='load';tab='list';F=F0();render()");
     const h = r("return main()"); ok(!h.includes('data-id="901"'), "altı saati geçen ilan gizli"); ok(h.includes('data-id="902"') && h.includes("dk kaldı"), "yeni ilan ve yaş");
-    ok(r("return offerExp({status:'wait',ots:Date.now()-4*864e5})") === true && r("return offerExp({status:'wait',ots:Date.now()-864e5})") === false, "teklif süresi");
   });
 
   run("Yükleniyor görünümü", (r, ok) => {
@@ -35,13 +34,12 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     r("loaded=true;render()"); ok(!r("return main()").includes('class="load sk"'), "iskelet kalkar");
   });
 
-  run("Sayfalama ve puan sıralaması", (r, ok) => {
+  run("Sayfalama", (r, ok) => {
     const cards = h => (h.match(/class="load[ "]/g) || []).length;
     r("for(let i=0;i<30;i++)loads.push({ts:Date.now(),id:2000+i,from:'İzmir',to:'Bursa',cargo:'T'+i,ton:3,veh:'Kamyon',price:9000+i,date:'Cuma'});mode='load';tab='list';F=F0();render()");
     let h = r("return main()"); ok(cards(h) === 20 && h.includes('id="more"'), "ilk 20 ilan ve daha fazla düğmesi (" + cards(h) + ")");
     r("shown+=20;render()"); h = r("return main()"); ok(cards(h) === 40, "20 ilan daha (" + cards(h) + ")");
     r("q='Zzz';render();q='';render()"); ok(r("return shown") === 20, "filtre değişince sıfırlanır");
-    ok(r("sort='rate';return sortL([{rate:3},{rate:5},{rate:4}]).map(x=>x.rate).join()") === "5,4,3", "puana göre sıralama");
   });
 
   run("Yakınımdaki yükler", (r, ok) => {
@@ -60,11 +58,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
   });
 
   // ===== offers =====
-  run("Teslim, puan, rozet, alarm", (r, ok) => {
-    r("offers=[{...loads[1],offer:14000,status:'ok',loadId:loads[1].id,bidder:'',stage:3}];tab='mine';render()");
-    ok(r("return main()").includes("Yük sahibini puanla"), "puanlama düğmesi");
-    r("setCar({lic:'CE',src:true,kb:true,ruh:true})"); ok(r("return cOk(myCar)") === true, "belge tamam");
-    ok(r("return [lvT({approved:true}),lvT({verified:true}),lvT({})].join()") === "2,1,0", "rozet seviyeleri");
+  run("Rota alarmı bildirimi", (r, ok) => {
     r("F=F0();F.from='İstanbul';addAlert();loads.unshift({ts:Date.now(),id:920,from:'İstanbul',to:'İzmir',cargo:'Y',ton:2,veh:'Kamyon',price:8000,date:'Bugün'})");
     ok(r("return notifs().filter(x=>x.k.startsWith('a')&&!seen.has(x.k)).length") === 1, "alarm bildirimi");
   });
@@ -80,21 +74,10 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
   });
 
   // ===== profile =====
-  run("Herkese açık profil ve iş özeti", (r, ok) => {
-    r("rates=[{k:'a',to:'u1',by:'x',stars:5,text:'Harika',ts:1},{k:'b',to:'u1',by:'y',stars:3,text:'<b>iyi</b>',ts:2}];openProfile({uid:'u1',name:'Ali',lv:2})");
-    const h = r("return sheet()"); ok(h.includes("★ 4.0 (2 değerlendirme)") && h.includes("✓ Onaylı"), "puan ortalaması ve rozet");
-    ok(h.includes("&lt;b&gt;iyi") && !h.includes("<b>iyi"), "yorum kaçışlı");
-    r("openProfile({name:'Örnek',rate:4.6})"); ok(r("return sheet()").includes("★ 4.6"), "örnek profil");
-    r("offers=[{...loads[0],offer:20000,status:'ok',loadId:1,bidder:'',stage:3},{...loads[1],offer:9000,status:'ok',loadId:2,bidder:'',stage:1}];tab='me';render()");
-    const m = r("return main()"); ok(m.includes("Devam eden iş") && m.includes("Onaylanan iş") && !m.includes("Kazancım"), "kazanç yerine iş özeti");
-  });
-
-  run("İki aşamalı iş onayı ve eski kayıtlar", (r,ok)=>{
-    r("offers=[{...loads[0],offer:20000,status:'ok',loadId:1,bidder:'',stage:2}];setStage(offers[0],3)");
-    ok(r("return offers[0].doneAt")>0, "onay zamanı kaydedilir");
-    ok(r("return jobStage({stage:2})===1&&jobStage({stage:3})===3"), "eski yüklenmiş ve onaylanmış işler korunur");
-    r("tab='mine';render()");const h=r("return main()");
-    ok(h.includes('Onaylandı')&&!/Teslim ettim|Fotoğrafı gör|data-chat|data-cl=/.test(h), "gereksiz iş adımları ve iletişim düğmeleri yok");
+  run("Herkese açık profil kaçışlı", (r, ok) => {
+    r("openProfile({uid:'u1',name:'<b>Ali</b>'})");
+    const h = r("return sheet()"); ok(!h.includes("<b>Ali") && h.includes("İlan sahibi"), "kişisel ad gösterilmez ve HTML çalışmaz");
+    r("tab='me';render()"); ok(!r("return main()").includes("Kazancım"), "profilde kazanç alanı yok");
   });
 
   run("İlk açılış tanıtımı ve rol", (r, ok) => {

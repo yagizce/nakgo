@@ -10,7 +10,7 @@ const isPrem = () => prem.until > Date.now();
 
 
 function openPaywall(why) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     roadMapDispose(true);
     if (unChat) { unChat(); unChat=null; }
     const B = $("#sheetBody");
@@ -49,7 +49,7 @@ const isDemoFeature = x => !cloud && x.id === 8 && !x.uid && !x.mine;
 const isF = x => isDemoFeature(x) || !!x.featUntil && (x.featFrom || 0) <= Date.now() && Date.now() < x.featUntil;
 
 function openFeature(kind, id) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     const it = findIt(kind, id);
     if (!it)
         return;
@@ -155,7 +155,7 @@ function statTips(l, s) {
 }
 
 function openStats(id) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     const l = loads.find(x => String(x.id) === String(id));
     if (!l)
         return;

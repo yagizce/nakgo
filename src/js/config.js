@@ -16,9 +16,7 @@ const vehicles = ["Tır", "Kırkayak", "Kamyon", "Kamyonet", "Panelvan", "Tanker
 
 const bodies = ["Tenteli", "Kapalı kasa", "Açık kasa", "Frigorifik", "Damperli", "Tanker", "Lowbed", "Konteyner"];
 
-const CONS = { Tır: 32, Kırkayak: 30, Kamyon: 22, Kamyonet: 9, Panelvan: 8, Tanker: 35, Lowbed: 42, Konteyner: 34 };
 
-const STT = { wait: "Yanıt bekleniyor", ok: "Kabul edildi", counter: "Görüşme bekleniyor", no: "Reddedildi" };
 
 const FI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>';
 
@@ -32,7 +30,7 @@ const TTL = { load: 0.25, truck: 0.25, offer: 3 };
 
 const SUPPORT_MAIL = "destek@nakgolojistik.com";
 
-const FAQ = [["Premium üyelik nedir?", "İlan iletişimi Ara ve WhatsApp üzerinden sağlanır."], ["Rozetler ne anlama gelir?", "Belgeli: taşıyıcı belgelerini kendisi beyan etti. Onaylı: belgeleri yönetici tarafından kontrol edildi."], ["Yükleme nasıl onaylanır?", "Taşıyıcı İşlerim bölümünde Yükledim der; yük sahibi yüklemeyi onaylar. Teslim fotoğrafı adımı yoktur."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan detayındaki Şikayet et düğmesini kullan. Gerekirse kullanıcıyı engelleyebilirsin."], ["Verilerim nerede tutuluyor?", "Bu test sürümünde veriler cihazında veya ortak test veritabanında tutulur."]];
+const FAQ = [["NakGo'yu kullanmak ücretli mi?", "İlanları görmek, kayıt olmak ve ilan vermek şu an ücretsizdir."], ["İlanları görmek için kayıt olmam gerekir mi?", "Hayır. Açık ilanları herkes görebilir. İlan sahibiyle iletişime geçmek ve ilan vermek için ücretsiz hesap gerekir."], ["İlan sahibiyle nasıl iletişime geçerim?", "Giriş yaptıktan sonra ilan detayındaki Ara veya WhatsApp düğmesiyle ilan sahibine ulaşabilirsin. Numara yalnız ilan yayındayken ve sahibinin izniyle paylaşılır."], ["İlanımı nasıl verir ve yönetirim?", "İlan ver sekmesinden yük veya boş araç ilanı oluştur. İlanlarını Profil'deki İlanlarım bölümünden düzenleyebilir veya kapatabilirsin."], ["İlanlar ne kadar yayında kalır?", "İlanlar yayınlandıktan 6 saat sonra listeden kalkar. Gerekirse ilanını yeniden yayınlayabilirsin."], ["Mazot ve Gider Hesaplama ne işe yarar?", "Mesafe, tüketim ve litre fiyatını girerek yolun yaklaşık giderini hesaplar. Sonuç tahminidir."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan numarasıyla birlikte destek adresimize yaz; ilanı inceleriz."], ["Verilerim nerede tutuluyor?", "Hesap, ilan ve mesaj bilgilerin NakGo sunucularında saklanır. Telefon numaran ilanlarda herkese açık gösterilmez."]];
 
 /* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ürün kuralları docs/product.md içinde. */
 const FEAT = { prices: { l: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 }, t: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 } } };
@@ -42,9 +40,7 @@ const FDUR = [[3, "3 saat"], [6, "6 saat"], [12, "12 saat"], [24, "24 saat"], [7
 
 
 
-const VB = '<span class="vb">✓ Belgeli</span>';
 
-const VA = '<span class="vb va">✓ Onaylı</span>';
 
 // ===== Mesafe ve harita =====
 // Kuş uçuşu ve tablo mesafesi, en yakın il, tahmini şehir mesafeleri.

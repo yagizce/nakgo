@@ -1,0 +1,292 @@
+diff --git a/tests/e2e.py b/tests/e2e.py
+index 8bb2301..00548ad 100644
+--- a/tests/e2e.py
++++ b/tests/e2e.py
+@@ -34,6 +34,16 @@ if "--shots" in sys.argv:
+ class Quiet(http.server.SimpleHTTPRequestHandler):
+     def log_message(self, *a): pass
+ 
++    def end_headers(self):
++        # Match the development server's opt-in for the static offline shell.
++        if self.path in ('/', '/manifest.webmanifest') or (
++            self.path.startswith('/icons/') and self.path.count('/') == 2
++            and self.path.endswith(('.svg', '.png')) and '?' not in self.path
++        ):
++            self.send_header('X-NakGo-Offline-Asset', '1')
++            self.send_header('Cache-Control', 'public, max-age=0')
++        super().end_headers()
++
+ srv = socketserver.TCPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=ROOT))
+ threading.Thread(target=srv.serve_forever, daemon=True).start()
+ URL = os.environ.get("NAKGO_E2E_URL") or f"http://127.0.0.1:{srv.server_address[1]}/index.html"
+@@ -156,7 +166,9 @@ with sync_playwright() as p:
+     pg.set_viewport_size({"width": 390, "height": 844})
+ 
+     # 11) Çevrimdışı açılış (servis çalışanı)
+-    pg.goto(URL); pg.evaluate("navigator.serviceWorker.ready.then(()=>true)"); pg.wait_for_timeout(800); pg.reload(); pg.wait_for_timeout(800)
++    pg.goto(URL)
++    pg.wait_for_function("navigator.serviceWorker.controller !== null", timeout=10000)
++    pg.reload(); pg.wait_for_timeout(800)
+     ctx.set_offline(True); pg.reload(); pg.wait_for_timeout(800)
+     check("internet yokken uygulama kayıtlı kopyadan açılır", cards() > 0 and pg.is_visible("#off"))
+     ctx.set_offline(False)
+diff --git a/tests/unit/account-favorites.test.js b/tests/unit/account-favorites.test.js
+index 656bbad..bebc17f 100644
+--- a/tests/unit/account-favorites.test.js
++++ b/tests/unit/account-favorites.test.js
+@@ -1,8 +1,8 @@
+ module.exports=({run})=>{
+- const setup='nakgoMarket.sync({marketplace:true,user:{id:"a"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"a"},profile:{display_name:"A"}});';
++ const setup='nakgoMarket.sync({marketplace:true,user:{id:"a"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"a"},profile:{display_name:"A"}});window.favoriteRow=id=>({listing_id:id,created_at:new Date().toISOString(),listing:{id,kind:"load",owner_id:"owner",from_city:"İstanbul",to_city:"Ankara",cargo:"Saved",amount:10,vehicle:"Tır",body:"Tenteli",status:"active",published_at:new Date(Date.now()-1000).toISOString(),expires_at:new Date(Date.now()+3600000).toISOString()}});';
+  run('Favorite membership spans cursor pages and stays outside demo storage',async(r,ok)=>{
+   const demo=r('return localStorage.getItem("yy2")');
+-  r(setup+'window.cursors=[];nakgoAuth.listFavorites=async p=>{window.cursors.push(p.before);return p.before===null?Array.from({length:200},(_,i)=>({listing_id:300-i})):[{listing_id:100}];};');
++  r(setup+'window.cursors=[];nakgoAuth.listFavorites=async p=>{window.cursors.push(p.before);return p.before===null?Array.from({length:200},(_,i)=>window.favoriteRow(300-i)):[window.favoriteRow(100)];};');
+   await r('return nakgoFavorites.refresh()');
+   ok(r('return nakgoFavorites.state().ready&&nakgoFavorites.state().count===201&&nakgoFavorites.has(100)'),'membership continues past the first 200 records');
+   ok(r('return JSON.stringify(window.cursors)')==='[null,101]','stable listing cursor used');
+@@ -11,7 +11,7 @@ module.exports=({run})=>{
+   ok(r('return localStorage.getItem("yy2")')===demo,'sign-out preserves demo storage');
+  },{win:{}});
+  run('Favorite write confirms server result, deduplicates clicks and survives failures',async(r,ok)=>{
+-  r(setup+'nakgoAuth.listFavorites=async()=>[];');await r('return nakgoFavorites.refresh()');
++  r(setup+'loads=[17,18].map(id=>nakgoMarket.mapped(window.favoriteRow(id).listing));nakgoAuth.listFavorites=async()=>[];');await r('return nakgoFavorites.refresh()');
+   r('window.writes=0;nakgoAuth.setFavorite=(id,saved)=>{window.writes++;return new Promise(done=>window.finish=()=>done({listing_id:id,saved}));};');
+   const saving=r('return nakgoFavorites.setSaved(17,true)');
+   const duplicate=await r('return nakgoFavorites.setSaved(17,true)');
+@@ -25,7 +25,7 @@ module.exports=({run})=>{
+   ok(r('return !nakgoFavorites.has(17)'),'explicit remove succeeds');
+  },{win:{}});
+  run('Account switches and newer writes reject stale favorite responses',async(r,ok)=>{
+-  r(setup+'nakgoAuth.listFavorites=async()=>[];');await r('return nakgoFavorites.refresh()');
++  r(setup+'loads=[17,18].map(id=>nakgoMarket.mapped(window.favoriteRow(id).listing));nakgoAuth.listFavorites=async()=>[];');await r('return nakgoFavorites.refresh()');
+   r('nakgoAuth.listFavorites=()=>new Promise(done=>window.readDone=done);nakgoAuth.setFavorite=async(id,saved)=>({listing_id:id,saved});');
+   const reading=r('return nakgoFavorites.refresh()');await r('return nakgoFavorites.setSaved(17,true)');
+   r('window.readDone([]);');await reading;
+@@ -40,15 +40,15 @@ module.exports=({run})=>{
+  },{win:{}});
+  run('Saved listings load independently of the feed and hide inaccessible records',async(r,ok)=>{
+   r(setup+'nakgoAuth.listFavorites=async()=>[{listing_id:17},{listing_id:18},{listing_id:19}];');await r('return nakgoFavorites.refresh()');
+-  r('window.savedLoad={id:17,kind:"load",owner_id:"owner",owner_label:"Owner",from_city:"İstanbul",to_city:"Ankara",cargo:"Saved outside feed",amount:10,vehicle:"Tır",body:"Tenteli",available_on:dateFields("Bugün").date,status:"active",created_at:new Date().toISOString()};nakgoAuth.listFavorites=async()=>[{listing_id:17,listing:window.savedLoad},{listing_id:18,listing:{...window.savedLoad,id:18,kind:"truck",cargo:""}},{listing_id:19,listing:null}];');
++  r('window.savedLoad={id:17,kind:"load",owner_id:"owner",owner_label:"Owner",from_city:"İstanbul",to_city:"Ankara",cargo:"Saved outside feed",amount:10,vehicle:"Tır",body:"Tenteli",available_on:dateFields("Bugün").date,status:"active",created_at:new Date().toISOString(),published_at:new Date(Date.now()-1000).toISOString(),expires_at:new Date(Date.now()+3600000).toISOString()};nakgoAuth.listFavorites=async()=>[{listing_id:17,created_at:new Date().toISOString(),listing:window.savedLoad},{listing_id:18,created_at:new Date().toISOString(),listing:{...window.savedLoad,id:18,kind:"truck",cargo:""}},{listing_id:19,listing:null}];');
+   await r('return nakgoFavorites.refreshPage()');
+   r('F=F0();F.fav=true;tab="list";mode="load";render();');
+   ok(r('return loads.length===0&&main().includes("Saved outside feed")'),'saved page contains records absent from the feed');
+   r('openLoad(17);');ok(r('return sheet().includes("Saved outside feed")'),'saved-only record opens details');
+   r('mode="truck";render();openTruck("t18");');ok(r('return main().includes("data-tid=\\"t18\\"")&&sheet().includes("Boş araç ilanı")'),'truck mapping and details work');
+-  ok(r('return main().includes("data-unsave=\\"19\\"")&&nakgoFavorites.unavailable().length===1'),'unavailable saved record exposes removal without listing data');
++  ok(r('return !main().includes("data-unsave")&&nakgoFavorites.state().count===2'),'inaccessible bookmarks have no history card and do not count');
+   r('nakgoFavorites.updateListing({...window.savedLoad,status:"closed"});mode="load";render();');
+-  ok(r('return !main().includes("Saved outside feed")&&nakgoFavorites.unavailable().includes(17)'),'closed listing disappears from active saved cards');
++  ok(r('return !main().includes("Saved outside feed")&&!nakgoFavorites.has(17)&&nakgoFavorites.state().count===1'),'closed listing disappears from active saved cards');
+  },{win:{}});
+  run('Favorite network errors remain retryable without claiming an empty list',async(r,ok)=>{
+   r(setup+'window.reads=0;nakgoAuth.listFavorites=async()=>{window.reads++;throw Error("offline");};');await r('return nakgoFavorites.refresh()');
+diff --git a/tests/unit/favorites-api.test.js b/tests/unit/favorites-api.test.js
+index ad998ad..284e21d 100644
+--- a/tests/unit/favorites-api.test.js
++++ b/tests/unit/favorites-api.test.js
+@@ -8,9 +8,9 @@ module.exports=({test,fs,path,ROOT})=>{
+   },async rpc(name,args){call={name,args};const result=()=>({error:fail?Error('offline'):null,data:{listing_id:args.p_listing_id,saved:args.p_saved}});if(delay)return new Promise(done=>finish=()=>done(result()));return result();}};
+   const ctx={URL,AbortSignal,setTimeout,clearTimeout,tab:'list',render(){},location:{href:'https://preview.example/',origin:'https://preview.example'},localStorage:{getItem:()=>null},sessionStorage:{getItem:()=>null,removeItem(){}},document:{createElement:()=>({remove(){}}),head:{appendChild:s=>queueMicrotask(()=>s.onload())}},window:{fetch:async()=>({ok:true,json:async()=>({enabled:true,url:'https://abcdefghijklmnopqrst.supabase.co',publishableKey:'sb_publishable_abcdefghijklmnopqrst'})}),supabase:{createClient:()=>sdk}}};
+   vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8')+';this.auth=nakgoAuth;',ctx);await ctx.auth.init();
+-  await ctx.auth.listFavorites();ok(call.columns==='listing_id'&&call.limit===200,'membership reads only IDs in bounded pages');
++  await ctx.auth.listFavorites();ok(call.columns==='listing_id,created_at,listing:listings!inner(id,owner_id,kind,status,published_at,expires_at)'&&call.limit===200,'membership reads minimal publication metadata in bounded pages');
+   await ctx.auth.listFavorites({before:100,details:true});ok(call.table==='listing_favorites'&&call.limit===50&&JSON.stringify(call.before)==='["listing_id",100]','saved listing page has separate stable pagination');
+-  ok(call.columns.startsWith('listing_id,listing:listings(')&&!call.columns.includes('!inner')&&!/\*|phone|owner_label/.test(call.columns),'left join retains unavailable bookmarks without private contact or owner fields');
++  ok(call.columns.startsWith('listing_id,created_at,listing:listings!inner(')&&!/\*|phone|owner_label/.test(call.columns),'inner join excludes inaccessible publications without copying phones or owner names');
+   await ctx.auth.setFavorite(17,false);ok(JSON.stringify(call)==='{"name":"nakgo_set_favorite","args":{"p_listing_id":17,"p_saved":false}}','unsave uses explicit false and never accepts a client user ID');
+   let denied=0;for(const [id,saved] of [[0,true],[17,'true'],[NaN,false]])try{await ctx.auth.setFavorite(id,saved);}catch{denied++;}ok(denied===3,'invalid arguments fail before sending');
+   fail=true;denied=false;try{await ctx.auth.setFavorite(17,true);}catch{denied=true;}ok(denied,'database errors are propagated');
+diff --git a/tests/unit/infrastructure.test.js b/tests/unit/infrastructure.test.js
+index eb79be9..d8f9db5 100644
+--- a/tests/unit/infrastructure.test.js
++++ b/tests/unit/infrastructure.test.js
+@@ -16,15 +16,25 @@ module.exports=({test,fs,path,ROOT})=>{
+   });
+   test("Çevrimdışı önbellek yalnızca başarılı uygulama dosyalarını tutar",async()=>{
+     const vm=require('node:vm'),events={},writes=[],pending=[],out=[];
+-    let response={ok:true,redirected:false,clone:()=>({copy:true})},offline=false;
+-    const ctx={URL,Response,location:{origin:'https://test'},self:{registration:{scope:'https://test/'},addEventListener:(n,f)=>events[n]=f},caches:{open:async()=>({put:(...a)=>writes.push(a)}),match:async k=>k.includes('index.html')?{cached:true}:null},fetch:async()=>{if(offline)throw Error('offline');return response;}};
++    const headers=new Headers({'X-NakGo-Offline-Asset':'1'});
++    const publicAsset={ok:true,redirected:false,headers};
++    const failedAsset={ok:false,redirected:false,headers};
++    const cache={put:(...args)=>writes.push(args),match:async key=>writes.find(([saved])=>saved===key)?.[1]};
++    let offline=false;
++    const ctx={URL,Response,location:{origin:'https://test'},self:{registration:{scope:'https://test/'},skipWaiting(){},addEventListener:(n,f)=>events[n]=f},caches:{open:async()=>cache},fetch:async r=>{
++      if(offline)throw Error('offline');
++      return (r instanceof URL?r.href:r.url).endsWith('icon-192.png')?failedAsset:publicAsset;
++    }};
+     vm.runInNewContext(fs.readFileSync(path.join(ROOT,'sw.js'),'utf8'),ctx);
+     const get=async(url,mode='cors')=>{let p;events.fetch({request:{url,method:'GET',mode},waitUntil:p=>pending.push(p),respondWith:x=>p=x});const r=await p;await Promise.all(pending);return r;};
+     out.push([await get('https://test/api/private')===undefined,'API önbelleğe girmez']);
+     out.push([await get('https://tile.openstreetmap.org/a.png')===undefined,'harita önbelleğe girmez']);
+-    await get('https://test/index.html?go=post','navigate');out.push([writes.length===1&&writes[0][0]==='https://test/index.html','kabuk sorgu bağımsız anahtarla saklanır']);
+-    response={ok:false,redirected:false};await get('https://test/icons/icon-192.png');out.push([writes.length===1,'404/500 saklanmaz']);
+-    offline=true;out.push([(await get('https://test/','navigate')).cached,'çevrimdışı gezinme kabuğu açar']);
++    out.push([await get('https://external.example/index.html','navigate')===undefined,'izinli dosya adı başka origin için geçerli değildir']);
++    events.install({waitUntil:p=>pending.push(p)});await Promise.all(pending);
++    const installed=writes.length;
++    await get('https://test/index.html?go=post','navigate');out.push([writes.length===installed&&writes.some(([key])=>key==='https://test/'),'yalnız kurulumun kanonik kabuğu saklanır']);
++    await get('https://test/icons/icon-192.png');out.push([writes.length===installed&&!writes.some(([key])=>key.endsWith('icon-192.png')),'başarısız yanıt işaretli olsa da saklanmaz']);
++    offline=true;out.push([await get('https://test/','navigate')===publicAsset,'çevrimdışı gezinme gerçekten kaydedilmiş kabuğu açar']);
+     out.push([(await get('https://test/icons/icon-192.png')).type==='error','eksik resme HTML verilmez']);
+     return out;
+   });
+diff --git a/tests/unit/publication-contact.test.js b/tests/unit/publication-contact.test.js
+new file mode 100644
+index 0000000..0a64200
+--- /dev/null
++++ b/tests/unit/publication-contact.test.js
+@@ -0,0 +1,57 @@
++module.exports=({run})=>{
++ run('Favorite expiry refresh does not erase an unsaved profile form',(r,ok)=>{
++  r('nakgoMarket.active=()=>true;tab="me";window.renders=0;window.originalRender=render;render=()=>window.renders++;el("#profile-name").value="Unsaved profile";refreshListingExpiry();');
++  ok(r('return window.renders===0&&el("#profile-name").value==="Unsaved profile"'),'updates favorite caption without rebuilding the profile');
++  r('render=window.originalRender;');
++ },{win:{}});
++ run('Future publication cannot be displayed, saved or contacted',async(r,ok)=>{
++  r('nakgoMarket.sync({marketplace:true,user:{id:"a"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"a"},profile:{}});window.future=Date.now()+3600000;window.row={id:90,kind:"load",owner_id:"other",status:"active",published_at:new Date(window.future).toISOString(),expires_at:new Date(window.future+21600000).toISOString()};loads=[nakgoMarket.mapped(window.row)];nakgoAuth.listFavorites=async()=>[{listing_id:90,created_at:new Date(window.future+1000).toISOString(),listing:window.row}];window.calls=0;nakgoAuth.listingContact=async()=>{window.calls++;};');
++  await r('return nakgoFavorites.refresh()');await r('return nakgoFavorites.refreshPage()');
++  ok(r('return !availableListing(loads[0])&&!visibleListing(loads[0])'),'future listing excluded from list and detail access');
++  ok(r('return nakgoFavorites.state().count===0&&nakgoFavorites.listings().length===0'),'future saved timestamp cannot revive future publication');
++  await r('return contactListing(loads[0],false,"whatsapp")');ok(r('return window.calls===0'),'future listing never requests telephone');
++  r('loads[0].publishedAt=NaN;');ok(r('return !availableListing(loads[0])'),'missing remote publication fails closed');
++ },{win:{location:{href:''}}});
++ run('Remote listing edits preserve contact when the optional replacement is empty',async(r,ok)=>{
++  r('nakgoMarket.sync({marketplace:true,user:{id:"a"},profile:null});loads=[nakgoMarket.mapped({id:90,kind:"load",owner_id:"a",status:"active",published_at:new Date().toISOString(),expires_at:new Date(Date.now()+21600000).toISOString(),loading_text:"bugün"})];window.editPatch=null;patchIt=async(k,id,patch)=>{window.editPatch=patch;return true;};openEdit("l",90);el("#ed").value="yarın";el("#en").value="Synthetic edit";el("#edit-phone").value="";');
++  ok(r('return sheet().includes("Değiştirmeyeceksen boş bırak")'),'phone is not downloaded just to prefill edit form');
++  await r('return el("#es").onclick()');
++  ok(r('return window.editPatch.note==="Synthetic edit"&&!("phone" in window.editPatch)&&!("contactConsent" in window.editPatch)'),'text-only edit does not clear existing contact or require new consent');
++  r('window.editPatch=null;openEdit("l",90);el("#ed").value="yarın";el("#en").value="Synthetic edit";el("#edit-phone").value="invalid";');
++  await r('return el("#es").onclick()');ok(r('return window.editPatch===null'),'invalid nonempty replacement still rejected');
++ },{win:{}});
++ run('Saved counts and cards follow exact expiry and publication identity',async(r,ok)=>{
++  r('nakgoMarket.sync({marketplace:true,user:{id:"a"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"a"},profile:{}});window.originalNow=Date.now;window.clock=window.originalNow();Date.now=()=>window.clock;window.end=window.clock+21600000;window.saved={listing_id:90,created_at:new Date(window.clock).toISOString(),listing:{id:90,kind:"load",owner_id:"other",from_city:"İstanbul",to_city:"Ankara",cargo:"Synthetic active favorite",amount:10,vehicle:"Tır",body:"Tenteli",status:"active",published_at:new Date(window.clock).toISOString(),expires_at:new Date(window.end).toISOString()}};window.savedOn=true;nakgoAuth.listFavorites=async()=>window.savedOn?[window.saved,{listing_id:91,listing:null}]:[];');
++  try{
++   await r('return nakgoFavorites.refresh()');await r('return nakgoFavorites.refreshPage()');
++   r('F=F0();F.fav=true;tab="list";render();');
++   ok(r('return nakgoFavorites.state().count===1&&main().includes("Synthetic active favorite")'),'only accessible active publication counts and appears');
++   r('window.clock=window.end-1;');ok(r('return nakgoFavorites.has(90)'),'favorite exists just before six-hour deadline');
++   r('window.clock=window.end;render();');
++   ok(r('return !nakgoFavorites.has(90)&&nakgoFavorites.state().count===0&&nakgoFavorites.listings().length===0'),'exact six-hour deadline hides saved card and count');
++   ok(r('return !main().includes("Synthetic active favorite")&&!main().includes("Yayında olmayan kayıtlar")&&!main().includes("data-unsave")'),'no bookmark archive or expired placeholder');
++   r('window.clock++;');ok(r('return nakgoFavorites.state().count===0'),'favorite remains hidden after deadline');
++   r('window.saved.listing.published_at=new Date(window.clock).toISOString();window.saved.listing.expires_at=new Date(window.clock+21600000).toISOString();');
++   await r('return nakgoFavorites.refresh()');ok(r('return !nakgoFavorites.has(90)&&nakgoFavorites.state().count===0'),'old relation does not revive after republication');
++   r('loads=[nakgoMarket.mapped(window.saved.listing)];nakgoAuth.setFavorite=async(id,saved)=>{window.savedOn=saved;if(saved)window.saved.created_at=new Date(window.clock).toISOString();return {listing_id:id,saved};};');
++   await r('return nakgoFavorites.setSaved(90,true)');ok(r('return nakgoFavorites.has(90)&&nakgoFavorites.state().count===1'),'new publication requires explicit save');
++   await r('return nakgoFavorites.setSaved(90,false)');ok(r('return !nakgoFavorites.has(90)&&nakgoFavorites.state().count===0'),'active saved publication can be removed');
++  }finally{r('Date.now=window.originalNow;');}
++ },{win:{}});
++ run('WhatsApp card and detail use scoped contact and reject late expired responses',async(r,ok)=>{
++  r('nakgoMarket.sync({marketplace:true,user:{id:"a"},profile:null});nakgoAuth.snapshot=()=>({user:{id:"a"},profile:{}});window.row={id:90,kind:"load",owner_id:"other",from_city:"İstanbul",to_city:"Ankara",cargo:"Synthetic",amount:10,vehicle:"Tır",body:"Tenteli",status:"active",published_at:new Date().toISOString(),expires_at:new Date(Date.now()+21600000).toISOString()};loads=[nakgoMarket.mapped(window.row)];window.contactCalls=0;nakgoAuth.listingContact=async()=>{window.contactCalls++;return "+905321234567";};');
++  ok(r("return lCard(loads[0]).includes('data-whatsapp=\"90\"')&&lCard(loads[0]).includes('ui-icon')"),'load card has accessible WhatsApp logo');
++  ok(r("return tCard({...loads[0],id:'t90'}).includes('data-whatsapp=\"t90\"')"),'truck card has WhatsApp logo');
++  r('openLoad(90);');ok(r('return sheet().includes("WhatsApp")&&contactDockHTML().includes(uiIcon("whatsapp"))'),'detail includes same logo');
++  await r('return contactListing(loads[0],false,"whatsapp")');ok(r('return window.location.href==="https://wa.me/905321234567"&&window.contactCalls===1'),'WhatsApp uses server-checked normalized owner phone');
++  r('window.location.href="unchanged";nakgoAuth.listingContact=()=>new Promise(resolve=>window.finishContact=resolve);');
++  const pending=r('return contactListing(loads[0],false,"whatsapp")');
++  r('loads[0].expiresAt=Date.now();window.finishContact("+905321234567");');await pending;
++  ok(r('return window.location.href==="unchanged"'),'expiry while contact is loading blocks WhatsApp navigation');
++  r('window.contactCalls=0;nakgoAuth.listingContact=async()=>{window.contactCalls++;return "+905321234567";};');
++  await r('return contactListing(loads[0],false,"whatsapp")');ok(r('return window.contactCalls===0'),'expired card never requests phone');
++  r('loads[0].expiresAt=Date.now()+3600000;nakgoAuth.listingContact=async()=>{throw Error("permission revoked")};');
++  await r('return contactListing(loads[0],false,"whatsapp")');ok(r('return window.location.href==="unchanged"'),'revoked permission cannot navigate');
++  r('loads[0].closed=true;window.contactCalls=0;');await r('return contactListing(loads[0],false,"call")');ok(r('return window.contactCalls===0'),'removed listing cannot request telephone');
++ },{win:{location:{href:''}}});
++};
+diff --git a/tests/unit/pwa-cache-isolation.test.js b/tests/unit/pwa-cache-isolation.test.js
+new file mode 100644
+index 0000000..f919f0d
+--- /dev/null
++++ b/tests/unit/pwa-cache-isolation.test.js
+@@ -0,0 +1,88 @@
++/* Authentication callbacks must never replace the offline application shell. */
++module.exports=({test,fs,path,ROOT})=>{
++  test('Offline shell survives OAuth callback and private cache responses',async()=>{
++    const vm=require('node:vm'),events={},entries=new Map();
++    const origin='https://nakgo.example',shell=origin+'/';
++    const cache={put:async(key,response)=>entries.set(key,response),match:async key=>entries.get(key)?.clone()};
++    const installs=[];
++    let network;
++    vm.runInNewContext(fs.readFileSync(path.join(ROOT,'sw.js'),'utf8'),{
++      URL,Response,location:{origin},self:{registration:{scope:shell},skipWaiting(){},addEventListener:(name,fn)=>events[name]=fn},
++      caches:{open:async()=>cache},
++      fetch:async(request,options)=>{
++        if(request instanceof URL){
++          installs.push([request,options]);
++          if(request.href===shell)return new Response('public shell',{headers:{'X-NakGo-Offline-Asset':'1'}});
++          if(request.pathname.endsWith('icon.svg'))return new Response('not reusable',{headers:{'X-NakGo-Offline-Asset':'1','Cache-Control':'No-Cache'}});
++          if(request.pathname.endsWith('manifest.webmanifest'))return new Response('synthetic session response');
++          return new Response('varies by account',{headers:{'X-NakGo-Offline-Asset':'1','Vary':'Accept-Encoding, Cookie'}});
++        }
++        if(!network)throw Error('offline');
++        return network;
++      }
++    });
++    async function navigate(url){
++      let response;const pending=[];
++      events.fetch({request:{url,method:'GET',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>pending.push(p)});
++      const result=await response;
++      await Promise.all(pending);
++      return result.text();
++    }
++    let install;
++    events.install({waitUntil:p=>install=p});
++    await install;
++    network=new Response('synthetic callback content');
++    const callback=await navigate(shell+'?code=synthetic&auth=recovery');
++    network=new Response('synthetic private content',{headers:{'Cache-Control':'private, no-store'}});
++    const privatePage=await navigate(shell);
++    network=new Response('synthetic cookie body',{headers:{'Set-Cookie':'synthetic=1; HttpOnly','Cache-Control':'no-cache'}});
++    const shortcut=await navigate(shell+'?go=mine');
++    network=null;
++    return [
++      [callback==='synthetic callback content'&&privatePage==='synthetic private content','online navigation preserves the actual response'],
++      [shortcut==='synthetic cookie body'&&await navigate(shell+'?go=mine')==='public shell','allowed shortcut and Set-Cookie body cannot poison offline shell'],
++      [await navigate(shell+'index.html')==='public shell','OAuth callback and private response cannot poison offline shell'],
++      [installs.length>1&&installs.every(([url,options])=>!url.search&&options.credentials==='omit'&&options.cache==='no-store'),'static installation bypasses cookies and the HTTP cache'],
++      [entries.size===1,'installation rejects no-cache, unmarked and cookie-varying responses']
++    ];
++  });
++  test('A worker update keeps the old offline shell until the new shell is cached',async()=>{
++    const vm=require('node:vm');
++    const source=fs.readFileSync(path.join(ROOT,'sw.js'),'utf8');
++    const origin='https://nakgo.example',shell=origin+'/',oldVersion='nakgo-old-worker';
++    const out=[];
++    for(const failure of ['network','unmarked','write',null]){
++      const events={},previous=new Map([[shell,'old shell']]),entries=new Map([[oldVersion,previous]]);
++      let skipped=false,claimed=false,installed=false,pending;
++      vm.runInNewContext(source,{
++        URL,Response,location:{origin},
++        self:{registration:{scope:shell},addEventListener:(name,fn)=>events[name]=fn,
++          skipWaiting(){skipped=true;},clients:{claim(){claimed=true;}}},
++        caches:{
++          open:async name=>{
++            if(!entries.has(name))entries.set(name,new Map());
++            return {put:async(key,value)=>{
++              if(key===shell&&failure==='write')throw Error('cache write failed');
++              entries.get(name).set(key,await value.text());
++            }};
++          },
++          keys:async()=>[...entries.keys()],delete:async name=>entries.delete(name)
++        },
++        fetch:async url=>{
++          if(url.href!==shell||failure==='network')throw Error('network unavailable');
++          return new Response('new shell',{headers:failure==='unmarked'?{}:{'X-NakGo-Offline-Asset':'1'}});
++        }
++      });
++      const event={waitUntil:promise=>pending=promise};
++      events.install(event);
++      try{await pending;installed=true;}catch{}
++      // Only a successfully installed worker can reach activation.
++      if(installed){events.activate(event);await pending;}
++      if(failure)out.push([!installed&&!skipped&&!claimed&&entries.get(oldVersion)?.get(shell)==='old shell',
++        'failed shell installation keeps the old cache: '+failure]);
++      else out.push([installed&&skipped&&claimed&&!entries.has(oldVersion)&&[...entries.values()].some(cache=>cache.get(shell)==='new shell'),
++        'cached shell permits activation even if optional assets fail']);
++    }
++    return out;
++  });
++};

@@ -1,85 +1,12 @@
 /**
- * Taşıma talepleri
- * İki aşamalı iş takibi, bildirimler ve mesajlaşma.
+ * Bildirimler ve mesajlaşma
+ * Uygulama içi bildirimler, rota alarmı ve sohbet.
  */
-const opath = o => "offers/" + o.loadId + "_" + o.bidder;
-function oup(o, patch) {
-    if (!o) return false;
-    Object.assign(o, patch);
-    if (!save()) return false;
-    if (cloud) dbw(db.doc(opath(o)).update(patch));
-    render();
-    return true;
-}
-function withdrawOffer(id) {
-    const o = offers.find(x => String(x.id) === String(id));
-    if (!o || !["wait", "counter"].includes(o.status)) return false;
-    offers = offers.filter(x => x !== o);
-    if (!save()) return false;
-    if (cloud) dbw(db.doc(opath(o)).delete());
-    render();
-    toast("Taşıma talebi geri çekildi");
-    return true;
-}
-// Eski stage 2 yüklenmiş, stage 3 onaylanmış kayıt olarak gösterilir; kayıtlar silinmez.
-const jobStage = o => (o.stage || 0) >= 3 ? 3 : (o.stage || 0) >= 1 ? 1 : 0;
-const offerExp = o => o.status === "wait" && !!o.ots && Date.now()-o.ots>TTL.offer*864e5;
-const stepper = o => `<div class="steps job-steps"><span class="${jobStage(o)>=1?'on':''}"><i></i>Yükledim</span><span class="${jobStage(o)===3?'on':''}"><i></i>Onaylandı</span></div>`;
-function requestLoad(l){
-    if(!contactAllowed(l)) return false;
-    if(offers.some(o=>o.id===l.id&&o.status!=="no"&&!offerExp(o))){toast("Bu ilan İşlerim bölümünde kayıtlı");return false;}
-    const o={...l,offer:0,status:"wait",loadId:l.id,bidder:me,ownerUid:l.uid||"",ots:Date.now(),stage:0};
-    offers=offers.filter(x=>x.id!==l.id);offers.unshift(o);
-    if(cloud)dbw(db.doc(opath(o)).set({loadId:l.id,bidder:me,ownerUid:l.uid||"",offer:0,status:"wait",stage:0,ts:o.ots,listing:{...l}}));
-    if(!save()) return false;if(!l.uid)simulate(l.id);return true;
-}
-function setStage(o,n){
-    if(!o||o.status!=="ok")return;
-    const old=jobStage(o);
-    if((n===1&&old!==0)||(n===3&&old!==1)||![1,3].includes(n))return;
-    const isOwner=cloud&&o.ownerUid===me;
-    if(cloud&&((n===1&&o.bidder!==me)||(n===3&&!isOwner)))return toast("Bu adımı diğer taraf onaylamalı");
-    o.stage=n;if(n===3)o.doneAt=Date.now();
-    if(cloud)dbw(db.doc(opath(o)).update(n===3?{stage:n,doneAt:o.doneAt}:{stage:n}));
-    if(!save()) return;if(tab==="mine"||tab==="me")render();
-    if(n===1&&!(o.ownerUid||o.uid))setTimeout(()=>{
-        const current=offers.find(x=>x.id===o.id);
-        if(!current||current.status!=="ok"||current.ownerUid||current.uid||jobStage(current)!==1)return;
-        // Yeniden yüklenen durumdaki kaydı güncelle; eski nesneye onay yazma.
-        current.stage=3;current.doneAt=Date.now();if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: yükleme onaylandı");
-    },3000);
-}
-const stageUI=o=>`<div class="ret">${stepper(o)}<div class="job-actions">${jobStage(o)===0?`<button class="chip on" data-sg="${esc(o.id)}|1">Yükledim</button>`:jobStage(o)===1?'<span class="hint">Yük sahibinin onayı bekleniyor</span>':'<span class="st ok">✓ Onaylandı</span>'}${jobStage(o)===3?(rates.some(x=>x.k===rkey(o,"carrier"))?'<span class="hint">Değerlendirmen kaydedildi</span>':`<button class="chip" data-rt="${esc(o.id)}">Yük sahibini puanla</button>`):''}</div></div>`;
-const retHTML=o=>{
-    const c=loads.filter(l=>!l.closed&&!expired(l,"load")&&l.from===o.to&&l.id!==o.id&&!(l.uid&&l.uid===me)&&!(l.uid&&blocked.includes(l.uid))).sort((a,b)=>(b.to===o.from)-(a.to===o.from)).slice(0,2);
-    return c.length?`<div class="ret"><b>Dönüş güzergâhındaki yükler</b>${c.map(l=>`<button class="retc" data-rl="${esc(l.id)}"><span>${esc(l.from)} → ${esc(l.to)}</span><span>${esc(l.veh)} · ${esc(l.ton)} ton</span></button>`).join('')}</div>`:'';
-};
-const incHTML=()=>incoming.length?'<h2 class="jobs-heading">Gelen taşıma talepleri</h2>'+incoming.map((o,i)=>`<article class="load job-card">${routeTitle(o)}<div class="meta"><span>${esc(nm(o.bidder))}${vbadge(lvU(o.bidder))}</span><span class="st ${o.status==='ok'?'ok':o.status==='no'?'no':''}">${offerExp(o)?'Süresi doldu':STT[o.status]}</span></div>${o.status==='ok'?stepper(o):''}<div class="job-actions">${['wait','counter'].includes(o.status)&&!offerExp(o)?`<button class="chip on" data-ia="${i}">Kabul et</button><button class="chip" data-ir="${i}">Reddet</button>`:''}${o.status==='ok'&&jobStage(o)===1?`<button class="chip on" data-ic="${i}">Yüklemeyi onayla</button>`:''}${o.status==='ok'&&jobStage(o)===3&&!rates.some(x=>x.k===rkey(o,'owner'))?`<button class="chip" data-ir2="${i}">Taşıyıcıyı puanla</button>`:''}<button class="chip" data-bp="${i}">Profil</button><button class="chip" data-bu="${i}">Engelle</button></div></article>`).join('')+'<h2 class="jobs-heading">Taşıma taleplerim</h2>':'';
-function simulate(id){setTimeout(()=>{if(nakgoMarket.active())return;const o=offers.find(x=>x.id===id);if(!o||o.status!=="wait"||(o.ownerUid||o.uid))return;Object.assign(o,{status:"ok"});if(!save())return;if(tab==="mine"||tab==="me")render();toast("Demo: taşıma talebin kabul edildi");},3000);}
-
 // ===== Bildirim ve alarm =====
 // Uygulama içi bildirimler, zil, rota alarmı.
 
 function notifs() {
-    const a = [], rt = o => o.from + " → " + o.to;
-    incoming.forEach(o => {
-        const k = "i" + o.loadId + "_" + o.bidder;
-        if (o.status === "wait" && !offerExp(o))
-            a.push({ k: k + "w", t: nm(o.bidder) + " taşıma talebi gönderdi", s: rt(o) });
-        if (o.status === "ok" && jobStage(o) === 1)
-            a.push({ k: k + "s2", t: "Yükleme onayını bekliyor", s: rt(o) });
-    });
-    offers.forEach(o => {
-        const k = "o" + o.id;
-        if (o.status === "ok")
-            a.push({ k: k + "ok", t: "Taşıma talebin kabul edildi", s: rt(o) });
-        if (o.status === "no")
-            a.push({ k: k + "no", t: "Taşıma talebin reddedildi", s: rt(o) });
-        if (o.status === "counter")
-            a.push({ k: k + "c" + o.counter, t: "Taşıma talebine yanıt bekleniyor", s: rt(o) });
-        if (o.status === "ok" && (o.stage || 0) === 3)
-            a.push({ k: k + "s3", t: "Yükleme onaylandı", s: rt(o) });
-    });
+    const a = [];
     alerts.forEach(al => loads.filter(l => availableListing(l) && (!al.from || l.from === al.from) && (!al.to || l.to === al.to) && (!al.veh || l.veh === al.veh) && !(l.uid && l.uid === me)).forEach(l => a.push({ k: "a" + al.id + "_" + l.id, t: "Alarm: " + (al.from || "Her yer") + " → " + (al.to || "Her yer") + " yeni yük", s: l.cargo + " · " + l.ton + " ton", tab: "list" })));
     return a;
 }
@@ -96,7 +23,7 @@ function bell() {
 function openBell() {
     const a = notifs(), B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Bildirimler</b><button class="chip" id="close">Kapat</button></div>` + (a.length ? a.map(x => `<button class="nt ${seen.has(x.k) ? "" : "new"}" data-nt="${x.tab || "mine"}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></button>`).join("") : `<div class="empty">Henüz bildirim yok.<br>Taşıma talebi geldiğinde veya yanıt aldığında burada görünür.</div>`);
+    B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Bildirimler</b><button class="chip" id="close">Kapat</button></div>` + (a.length ? a.map(x => `<button class="nt ${seen.has(x.k) ? "" : "new"}" data-nt="${x.tab || "list"}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></button>`).join("") : `<div class="empty">Henüz bildirim yok.<br>Rota alarmına uyan yeni yükler burada görünür.</div>`);
     seen = new Set([...seen, ...a.map(x => x.k)]);
     try {
         localStorage.setItem("yy-seen", JSON.stringify([...seen]));
@@ -104,7 +31,7 @@ function openBell() {
     catch (e) { }
     B.querySelectorAll("[data-nt]").forEach(b => b.onclick = () => {
         closeSheet();
-        tab = b.dataset.nt || "mine";
+        tab = b.dataset.nt || "list";
         mode = "load";
         setNav();
         render();
@@ -118,7 +45,7 @@ function openBell() {
 }
 
 function addAlert() {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     const al = { id: Date.now(), from: F.from || "", to: F.to || "", veh: F.veh[0] || "" };
     if (alerts.some(x => x.from === al.from && x.to === al.to && x.veh === al.veh))
         return toast("Bu alarm zaten kurulu");

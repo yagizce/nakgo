@@ -1,9 +1,8 @@
-/* Guard ve auto-merge için olumlu/olumsuz durumlar; gerçek GitHub'a yazmaz. */
+/* CI ve auto-merge için olumlu/olumsuz durumlar; gerçek GitHub'a yazmaz. */
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),cp=require('node:child_process');
+const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');
 const root=path.resolve(__dirname,'../..');
-const {guard,TEST_COMMAND}=require('../guard.js');
 const {REQUIRED_STEPS,eligiblePR,successfulGate,policyPath}=require('../../.github/scripts/policy.js');
 const {decide,client}=require('../../.github/scripts/auto-merge.js');
 const repo='owner/nakgo',head='a'.repeat(40),base='b'.repeat(40);
@@ -69,62 +68,43 @@ test('GitHub API hata veya yönlendirmede güvenli durur',async()=>{
   const api=client('not-a-real-token',async(url,options)=>{assert.equal(options.redirect,'error');return {ok:false,status:403};});
   await assert.rejects(api('GET','/repos/owner/nakgo'),/403/);
 });
-test('Guard ürün testlerini düzenlemeye izin verir ve CI güvenlik sınırlarını korur',()=>{
-  const tempRoot=path.join(root,'tests/shots');fs.mkdirSync(tempRoot,{recursive:true});
-  const dir=fs.mkdtempSync(path.join(tempRoot,'nakgo-guard-')),baseline={};
-  const put=(p,s)=>{fs.mkdirSync(path.dirname(path.join(dir,p)),{recursive:true});fs.writeFileSync(path.join(dir,p),s);};
-  const options={root:dir,baseline};
-  try{
-    const fixed=['tests/run.js','tests/requirements.txt','tests/guard.js','tests/unit/browser-dispatch.test.js','tests/gate/browser.py','tests/gate/static.js','tests/gate/static_html.py','.github/workflows/quality-gate.yml','.github/workflows/auto-merge.yml','tools/project.js'];
-    const product=['tests/e2e.py','tests/unit/infrastructure.test.js','tests/whatsapp/v1.test.cjs'];
-    for(const p of [...fixed,...product])put(p,baseline[p]=fs.readFileSync(path.join(root,p),'utf8'));
-    put('package.json',JSON.stringify({scripts:{test:TEST_COMMAND,'test:e2e':'python tests/e2e.py'}}));
-    assert.deepEqual(guard(options).errors,[]);
-    for(const p of product)put(p,baseline[p]+(p.endsWith('.py')?'\n# regression fixture\n':'\n// regression fixture\n'));
-    assert.deepEqual(guard(options).errors,[],'product tests do not need byte equality or a ledger');
-    put('tests/e2e.py','raise SystemExit(0)\n');
-    assert.ok(guard(options).errors.some(e=>e.includes('tests/e2e.py')),'success-only E2E stub must fail');
-    put('tests/e2e.py',baseline['tests/e2e.py']);
-    for(const p of fixed){
-      put(p,baseline[p]+'\n# disabled check\n');
-      assert.ok(guard(options).errors.some(e=>e.includes(p)),p);
-      put(p,baseline[p]);
-    }
-    const inbox='  "src/js/screens/inbox.js",\n';
-    baseline['tools/project.js']=baseline['tools/project.js'].replace(/\r\n/g,'\n');
-    if(!baseline['tools/project.js'].includes(inbox)){
-      const map='  "src/js/screens/road-map.js",\n';
-      baseline['tools/project.js']=baseline['tools/project.js'].replace(map,inbox+map);
-    }
-    put('tools/project.js',baseline['tools/project.js'].replace(inbox,''));
-    assert.deepEqual(guard(options).errors,[],'previously supported inbox retirement remains valid');
-    put('tests/unit/infrastructure.test.js',' \n');
-    assert.ok(guard(options).errors.some(e=>e.includes('tests/unit/infrastructure.test.js')));
-    fs.unlinkSync(path.join(dir,'tests/e2e.py'));assert.ok(guard(options).errors.some(e=>e.includes('tests/e2e.py')));
-    put('package.json',JSON.stringify({scripts:{test:'echo pass','test:e2e':'echo pass'}}));
-    const errors=guard(options).errors;
-    assert.ok(errors.some(e=>e.includes('npm test')));
-    assert.ok(errors.some(e=>e.includes('E2E komutu')));
-  }finally{assert.ok(dir.startsWith(tempRoot+path.sep));fs.rmSync(dir,{recursive:true,force:true});}
-});
-
 test('Aday yürütmesi bağımsız kontrollerin ortamını veya dosyalarını devralamaz',()=>{
   const workflow=fs.readFileSync(path.join(root,'.github/workflows/quality-gate.yml'),'utf8').replace(/\r\n/g,'\n');
   const jobs=Object.fromEntries([...workflow.split('\njobs:\n')[1].matchAll(/^  ([\w-]+):\n([\s\S]*?)(?=^  [\w-]+:\n|(?![\s\S]))/gm)]
     .map(([,id,body])=>[id,body]));
   assert.match(jobs['candidate-tests'],/run: npm test/);
-  assert.match(jobs['baseline-regressions'],/git restore --source="\$BASE_SHA" --worktree -- tests supabase\/tests/);
-  assert.match(jobs['baseline-regressions'],/run: node tests\/run\.js/);
+  assert.match(jobs['baseline-regressions'],/git restore --source="\$SOURCE_SHA" --worktree -- tests supabase\/tests/);
+  assert.match(jobs['baseline-regressions'],/node tests\/run\.js --isolated/);
   assert.match(jobs['baseline-regressions'],/python -E -s tests\/e2e\.py/);
   const independent=jobs['quality-gate'];
-  assert.match(independent,/needs: \[candidate-tests, baseline-regressions\]/);
-  assert.match(independent,/if: \$\{\{ always\(\) \}\}/);
+  assert.match(independent,/needs: \[snapshot, candidate-tests, baseline-regressions\]/);
+  assert.match(independent,/if: \$\{\{ always\(\) && needs\.snapshot\.result == 'success' \}\}/);
   assert.match(independent,/needs\.candidate-tests\.result/);
   assert.match(independent,/needs\.baseline-regressions\.result/);
   assert.match(independent,/baseline\/tests\/gate\/browser\.py --root candidate --base-sha "\$BASE_SHA"/);
   assert.doesNotMatch(independent,/npm test|npm run|npm ci|working-directory: candidate|GITHUB_ENV|GITHUB_PATH|\$CONTROLS/);
-  assert.doesNotMatch(workflow,/actions\/(?:upload-artifact|download-artifact|cache)|^\s+outputs:/m);
-  for(const job of Object.values(jobs)) assert.match(job,/runs-on: ubuntu-24\.04/);
+  const publisher = jobs.publish;
+  assert.match(workflow,/^  pull_request_target:/m);
+  assert.doesNotMatch(publisher,/^    uses:/m);
+  assert.match(publisher,/ref: \$\{\{ github\.sha \}\}/);
+  assert.match(publisher,/environment: nakgo-ci-publisher/);
+  assert.match(publisher,/needs: \[snapshot, candidate-tests, baseline-regressions, quality-gate\]/);
+  for (const name of ['snapshot', 'candidate-tests', 'baseline-regressions', 'quality-gate']) {
+    assert.ok(publisher.includes(`needs.${name}.result == 'success'`));
+    assert.doesNotMatch(jobs[name],/secrets\.|environment:|\bwrite\b/);
+    if (name !== 'snapshot') assert.doesNotMatch(jobs[name],/^\s+outputs:/m);
+  }
+  assert.match(publisher,/CI_APP_KEY: \$\{\{ secrets\.NAKGO_CI_APP_KEY \}\}/);
+  assert.match(publisher,/CI_SNAPSHOT: \$\{\{ toJSON\(needs\.snapshot\.outputs\) \}\}/);
+  assert.match(publisher,/permissions:\n      contents: read\n      pull-requests: read/);
+  assert.equal([...publisher.matchAll(/^      - /gm)].length,2);
+  assert.equal([...publisher.matchAll(/^\s+ref:/gm)].length,1);
+  assert.match(publisher,/persist-credentials: false/);
+  assert.match(publisher,/run: node \.github\/scripts\/trusted-ci\.js publish/);
+  assert.doesNotMatch(publisher,/outputs\.merge|\bnpm\b|candidate\/|\bwrite\b|secrets:\s+inherit/);
+  assert.doesNotMatch(workflow,/actions\/(?:upload-artifact|download-artifact|cache)/);
+  for(const [name,job] of Object.entries(jobs)) if(name!=='publish') assert.match(job,/runs-on: ubuntu-24\.04/);
+  assert.match(publisher,/runs-on: ubuntu-24\.04/);
 });
 
 test('Test çalıştırıcısı kayıtsız ve doğrulamasız başarılı görünen modülleri reddeder',()=>{

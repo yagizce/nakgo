@@ -1,5 +1,5 @@
 /* NakGo: yalnızca uygulama kabuğu önbelleğe alınır; kişisel veri/harita istekleri alınmaz. */
-const V = "nakgo-v50-static-offline";
+const V = "nakgo-v51-dev-sync";
 const ASSETS = ["./", "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png", "icons/brand-logo.png", "icons/header-logo.png"];
 const index = new URL("index.html",self.registration.scope);
 const root = new URL(self.registration.scope);

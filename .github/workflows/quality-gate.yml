@@ -1,23 +1,53 @@
 name: NakGo quality gate
-run-name: quality:${{ github.event.pull_request.number }}:${{ github.event.pull_request.head.sha }}:${{ github.event.pull_request.base.sha }}
+run-name: trusted-ci:${{ github.event.pull_request.number || inputs.pr }}:${{ github.sha }}
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
     types: [opened, reopened, synchronize, ready_for_review, edited]
-permissions:
-  contents: read
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Maintenance PR number (protected bootstrap branch only)
+        required: true
+        type: string
+permissions: {}
 concurrency:
-  group: quality-${{ github.event.pull_request.number }}
+  group: nakgo-trusted-ci-${{ github.event.pull_request.number || inputs.pr }}
   cancel-in-progress: true
 jobs:
-  candidate-tests:
-    name: candidate-tests
+  snapshot:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      source: ${{ steps.snapshot.outputs.source }}
+      base: ${{ steps.snapshot.outputs.base }}
+      head: ${{ steps.snapshot.outputs.head }}
+      merge: ${{ steps.snapshot.outputs.merge }}
+      tree: ${{ steps.snapshot.outputs.tree }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Bind test merge commit
+        id: snapshot
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/trusted-ci.js snapshot
+  candidate-tests:
+    name: candidate-tests
+    needs: snapshot
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.snapshot.outputs.merge }}
           persist-credentials: false
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
@@ -28,8 +58,6 @@ jobs:
           python-version: '3.12'
       - name: Install locked packages
         run: npm ci --ignore-scripts --no-fund --no-audit
-      - name: Runtime dependency audit
-        run: npm audit --omit=dev --audit-level=high
       - name: Existing npm test
         run: npm test
       - name: Install browser runner
@@ -42,13 +70,25 @@ jobs:
         run: npm run mobile:prepare
   baseline-regressions:
     name: baseline-regressions
+    needs: snapshot
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: candidate
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ needs.snapshot.outputs.merge }}
+          path: candidate
           fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.snapshot.outputs.source }}
+          path: baseline
           persist-credentials: false
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
@@ -59,16 +99,30 @@ jobs:
           python-version: '3.12'
       - name: Restore trusted test suite
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SOURCE_SHA: ${{ needs.snapshot.outputs.source }}
+          MERGE_SHA: ${{ needs.snapshot.outputs.merge }}
         run: |
-          git ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" { bad = 1 } END { exit bad }'
-          git restore --source="$BASE_SHA" --worktree -- tests supabase/tests tools .github
+          git -c core.quotePath=false ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" || /[\t\/]node_modules\// { bad = 1 } END { exit bad }'
+          replay="$(mktemp -d "$RUNNER_TEMP/nakgo-replay.XXXXXX")"
+          python -I ../baseline/tests/gate/prepare-replay.py --root . --base-sha "$SOURCE_SHA" --head-sha "$MERGE_SHA" --output "$replay/product.patch" --publication-output "$replay/publication.patch"
+          git restore --source="$SOURCE_SHA" --worktree -- tests supabase/tests tools .github
+          for patch in "$replay/product.patch" "$replay/publication.patch"; do
+            if [ -s "$patch" ]; then
+              git apply --check "$patch"
+              git apply "$patch"
+            fi
+          done
+      - name: Trusted bundle verification
+        run: node tools/bundle.js --check
       - name: Install trusted regression dependencies
         run: |
           python -I -m pip install -r tests/requirements.txt
           python -I -m playwright install --with-deps chromium
           cd "$RUNNER_TEMP"
           npm install --prefix "$RUNNER_TEMP/nakgo-admin-db" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite@0.3.14
+          mkdir -p "$RUNNER_TEMP/nakgo-unit"
+          cp "$GITHUB_WORKSPACE/baseline/tests/gate/isolated-deps/"package*.json "$RUNNER_TEMP/nakgo-unit/"
+          npm ci --prefix "$RUNNER_TEMP/nakgo-unit" --ignore-scripts --no-fund --no-audit
       - name: Trusted browser regressions
         run: |
           python -E -s tests/e2e.py
@@ -77,13 +131,18 @@ jobs:
       - name: Trusted RLS and Storage regressions
         run: NODE_PATH="$RUNNER_TEMP/nakgo-admin-db/node_modules" node tools/admin-db-check.cjs
       - name: Trusted unit tests
-        run: node tests/run.js
+        run: |
+          export NAKGO_UNIT_RUNTIME="$RUNNER_TEMP/nakgo-unit"
+          node --test tests/gate/isolated-js.test.cjs
+          node tests/run.js --isolated
   quality-gate:
     name: quality-gate
-    needs: [candidate-tests, baseline-regressions]
-    if: ${{ always() }}
+    needs: [snapshot, candidate-tests, baseline-regressions]
+    if: ${{ always() && needs.snapshot.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - name: Require isolated test jobs
         env:
@@ -92,13 +151,13 @@ jobs:
         run: test "$CANDIDATE_RESULT" = success && test "$BASELINE_RESULT" = success
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ needs.snapshot.outputs.merge }}
           path: candidate
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ github.event.pull_request.base.sha }}
+          ref: ${{ needs.snapshot.outputs.source }}
           path: baseline
           persist-credentials: false
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
@@ -108,18 +167,24 @@ jobs:
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.12'
-      - name: Guard and automation tests
+      - name: Trusted automation tests
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          SOURCE_SHA: ${{ needs.snapshot.outputs.source }}
         run: |
-          test "$(git -C baseline rev-parse HEAD)" = "$BASE_SHA"
-          node baseline/tests/guard.js --root candidate --base-ref "$BASE_SHA"
-          node --test baseline/tests/gate/control.test.js
+          test "$(git -C baseline rev-parse HEAD)" = "$SOURCE_SHA"
+          node --test baseline/tests/gate/control.test.js baseline/tests/gate/trusted-ci.test.js
+          python -I baseline/tests/gate/prepare_replay_test.py
       - name: Static and security checks
         run: |
           git -C candidate ls-tree -r HEAD | awk '$1 == "120000" || $1 == "160000" { bad = 1 } END { exit bad }'
           node baseline/tests/gate/static.js candidate
           python -I baseline/tests/gate/static_html.py candidate
+      - name: Runtime dependency audit
+        run: |
+          audit_dir="$(mktemp -d "$RUNNER_TEMP/nakgo-audit.XXXXXX")"
+          cp candidate/package.json candidate/package-lock.json "$audit_dir/"
+          cd "$audit_dir"
+          npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
       - name: Workflow syntax checks
         run: |
           curl --fail --silent --show-error --location https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz --output "$RUNNER_TEMP/actionlint.tar.gz"
@@ -132,5 +197,32 @@ jobs:
           python -I -m playwright install --with-deps chromium
       - name: Independent browser tests
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ needs.snapshot.outputs.source }}
         run: python -I baseline/tests/gate/browser.py --root candidate --base-sha "$BASE_SHA"
+  publish:
+    needs: [snapshot, candidate-tests, baseline-regressions, quality-gate]
+    if: ${{ always() && needs.snapshot.result == 'success' && needs.candidate-tests.result == 'success' && needs.baseline-regressions.result == 'success' && needs.quality-gate.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    environment: nakgo-ci-publisher
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Publish App check for the verified PR head
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CI_CALLER_REF: ${{ github.workflow_ref }}
+          CI_CALLER_SHA: ${{ github.workflow_sha }}
+          CI_APP_KEY: ${{ secrets.NAKGO_CI_APP_KEY }}
+          CI_APP_ID: ${{ vars.NAKGO_CI_APP_ID }}
+          CI_INSTALLATION_ID: ${{ vars.NAKGO_CI_INSTALLATION_ID }}
+          CI_SNAPSHOT: ${{ toJSON(needs.snapshot.outputs) }}
+          CI_VERIFY: ${{ needs.candidate-tests.result }}
+          CI_REGRESSIONS: ${{ needs.baseline-regressions.result }}
+          CI_GATE: ${{ needs.quality-gate.result }}
+        run: node .github/scripts/trusted-ci.js publish
