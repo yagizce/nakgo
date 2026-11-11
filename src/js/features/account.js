@@ -80,53 +80,6 @@ function listBind() {
     });
 }
 
-const ratingOf = u => {
-    const r = rates.filter(x => x.to === u && u);
-    return r.length ? { avg: r.reduce((t, x) => t + x.stars, 0) / r.length, n: r.length } : null;
-};
-
-const starTxt = x => {
-    const R = x.uid ? ratingOf(x.uid) : null;
-    return R ? "★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "★ " + esc(x.rate || "Yeni");
-};
-
-const rkey = (o, as) => o.loadId + "_" + o.bidder + "_" + (as === "owner" ? "o" : "c");
-
-function openRate(o, as) {
-    if (!o)
-        return;
-    const key = rkey(o, as), B = $("#sheetBody");
-    B.dataset.k = "";
-    let st = 0;
-    B.innerHTML = `<b style="font-size:19px">${as === "owner" ? "Taşıyıcıyı puanla" : "Yük sahibini puanla"}</b><div class="stars">${[1, 2, 3, 4, 5].map(n => `<button data-st="${n}" aria-label="${n} yıldız">★</button>`).join("")}</div><label>Yorum (isteğe bağlı)</label><input id="rt" maxlength="200" placeholder="Nasıldı?"><button class="btn" id="rs2">Gönder</button><button class="btn alt" id="close">Vazgeç</button>`;
-    B.querySelectorAll("[data-st]").forEach(b => b.onclick = () => {
-        st = +b.dataset.st;
-        B.querySelectorAll("[data-st]").forEach(x => x.classList.toggle("on", +x.dataset.st <= st));
-    });
-    $("#rs2").onclick = () => {
-        if (!st)
-            return toast("Yıldız seç");
-        const to = as === "owner" ? o.bidder : (o.ownerUid || o.uid || "");
-        const rec = { k: key, to, by: me || "local", stars: st, text: $("#rt").value.trim().slice(0, 200), ts: Date.now() };
-        if (cloud)
-            dbw(db.doc("ratings/" + key).set(rec));
-        rates = rates.filter(x => x.k !== key);
-        rates.push(rec);
-        if (!save()) return;
-        closeSheet();
-        render();
-        toast("Teşekkürler, puanın kaydedildi");
-    };
-    $("#close").onclick = closeSheet;
-    $("#sheet").classList.add("open");
-}
-
-function myRate() {
-    const R = ratingOf(me || "local");
-    return R ? " · ★ " + R.avg.toFixed(1) + " (" + R.n + ")" : "";
-}
-
-
 function setRole(r, go) {
     role = r;
     try {
@@ -185,19 +138,13 @@ function openOnb() {
     el.style.display = "flex";
 }
 
-const rv = x => {
-    const R = x.uid ? ratingOf(x.uid) : null;
-    return R ? R.avg : (+x.rate || 0);
-};
-
 function openProfile(o) {
     const B = $("#sheetBody");
     B.dataset.k = "";
-    const R = o.uid ? rates.filter(x => x.to === o.uid) : [], avg = R.length ? R.reduce((t, x) => t + x.stars, 0) / R.length : (+o.rate || 0);
     const info = o.uid ? carriers[o.uid] || {} : {};
     const act = o.uid ? loads.filter(l => l.uid === o.uid && !l.closed && !expired(l, "load")).length + trucks.filter(t => t.uid === o.uid && !t.closed && !expired(t, "truck")).length : 0;
-    const done = o.uid ? allO.filter(x => (x.bidder === o.uid || x.ownerUid === o.uid) && (+x.stage || 0) >= 3).length : 0, n2 = "İlan sahibi";
-    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b style="font-size:18px">${esc(n2)}${vbadge(o.lv || 0)}</b><div style="color:var(--mute);font-size:14px">${avg ? "★ " + avg.toFixed(1) + (R.length ? " (" + R.length + " değerlendirme)" : "") : "Henüz puan yok"}</div></div></div><div class="stat"><div><b>${act}</b><span>Aktif ilan</span></div><div><b>${done}</b><span>Onaylanan iş</span></div><div><b>${R.length}</b><span>Yorum</span></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.city ? `<p>${esc(info.city)}</p>` : ""}</section>` : ""}${R.length ? `<b style="font-size:15px">Yorumlar</b>` + R.slice(-5).reverse().map(x => `<div class="rv"><span class="stars-s">${"★".repeat(x.stars)}${"☆".repeat(5 - x.stars)}</span>${x.text ? `<p>${esc(x.text)}</p>` : ""}</div>`).join("") : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
+    const n2 = "İlan sahibi";
+    B.innerHTML = `<div style="display:flex;gap:14px;align-items:center"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b style="font-size:18px">${esc(n2)}</b><div style="color:var(--mute);font-size:14px">${act} aktif ilan</div></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}<div class="chips" style="margin-top:14px">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
     if ($("#pr"))
         $("#pr").onclick = () => openReport("u", o.uid);
     if ($("#pb2"))
@@ -237,7 +184,7 @@ const installCard = () => {
 };
 
 // ===== Doğrulama ve iletişim =====
-// Belge rozetleri, belge fotoğrafı, yönetici onayı, telefon numarası.
+// Telefon numarası ve demo profil kaydı.
 
 const phoneOf = x => normalizeListingPhone(x.phone||'');
 
@@ -263,55 +210,11 @@ const phoneCard = () => {
     return `<div class="load" style="cursor:default"><b>Telefon numaram</b><p style="font-size:12.5px;color:var(--mute);margin:6px 0 10px">${profile ? 'Numaran yalnız hesabında saklanır. Telefon doğrulaması yapılmaz.' : 'Arama ekranı Premium erişimi gerektirir. Demo verileri bu cihazda saklanır.'}</p><input id="myph" inputmode="tel" placeholder="05xx xxx xx xx" value="${esc(profile ? profile.phone||"" : myCar.phone||"")}"><button class="chip on" id="phs2" style="margin-top:10px"${s.user && (!s.profile || s.recovery) ? ' disabled' : ''}>Kaydet</button></div>`;
 };
 
-const cOk = c => !!(c.lic && c.src && c.kb && c.ruh);
-
-const vok = x => nakgoMarket.active()?!!(x&&nakgoDocuments.isApproved(x.uid)):!!(x && (x.verified === true || (x.uid && carriers[x.uid] && carriers[x.uid].ok === true)));
-
-const bok = u => !!(carriers[u] && carriers[u].ok === true);
-
-const lvU = u => nakgoMarket.active()?(nakgoDocuments.isApproved(u)?2:0):appr[u] === true ? 2 : (carriers[u] && carriers[u].ok === true) ? 1 : 0;
-
-const lvT = t => nakgoMarket.active()?(nakgoDocuments.isApproved(t.uid)?2:0):(t.approved === true || (t.uid && appr[t.uid] === true)) ? 2 : vok(t) ? 1 : 0;
-
-const vbadge = l => l === 2 ? VA : l === 1 ? VB : "";
-
-function docPhoto(k) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
-    pickImg(u => {
-        cdocs[(me || "local") + "/" + k] = u;
-        if (cloud)
-            dbw(db.doc("carrierDocs/" + me + "/files/" + k).set({ img: u }));
-        if (!setCar({ [k]: true, docs: { ...(myCar.docs || {}), [k]: true } })) return;
-        toast("Belge fotoğrafı yüklendi");
-    });
-}
-
-async function viewDoc(uid, k) {
-    let u = cdocs[uid + "/" + k];
-    if (!u && cloud) {
-        try {
-            const d = await db.doc("carrierDocs/" + uid + "/files/" + k).get();
-            u = d.exists ? d.data().img : "";
-        }
-        catch (e) { }
-    }
-    showImg(u, "Belge: " + ({ src: "SRC", kb: "K yetki belgesi", ruh: "Araç ruhsatı" }[k] || ""));
-}
-
-const adminCard = () => {
-    if(nakgoMarket.active())return "";
-    if (!admin)
-        return "";
-    const P = Object.entries(carriers).filter(([id, c]) => id !== me && c.docs && (c.docs.src || c.docs.kb || c.docs.ruh) && appr[id] !== true);
-    return `<div class="load" style="cursor:default"><b>Onay bekleyen taşıyıcılar</b>${P.length ? P.map(([id, c]) => `<div class="kv" style="display:block"><b style="font-size:14px">${esc(nm(id))}</b> <span style="color:var(--mute);font-size:12px">Ehliyet ${esc(c.lic || "—")}</span><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${["src", "kb", "ruh"].filter(k => c.docs[k]).map(k => `<button class="chip" data-av="${esc(id)}|${k}">${{ src: "SRC", kb: "K belgesi", ruh: "Ruhsat" }[k]}</button>`).join("")}<button class="chip on" data-ap="${esc(id)}">Onayla</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Bekleyen başvuru yok.</p>`}</div>`;
-};
-
 function setCar(patch) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     Object.assign(myCar, patch);
     if (!save()) return false;
-    const d = { displayName: myCar.displayName || "", city: myCar.city || "", about: myCar.about || "", phone: myCar.phone || "", lic: myCar.lic || "", src: !!myCar.src, kb: !!myCar.kb, ruh: !!myCar.ruh, docs: { src: !!(myCar.docs && myCar.docs.src), kb: !!(myCar.docs && myCar.docs.kb), ruh: !!(myCar.docs && myCar.docs.ruh) } };
-    d.ok = cOk(d);
+    const d = { displayName: myCar.displayName || "", city: myCar.city || "", about: myCar.about || "", phone: myCar.phone || "" };
     carriers[me || "local"] = d;
     if (cloud)
         dbw(db.doc("carriers/" + me).set(d));
@@ -319,32 +222,11 @@ function setCar(patch) {
     return true;
 }
 
-function carBind() {
-    if(nakgoMarket.active())return nakgoDocuments.bind();
-    $("#main").querySelectorAll("[data-vc]").forEach(i => i.onchange = () => setCar({ [i.dataset.vc]: i.checked }));
-    $("#main").querySelectorAll("[data-dp]").forEach(b => b.onclick = () => docPhoto(b.dataset.dp));
-    $("#main").querySelectorAll("[data-av]").forEach(b => {
-        const [u, k] = b.dataset.av.split("|");
-        b.onclick = () => viewDoc(u, k);
-    });
-    $("#main").querySelectorAll("[data-ap]").forEach(b => b.onclick = () => {
-        dbw(db.doc("approvals/" + b.dataset.ap).set({ ok: true }));
-        toast("Taşıyıcı onaylandı");
-    });
-    $("#lic").onchange = e => setCar({ lic: e.target.value });
-}
-
-const carCard = () => {
-    if(nakgoMarket.active())return nakgoDocuments.card();
-    const c = myCar, n = [c.lic, c.src, c.kb, c.ruh].filter(Boolean).length;
-    return `<div class="load" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center"><b>Taşıyıcı belgeleri</b><span class="${n === 4 ? "good" : ""}" style="font-size:13px;font-weight:700">${n}/4</span></div><div class="bar2"><i style="width:${n * 25}%"></i></div><label>Ehliyet sınıfı</label><select id="lic"><option value="">Seç</option>${["B", "C", "CE", "D"].map(v => `<option ${c.lic === v ? "selected" : ""}>${v}</option>`).join("")}</select>${[["src", "SRC belgem var"], ["kb", "K yetki belgem var"], ["ruh", "Araç ruhsatım var"]].map(([k, t]) => `<div class="docrow"><label class="chk"><input type="checkbox" data-vc="${k}" ${c[k] ? "checked" : ""}>${t}</label><button class="chip" data-dp="${k}">${c.docs && c.docs[k] ? "Yüklendi ✓" : "Fotoğraf ekle"}</button></div>`).join("")}<p style="font-size:12.5px;color:var(--mute);margin-top:12px">${appr[me || "local"] === true ? "Belgelerin onaylandı: ✓ Onaylı rozeti profilinde görünüyor." : n === 4 ? "✓ Belgeli rozeti açık. Belge fotoğraflarını yüklersen yönetici onayıyla ✓ Onaylı rozeti alırsın." : "Dördünü tamamlayınca ✓ Belgeli rozeti kazanırsın. Fotoğraf yükleyince yönetici onayına girer."}${cloud ? " Belgelerini yalnızca yönetici görür." : ""}</p></div>`;
-};
-
 // ===== Güven ve destek =====
 // Şikayet, engelleme, yardım ve sık sorulan sorular.
 
 function openReport(kind, id) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     const B = $("#sheetBody");
     B.dataset.k = "";
     B.innerHTML = `<b style="font-size:19px">Şikayet et</b><label>Sebep</label><select id="rr">${["Sahte ilan", "Dolandırıcılık şüphesi", "Uygunsuz içerik", "Yanlış bilgi", "Diğer"].map(x => `<option>${x}</option>`).join("")}</select><label>Açıklama (isteğe bağlı)</label><input id="rn" maxlength="200" placeholder="Ne oldu?"><button class="btn" id="rg">Gönder</button><button class="btn alt" id="close">Vazgeç</button>`;
@@ -363,7 +245,7 @@ function openReport(kind, id) {
 }
 
 function blockUser(u) {
-    if(nakgoMarket.active())return nakgoMarket.pending();
+    if(nakgoMarket.locked())return nakgoMarket.pending();
     if (!u || u === me)
         return;
     if (!blocked.includes(u))
@@ -489,114 +371,6 @@ function openAuth(kind='signin') {
 }
 
 // Private document upload and review. No file bytes, URLs or review permissions enter demo storage.
-const nakgoDocuments=(()=>{
-    const labels={src:'SRC belgesi',kb:'K yetki belgesi',ruh:'Araç ruhsatı'},statuses={draft:'Taslak',submitted:'İnceleme bekliyor',approved:'Onaylandı',rejected:'Düzeltme gerekiyor',withdrawn:'Geri çekildi'};
-    let revision=0,publicRevision=0,rows=[],queue=[],reviewer=false,ready=false,busy=false,error='',more=false,reviewMore=false,selected=null,files=[],fileError='',fileBusy=false,working=false,view=0,approved=new Set(),urls=new Set();
-    const allowed=()=>{const s=nakgoAuth.snapshot();return nakgoMarket.active()&&s.user&&s.profile&&!s.recovery;};
-    const state=()=>({rows:rows.map(x=>({...x})),queue:queue.map(x=>({...x})),reviewer,ready,busy,error,more,reviewMore,selected:selected?{...selected}:null,files:files.map(x=>({...x})),fileError,fileBusy,working});
-    const clearURLs=()=>{for(const url of urls)window.URL.revokeObjectURL(url);urls.clear();};
-    function reset(){clearURLs();revision++;publicRevision++;view++;rows=[];queue=[];reviewer=ready=busy=more=reviewMore=fileBusy=working=false;error=fileError='';selected=null;files=[];approved=new Set();}
-    const same=(account,v)=>account===nakgoMarket.token()&&v===revision;
-    const active=()=>$('#sheetBody').dataset.k==='account-documents';
-    const redraw=()=>{if(tab==='me')render();if(active())paint();};
-    async function refresh(append=false,review=false){
-        if(!allowed()||busy)return;const account=nakgoMarket.token(),v=revision;busy=true;error='';
-        try{const isReviewer=await nakgoAuth.documentRole();if(!same(account,v))return;reviewer=isReviewer===true;
-            if(review&&!reviewer)throw Error('Reviewer required');
-            const own=review?rows:await nakgoAuth.documentApplications(false,append?rows.at(-1)?.id||null:null);
-            const pending=reviewer?await nakgoAuth.documentApplications(true,append&&review?queue.at(-1)?.id||null:null):[];
-            if(!same(account,v))return;
-            if(!review){rows=append?[...new Map([...rows,...own].map(x=>[x.id,x])).values()]:own;more=own.length===20;}
-            queue=append&&review?[...new Map([...queue,...pending].map(x=>[x.id,x])).values()]:pending;reviewMore=pending.length===20;ready=true;
-        }catch(e){if(same(account,v))error='Belgeler yüklenemedi. Yeniden dene.';}
-        finally{if(same(account,v)){busy=false;redraw();}}
-    }
-    const ensure=()=>{if(allowed()&&!ready&&!busy&&!error)refresh();};
-    async function refreshPublic(ids){
-        if(!allowed())return;const account=nakgoMarket.token(),v=++publicRevision;const all=[...new Set([...ids,nakgoAuth.snapshot().user.id])].filter(x=>typeof x==='string'&&/^[a-f0-9-]{36}$/i.test(x)),found=new Set();
-        try{for(let i=0;i<all.length;i+=100){const page=await nakgoAuth.carrierVerifications(all.slice(i,i+100));if(account!==nakgoMarket.token()||v!==publicRevision)return;page.forEach(r=>found.add(r.user_id));}approved=found;render();}
-        catch(e){if(account===nakgoMarket.token()&&v===publicRevision){approved=new Set();render();}}
-    }
-    const isApproved=id=>approved.has(id);
-    function card(){
-        const s=state(),enabled=ready&&!working,activeCase=rows.find(a=>['draft','submitted','approved'].includes(a.status));
-        return '<div class="load" style="cursor:default"><b>Taşıyıcı belgeleri</b><p class="estimate-note">Belge fotoğrafların özel saklanır. İncelemeye gönderdiğinde yalnız yetkili belge inceleyicileri görebilir. Yüklemek onay almak anlamına gelmez.</p>'+
-        (error?'<p role="alert">'+esc(error)+'</p>':'')+(!ready&&!error?'<p role="status">Belgeler yükleniyor…</p>':'')+
-        '<button class="chip" id="documents-refresh" '+(busy||working?'disabled':'')+'>Belgeleri yenile</button>'+
-        (!activeCase&&ready?'<label for="document-license">Ehliyet sınıfı</label><select id="document-license"><option value="">Seç</option>'+['B','C','CE','D'].map(x=>'<option>'+x+'</option>').join('')+'</select><button class="chip" id="documents-create" '+(!enabled?'disabled':'')+'>Belge başvurusu oluştur</button>':'')+
-        rows.map(a=>'<button class="conversation" data-own-document="'+a.id+'"><b>Başvuru #'+a.id+' · '+esc(statuses[a.status])+'</b><small>Ehliyet '+esc(a.license_class)+(a.review_note?' · '+esc(a.review_note):'')+'</small></button>').join('')+
-        (more?'<button class="chip" id="documents-more">Önceki başvurular</button>':'')+
-        (reviewer?'<h3>Belge inceleme kuyruğu</h3>'+queue.map(a=>'<button class="conversation" data-review-document="'+a.id+'"><b>'+esc(a.owner_label)+'</b><small>Başvuru #'+a.id+' · '+esc(statuses[a.status])+'</small></button>').join('')+(!queue.length?'<p>İnceleme bekleyen başvuru yok.</p>':'')+(reviewMore?'<button class="chip" id="documents-review-more">Diğer başvurular</button>':''):'')+'</div>';
-    }
-    async function open(id){if(!allowed()||working)return;closeSheet();view++;selected={id};files=[];fileError='';$('#sheetBody').dataset.k='account-documents';paint();syncDetailViewport();$('#sheet').classList.add('open');unChat=clearURLs;await refreshSelected();}
-    async function refreshSelected(){
-        if(!allowed()||!selected||fileBusy)return;const account=nakgoMarket.token(),v=revision,w=view,id=selected.id;fileBusy=true;fileError='';paint();
-        try{const [a,list]=await Promise.all([nakgoAuth.documentApplication(id),nakgoAuth.documentFiles(id)]);if(!same(account,v)||w!==view||!active())return;
-            if(!a)throw Error('Application unavailable');selected=a;files=list;
-        }catch(e){if(same(account,v)&&w===view){files=[];fileError='Başvuru açılamadı veya erişim değişti. Yeniden dene.';}}
-        finally{if(same(account,v)&&w===view){fileBusy=false;if(active())paint();}}
-    }
-    async function write(operation){
-        if(!allowed()||working)return null;const account=nakgoMarket.token(),v=revision,w=view;working=true;error=fileError='';redraw();
-        try{const result=await operation();if(!same(account,v))throw Error('Account changed');await refresh();if(!same(account,v))throw Error('Account changed');if(selected&&w===view&&active())await refreshSelected();if(!same(account,v))throw Error('Account changed');await refreshPublic([...loads,...trucks].map(x=>x.uid));if(!same(account,v))throw Error('Account changed');return result;}
-        catch(e){if(same(account,v)){if(selected&&w===view&&active())await refreshSelected();fileError='İşlem tamamlanamadı. Başvuruyu yenileyip tekrar dene.';error=fileError;}return null;}
-        finally{if(same(account,v)){working=false;redraw();}}
-    }
-    async function upload(kind,file){
-        if(!selected||selected.status!=='draft'||!labels[kind]||working)return;
-        const account=nakgoMarket.token(),v=revision,w=view,id=selected.id;
-        try{const data=new Uint8Array(await file.arrayBuffer()),dimensions=documentImageDimensions(data);if(!['image/jpeg','image/png'].includes(file.type)||file.size>5242880||!dimensions||dimensions.width*dimensions.height>25000000||Math.max(dimensions.width,dimensions.height)>12000)throw Error('Invalid image');
-            shrink(file,async image=>{if(!same(account,v)||w!==view||!active())return;const raw=atob(image.split(',')[1]),bytes=Uint8Array.from(raw,c=>c.charCodeAt(0)),blob=new Blob([bytes],{type:'image/jpeg'});
-                await write(async()=>{const reservation=await nakgoAuth.reserveDocument(id,kind,window.crypto.randomUUID());await nakgoAuth.uploadDocument(reservation,blob);return nakgoAuth.finalizeDocument(reservation.id);});
-            },1600,1000000);
-        }catch(e){if(same(account,v)&&w===view){fileError='JPEG veya PNG fotoğraf seç. Dosya en fazla 5 MB, görüntü en fazla 25 megapiksel olabilir.';paint();}}
-    }
-    async function preview(file){
-        if(!allowed()||working)return;const account=nakgoMarket.token(),v=revision,w=view;
-        try{const blob=await nakgoAuth.downloadDocument(file),bytes=new Uint8Array(await blob.arrayBuffer());if(!same(account,v)||w!==view||!active())return;
-            if(blob.size>1048576||bytes[0]!==255||bytes[1]!==216||!documentImageDimensions(bytes))throw Error('Invalid image');clearURLs();const url=window.URL.createObjectURL(blob);urls.add(url);
-            const B=$('#sheetBody');B.innerHTML='<div class="detail-top"><b>'+esc(labels[file.kind])+'</b><button class="chip" id="close">Kapat ×</button></div><div id="document-photo"></div><button class="chip" id="document-back">Başvuruya dön</button>';const image=new Image();image.src=url;image.alt=labels[file.kind];image.style.cssText='max-width:100%;height:auto';$('#document-photo').appendChild(image);$('#close').onclick=closeSheet;$('#document-back').onclick=()=>{clearURLs();paint();};
-        }catch(e){if(same(account,v)&&w===view&&active()){fileError='Belge fotoğrafı açılamadı. Yeniden dene.';paint();}}
-    }
-    function paint(){
-        if(!active()||!selected)return;const a=selected,own=a.owner_id===nakgoAuth.snapshot().user?.id,editable=own&&a.status==='draft',canRemove=own&&['draft','rejected','withdrawn'].includes(a.status),B=$('#sheetBody');
-        B.innerHTML='<div class="load-detail"><div class="detail-top"><b>Belge başvurusu #'+a.id+'</b><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll">'+
-        (a.status?'<p><b>'+esc(statuses[a.status])+'</b> · '+esc(a.owner_label)+' · Ehliyet '+esc(a.license_class)+'</p>':'')+
-        (a.review_note?'<p class="detail-note">İnceleme notu: '+esc(a.review_note)+'</p>':'')+(fileError?'<p role="alert">'+esc(fileError)+'</p>':'')+
-        '<button class="chip" id="document-case-refresh" '+(working||fileBusy?'disabled':'')+'>Başvuruyu yenile</button>'+(fileBusy?'<p role="status">Dosyalar yükleniyor…</p>':'')+
-        (a.status&&!fileBusy?Object.entries(labels).map(([kind,title])=>{const f=files.find(f=>f.kind===kind);return '<section class="detail-group"><h3>'+title+'</h3>'+(f?'<p>'+esc(f.status==='ready'?'Fotoğraf yüklendi':'Yükleme tamamlanmadı')+'</p>'+(f.status==='ready'?'<button class="chip" data-document-view="'+f.id+'">Fotoğrafı gör</button>':'')+(editable&&f.status==='reserved'?'<button class="chip" data-document-finish="'+f.id+'">Yüklemeyi tamamla</button>':'')+(canRemove?'<button class="chip" data-document-remove="'+f.id+'">Belgeyi kaldır</button>':''):(editable?'<label style="display:block">Fotoğraf seç<input style="max-width:100%;display:block" type="file" accept="image/jpeg,image/png" data-document-upload="'+kind+'"></label>':'<p>Belge eklenmemiş.</p>'))+'</section>';}).join(''):'')+
-        (editable?'<p>Üç fotoğraf yüklendikten sonra incelemeye gönderebilirsin. Gönderilen dosyalar inceleme sırasında değiştirilemez.</p><button class="btn" id="document-submit" '+(working||fileBusy||files.filter(f=>f.status==='ready').length!==3?'disabled':'')+'>İncelemeye gönder</button>':'')+
-        (own&&a.status&&a.status!=='withdrawn'?'<button class="chip" id="document-withdraw" '+(working||fileBusy?'disabled':'')+'>Başvuruyu geri çek</button>':'')+
-        (reviewer&&!own&&a.status==='submitted'?'<label for="document-review-note">İnceleme notu</label><textarea id="document-review-note" maxlength="500"></textarea><button class="btn" id="document-approve" '+(working||fileBusy?'disabled':'')+'>Başvuruyu onayla</button><button class="chip" id="document-reject" '+(working||fileBusy?'disabled':'')+'>Düzeltme iste</button>':'')+'</div></div>';
-        $('#close').onclick=closeSheet;$('#document-case-refresh').onclick=refreshSelected;
-        B.querySelectorAll('[data-document-upload]').forEach(i=>{i.disabled=working;i.onchange=()=>{const f=i.files?.[0];if(f)upload(i.dataset.documentUpload,f);};});
-        B.querySelectorAll('[data-document-view]').forEach(b=>{b.disabled=working;b.onclick=()=>preview(files.find(f=>f.id===b.dataset.documentView));});
-        B.querySelectorAll('[data-document-finish]').forEach(b=>{b.disabled=working;b.onclick=()=>write(()=>nakgoAuth.finalizeDocument(b.dataset.documentFinish));});
-        B.querySelectorAll('[data-document-remove]').forEach(b=>{b.disabled=working;b.onclick=()=>{if(window.confirm('Bu belge fotoğrafı kalıcı olarak kaldırılacak. Devam edilsin mi?'))write(()=>nakgoAuth.removeDocument(files.find(f=>f.id===b.dataset.documentRemove)));};});
-        if($('#document-submit'))$('#document-submit').onclick=()=>write(()=>nakgoAuth.transitionDocuments(a.id,'submit',a.revision));
-        if($('#document-withdraw'))$('#document-withdraw').onclick=()=>{if(window.confirm('Başvuruyu geri çekmek incelemeyi veya mevcut onayı kaldırır. Devam edilsin mi?'))write(()=>nakgoAuth.transitionDocuments(a.id,'withdraw',a.revision));};
-        for(const [id,decision] of [['document-approve','approved'],['document-reject','rejected']])if($('#'+id))$('#'+id).onclick=()=>{const note=$('#document-review-note').value.trim();if(decision==='rejected'&&note.length<3)return toast('Düzeltme gerekçesini yaz');write(()=>nakgoAuth.reviewDocuments(a.id,decision,note,a.revision));};
-    }
-    function bind(){
-        if($('#documents-refresh'))$('#documents-refresh').onclick=()=>refresh();
-        if($('#documents-create'))$('#documents-create').onclick=()=>{const license=$('#document-license').value;if(!['B','C','CE','D'].includes(license))return toast('Ehliyet sınıfını seç');write(()=>nakgoAuth.createDocumentApplication(license));};
-        if($('#documents-more'))$('#documents-more').onclick=()=>refresh(true,false);
-        if($('#documents-review-more'))$('#documents-review-more').onclick=()=>refresh(true,true);
-        $('#main').querySelectorAll('[data-own-document],[data-review-document]').forEach(b=>b.onclick=()=>open(+(b.dataset.ownDocument||b.dataset.reviewDocument)));ensure();
-    }
-    return {state,reset,card,bind,refresh,refreshPublic,isApproved,open,refreshSelected,write,upload,preview};
-})();
-
-function documentImageDimensions(bytes){
-    if(!(bytes instanceof Uint8Array)||bytes.length<24)return null;
-    if(bytes[0]===137&&bytes[1]===80&&bytes[2]===78&&bytes[3]===71&&bytes[4]===13&&bytes[5]===10&&bytes[6]===26&&bytes[7]===10){const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);const width=view.getUint32(16),height=view.getUint32(20);return width>0&&height>0?{width,height}:null;}
-    if(bytes[0]!==255||bytes[1]!==216||bytes.at(-2)!==255||bytes.at(-1)!==217)return null;
-    let p=2;while(p+8<bytes.length){if(bytes[p++]!==255)return null;while(bytes[p]===255)p++;const marker=bytes[p++];if(marker===217||marker===218)return null;if(marker===1||(marker>=208&&marker<=215))continue;
-        const n=(bytes[p]<<8)|bytes[p+1];if(n<2||p+n>bytes.length)return null;
-        if(marker>=192&&marker<=207&&![196,200,204].includes(marker)){const height=(bytes[p+3]<<8)|bytes[p+4],width=(bytes[p+5]<<8)|bytes[p+6];return width>0&&height>0?{width,height}:null;}p+=n;
-    }return null;
-}
-
 async function openPrivacyRequests(){
     if(!nakgoMarket.active())return;
     const account=nakgoMarket.token(),body=$('#sheetBody');body.dataset.k='privacy';$('#sheet').classList.add('open');

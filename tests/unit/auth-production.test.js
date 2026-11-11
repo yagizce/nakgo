@@ -1,7 +1,7 @@
 /* Production connection remains opt-in and cannot cross the DEV/PROD boundary. */
-module.exports = ({test}) => {
+module.exports = ({test,importAuthConfig}) => {
     test('Production Auth açık izin ve doğru proje gerektirir', async()=>{
-        const {publicAuthConfig}=await import('../../api/auth/config.mjs');
+        const {publicAuthConfig}=await importAuthConfig();
         const out=[],ok=(v,m)=>out.push([!!v,m]);
         const prodURL='https://fimlifldsivecezbxwuo.supabase.co';
         const devURL='https://axkotffqrsddbrazhcwj.supabase.co';

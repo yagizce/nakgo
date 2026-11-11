@@ -14,6 +14,11 @@ function postValues() {
 }
 
 function renderPost(m) {
+        if(nakgoMarket.guest()) {
+            m.innerHTML='<div class="empty">İlan vermek için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="post-signin" style="margin-top:12px">Kayıt ol / Giriş yap</button></div>';
+            $('#post-signin').onclick=()=>nakgoMarket.requireAccount();
+            return;
+        }
         postImg = "";
         const opt = a => a.map(c => `<option>${c}</option>`).join("");
         const PS = `<div class="seg"><button data-pm="load" class="${postMode === "load" ? "on" : ""}">Yük ilanı</button><button data-pm="truck" class="${postMode === "truck" ? "on" : ""}">Boş araç ilanı</button></div>`;

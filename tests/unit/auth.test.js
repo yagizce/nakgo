@@ -1,7 +1,7 @@
 /* Additional tests, discovered by the existing npm test runner. */
-module.exports = ({test,run,fs,path,ROOT}) => {
+module.exports = ({test,run,fs,path,ROOT,importAuthConfig}) => {
     test('Auth config yalnız preview ve publishable key kabul eder', async()=>{
-        const {publicAuthConfig,default:handler}=await import('../../api/auth/config.mjs');
+        const {publicAuthConfig,default:handler}=await importAuthConfig();
         const good={NAKGO_AUTH_ENABLED:'true',VERCEL_ENV:'preview',SUPABASE_URL:'https://abcdefghijklmnopqrst.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_abcdefghijklmnopqrst'};
         const out=[],ok=(v,m)=>out.push([!!v,m]);
         ok(publicAuthConfig(good)?.enabled,'preview enabled');

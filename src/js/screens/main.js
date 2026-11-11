@@ -9,11 +9,11 @@ function render() {
  m.dataset.screen = tab;
  if(tab === "list") renderListings(m);
  else if(tab === "post") renderPost(m);
- else if(tab === "mine") renderOffers(m);
  else if(tab === "me") renderProfile(m);
- if(nakgoMarket.active() && m.insertAdjacentHTML) {
+ if(nakgoMarket.locked() && m.insertAdjacentHTML) {
     m.insertAdjacentHTML('afterbegin',nakgoMarket.controls());
     $('#market-refresh').onclick=()=>nakgoMarket.refresh();
+    if($('#market-signin'))$('#market-signin').onclick=()=>nakgoMarket.requireAccount();
     if($('#market-more'))$('#market-more').onclick=()=>nakgoMarket.refresh(true);
  }
  if(nakgoMarket.active()&&(tab==='list'||tab==='me')) {

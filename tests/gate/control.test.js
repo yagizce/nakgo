@@ -1,31 +1,17 @@
-/* Guard ve auto-merge için olumlu/olumsuz durumlar; gerçek GitHub'a yazmaz. */
+/* CI ve auto-merge için olumlu/olumsuz durumlar; gerçek GitHub'a yazmaz. */
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
-const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),cp=require('node:child_process');
+const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');
 const root=path.resolve(__dirname,'../..');
-const {guard,TEST_COMMAND}=require('../guard.js');
 const {REQUIRED_STEPS,eligiblePR,successfulGate,policyPath}=require('../../.github/scripts/policy.js');
 const {decide,client}=require('../../.github/scripts/auto-merge.js');
-const {reviewedChange}=require('../guard.js');
-const crypto=require('node:crypto');
-test('Only trusted exact before/after hashes may approve product-contract tests',()=>{
- const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
- const file='tests/unit/product.test.js',before='old contract',after='new contract';
- const review={source_base:'a'.repeat(40),source_head:'b'.repeat(40),files:{[file]:{before:hash(before),after:hash(after)}}};
- const ledger={version:1,reviews:[review]};
- assert.equal(reviewedChange(ledger,file,before,after),true);
- for(const [b,a] of [[before+'x',after],[before,after+'x'],[after,before]])assert.equal(reviewedChange(ledger,file,b,a),false);
- assert.equal(reviewedChange(null,file,before,after),false);
- assert.equal(reviewedChange({...ledger,version:2},file,before,after),false);
- assert.equal(reviewedChange({version:1,reviews:[{...review,source_head:'invalid'}]},file,before,after),false);
- for(const control of ['tests/gate/browser.py','tests/gate/browser-dispatch.py','tests/gate/legacy-browser.py','tests/gate/product-browser.py','tests/gate/browser_dispatch_test.py','tests/unit/browser-dispatch.test.js','tests/guard.js','tests/run.js','tests/requirements.txt','tests/gate/control.test.js','tests/gate/static.js','tests/gate/static_html.py','.github/workflows/quality-gate.yml','.github/reviewed-controls.json','tests/../.github/workflows/quality-gate.yml','tests\\unit\\product.test.js']){
-  assert.equal(reviewedChange({version:1,reviews:[{...review,files:{[control]:review.files[file]}}]},control,before,after),false);
- }
-});
 const repo='owner/nakgo',head='a'.repeat(40),base='b'.repeat(40);
 const fresh=()=>({number:7,state:'open',draft:false,merged:false,mergeable:true,mergeable_state:'clean',base:{ref:'main',sha:base,repo:{full_name:repo}},head:{ref:'codex/fix',sha:head,repo:{full_name:repo,fork:false}}});
 const goodRun=()=>({id:21,display_title:'quality:7:'+head+':'+base,head_sha:head,run_attempt:1,event:'pull_request',status:'completed',conclusion:'success',pull_requests:[{number:7,head:{sha:head},base:{sha:base}}]});
-const goodJobs=()=>[{name:'quality-gate',status:'completed',conclusion:'success',steps:REQUIRED_STEPS.map(name=>({name,status:'completed',conclusion:'success'}))}];
+const goodJobs=()=>Object.entries(REQUIRED_STEPS).map(([name,steps])=>({
+  name,status:'completed',conclusion:'success',
+  steps:steps.map(name=>({name,status:'completed',conclusion:'success'}))
+}));
 test('Yalnızca aynı repository codex/main hazır PR kabul edilir',()=>{
   assert.equal(eligiblePR(fresh(),repo,head),true);
   for(const mutate of [p=>p.draft=true,p=>p.state='closed',p=>p.head.ref='main',p=>p.head.ref='feature/x',p=>p.head.repo.full_name='fork/nakgo',p=>p.head.repo.fork=true,p=>p.base.ref='dev',p=>p.head.sha='c'.repeat(40),p=>p.mergeable=false,p=>p.mergeable_state='behind']){const p=fresh();mutate(p);assert.equal(eligiblePR(p,repo,head),false);}
@@ -35,6 +21,10 @@ test('Başarısız, atlanmış, iptal veya eski SHA kalite sonucu reddedilir',()
   for(const conclusion of ['failure','cancelled','skipped','neutral','timed_out',null]){const r=goodRun();r.conclusion=conclusion;assert.equal(successfulGate(r,goodJobs(),head,7,base),false);}
   const run=goodRun();run.head_sha='c'.repeat(40);assert.equal(successfulGate(run,goodJobs(),head,7,base),false);
   const jobs=goodJobs();jobs[0].steps[0].conclusion='skipped';assert.equal(successfulGate(goodRun(),jobs,head,7,base),false);
+  assert.equal(successfulGate(goodRun(),goodJobs().filter(j=>j.name!=='baseline-regressions'),head,7,base),false);
+  const misplaced=goodJobs();
+  misplaced[0].steps.push(misplaced[2].steps.pop());
+  assert.equal(successfulGate(goodRun(),misplaced,head,7,base),false);
   assert.equal(successfulGate(goodRun(),[],head,7,base),false);
   assert.equal(successfulGate(goodRun(),goodJobs(),head,7,'d'.repeat(40)),false);
 });
@@ -78,21 +68,94 @@ test('GitHub API hata veya yönlendirmede güvenli durur',async()=>{
   const api=client('not-a-real-token',async(url,options)=>{assert.equal(options.redirect,'error');return {ok:false,status:403};});
   await assert.rejects(api('GET','/repos/owner/nakgo'),/403/);
 });
-test('Guard test silme, gevşetme ve script kaldırmayı yakalar',()=>{
+test('Aday yürütmesi bağımsız kontrollerin ortamını veya dosyalarını devralamaz',()=>{
+  const workflow=fs.readFileSync(path.join(root,'.github/workflows/quality-gate.yml'),'utf8').replace(/\r\n/g,'\n');
+  const jobs=Object.fromEntries([...workflow.split('\njobs:\n')[1].matchAll(/^  ([\w-]+):\n([\s\S]*?)(?=^  [\w-]+:\n|(?![\s\S]))/gm)]
+    .map(([,id,body])=>[id,body]));
+  assert.match(jobs['candidate-tests'],/run: npm test/);
+  assert.match(jobs['baseline-regressions'],/git restore --source="\$SOURCE_SHA" --worktree -- tests supabase\/tests/);
+  assert.match(jobs['baseline-regressions'],/node tests\/run\.js --isolated/);
+  assert.match(jobs['baseline-regressions'],/python -E -s tests\/e2e\.py/);
+  const independent=jobs['quality-gate'];
+  assert.match(independent,/needs: \[snapshot, candidate-tests, baseline-regressions\]/);
+  assert.match(independent,/if: \$\{\{ always\(\) && needs\.snapshot\.result == 'success' \}\}/);
+  assert.match(independent,/needs\.candidate-tests\.result/);
+  assert.match(independent,/needs\.baseline-regressions\.result/);
+  assert.match(independent,/baseline\/tests\/gate\/browser\.py --root candidate --base-sha "\$BASE_SHA"/);
+  assert.doesNotMatch(independent,/npm test|npm run|npm ci|working-directory: candidate|GITHUB_ENV|GITHUB_PATH|\$CONTROLS/);
+  const publisher = jobs.publish;
+  assert.match(workflow,/^  pull_request_target:/m);
+  assert.doesNotMatch(publisher,/^    uses:/m);
+  assert.match(publisher,/ref: \$\{\{ github\.sha \}\}/);
+  assert.match(publisher,/environment: nakgo-ci-publisher/);
+  assert.match(publisher,/needs: \[snapshot, candidate-tests, baseline-regressions, quality-gate\]/);
+  for (const name of ['snapshot', 'candidate-tests', 'baseline-regressions', 'quality-gate']) {
+    assert.ok(publisher.includes(`needs.${name}.result == 'success'`));
+    assert.doesNotMatch(jobs[name],/secrets\.|environment:|\bwrite\b/);
+    if (name !== 'snapshot') assert.doesNotMatch(jobs[name],/^\s+outputs:/m);
+  }
+  assert.match(publisher,/CI_APP_KEY: \$\{\{ secrets\.NAKGO_CI_APP_KEY \}\}/);
+  assert.match(publisher,/CI_SNAPSHOT: \$\{\{ toJSON\(needs\.snapshot\.outputs\) \}\}/);
+  assert.match(publisher,/permissions:\n      contents: read\n      pull-requests: read/);
+  assert.equal([...publisher.matchAll(/^      - /gm)].length,2);
+  assert.equal([...publisher.matchAll(/^\s+ref:/gm)].length,1);
+  assert.match(publisher,/persist-credentials: false/);
+  assert.match(publisher,/run: node \.github\/scripts\/trusted-ci\.js publish/);
+  assert.doesNotMatch(publisher,/outputs\.merge|\bnpm\b|candidate\/|\bwrite\b|secrets:\s+inherit/);
+  assert.doesNotMatch(workflow,/actions\/(?:upload-artifact|download-artifact|cache)/);
+  for(const [name,job] of Object.entries(jobs)) if(name!=='publish') assert.match(job,/runs-on: ubuntu-24\.04/);
+  assert.match(publisher,/runs-on: ubuntu-24\.04/);
+});
+
+test('Test çalıştırıcısı kayıtsız ve doğrulamasız başarılı görünen modülleri reddeder',()=>{
   const tempRoot=path.join(root,'tests/shots');fs.mkdirSync(tempRoot,{recursive:true});
-  const dir=fs.mkdtempSync(path.join(tempRoot,'nakgo-guard-')),baseline={};
-  const put=(p,s)=>{fs.mkdirSync(path.dirname(path.join(dir,p)),{recursive:true});fs.writeFileSync(path.join(dir,p),s);};
-  const options={root:dir,baseline};
-  try{
-    for(const p of ['tests/run.js','tests/e2e.py','tests/requirements.txt','tests/guard.js','.github/workflows/quality-gate.yml','.github/workflows/auto-merge.yml'])put(p,fs.readFileSync(path.join(root,p)));
-    put('package.json',JSON.stringify({scripts:{test:TEST_COMMAND,'test:e2e':'python tests/e2e.py'}}));
-    for(const p of ['tests/run.js','tests/e2e.py','tests/requirements.txt','tests/guard.js','.github/workflows/quality-gate.yml','.github/workflows/auto-merge.yml'])baseline[p]=fs.readFileSync(path.join(dir,p),'utf8');
-    assert.deepEqual(guard(options).errors,[]);
-    const injected='candidate self-approval';
-    put('.github/reviewed-controls.json',JSON.stringify({version:1,reviews:[{source_base:'a'.repeat(40),source_head:'b'.repeat(40),files:{'tests/e2e.py':{before:crypto.createHash('sha256').update(baseline['tests/e2e.py']).digest('hex'),after:crypto.createHash('sha256').update(injected).digest('hex')}}}]}));
-    put('tests/e2e.py',injected);assert.ok(guard(options).errors.some(e=>e.includes('tests/e2e.py')),'candidate cannot supply approval ledger');
-    put('tests/run.js','/* empty success */');assert.ok(guard(options).errors.some(e=>e.includes('tests/run.js')));
-    fs.unlinkSync(path.join(dir,'tests/e2e.py'));assert.ok(guard(options).errors.some(e=>e.includes('tests/e2e.py')));
-    put('package.json',JSON.stringify({scripts:{test:'echo pass'}}));assert.ok(guard(options).errors.some(e=>e.includes('npm test')));
-  }finally{assert.ok(dir.startsWith(tempRoot+path.sep));fs.rmSync(dir,{recursive:true,force:true});}
+  const dir=fs.mkdtempSync(path.join(tempRoot,'nakgo-runner-'));
+  try {
+    fs.mkdirSync(path.join(dir,'tests/unit'),{recursive:true});
+    fs.copyFileSync(path.join(root,'tests/run.js'),path.join(dir,'tests/run.js'));
+    fs.writeFileSync(path.join(dir,'index.html'),'<script></script>');
+    const fixture=path.join(dir,'tests/unit/changed.test.js');
+    for(const code of ['module.exports=()=>{}','module.exports=({test})=>test("fake",()=>[])']){
+      fs.writeFileSync(fixture,code);
+      const run=cp.spawnSync(process.execPath,['tests/run.js'],{cwd:dir,encoding:'utf8'});
+      assert.equal(run.status,1);
+      assert.match(run.stderr+run.stdout,/hiçbir test kaydetmedi|hiçbir kontrol çalıştırmadı/);
+    }
+    fs.writeFileSync(fixture,'module.exports=({test})=>test("real",()=>[[true,"checked"]])');
+    assert.equal(cp.spawnSync(process.execPath,['tests/run.js'],{cwd:dir}).status,0);
+  } finally {
+    assert.equal(path.dirname(dir),tempRoot);
+    fs.rmSync(dir,{recursive:true,force:true});
+  }
+});
+
+test('Aday testinin sahte başarısı main regresyonunun hatasını gizleyemez',()=>{
+  const tempRoot=path.join(root,'tests/shots');fs.mkdirSync(tempRoot,{recursive:true});
+  const dir=fs.mkdtempSync(path.join(tempRoot,'nakgo-replay-'));
+  const git=(...args)=>cp.execFileSync('git',args,{cwd:dir,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+  const commit=message=>git('-c','user.name=Synthetic fixture','-c','user.email=fixture@invalid',
+    '-c','commit.gpgsign=false','commit','-m',message);
+  const run=()=>cp.spawnSync(process.execPath,['tests/check.cjs'],{cwd:dir,encoding:'utf8'});
+  try {
+    git('init');
+    fs.mkdirSync(path.join(dir,'tests'));
+    const write=(file,contents)=>fs.writeFileSync(path.join(dir,file),contents);
+    write('app.cjs','module.exports = true');
+    write('tests/check.cjs','require("node:assert/strict").equal(require("../app.cjs"), true)');
+    git('add','--','app.cjs','tests/check.cjs');commit('Trusted regression');
+    const base=git('rev-parse','HEAD');
+    assert.equal(run().status,0);
+    write('app.cjs','module.exports = false');
+    write('tests/check.cjs','process.exit(0)');
+    write('tests/new.cjs','process.exit(0)');
+    git('add','--','app.cjs','tests');commit('Synthetic bypass');
+    assert.equal(run().status,0);
+    git('restore','--source='+base,'--worktree','--','tests');
+    assert.equal(fs.existsSync(path.join(dir,'tests/new.cjs')),false);
+    assert.equal(run().status,1);
+    assert.match(run().stderr,/AssertionError/);
+  } finally {
+    assert.equal(path.dirname(dir),tempRoot);
+    fs.rmSync(dir,{recursive:true,force:true});
+  }
 });

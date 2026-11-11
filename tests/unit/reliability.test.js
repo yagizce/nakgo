@@ -52,15 +52,7 @@ module.exports = ({run,test,boot}) => {
     ok(r("return phoneOf(loads[0])")==='',"profil telefonu izinli ilan telefonu yerine geçmez");
     r("sort='km'");
     ok(r("return sortL([{id:1,km:450},{id:2,from:'Mersin',to:'Adana'}])[0].id")===2,"hesaplanan mesafe sıralamaya katılır");
-    r("loads[1].closed=true");ok(r("return requestLoad(loads[1])")===false,"kapalı ilana iş açılmaz");
-    r("loads[2].ts=Date.now()-7*36e5");ok(r("return requestLoad(loads[2])")===false,"süresi dolmuş ilana iş açılmaz");
     r("q='İstanbul';openFilter()");
     ok(r("return el('#fs').textContent").startsWith(String(r("return loads.filter(x=>visibleListing(x)).length"))),"filtre ve liste sayısı aynı");
-  });
-  run("Engelleme ve silinen ilan iş geçmişini korur",(r,ok)=>{
-    r("requestLoad(loads[0]);blockUser('other')");ok(r("return offers.length")===1,"yerelde engelleme iş listesini silmez");
-    r("cloud=true;me='carrier';allO=[{loadId:990,bidder:'carrier',ownerUid:'owner',status:'ok',stage:3,listing:{id:990,from:'İzmir',to:'Ankara',cargo:'Geçmiş'}}];rebuild()");
-    ok(r("return offers.length===1&&offers[0].from==='İzmir'&&offers[0].stage===3"),"silinen ilan özeti işte saklanır");
-    r("delete allO[0].listing;offers=[];rebuild()");ok(r("return offers.length===1&&offers[0].from==='İlan kaldırıldı'"),"eski özetsiz iş de kaybolmaz");
   });
 };

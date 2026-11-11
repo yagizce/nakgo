@@ -6,10 +6,6 @@
     "api/whatsapp/webhook.mjs": {
       "includeFiles": "src/js/config.js",
       "maxDuration": 10
-    },
-    "api/whatsapp/worker.mjs": {
-      "includeFiles": "src/js/config.js",
-      "maxDuration": 60
     }
   },
   "headers": [
@@ -58,7 +54,19 @@
       "codex/nakgo-cloudflare-dev": false,
       "codex/nakgo-listing-lifecycle": false,
       "codex/nakgo-retention-dev": false,
-      "codex/nakgo-group-capacity": false
+      "codex/nakgo-group-capacity": false,
+      "main": false,
+      "claude/group-ab": false,
+      "claude/test-maintenance": false,
+      "claude/gate-selftest": false,
+      "claude/public-listings": false,
+      "claude/auth-config-timeout-fallback": false,
+      "codex/nakgo-ci-publisher-direct": false,
+      "codex/nakgo-trusted-ci": false,
+      "codex/nakgo-retire-file-guard": false,
+      "codex/nakgo-guard-replay-maintenance": false,
+      "codex/nakgo-ci-unlock-safety": false,
+      "codex/nakgo-guard-approval": false
     }
   }
 }
