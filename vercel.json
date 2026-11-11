@@ -63,7 +63,8 @@
       "codex/nakgo-guard-replay-maintenance": false,
       "codex/nakgo-ci-unlock-safety": false,
       "codex/nakgo-guard-approval": false,
-      "claude/session-resilience": false
+      "claude/session-resilience": false,
+      "claude/onboarding-refresh": false
     }
   }
 }

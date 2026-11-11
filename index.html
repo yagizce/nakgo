@@ -1485,7 +1485,71 @@ header p {
   background:var(--bg);
   display:none;
   flex-direction:column;
-  padding:calc(22px + env(safe-area-inset-top,0px)) 22px calc(22px + env(safe-area-inset-bottom,0px));
+  gap:14px;
+  padding:calc(16px + env(safe-area-inset-top,0px)) 22px calc(20px + env(safe-area-inset-bottom,0px));
+  overflow-y:auto;
+}
+
+.ob-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:44px;
+}
+
+.ob-brand {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:17px;
+  letter-spacing:-.2px;
+}
+
+.ob-brand img { border-radius:10px; }
+
+.ob-skip {
+  min-height:44px;
+  padding:0 14px;
+  border:0;
+  background:none;
+  color:var(--brand-ink);
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.ob-hero {
+  flex:1 1 0;
+  min-height:170px;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  overflow:hidden;
+  border-radius:24px;
+  background:var(--gradient-brand-soft);
+  border:1px solid var(--line);
+  padding:18px 18px 0;
+}
+
+/* Telefonun üst kısmı: kenarlık ve yuvarlak köşe ile gerçek cihaz görünümü */
+.ob-phone {
+  width:min(80%,290px);
+  flex:none;
+  aspect-ratio:600/1000;
+  border:7px solid var(--ink);
+  border-radius:30px;
+  overflow:hidden;
+  background:var(--card);
+  box-shadow:0 10px 30px rgba(18,57,95,.18);
+}
+
+.ob-shot { display:block; width:100%; height:100%; object-fit:cover; object-position:top; }
+.ob-dark { display:none; }
+:root[data-theme="dark"] .ob-light { display:none; }
+:root[data-theme="dark"] .ob-dark { display:block; }
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) .ob-light { display:none; }
+  :root:not([data-theme="light"]) .ob-dark { display:block; }
 }
 
 .ob-body {
@@ -1495,37 +1559,47 @@ header p {
   justify-content:center;
   align-items:center;
   text-align:center;
-  gap:12px;
+  gap:10px;
 }
 
-.ob-ic {
-  width:96px;
-  height:96px;
-  border-radius:28px;
-  background:var(--brand-fill);
-  color:var(--on-brand);
-  display:grid;
-  place-items:center;
-  margin-bottom:8px;
+.ob-slide { flex:0 0 auto; padding:6px 0 4px; }
+
+.ob-step {
+  margin:0;
+  font-size:13px !important;
+  font-weight:700;
+  color:var(--brand-ink) !important;
+  letter-spacing:.4px;
 }
 
 .ob-body h2 {
   font-size:26px;
+  line-height:1.2;
   letter-spacing:-.5px;
+  margin:0;
 }
 
 .ob-body p {
   color:var(--mute);
   font-size:15px;
-  line-height:1.5;
-  max-width:300px;
+  line-height:1.55;
+  max-width:320px;
+  margin:0;
 }
+
+.ob-actions {
+  display:flex;
+  gap:10px;
+  align-items:stretch;
+}
+
+.ob-actions .btn { flex:1; }
+.ob-back { min-height:48px; padding:0 20px; border-radius:14px; }
 
 .dots {
   display:flex;
   justify-content:center;
   gap:6px;
-  margin-bottom:8px;
 }
 
 .dots i {
@@ -1533,6 +1607,7 @@ header p {
   height:7px;
   border-radius:50%;
   background:var(--line);
+  transition:width .2s ease;
 }
 
 .dots i.on {
@@ -1541,13 +1616,19 @@ header p {
   border-radius:99px;
 }
 
+.ob-roles { gap:12px; }
+.ob-roles p { margin-bottom:6px; }
+
 .rolebtn {
   width:100%;
-  max-width:320px;
+  max-width:340px;
+  display:flex;
+  align-items:center;
+  gap:14px;
   text-align:left;
   padding:16px;
   border:1px solid var(--line);
-  border-radius:16px;
+  border-radius:18px;
   background:var(--card);
   color:var(--ink);
   font:inherit;
@@ -1555,15 +1636,32 @@ header p {
   box-shadow:var(--shadow);
 }
 
-.rolebtn b {
+.rolebtn:hover,.rolebtn:focus-visible { border-color:var(--brand); }
+
+.role-ic {
+  flex:none;
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  background:var(--brand-soft);
+  color:var(--brand-ink);
+}
+
+.role-txt b {
   display:block;
   font-size:17px;
 }
 
-.rolebtn span {
+.role-txt span {
   color:var(--mute);
   font-size:13px;
 }
+
+.ob-note { font-size:13px !important; max-width:300px; }
+
+@media (prefers-reduced-motion:reduce) { .dots i { transition:none; } }
 
 .splash {
   position:absolute;
@@ -2181,6 +2279,7 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
     <button data-t="post"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>İlan ver</span></button>
     <button data-t="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>Profil</span></button>
   </nav>
+  <div class="onb" id="onb" role="dialog" aria-modal="true" aria-labelledby="ob-title"></div>
   <div class="sheet" id="sheet"><div id="sheetBody" role="dialog" aria-modal="true"></div></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
@@ -2209,7 +2308,8 @@ const FI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="
 
 const D = [[450, 480, 155, 700, 660, 940, 1130, 790, 740, 1100, 950], [580, 380, 540, 260, 490, 680, 320, 410, 780, 480], [330, 470, 580, 920, 1100, 830, 980, 1350, 850], [620, 520, 850, 1050, 700, 700, 1050, 800], [320, 550, 850, 640, 850, 1250, 480], [340, 640, 330, 700, 1050, 330], [330, 350, 760, 1100, 70], [460, 850, 1000, 340], [500, 720, 420], [340, 810], [1130]];
 
-const SL = [["M1 6h13v10H1zM14 10h4l3 3v3h-7", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar doğrudan görüşür. Aracın boş kalmasın, yükün beklemesin."], ["M3 17l6-6 4 4 8-8M15 7h6v6", "Yolunu gör, giderini planla", "Gerçek yol haritasında çıkış ve varışı gör, mazot giderini hesapla."], ["M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3zM9 12l2 2 4-4", "Önce güven", "Belgeli ve onaylı taşıyıcı rozetleri, yükleme onayı ve karşılıklı puanlama."]];
+// İlk açılış tanıtımı: [ekran görüntüsü, başlık, metin, görüntü açıklaması]. Görüntüler icons/onboarding içinde.
+const SL = [["list", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar boş aracını duyurur. Aracın boş kalmasın, yükün beklemesin.", "İlanlar ekranı: rota arama ve Mersin–Ankara yük ilanı"], ["calc", "Giderini önceden planla", "Mesafeyi ve tüketimi gir; mazot ve yol giderini yola çıkmadan gör.", "Mazot ve Gider Hesaplama ekranı: tahmini toplam gider"], ["detail", "İlan sahibine doğrudan ulaş", "İlanlara giriş yapmadan göz at. Aramak ve mesaj göndermek için ücretsiz hesap aç.", "İlan detayı: taşıma bilgileri ile Ara ve Mesaj gönder düğmeleri"]];
 
 const PLANS = [{ id: "m", name: "Aylık", price: 299, days: 30 }, { id: "y", name: "Yıllık", price: 3099, days: 365 }];
 
@@ -4002,6 +4102,9 @@ function setRole(r, go) {
     render();
 }
 
+// Tanıtımda uygulamanın gerçek ekranları gösterilir (örnek ilanlarla, misafir görünümü).
+const obShot = (k, alt) => `<div class="ob-phone"><img class="ob-shot ob-light" src="icons/onboarding/${k}-light.webp" width="600" height="1000" alt="${alt}" decoding="async"><img class="ob-shot ob-dark" src="icons/onboarding/${k}-dark.webp" width="600" height="1000" alt="" aria-hidden="true" decoding="async"></div>`;
+
 function openOnb() {
     let el = $("#onb");
     if (!el) {
@@ -4011,22 +4114,19 @@ function openOnb() {
         $("#app").appendChild(el);
     }
     let i = 0;
-    const dots = n => `<div class="dots">${[0, 1, 2, 3].map(k => `<i class="${k === n ? "on" : ""}"></i>`).join("")}</div>`;
+    const dots = n => `<div class="dots" aria-hidden="true">${[0, 1, 2, 3].map(k => `<i class="${k === n ? "on" : ""}"></i>`).join("")}</div>`;
+    const top = n => `<div class="ob-top"><div class="ob-brand"><img src="icons/header-logo.png" width="32" height="32" alt="" decoding="async"><b>NakGo</b></div>${n < 3 ? '<button class="ob-skip" id="ob-skip">Atla</button>' : ""}</div>`;
     const draw = () => {
         if (i < 3) {
-            const [ic, t, x] = SL[i];
-            el.innerHTML = `<button class="chip" id="ob-skip" style="align-self:flex-end">Atla</button><div class="ob-body"><div class="ob-ic"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ic}"/></svg></div><h2>${t}</h2><p>${x}</p></div>${dots(i)}<button class="btn" id="ob-next">İleri</button>`;
-            $("#ob-next").onclick = () => {
-                i++;
-                draw();
-            };
-            $("#ob-skip").onclick = () => {
-                i = 3;
-                draw();
-            };
+            const [art, t, x] = SL[i];
+            el.innerHTML = `${top(i)}<div class="ob-hero">${obShot(art, SL[i][3])}</div><div class="ob-body ob-slide"><p class="ob-step">${i + 1} / 3</p><h2 id="ob-title">${t}</h2><p>${x}</p></div>${dots(i)}<div class="ob-actions">${i ? '<button class="chip ob-back" id="ob-back">Geri</button>' : ""}<button class="btn" id="ob-next">${i < 2 ? "İleri" : "Başlayalım"}</button></div>`;
+            $("#ob-next").onclick = () => { i++; draw(); };
+            if ($("#ob-back")) $("#ob-back").onclick = () => { i--; draw(); };
+            $("#ob-skip").onclick = () => { i = 3; draw(); };
+            $("#ob-next").focus({ preventScroll: true });
         }
         else {
-            el.innerHTML = `<div class="ob-body"><h2>Sen kimsin?</h2><p>Ana sayfanı buna göre hazırlayalım.</p><button class="rolebtn" id="r-c"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></button><button class="rolebtn" id="r-o"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></button></div>${dots(3)}`;
+            el.innerHTML = `${top(i)}<div class="ob-body ob-roles"><h2 id="ob-title">Seni tanıyalım</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilinden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="role-txt"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></span></button><button class="rolebtn" id="r-o"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span class="role-txt"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></span></button><p class="ob-note">Kayıt olmadan ilanlara göz atabilirsin. Aramak ve mesaj göndermek için ücretsiz hesap gerekir.</p></div>${dots(3)}`;
             $("#r-c").onclick = () => setRole("carrier", 1);
             $("#r-o").onclick = () => setRole("owner", 1);
         }

@@ -781,7 +781,71 @@
   background:var(--bg);
   display:none;
   flex-direction:column;
-  padding:calc(22px + env(safe-area-inset-top,0px)) 22px calc(22px + env(safe-area-inset-bottom,0px));
+  gap:14px;
+  padding:calc(16px + env(safe-area-inset-top,0px)) 22px calc(20px + env(safe-area-inset-bottom,0px));
+  overflow-y:auto;
+}
+
+.ob-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:44px;
+}
+
+.ob-brand {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:17px;
+  letter-spacing:-.2px;
+}
+
+.ob-brand img { border-radius:10px; }
+
+.ob-skip {
+  min-height:44px;
+  padding:0 14px;
+  border:0;
+  background:none;
+  color:var(--brand-ink);
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.ob-hero {
+  flex:1 1 0;
+  min-height:170px;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  overflow:hidden;
+  border-radius:24px;
+  background:var(--gradient-brand-soft);
+  border:1px solid var(--line);
+  padding:18px 18px 0;
+}
+
+/* Telefonun üst kısmı: kenarlık ve yuvarlak köşe ile gerçek cihaz görünümü */
+.ob-phone {
+  width:min(80%,290px);
+  flex:none;
+  aspect-ratio:600/1000;
+  border:7px solid var(--ink);
+  border-radius:30px;
+  overflow:hidden;
+  background:var(--card);
+  box-shadow:0 10px 30px rgba(18,57,95,.18);
+}
+
+.ob-shot { display:block; width:100%; height:100%; object-fit:cover; object-position:top; }
+.ob-dark { display:none; }
+:root[data-theme="dark"] .ob-light { display:none; }
+:root[data-theme="dark"] .ob-dark { display:block; }
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) .ob-light { display:none; }
+  :root:not([data-theme="light"]) .ob-dark { display:block; }
 }
 
 .ob-body {
@@ -791,37 +855,47 @@
   justify-content:center;
   align-items:center;
   text-align:center;
-  gap:12px;
+  gap:10px;
 }
 
-.ob-ic {
-  width:96px;
-  height:96px;
-  border-radius:28px;
-  background:var(--brand-fill);
-  color:var(--on-brand);
-  display:grid;
-  place-items:center;
-  margin-bottom:8px;
+.ob-slide { flex:0 0 auto; padding:6px 0 4px; }
+
+.ob-step {
+  margin:0;
+  font-size:13px !important;
+  font-weight:700;
+  color:var(--brand-ink) !important;
+  letter-spacing:.4px;
 }
 
 .ob-body h2 {
   font-size:26px;
+  line-height:1.2;
   letter-spacing:-.5px;
+  margin:0;
 }
 
 .ob-body p {
   color:var(--mute);
   font-size:15px;
-  line-height:1.5;
-  max-width:300px;
+  line-height:1.55;
+  max-width:320px;
+  margin:0;
 }
+
+.ob-actions {
+  display:flex;
+  gap:10px;
+  align-items:stretch;
+}
+
+.ob-actions .btn { flex:1; }
+.ob-back { min-height:48px; padding:0 20px; border-radius:14px; }
 
 .dots {
   display:flex;
   justify-content:center;
   gap:6px;
-  margin-bottom:8px;
 }
 
 .dots i {
@@ -829,6 +903,7 @@
   height:7px;
   border-radius:50%;
   background:var(--line);
+  transition:width .2s ease;
 }
 
 .dots i.on {
@@ -837,13 +912,19 @@
   border-radius:99px;
 }
 
+.ob-roles { gap:12px; }
+.ob-roles p { margin-bottom:6px; }
+
 .rolebtn {
   width:100%;
-  max-width:320px;
+  max-width:340px;
+  display:flex;
+  align-items:center;
+  gap:14px;
   text-align:left;
   padding:16px;
   border:1px solid var(--line);
-  border-radius:16px;
+  border-radius:18px;
   background:var(--card);
   color:var(--ink);
   font:inherit;
@@ -851,15 +932,32 @@
   box-shadow:var(--shadow);
 }
 
-.rolebtn b {
+.rolebtn:hover,.rolebtn:focus-visible { border-color:var(--brand); }
+
+.role-ic {
+  flex:none;
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  background:var(--brand-soft);
+  color:var(--brand-ink);
+}
+
+.role-txt b {
   display:block;
   font-size:17px;
 }
 
-.rolebtn span {
+.role-txt span {
   color:var(--mute);
   font-size:13px;
 }
+
+.ob-note { font-size:13px !important; max-width:300px; }
+
+@media (prefers-reduced-motion:reduce) { .dots i { transition:none; } }
 
 .splash {
   position:absolute;

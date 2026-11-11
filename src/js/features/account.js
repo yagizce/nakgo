@@ -105,6 +105,9 @@ function setRole(r, go) {
     render();
 }
 
+// Tanıtımda uygulamanın gerçek ekranları gösterilir (örnek ilanlarla, misafir görünümü).
+const obShot = (k, alt) => `<div class="ob-phone"><img class="ob-shot ob-light" src="icons/onboarding/${k}-light.webp" width="600" height="1000" alt="${alt}" decoding="async"><img class="ob-shot ob-dark" src="icons/onboarding/${k}-dark.webp" width="600" height="1000" alt="" aria-hidden="true" decoding="async"></div>`;
+
 function openOnb() {
     let el = $("#onb");
     if (!el) {
@@ -114,22 +117,19 @@ function openOnb() {
         $("#app").appendChild(el);
     }
     let i = 0;
-    const dots = n => `<div class="dots">${[0, 1, 2, 3].map(k => `<i class="${k === n ? "on" : ""}"></i>`).join("")}</div>`;
+    const dots = n => `<div class="dots" aria-hidden="true">${[0, 1, 2, 3].map(k => `<i class="${k === n ? "on" : ""}"></i>`).join("")}</div>`;
+    const top = n => `<div class="ob-top"><div class="ob-brand"><img src="icons/header-logo.png" width="32" height="32" alt="" decoding="async"><b>NakGo</b></div>${n < 3 ? '<button class="ob-skip" id="ob-skip">Atla</button>' : ""}</div>`;
     const draw = () => {
         if (i < 3) {
-            const [ic, t, x] = SL[i];
-            el.innerHTML = `<button class="chip" id="ob-skip" style="align-self:flex-end">Atla</button><div class="ob-body"><div class="ob-ic"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ic}"/></svg></div><h2>${t}</h2><p>${x}</p></div>${dots(i)}<button class="btn" id="ob-next">İleri</button>`;
-            $("#ob-next").onclick = () => {
-                i++;
-                draw();
-            };
-            $("#ob-skip").onclick = () => {
-                i = 3;
-                draw();
-            };
+            const [art, t, x] = SL[i];
+            el.innerHTML = `${top(i)}<div class="ob-hero">${obShot(art, SL[i][3])}</div><div class="ob-body ob-slide"><p class="ob-step">${i + 1} / 3</p><h2 id="ob-title">${t}</h2><p>${x}</p></div>${dots(i)}<div class="ob-actions">${i ? '<button class="chip ob-back" id="ob-back">Geri</button>' : ""}<button class="btn" id="ob-next">${i < 2 ? "İleri" : "Başlayalım"}</button></div>`;
+            $("#ob-next").onclick = () => { i++; draw(); };
+            if ($("#ob-back")) $("#ob-back").onclick = () => { i--; draw(); };
+            $("#ob-skip").onclick = () => { i = 3; draw(); };
+            $("#ob-next").focus({ preventScroll: true });
         }
         else {
-            el.innerHTML = `<div class="ob-body"><h2>Sen kimsin?</h2><p>Ana sayfanı buna göre hazırlayalım.</p><button class="rolebtn" id="r-c"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></button><button class="rolebtn" id="r-o"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></button></div>${dots(3)}`;
+            el.innerHTML = `${top(i)}<div class="ob-body ob-roles"><h2 id="ob-title">Seni tanıyalım</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilinden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="role-txt"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></span></button><button class="rolebtn" id="r-o"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span class="role-txt"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></span></button><p class="ob-note">Kayıt olmadan ilanlara göz atabilirsin. Aramak ve mesaj göndermek için ücretsiz hesap gerekir.</p></div>${dots(3)}`;
             $("#r-c").onclick = () => setRole("carrier", 1);
             $("#r-o").onclick = () => setRole("owner", 1);
         }

@@ -22,7 +22,8 @@ const FI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="
 
 const D = [[450, 480, 155, 700, 660, 940, 1130, 790, 740, 1100, 950], [580, 380, 540, 260, 490, 680, 320, 410, 780, 480], [330, 470, 580, 920, 1100, 830, 980, 1350, 850], [620, 520, 850, 1050, 700, 700, 1050, 800], [320, 550, 850, 640, 850, 1250, 480], [340, 640, 330, 700, 1050, 330], [330, 350, 760, 1100, 70], [460, 850, 1000, 340], [500, 720, 420], [340, 810], [1130]];
 
-const SL = [["M1 6h13v10H1zM14 10h4l3 3v3h-7", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar doğrudan görüşür. Aracın boş kalmasın, yükün beklemesin."], ["M3 17l6-6 4 4 8-8M15 7h6v6", "Yolunu gör, giderini planla", "Gerçek yol haritasında çıkış ve varışı gör, mazot giderini hesapla."], ["M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3zM9 12l2 2 4-4", "Önce güven", "Belgeli ve onaylı taşıyıcı rozetleri, yükleme onayı ve karşılıklı puanlama."]];
+// İlk açılış tanıtımı: [ekran görüntüsü, başlık, metin, görüntü açıklaması]. Görüntüler icons/onboarding içinde.
+const SL = [["list", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar boş aracını duyurur. Aracın boş kalmasın, yükün beklemesin.", "İlanlar ekranı: rota arama ve Mersin–Ankara yük ilanı"], ["calc", "Giderini önceden planla", "Mesafeyi ve tüketimi gir; mazot ve yol giderini yola çıkmadan gör.", "Mazot ve Gider Hesaplama ekranı: tahmini toplam gider"], ["detail", "İlan sahibine doğrudan ulaş", "İlanlara giriş yapmadan göz at. Aramak ve mesaj göndermek için ücretsiz hesap aç.", "İlan detayı: taşıma bilgileri ile Ara ve Mesaj gönder düğmeleri"]];
 
 const PLANS = [{ id: "m", name: "Aylık", price: 299, days: 30 }, { id: "y", name: "Yıllık", price: 3099, days: 365 }];
 
