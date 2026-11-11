@@ -1947,8 +1947,12 @@ header p { opacity:1; }
 
 .contact-unavailable{grid-column:1/-1;margin:0;color:var(--ink);font-size:13px;line-height:1.5}
 .contact-dock button:disabled{opacity:.55;cursor:default}
-.tri-contact { grid-template-columns:repeat(3,minmax(0,1fr)); }
-.tri-contact .contact-unavailable { grid-column:1/-1; }
+.phone-contact { grid-template-columns:1fr 1fr; }
+.phone-contact .btn { font-size:16px; font-weight:700; }
+.phone-contact .btn .ui-icon { width:19px; height:19px; }
+.contact-dock .btn.wa-btn { background:#1fa855; color:#fff; box-shadow:0 6px 16px #25d36640; }
+.contact-dock .btn.wa-btn:active { background:#178a45; }
+.field-note { font-size:12.5px; color:var(--mute); margin:6px 2px 0; }
 
 /* Ortak tasarım sistemi ve telefon düzeni */
 
@@ -5487,15 +5491,15 @@ function postValues() {
         from: $("#f").value, to: $("#t").value, fromD: ($("#fd")||{}).value||"", toD: ($("#td")||{}).value||"", veh: $("#v").value,
         body: $(truck ? "#bd" : "#b").value, ...(truck ? parsePostDate($('#d').value) : {date:'',time:'',dateText:$('#d').value.trim()}), note: $("#n").value.trim().slice(0,1000),
         ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)}),
-        ...($("#post-phone") ? {phone: $("#post-phone").value, contactConsent: $("#post-consent").checked} : {})
+        ...($("#post-phone") ? {phone: $("#post-phone").value, contactConsent: true} : {})
     };
 }
 
-// Gerçek hesapta ilan telefonu ve yayın izni zorunludur; numara profil telefonundan önerilir.
+// Gerçek hesapta ilan telefonu zorunludur; ilanı bu bilgiyle yayınlamak numaranın gösterilmesine izin sayılır.
 function listingContactFields() {
     if (!nakgoMarket.active()) return "";
     const s = nakgoAuth.snapshot(), suggested = s.profile && s.profile.phone ? s.profile.phone : "";
-    return `<label for="post-phone">İletişim telefonu</label><input id="post-phone" type="tel" inputmode="tel" maxlength="32" required placeholder="05xx xxx xx xx" value="${esc(suggested)}"><label class="chk"><input id="post-consent" type="checkbox"> Bu numarayı ilanda yayınlama yetkim var; kayıtlı kullanıcıların Ara ve WhatsApp ile ulaşmasına izin veriyorum.</label>`;
+    return `<label for="post-phone">İletişim telefonu</label><input id="post-phone" type="tel" inputmode="tel" maxlength="32" required placeholder="05xx xxx xx xx" value="${esc(suggested)}"><p class="field-note">Numaran ilanda kayıtlı kullanıcılara Ara ve WhatsApp için gösterilir.</p>`;
 }
 // İlçe isteğe bağlıdır; liste seçili şehre göre yenilenir.
 const districtField = id => `<label>İlçe (isteğe bağlı)</label><select id="${id}"></select>`;
@@ -5636,10 +5640,8 @@ function profileIdentityHTML(own,name) {
 function profileToolsHTML() {
     const saved=nakgoMarket.active()?nakgoFavorites.state():null;
     const favoriteCaption=saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
-    const messageState=nakgoMarket.active()?nakgoMessages.state().unread:null;
-    const messageCaption=messageState?(messageState.ready?(messageState.count?messageState.count+' okunmamış mesaj':'Görüşmelerin'):messageState.error||'Mesajlar yükleniyor…'):'Görüşmelerin';
+    // Uygulama içi mesajlaşma kapalı: iletişim ilan detayındaki Ara ve WhatsApp ile yapılır.
     const tools=[
-        ['messages','message','Mesajlar',messageCaption],
         ['favorites','heart','Kaydettiklerim',favoriteCaption],
         ['fuel','fuel','Mazot ve Gider Hesaplama','Yol giderini planla']
     ];
@@ -5697,7 +5699,6 @@ function renderProfile(main) {
             toast('Profilin kaydedildi');
         }
     };
-    $('#profile-messages').onclick=openInbox;
     $('#profile-fuel').onclick=()=>openCalc();
     $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
     $('#profile-map').onclick=()=>openRoadMap();
@@ -5979,7 +5980,7 @@ function openLoad(id) {
     $("#rp").onclick = () => openReport("l", l.id);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
-    $("#mg").onclick = () => {
+    if ($("#mg")) $("#mg").onclick = () => {
         if(l._remote)return nakgoMessages.openListing(l.remoteId);
         if (!contactAllowed(l)) return;
         openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => true, () => contactAllowed(l));
@@ -5996,7 +5997,7 @@ function openTruck(id) {
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openTruck(id));
     $("#close").onclick = closeSheet;
-    $("#mg").onclick = () => { if(t._remote)return nakgoMessages.openListing(t.remoteId); if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
+    if ($("#mg")) $("#mg").onclick = () => { if(t._remote)return nakgoMessages.openListing(t.remoteId); if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
     $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
     $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid) });
     bindPhoneContact(t, true);
@@ -6007,6 +6008,7 @@ function openTruck(id) {
 
 // Gerçek ilanlarda numara yalnız sunucudaki izinli iletişim fonksiyonundan alınır.
 function bindPhoneContact(item, isTruck) {
+    if (nakgoMarket.guest() && $("#wa")) { $("#call").onclick = $("#wa").onclick = () => nakgoMarket.requireAccount(); return; }
     if (!nakgoMarket.active() || !item._remote || !$("#wa")) return;
     const go = async channel => {
         if (!availableListing(item, isTruck)) return toast("İlanın süresi doldu");
@@ -6014,7 +6016,7 @@ function bindPhoneContact(item, isTruck) {
         try {
             const n = normalizeListingPhone(await nakgoAuth.listingContact(item.remoteId));
             if (account !== nakgoMarket.token()) return;
-            if (!n) return toast("Bu ilanda paylaşılan bir telefon numarası yok. Mesaj gönderebilirsin.");
+            if (!n) return toast("Bu ilanda paylaşılan bir telefon numarası yok.");
             if (!isTruck) track("c", item.id);
             window.location.href = channel === "call" ? "tel:" + n : "https://wa.me/" + n.slice(1);
         } catch (e) { toast("İlan veya iletişim izni artık geçerli değil"); }
@@ -6024,8 +6026,9 @@ function bindPhoneContact(item, isTruck) {
 }
 
 function contactDockHTML(unavailable=false,mine=false) {
-    if(nakgoMarket.guest())return '<div class="contact-dock dual-contact"><p class="contact-unavailable">'+(unavailable?'Bu ilan kapalı veya süresi dolmuş.':'Aramak veya mesaj göndermek için ücretsiz kayıt ol ya da giriş yap.')+'</p><button class="btn" id="call" '+(unavailable?'disabled':'')+'>Ara</button><button class="btn alt" id="mg" '+(unavailable?'disabled':'')+'>Mesaj gönder</button></div>';
-    if(nakgoMarket.active()){const off=unavailable||mine?'disabled':'';return '<div class="contact-dock dual-contact tri-contact">'+(unavailable?'<p class="contact-unavailable" role="status">Bu ilan kapalı veya süresi dolmuş.</p>':'')+'<button class="btn" id="call" '+off+'>Ara</button><button class="btn alt" id="wa" '+off+'>WhatsApp</button><button class="btn alt" id="mg" '+off+'>Mesaj</button></div>';}
+    const phoneDock=(off,note)=>'<div class="contact-dock dual-contact phone-contact">'+(note?'<p class="contact-unavailable" role="status">'+note+'</p>':'')+'<button class="btn contact-call" id="call" '+off+'><span>'+uiIcon("phone")+' Ara</span></button><button class="btn wa-btn" id="wa" '+off+'><span>'+uiIcon("message")+' WhatsApp</span></button></div>';
+    if(nakgoMarket.guest())return phoneDock(unavailable?'disabled':'',unavailable?'Bu ilan kapalı veya süresi dolmuş.':'Aramak veya WhatsApp\'tan yazmak için ücretsiz kayıt ol ya da giriş yap.');
+    if(nakgoMarket.active())return phoneDock(unavailable||mine?'disabled':'',unavailable?'Bu ilan kapalı veya süresi dolmuş.':'');
     const badge=isPrem()?"":'<b class="pm">Premium</b>';
     return `<div class="contact-dock dual-contact">${unavailable?'<p class="contact-unavailable" role="status">Bu ilan kapalı veya süresi dolmuş. Yeni görüşme başlatılamaz.</p>':""}<button class="btn contact-call" id="call" ${unavailable?"disabled":""}><span>${uiIcon("phone")} Ara</span>${badge}</button><button class="btn alt" id="mg" ${unavailable?"disabled":""}><span>${uiIcon("message")} Mesaj gönder</span>${badge}</button></div>`;
 }

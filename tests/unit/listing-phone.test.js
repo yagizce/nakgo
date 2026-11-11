@@ -10,12 +10,12 @@ module.exports = ({run,test,fs,path,ROOT}) => {
         ok(r('return postError({...'+base+',phone:"05321234567",contactConsent:true})===""'),'telefon ve izinle geçer');
         ok(r('return listingContactFields()===""'),'demo modda telefon alanı yok');
         r('nakgoMarket.sync({enabled:true,marketplace:true,ready:true,checked:true,user:{id:"u-1"},profile:{id:"u-1",display_name:"A"},recovery:false})');
-        ok(r('return nakgoMarket.active()&&listingContactFields().includes("post-consent")'),'gerçek hesapta telefon ve izin alanı');
+        ok(r('return nakgoMarket.active()&&listingContactFields().includes("post-phone")&&!listingContactFields().includes("checkbox")&&listingContactFields().includes("gösterilir")'),'gerçek hesapta telefon alanı ve bilgi notu, onay kutusu yok');
         const dock=r('return contactDockHTML(false,false)');
-        ok(dock.includes('id="call"')&&dock.includes('id="wa"')&&dock.includes('id="mg"')&&!dock.includes('hazırlanıyor'),'Ara, WhatsApp ve Mesaj açık');
-        ok((r('return contactDockHTML(false,true)').match(/disabled/g)||[]).length===3,'kendi ilanında düğmeler kapalı');
+        ok(dock.includes('id="call"')&&dock.includes('wa-btn')&&!dock.includes('id="mg"')&&!dock.includes('hazırlanıyor'),'yalnız Ara ve yeşil WhatsApp; uygulama içi mesaj yok');
+        ok((r('return contactDockHTML(false,true)').match(/disabled/g)||[]).length===2,'kendi ilanında düğmeler kapalı');
         r('nakgoMarket.sync({enabled:true,marketplace:true,ready:true,checked:true,user:null,recovery:false})');
-        ok(r('return nakgoMarket.guest()&&contactDockHTML(false,false).includes("kayıt ol")'),'misafir kayda yönlendirilir');
+        ok(r('return nakgoMarket.guest()&&contactDockHTML(false,false).includes("kayıt ol")&&!contactDockHTML(false,false).includes("id=\\"mg\\"")'),'misafir kayda yönlendirilir, mesaj düğmesi yok');
     });
     test('Telefon yalnız izinli sunucu fonksiyonundan okunur',async()=>{
         const out=[],ok=(v,m)=>out.push([!!v,m]);

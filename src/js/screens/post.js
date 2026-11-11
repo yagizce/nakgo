@@ -9,15 +9,15 @@ function postValues() {
         from: $("#f").value, to: $("#t").value, fromD: ($("#fd")||{}).value||"", toD: ($("#td")||{}).value||"", veh: $("#v").value,
         body: $(truck ? "#bd" : "#b").value, ...(truck ? parsePostDate($('#d').value) : {date:'',time:'',dateText:$('#d').value.trim()}), note: $("#n").value.trim().slice(0,1000),
         ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)}),
-        ...($("#post-phone") ? {phone: $("#post-phone").value, contactConsent: $("#post-consent").checked} : {})
+        ...($("#post-phone") ? {phone: $("#post-phone").value, contactConsent: true} : {})
     };
 }
 
-// Gerçek hesapta ilan telefonu ve yayın izni zorunludur; numara profil telefonundan önerilir.
+// Gerçek hesapta ilan telefonu zorunludur; ilanı bu bilgiyle yayınlamak numaranın gösterilmesine izin sayılır.
 function listingContactFields() {
     if (!nakgoMarket.active()) return "";
     const s = nakgoAuth.snapshot(), suggested = s.profile && s.profile.phone ? s.profile.phone : "";
-    return `<label for="post-phone">İletişim telefonu</label><input id="post-phone" type="tel" inputmode="tel" maxlength="32" required placeholder="05xx xxx xx xx" value="${esc(suggested)}"><label class="chk"><input id="post-consent" type="checkbox"> Bu numarayı ilanda yayınlama yetkim var; kayıtlı kullanıcıların Ara ve WhatsApp ile ulaşmasına izin veriyorum.</label>`;
+    return `<label for="post-phone">İletişim telefonu</label><input id="post-phone" type="tel" inputmode="tel" maxlength="32" required placeholder="05xx xxx xx xx" value="${esc(suggested)}"><p class="field-note">Numaran ilanda kayıtlı kullanıcılara Ara ve WhatsApp için gösterilir.</p>`;
 }
 // İlçe isteğe bağlıdır; liste seçili şehre göre yenilenir.
 const districtField = id => `<label>İlçe (isteğe bağlı)</label><select id="${id}"></select>`;
