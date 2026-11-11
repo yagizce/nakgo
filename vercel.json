@@ -62,7 +62,8 @@
       "codex/nakgo-retire-file-guard": false,
       "codex/nakgo-guard-replay-maintenance": false,
       "codex/nakgo-ci-unlock-safety": false,
-      "codex/nakgo-guard-approval": false
+      "codex/nakgo-guard-approval": false,
+      "claude/session-resilience": false
     }
   }
 }

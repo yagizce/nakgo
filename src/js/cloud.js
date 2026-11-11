@@ -163,7 +163,7 @@ async function initCloud() {
 // Supabase Auth is deliberately independent of the legacy host and demo records.
 // The pinned official browser SDK owns PKCE, session refresh and sign-out.
 const nakgoAuth = (() => {
-    let client = null, revision = 0, started = false;
+    let client = null, revision = 0, started = false, retryTimer = null, retryCount = 0;
     const state = {enabled:false, ready:false, checked:false, user:null, profile:null, recovery:false, error:''};
     const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
     const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'mine') render(); };
@@ -189,6 +189,14 @@ const nakgoAuth = (() => {
     const requireClient = () => { if (!client || !state.ready) throw Error('Auth unavailable'); return client; };
     const redirectTo = () => new URL('/', location.origin).href;
 
+    // A network failure is not a sign-out: keep the stored session and verify again later.
+    const retryable = e => !!e && (e.name === 'AuthRetryableFetchError' || e.status === 0 || e.status >= 500 || e instanceof TypeError);
+    function retrySync() {
+        if (retryTimer || !client) return;
+        const delay = [2000,5000,15000,30000,60000][Math.min(retryCount++,4)];
+        retryTimer = setTimeout(() => { retryTimer = null; sync().catch(error => { state.error = message(error); changed(); }); }, delay);
+    }
+    function retryNow() { if (!retryTimer) return; clearTimeout(retryTimer); retryTimer = null; sync().catch(error => { state.error = message(error); changed(); }); }
     async function sync() {
         const current = ++revision;
         const {data:{session}, error:sessionError} = await client.auth.getSession();
@@ -197,8 +205,15 @@ const nakgoAuth = (() => {
         if (!session) { state.user=null; state.profile=null; state.recovery=false; state.checked=true; changed(); return; }
         // Never use the locally cached user as proof of a valid identity.
         const {data, error} = await client.auth.getUser();
-        if (error) { if(current===revision) {state.user=null;state.profile=null;} throw error; }
+        if (error) {
+            if (current===revision) {
+                if (retryable(error)) { if (state.user?.id !== session.user?.id) {state.user=null;state.profile=null;} retrySync(); }
+                else {state.user=null;state.profile=null;}
+            }
+            throw error;
+        }
         if (current !== revision) return;
+        retryCount = 0; clearTimeout(retryTimer); retryTimer = null;
         const user = data.user;
         state.user = {id:user.id, email:user.email || ''};
         state.profile = null; state.checked=true; changed();
@@ -253,8 +268,15 @@ const nakgoAuth = (() => {
             }
         };
         try {
-            const response = await window.fetch('/api/auth/config', {cache:'no-store', signal:timeoutSignal(8000)});
-            if (!response.ok) return;
+            let response = null;
+            // Slow mobile starts must not leave a signed-in user in guest mode for the whole visit.
+            for (const wait of [0,1500,4000]) {
+                if (wait) await new Promise(done => setTimeout(done, wait));
+                try { response = await window.fetch('/api/auth/config', {cache:'no-store', signal:timeoutSignal(8000)}); }
+                catch (error) { response = null; continue; }
+                if (response.ok || response.status < 500) break;
+            }
+            if (!response?.ok) return;
             const config = await response.json();
             if (!configOK(config)) return;
             state.enabled = true; state.marketplace = config.marketplaceEnabled === true; changed();
@@ -277,6 +299,7 @@ const nakgoAuth = (() => {
                 },0);
             });
             state.ready = true;
+            try { window.addEventListener?.('online', retryNow); document.addEventListener?.('visibilitychange', () => { if (document.visibilityState === 'visible') retryNow(); }); } catch(e) { }
             let googleReturn=false;
             try {googleReturn=sessionStorage.getItem('ng-google-return')==='1';sessionStorage.removeItem('ng-google-return');} catch(e) { }
             if(googleReturn) {tab='me';setNav();}
