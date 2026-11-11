@@ -31,6 +31,12 @@ set local role authenticated;
 do $$ begin
  if exists(select 1 from public.listings where id=current_setting('nakgo.exp_id')::bigint) then raise exception 'FAIL expired listing readable'; end if;
  if exists(select 1 from public.nakgo_public_listings() p where p.id=current_setting('nakgo.exp_id')::bigint) then raise exception 'FAIL expired listing public'; end if;
+ begin perform public.nakgo_set_favorite(current_setting('nakgo.exp_id')::bigint,true); raise exception 'FAIL favorite on expired listing';
+ exception when insufficient_privilege then null; end;
+ begin perform public.nakgo_open_conversation(current_setting('nakgo.exp_id')::bigint); raise exception 'FAIL message on expired listing';
+ exception when insufficient_privilege then null; end;
+ begin perform public.nakgo_request_transport(current_setting('nakgo.exp_id')::bigint); raise exception 'FAIL transport request on expired listing';
+ exception when check_violation then null; end;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.exp_owner'),true);

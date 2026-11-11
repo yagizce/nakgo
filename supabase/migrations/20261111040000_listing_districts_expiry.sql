@@ -49,4 +49,14 @@ language sql stable security definer set search_path='' as $$
 $$;
 revoke all on function public.nakgo_public_listings(bigint) from public;
 grant execute on function public.nakgo_public_listings(bigint) to anon, authenticated;
+
+-- New messages, transport requests and favorites need an unexpired listing.
+-- Existing conversations and requests keep working.
+do $$ declare f regprocedure; d text; begin
+ foreach f in array array['public.nakgo_open_conversation(bigint)','public.nakgo_request_transport(bigint)','public.nakgo_set_favorite(bigint,boolean)']::regprocedure[] loop
+  d:=pg_get_functiondef(f);
+  if (length(d)-length(replace(d,'l.status<>''active'' or ','')))/length('l.status<>''active'' or ')<>1 then raise exception 'Unexpected definition: %',f;end if;
+  execute replace(d,'l.status<>''active'' or ','l.status<>''active'' or l.expires_at<=now() or ');
+ end loop;
+end $$;
 commit;
