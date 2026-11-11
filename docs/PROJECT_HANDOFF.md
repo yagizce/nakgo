@@ -103,7 +103,7 @@ Logo/splash/ikonları veya ürün alanları sebepsiz değiştirilmez.
 | [src/js/data.js](../src/js/data.js) | Veri normalizasyonu, tarih/metin ve form kuralları |
 | [src/js/screens/post.js](../src/js/screens/post.js), [src/js/ui/post-draft.js](../src/js/ui/post-draft.js) | İlan formu, adımlar ve hesaba göre taslak |
 | [src/js/features/listings.js](../src/js/features/listings.js) | Kart, düzenleme, kapatma/arşiv, süre ve ilan davranışı |
-| [src/js/features/offers.js](../src/js/features/offers.js), [src/js/screens/offers.js](../src/js/screens/offers.js) | Demo iş davranışı ve gerçek hesap iş ekranı |
+| [src/js/features/offers.js](../src/js/features/offers.js) | Bildirimler, rota alarmı ve demo sohbet (İşlerim ekranı ve taşıma talebi akışı kaldırıldı) |
 | [src/js/features/account.js](../src/js/features/account.js) | Hesap, özel belge başvuruları ve nakgoDocuments durumu |
 | [src/js/screens/profile.js](../src/js/screens/profile.js), [src/js/screens/admin.js](../src/js/screens/admin.js) | Profil, rol görünürlüğü ve yönetici paneli |
 | [src/js/screens/inbox.js](../src/js/screens/inbox.js) | Görüşme/mesaj arayüzü |

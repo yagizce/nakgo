@@ -21,7 +21,7 @@ async function openAdminPanel() {
     if(!nakgoMarket.active())return;
     const generation=++adminPanelGeneration,account=nakgoMarket.token(), body=$('#sheetBody');
     let section='overview',offset=0,search='',request=0;
-    const titles={overview:'Genel bakış',users:'Kullanıcılar',listings:'İlanlar',audit:'Belge işlem geçmişi',moderation:'Yönetim işlem geçmişi'};
+    const titles={overview:'Genel bakış',users:'Kullanıcılar',listings:'İlanlar',moderation:'Yönetim işlem geçmişi'};
     const valid=()=>generation===adminPanelGeneration&&account===nakgoMarket.token()&&body.dataset.k==='admin';
     const date=value=>new Date(value).toLocaleString('tr-TR');
     body.dataset.k='admin';$('#sheet').classList.add('open');
@@ -38,8 +38,7 @@ async function openAdminPanel() {
             const data=await nakgoAuth.adminPage(section,offset,search);
             if(!valid()||ticket!==request)return;
             if(section==='overview'){
-                frame('<h2>Genel bakış</h2><div class="stat profile-stats">'+[['users','Kullanıcı'],['listings','Aktif ilan'],['documents','Bekleyen belge'],['jobs','Devam eden iş']].map(([key,label])=>'<div><b>'+esc(String(data[key]))+'</b><span>'+label+'</span></div>').join('')+'</div><button class="chip" id="admin-documents">Belge incelemelerine git</button><p>Belge incelemek için ayrıca inceleyici yetkisi gerekir. Ortaklar kendi hesaplarıyla giriş yapar.</p><button class="chip" id="admin-refresh">Yenile</button>',true);
-                $('#admin-documents').onclick=()=>{closeSheet();tab='me';setNav();render();nakgoDocuments.refresh();};
+                frame('<h2>Genel bakış</h2><div class="stat profile-stats">'+[['users','Kullanıcı'],['listings','Aktif ilan']].map(([key,label])=>'<div><b>'+esc(String(data[key]))+'</b><span>'+label+'</span></div>').join('')+'</div><button class="chip" id="admin-refresh">Yenile</button>',true);
                 $('#admin-refresh').onclick=load;return;
             }
             const rows=data.slice(0,20),more=data.length>20;
@@ -63,7 +62,7 @@ async function openAdminPanel() {
         ++request;
         const kind=section==='users'?'user':'listing',action=kind==='user'?(row.suspended?'resume':'suspend'):(row.removed?'restore':'remove');
         const label=({suspend:'Faaliyetleri askıya al',resume:'Askıyı kaldır',remove:'İlanı yayından kaldır',restore:'Kaldırma engelini aç'})[action];
-        const explanation=({suspend:'Yeni ilan, mesaj, belge ve taşıma talebi işlemleri durdurulur. Hesaba giriş ve mevcut işlerin teslim adımları devam eder. Mevcut ilanlar otomatik kaldırılmaz.',resume:'Hesabın yeni işlem yapmasına yeniden izin verilir.',remove:'İlan yayından kalkar ve sahibi yeniden yayımlayamaz. Mevcut iş ve görüşme geçmişi korunur.',restore:'İlan kapalı duruma alınır. Sahibi tarihini kontrol ederek yeniden yayımlayabilir.'})[action];
+        const explanation=({suspend:'Yeni ilan ve mesaj işlemleri durdurulur. Hesaba giriş devam eder. Mevcut ilanlar otomatik kaldırılmaz.',resume:'Hesabın yeni işlem yapmasına yeniden izin verilir.',remove:'İlan yayından kalkar ve sahibi yeniden yayımlayamaz. Mevcut iş ve görüşme geçmişi korunur.',restore:'İlan kapalı duruma alınır. Sahibi tarihini kontrol ederek yeniden yayımlayabilir.'})[action];
         const target=kind==='listing'?'<p id="admin-target">İlan #'+esc(String(row.id))+' · '+esc(row.from_city)+' → '+esc(row.to_city)+'</p>':'';
         frame('<h2>'+label+'</h2><b>'+esc(row.display_name||row.owner_label||'')+'</b>'+target+'<p>'+explanation+'</p><form id="admin-confirm"><label for="admin-reason">İşlem gerekçesi (zorunlu)</label><textarea id="admin-reason" minlength="3" maxlength="500" required></textarea><p id="admin-action-error" role="alert"></p><button class="btn" id="admin-submit" type="submit">'+label+'</button><button class="chip" id="admin-cancel" type="button">Vazgeç</button></form>');
         $('#admin-cancel').onclick=load;

@@ -1,13 +1,13 @@
 /**
  * İlan listesi ve ilanlarım
- * Liste kartları, filtre, sıralama, yakınımda, karşılaştırma, ilan yönetimi; kendi ilanlarını düzenleme, kapatma ve silme.
+ * Liste kartları, filtre, sıralama, yakınımda, ilan yönetimi; kendi ilanlarını düzenleme, kapatma ve silme.
  */
 
 // ===== İlan listesi =====
-// Liste kartları, filtre, sıralama, yakınımda, iki ilanı karşılaştırma, piyasa fiyatı.
+// Liste kartları, filtre, sıralama, yakınımda.
 
 function F0() {
-    return { veh: [], body: [], date: [], from: "", to: "", tonMin: "", tonMax: "", rate: 0, fav: false, ok: false };
+    return { veh: [], body: [], date: [], from: "", to: "", tonMin: "", tonMax: "", fav: false };
 }
 
 function routeSearch() {
@@ -40,18 +40,13 @@ function match(x, isT) {
         return 0;
     if (F.date.length && !F.date.includes(dateBucket(x)))
         return 0;
-    const rr = x.uid && ratingOf(x.uid) ? ratingOf(x.uid).avg : x.rate;
-    if (F.rate && !(rr >= F.rate))
-        return 0;
     if (F.fav && !isFavorite(x))
-        return 0;
-    if (F.ok && isT && !vok(x))
         return 0;
 return 1;
 }
 
 function fcount() {
-    return ["veh", "body", "date"].filter(k => F[k].length).length + (F.from ? 1 : 0) + (F.to ? 1 : 0) + ((F.tonMin !== "" || F.tonMax !== "") ? 1 : 0) + (F.rate ? 1 : 0) + (F.fav ? 1 : 0) + (F.ok ? 1 : 0);
+    return ["veh", "body", "date"].filter(k => F[k].length).length + (F.from ? 1 : 0) + (F.to ? 1 : 0) + ((F.tonMin !== "" || F.tonMax !== "") ? 1 : 0) + (F.fav ? 1 : 0);
 }
 
 function activeChips() {
@@ -63,12 +58,8 @@ function activeChips() {
         a.push(["to", "", "Varış: " + F.to]);
     if (F.tonMin !== "" || F.tonMax !== "")
         a.push(["ton", "", (F.tonMin || 0) + "–" + (F.tonMax || "∞") + " ton"]);
-    if (F.rate)
-        a.push(["rate", "", "★ " + F.rate + "+"]);
     if (F.fav)
         a.push(["fav", "", "♥ Kayıtlılar"]);
-    if (F.ok)
-        a.push(["ok", "", "✓ Belgeli"]);
     return a;
 }
 
@@ -79,7 +70,7 @@ function rmF(k, v) {
         F.tonMin = F.tonMax = "";
     }
     else
-        F[k] = k === "rate" ? 0 : "";
+        F[k] = "";
     render();
 }
 
@@ -90,12 +81,12 @@ const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
     ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
-    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · " + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
+    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
     <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
-    <div class="listing-footer"><span class="listing-trust">${starTxt(l)}${vbadge(l.uid ? lvU(l.uid) : 0)}<span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
+    <div class="listing-footer"><span class="listing-trust"><span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b>${vbadge(lvT(t))}</span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust">${starTxt(t)}<span>${nearTxt(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b></span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust"><span>${nearTxt(t)}${ago(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
@@ -107,7 +98,7 @@ function openFilter() {
         + `<div class="row">${sel("from", "Nereden", cities)}${sel("to", "Nereye", cities)}</div>`
         + `<div class="row"><div><label>${isT ? "Boş kapasite" : "Yük"}: en az (ton)</label><input data-n="tonMin" type="number" inputmode="decimal" value="${F.tonMin}"></div><div><label>En çok (ton)</label><input data-n="tonMax" type="number" inputmode="decimal" value="${F.tonMax}"></div></div>`
         + grp("date", "Yükleme günü", ["Bugün", "Yarın", "İleri tarih"])
-        + `<label>Kayıtlılar</label><div class="chips"><button class="chip ${F.fav ? "on" : ""}" id="ff">♥ Sadece kayıtlı olanlar</button>${isT ? `<button class="chip ${F.ok ? "on" : ""}" id="fo">✓ Sadece belgeli taşıyıcılar</button>` : ""}</div><label>Puan</label><div class="chips">${[[0, "Hepsi"], [4.5, "★ 4.5+"], [4.8, "★ 4.8+"]].map(([v, t]) => `<button class="chip ${F.rate === v ? "on" : ""}" data-r="${v}">${t}</button>`).join("")}</div><button class="btn" id="fs" style="position:sticky;bottom:0"></button>`;
+        + `<label>Kayıtlılar</label><div class="chips"><button class="chip ${F.fav ? "on" : ""}" id="ff">♥ Sadece kayıtlı olanlar</button></div><button class="btn" id="fs" style="position:sticky;bottom:0"></button>`;
     const upd = () => {
         $("#fs").textContent = cnt() + (isT ? " boş aracı göster" : " ilanı göster");
     };
@@ -124,17 +115,6 @@ function openFilter() {
         F[e.dataset.n] = e.value;
         upd();
     });
-    B.querySelectorAll("[data-r]").forEach(b => b.onclick = () => {
-        F.rate = +b.dataset.r;
-        B.querySelectorAll("[data-r]").forEach(x => x.classList.toggle("on", x === b));
-        upd();
-    });
-    if ($("#fo"))
-        $("#fo").onclick = e => {
-            F.ok = !F.ok;
-            e.currentTarget.classList.toggle("on", F.ok);
-            upd();
-        };
     $("#ff").onclick = e => {
         F.fav = !F.fav;
         e.currentTarget.classList.toggle("on", F.fav);
@@ -181,41 +161,7 @@ function toggleNear() {
 
 const nearRow = () => nearOn ? `<div class="chips" aria-label="Yakınlık mesafesi">${[100, 250, 500, 0].map(k => `<button class="chip ${nearR === k ? "on" : ""}" data-nr="${k}">${k ? k + " km" : "Tümü"}</button>`).join("")}</div>` : "";
 
-function toggleCmp(id) {
-    const i = cmp.indexOf(id);
-    if (i >= 0)
-        cmp.splice(i, 1);
-    else {
-        cmp.push(id);
-        if (cmp.length > 2)
-            cmp.shift();
-    }
-    closeSheet();
-    render();
-    toast(i >= 0 ? "Karşılaştırmadan çıkarıldı" : cmp.length === 2 ? "2 ilan seçildi, Karşılaştır'a dokun" : "1 ilan seçildi, bir tane daha seç");
-}
-
-const cmpBar = () => cmp.length ? `<div class="cmpbar"><span>${cmp.length} ilan seçildi</span><span style="display:flex;gap:6px"><button class="chip" id="cmpx">Temizle</button>${cmp.length === 2 ? '<button class="chip on" id="cmpgo">Karşılaştır</button>' : ""}</span></div>` : "";
-
-function openCompare() {
-    const L = cmp.map(id => findIt("l",id)).filter(Boolean);
-    if (L.length < 2)
-        return toast("İki ilan seç");
-    const B = $("#sheetBody");
-    B.dataset.k = "";
-    const km = l => l.km || dist(l.from, l.to);
-    const rows = [["Yük", l => esc(l.cargo), null], ["Ağırlık", l => esc(l.ton) + " ton", null], ["Araç", l => esc(l.veh + " · " + (l.body || "—")), null], ["Mesafe", l => km(l) ? km(l) + " km" : "—", l => -km(l)], ["Yükleme", l => esc(dateLabel(l)), null], ["Puan", l => starTxt(l), rv]];
-    const cell = (i, rw) => {
-        const g = rw[1], sc = rw[2], win = sc && sc(L[0]) !== sc(L[1]) && sc(L[i]) === Math.max(sc(L[0]), sc(L[1]));
-        return `<div class="${win ? "win" : ""}">${g(L[i])}</div>`;
-    };
-    B.innerHTML = `<b style="font-size:19px">İlanları karşılaştır</b><div class="cmp"><div></div>${L.map(l => `<div class="ch">${esc(l.from)}<br>→ ${esc(l.to)}</div>`).join("")}${rows.map(rw => `<div class="rl">${rw[0]}</div>${cell(0, rw)}${cell(1, rw)}`).join("")}</div><div class="row" style="margin-top:14px">${L.map(l => `<button class="chip" data-gl="${esc(l.id)}">İlana git</button>`).join("")}</div><button class="btn alt" id="close">Kapat</button>`;
-    B.querySelectorAll("[data-gl]").forEach(b => b.onclick = () => openLoad(+b.dataset.gl));
-    $("#close").onclick = closeSheet;
-    $("#sheet").classList.add("open");
-}
-
-const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 9e9) - (listingDistance(y) || 9e9)) : sort === "rate" ? [...a].sort((x, y) => rv(y) - rv(x)) : a;
+const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 9e9) - (listingDistance(y) || 9e9)) : a;
 
 // ===== İlanlarım =====
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
@@ -368,9 +314,15 @@ function contactAllowed(x,isT=false,allowOwn=false) {
     return true;
 }
 
+// İlanın sunucuya kaydedildiği an, her cihazda Türkiye saatiyle.
+const postedAt = (x, long=false) => {
+    if (!Number.isFinite(x.ts)) return "";
+    const d=new Date(x.ts), tz={timeZone:"Europe/Istanbul"};
+    return d.toLocaleDateString("tr-TR",{...tz,day:"numeric",month:long?"long":"short",...(long?{year:"numeric"}:{})})+" "+d.toLocaleTimeString("tr-TR",{...tz,hour:"2-digit",minute:"2-digit"});
+};
 const ago = x => {
     if (!x.ts)
         return "";
     const d = Math.floor((Date.now() - x.ts) / 864e5);
-    return d < 1 ? "bugün eklendi" : d + " gün önce";
+    return (d < 1 ? "bugün eklendi" : d + " gün önce") + " · " + postedAt(x);
 };
