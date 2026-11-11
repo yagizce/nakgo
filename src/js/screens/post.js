@@ -8,10 +8,17 @@ function postValues() {
     return {
         from: $("#f").value, to: $("#t").value, fromD: ($("#fd")||{}).value||"", toD: ($("#td")||{}).value||"", veh: $("#v").value,
         body: $(truck ? "#bd" : "#b").value, ...(truck ? parsePostDate($('#d').value) : {date:'',time:'',dateText:$('#d').value.trim()}), note: $("#n").value.trim().slice(0,1000),
-        ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)})
+        ...(truck ? {cap: +$("#w").value} : {ton: +$("#w").value, cargo: $("#c").value.trim().slice(0,120)}),
+        ...($("#post-phone") ? {phone: $("#post-phone").value, contactConsent: $("#post-consent").checked} : {})
     };
 }
 
+// Gerçek hesapta ilan telefonu ve yayın izni zorunludur; numara profil telefonundan önerilir.
+function listingContactFields() {
+    if (!nakgoMarket.active()) return "";
+    const s = nakgoAuth.snapshot(), suggested = s.profile && s.profile.phone ? s.profile.phone : "";
+    return `<label for="post-phone">İletişim telefonu</label><input id="post-phone" type="tel" inputmode="tel" maxlength="32" required placeholder="05xx xxx xx xx" value="${esc(suggested)}"><label class="chk"><input id="post-consent" type="checkbox"> Bu numarayı ilanda yayınlama yetkim var; kayıtlı kullanıcıların Ara ve WhatsApp ile ulaşmasına izin veriyorum.</label>`;
+}
 // İlçe isteğe bağlıdır; liste seçili şehre göre yenilenir.
 const districtField = id => `<label>İlçe (isteğe bağlı)</label><select id="${id}"></select>`;
 function bindDistricts() {
@@ -39,7 +46,7 @@ function renderPost(m) {
             render();
         });
         if (postMode === "truck") {
-            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>${districtField("fd")}<label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>${districtField("td")}<div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" required><label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3"></textarea><button class="btn" id="go">Boş aracı yayınla</button>`;
+            m.innerHTML = PS + `<label>Nereden</label><select id="f">${opt2(cities, "İstanbul")}</select>${districtField("fd")}<label>Nereye</label><select id="t">${opt2(cities, "Ankara")}</select>${districtField("td")}<div class="row"><div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div><div><label>Boş kapasite (ton)</label><input id="w" type="number" min="0" step="any" inputmode="decimal" value="10"></div></div><label>Kasa tipi</label><select id="bd">${opt(bodies)}</select><label>Müsait olduğun tarih</label><input id="d" type="text" maxlength="32" required><label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3"></textarea>${listingContactFields()}<button class="btn" id="go">Boş aracı yayınla</button>`;
             pb();
             bindDistricts();
             const publishButton = $("#go");
@@ -72,7 +79,7 @@ function renderPost(m) {
     </div>
     <label>Yükleme tarihi</label><input id="d" type="text" maxlength="32" required>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
-    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div><button class="btn" id="go">İlanı yayınla</button>`;
+    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div>${listingContactFields()}<button class="btn" id="go">İlanı yayınla</button>`;
         pb();
         bindDistricts();
         itemsUI();
