@@ -37,7 +37,7 @@ const {parseListings}=require('../../server/whatsapp/review-parser.cjs');
  await q("insert into private.listing_moderation(listing_id,reason) values($1,'Synthetic moderation evidence')",[moderated]);
  await q("insert into private.listing_retention_holds(listing_id,reason_reference) values($1,'Synthetic hold reference')",[held]);
  for(const id of [manual,held,jobListing,conversation,moderated,wa])await age(id,30);
- await age(young,29);
+ await age(young,8); // 192h: inside the 198h archive window from 20261106020000
  const source=(await q("insert into private.wa_sources(message_id,sender,original_text,sent_at,received_at,state) values('synthetic-retention','+905000000001','Synthetic source',now(),now()-interval '31 days','done') returning id"))[0].id;
  const draft=(await q("insert into private.wa_drafts(source_id,ordinal,fields,issues,confidence,fingerprint,status,listing_id,legal_basis) values($1,1,'{\"contactPhone\":\"+905321234567\",\"description\":\"Synthetic body\"}','[]',1,repeat('a',64),'published',$2,'Synthetic legal evidence') returning id",[source,wa]))[0].id;
  await q("insert into private.wa_audit(draft_id,actor,action,before_value,created_at) values($1,$2,'publish','{\"evidence\":\"synthetic\"}',now()-interval '100 days')",[draft,admin]);
@@ -55,7 +55,7 @@ const {parseListings}=require('../../server/whatsapp/review-parser.cjs');
  ok((await row(manual)).contact_phone!==null,'rollback restores personal fields');
  ok((await q('select total_redacted from private.listing_retention_state'))[0].total_redacted===0,'rollback restores progress');
  await q('insert into private.account_moderation(user_id,suspended) values($1,true)',[user]);
- ok((await redact())[0].n===2,'exact 30-day boundary: manual and WhatsApp cleaned, suspended owner supported');
+ ok((await redact())[0].n===2,'retention boundary: manual and WhatsApp cleaned, young listing kept, suspended owner supported');
  for(const id of [manual,wa]){
   const l=await row(id);
   ok(l.status==='archived'&&l.content_redacted_at!==null,'archived tombstone retained');
@@ -63,18 +63,23 @@ const {parseListings}=require('../../server/whatsapp/review-parser.cjs');
   ok((await as('authenticated',admin,'select id from public.listings where id=$1',[id])).length===0,'other account cannot read redacted listing');
   await fail(()=>as('authenticated',admin,'select public.nakgo_listing_contact($1)',[id]),'42501');
  }
- ok((await row(young)).content_redacted_at===null,'29-day listing untouched');
+ ok((await row(young)).content_redacted_at===null,'listing inside the 198h window untouched');
  ok(JSON.stringify(await q('select * from public.listings where id=any($1::bigint[]) order by id',[[held,jobListing,conversation,moderated]]))===protectedBefore,'held, job, conversation and moderation rows byte-for-byte preserved');
  await service('purge');
  ok((await q('select original_text,sender from private.wa_sources where id=$1',[source]))[0].original_text===null,'old source content removed');
  ok((await q('select fields,status,legal_basis from private.wa_drafts where id=$1',[draft]))[0].status==='purged','redacted linked draft cannot republish');
- ok(JSON.stringify(await q('select * from private.wa_audit'))===evidence,'audit evidence preserved even past 90 days');
+ const auditAfter=await q('select id,draft_id,actor,action,before_value,created_at from private.wa_audit order by id');
+ ok(JSON.stringify(auditAfter.map(a=>[a.id,a.draft_id,a.actor,a.action,String(a.created_at)]))===JSON.stringify(JSON.parse(evidence).map(a=>[a.id,a.draft_id,a.actor,a.action,String(new Date(a.created_at))]))&&!JSON.stringify(auditAfter).includes('synthetic'),'audit actions kept past 90 days without erased content (20261106050000)');
  ok(JSON.stringify(await q('select * from private.wa_publication_permissions'))===permission,'permission evidence preserved');
  ok((await redact())[0].n===0,'repeated Cron is idempotent');
- ok((await q("select count(*)::int n from private.listing_lifecycle_audit where action='content_redacted_30d'"))[0].n===2,'one audit marker per redaction without content copies');
+ ok((await q("select count(*)::int n from private.listing_lifecycle_audit where action='routine_content_redacted'"))[0].n===2,'one audit marker per redaction without content copies');
  await q('update private.account_moderation set suspended=false');
- await fail(()=>as('authenticated',user,"update public.listings set status='active',contact_phone='05321234567',contact_consent=true where id=$1",[manual]),'42501');
- await fail(()=>as('authenticated',user,"update public.listings set note='restored' where id=$1",[manual]),'42501');
+ // Redaction also clears owner_id (20261106070000), so the former owner's update is either rejected or matches no row.
+ for(const sql of ["update public.listings set status='active',contact_phone='05321234567',contact_consent=true where id=$1","update public.listings set note='restored' where id=$1"]){
+  const before=JSON.stringify(await row(manual));
+  try{await as('authenticated',user,sql,[manual]);}catch(e){if(e.code!=='42501')throw e;}
+  ok(JSON.stringify(await row(manual))===before,'former owner cannot restore redacted content');
+ }
  await fail(()=>as('postgres',admin,"update public.listings set status='active' where id=$1",[wa]),'42501');
  const stats=(await as('authenticated',admin,'select public.nakgo_retention_status() value'))[0].value;
  ok(stats.redacted===2&&stats.held===4&&stats.due===0&&stats.state.last_success_at,'aggregate status reports held and successful cleanup');
