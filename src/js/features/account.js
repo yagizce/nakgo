@@ -138,7 +138,7 @@ function openOnb() {
             $("#ob-next").focus({ preventScroll: true });
         }
         else {
-            el.innerHTML = `${top(i)}<div class="ob-body ob-roles"><h2 id="ob-title">Seni tanıyalım</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilinden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="role-txt"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></span></button><button class="rolebtn" id="r-o"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span class="role-txt"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></span></button><p class="ob-note">Kayıt olmadan ilanlara göz atabilirsin. Aramak ve mesaj göndermek için ücretsiz hesap gerekir.</p></div>${dots(3)}`;
+            el.innerHTML = `${top(i)}<div class="ob-body ob-roles"><h2 id="ob-title">Seni tanıyalım</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilinden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="role-txt"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></span></button><button class="rolebtn" id="r-o"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span class="role-txt"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></span></button><p class="ob-note">Kayıt olmadan ilanlara göz atabilirsin. Aramak veya WhatsApp'tan yazmak için ücretsiz hesap gerekir.</p></div>${dots(3)}`;
             $("#r-c").onclick = () => setRole("carrier", 1);
             $("#r-o").onclick = () => setRole("owner", 1);
         }
@@ -285,7 +285,7 @@ function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
     return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">${nakgoMarket.active()?"Profilin, iletişim bilgilerin, ilanların, kayıtlı ilanların, rota alarmların ve mesajların hesabında saklanır. Uygulama şu an ücretsiz.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
+        <p class="estimate-note">${nakgoMarket.active()?"Profilin, iletişim bilgilerin, ilanların, kayıtlı ilanların ve rota alarmların hesabında saklanır. Uygulama şu an ücretsiz.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
@@ -336,7 +336,7 @@ function openAuth(kind='signin') {
             <button type="button" class="auth-provider" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3c-1.4.1-3 1-3.8 2-.7.8-1.2 2-1 3.2 1.5.1 3-.7 3.9-1.8.8-.9 1.2-2.2.9-3.4ZM20 16.3c-.4 1-1 2.3-1.8 3.4-.8 1-1.7 2.1-3 2.1-1.2 0-1.6-.8-3.1-.8-1.6 0-2 .8-3.2.8-1.3 0-2.2-1.1-3-2.2C3.5 16.4 3 11.8 4.5 9.5c1-1.6 2.6-2.5 4.1-2.5 1.3 0 2.4.8 3.2.8.7 0 2-.9 3.5-.8 1.3.1 2.6.8 3.4 1.9-3 1.6-2.5 5.8 1.3 7.4Z"/></svg><span>Apple ile devam et</span><small>Yakında</small></button></div>
             <p class="auth-switch-copy">${kind==='signin'?'Henüz hesabın yok mu?':'Zaten hesabın var mı?'}</p><button class="btn auth-switch" id="${kind==='signin'?'account-register':'account-back'}">${kind==='signin'?'Kayıt ol':'Giriş yap'}</button>`:
             '<p class="auth-switch-copy">Hesabına dönmeye hazır mısın?</p><button class="btn auth-switch" id="account-back">Giriş yap</button>'}
-            <p class="auth-preview-note">Test sürümü · E-posta ve Google ile giriş açık.<br>Test hesabınla ilan ve mesajlarını kullanabilirsin.</p>
+            <p class="auth-preview-note">Test sürümü · E-posta ve Google ile giriş açık.<br>Test hesabınla ilan verebilir, ilanlara Ara ve WhatsApp ile ulaşabilirsin.</p>
         </section></div>`:'<button class="btn alt" id="close">Kapat</button>'}`;
     const form=$('#account-form'), feedback=$('#account-feedback'), button=$('#account-submit');
     const google=$('#account-google');
