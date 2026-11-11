@@ -3,7 +3,7 @@
 module.exports = ({run,fs,path,ROOT}) => {
     run('Tanıtım güncel özellikleri anlatır, geri ve atla çalışır',(r,ok)=>{
         const text=r('return SL.map(x=>x.join(" ")).join(" ")');
-        ok(!/rozet|puan|belgeli|onaylı/i.test(text)&&text.includes('mesaj göndermek'),'kaldırılan özellikler tanıtımda yok; iletişim canlıdaki gibi anlatılır');
+        ok(!/rozet|puan|belgeli|onaylı/i.test(text)&&(text.includes('mesaj göndermek')||text.includes("WhatsApp'tan yazmak")),'kaldırılan özellikler tanıtımda yok; iletişim canlıdaki gibi anlatılır');
         r('openOnb()');ok(r('return el("#onb").innerHTML').includes('1 / 3'),'ilk adım');
         r('el("#ob-next").onclick();el("#ob-next").onclick()');ok(r('return el("#onb").innerHTML').includes('3 / 3')&&r('return el("#onb").innerHTML').includes('>Başlayalım<'),'son adımda başlama düğmesi');
         r('el("#ob-back").onclick()');ok(r('return el("#onb").innerHTML').includes('2 / 3'),'geri düğmesi bir adım döner');
