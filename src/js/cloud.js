@@ -444,6 +444,32 @@ const nakgoAuth = (() => {
         if(!Number.isSafeInteger(id)||id<1||typeof saved!=='boolean')throw Error('Invalid favorite');
         return listingResult(await requireClient().rpc('nakgo_set_favorite',{p_listing_id:id,p_saved:saved}),account);
     }
+    // Rota alarmları: yazma yalnız sunucu fonksiyonlarıyla; sınır ve tekrar kontrolü orada.
+    const alertColumns='id,kind,from_city,to_city,vehicle,body,active,seen_at,created_at';
+    const alertText=v=>typeof v==='string'&&v.trim()?v.trim().slice(0,60):null;
+    async function listRouteAlerts() {
+        const account=listingAccount();
+        return listingResult(await requireClient().from('route_alerts').select(alertColumns).order('id',{ascending:false}).limit(20),account);
+    }
+    async function saveRouteAlert(input) {
+        const account=listingAccount();
+        if(!['load','truck'].includes(input?.kind)||(!alertText(input.from)&&!alertText(input.to)))throw Error('Invalid route alert');
+        return listingResult(await requireClient().rpc('nakgo_save_route_alert',{p_kind:input.kind,p_from:alertText(input.from),p_to:alertText(input.to),p_vehicle:alertText(input.veh),p_body:alertText(input.body)}),account);
+    }
+    async function setRouteAlert(id,active) {
+        const account=listingAccount();
+        if(!Number.isSafeInteger(id)||id<1||typeof active!=='boolean')throw Error('Invalid route alert');
+        return listingResult(await requireClient().rpc('nakgo_set_route_alert',{p_id:id,p_active:active}),account);
+    }
+    async function removeRouteAlert(id) {
+        const account=listingAccount();
+        if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid route alert');
+        return listingResult(await requireClient().rpc('nakgo_remove_route_alert',{p_id:id}),account);
+    }
+    async function routeAlertsSeen() {
+        const account=listingAccount();
+        return listingResult(await requireClient().rpc('nakgo_route_alerts_seen'),account);
+    }
     const messageResult=async(q,account)=>listingResult(await (typeof q.abortSignal==='function'&&typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?q.abortSignal(AbortSignal.timeout(15000)):q),account);
     const conversationColumns='id,listing_id,owner_id,guest_id,owner_label,guest_label,listing_kind,from_city,to_city,last_message_id,last_message_body,last_sender_id,owner_read_id,guest_read_id,unread_count,created_at,updated_at';
     const messageColumns='id,conversation_id,sender_id,client_nonce,body,created_at';
@@ -486,7 +512,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,createListing,updateListing,listFavorites,setFavorite,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
+    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -511,7 +537,7 @@ const nakgoMarket = (() => {
             generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
             if(!locked() && (next||nextGuest)) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
             const startup=!account&&!guestMode;
-            empty(); account=next; guestMode=nextGuest; nakgoFavorites.reset(); nakgoMessages.reset(); nakgoAdminAccess.reset();
+            empty(); account=next; guestMode=nextGuest; nakgoFavorites.reset(); nakgoAlerts.reset(); nakgoMessages.reset(); nakgoAdminAccess.reset();
             if(!next && !nextGuest && demo) {
                 applyState(demo.data); ({incoming,carriers,names,appr,events,allO,seen}=demo); demo=null;
             }
@@ -521,7 +547,7 @@ const nakgoMarket = (() => {
         }
         if(next && s.profile && !loaded && !busy) refresh();
         if(nextGuest && s.ready && s.checked && !loaded && !busy) refresh();
-        if(next && s.profile)nakgoFavorites.ensure();
+        if(next && s.profile){nakgoFavorites.ensure();nakgoAlerts.ensure();}
     }
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
@@ -584,7 +610,7 @@ const nakgoMarket = (() => {
         if(guestMode)return '<p class="demo-note" role="status">'+(error?esc(error):'İlanları herkes görebilir. Aramak, mesaj göndermek ve ilan vermek için ücretsiz kayıt ol.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-signin">Kayıt ol / Giriş yap</button><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+(feedMore?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
         if(!active())return '';
-        return '<p class="demo-note" role="status">'+(error?esc(error):'Test ortamı · İlanlar, fotoğraflar, taşıma talepleri, favorilerin ve mesajların hesabında saklanır.')+'</p>'+
+        return '<p class="demo-note" role="status">'+(error?esc(error):'İlanların, fotoğrafların, kayıtlı ilanların, rota alarmların ve mesajların hesabında saklanır.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
     }
     return {active,guest,locked,requireAccount,token,sync,refresh,create,update,pending,controls,mapped};
@@ -660,6 +686,57 @@ const nakgoFavorites = (() => {
         if($('#favorites-more'))$('#favorites-more').onclick=()=>refreshPage(true);
     }
     return {reset,state,has,disabled,listings,unavailable,refresh,refreshPage,ensure,setSaved,controls,bind,updateListing};
+})();
+
+// Hesaba bağlı rota alarmları. Eşleşme, kullanıcının zaten okuyabildiği ilanlarda cihazda yapılır;
+// "görüldü" zamanı sunucuda tutulur, böylece aynı ilan başka cihazda tekrar bildirilmez.
+const nakgoAlerts=(()=>{
+    let rows=[],ready=false,busy=false,error='',working=false,version=0;
+    const allowed=()=>{const s=nakgoAuth.snapshot();return nakgoMarket.active()&&s.user&&s.profile&&!s.recovery;};
+    const reset=()=>{rows=[];ready=busy=working=false;error='';version++;};
+    const state=()=>({ready,busy,error,working,count:rows.length});
+    const list=()=>rows.map(r=>({...r}));
+    const problem=e=>({'23505':'Bu alarm zaten kurulu.','54000':'En fazla 20 rota alarmı kurabilirsin. Önce birini kaldır.','42501':'Bu işlem için hesabının doğrulanmış ve aktif olması gerekir.'}[e?.code]||'Alarm kaydedilemedi. Bağlantını kontrol edip tekrar dene.');
+    async function refresh() {
+        if(!allowed()||busy)return;
+        const account=nakgoMarket.token(),v=version;busy=true;error='';
+        try{const data=await nakgoAuth.listRouteAlerts();if(account!==nakgoMarket.token()||v!==version)return;if(!Array.isArray(data))throw Error('Invalid alerts');rows=data;ready=true;}
+        catch(e){if(account===nakgoMarket.token()&&v===version)error='Rota alarmların yüklenemedi. Yeniden dene.';}
+        finally{if(account===nakgoMarket.token()&&v===version){busy=false;render();}}
+    }
+    const ensure=()=>{if(allowed()&&!ready&&!busy&&!error)refresh();};
+    async function write(operation,done) {
+        if(!allowed()||working)return false;
+        const account=nakgoMarket.token();working=true;render();
+        try{await operation();if(account!==nakgoMarket.token())return false;version++;busy=false;ready=false;await refresh();if(done)toast(done);return true;}
+        catch(e){if(account===nakgoMarket.token())toast(problem(e));return false;}
+        finally{if(account===nakgoMarket.token()){working=false;render();}}
+    }
+    const add=input=>write(()=>nakgoAuth.saveRouteAlert(input),'Alarm kuruldu: '+(input.from||'Her yer')+' → '+(input.to||'Her yer'));
+    const toggle=(id,active)=>write(()=>nakgoAuth.setRouteAlert(id,active),active?'Alarm açıldı':'Alarm durduruldu');
+    const remove=id=>write(()=>nakgoAuth.removeRouteAlert(id),'Alarm kaldırıldı');
+    // Yalnız alarm kurulduktan sonra yayınlanan, açık ve başkasına ait ilanlar eşleşir.
+    function matches() {
+        if(!allowed()||!ready)return [];
+        const out=[];
+        for(const a of rows) {
+            if(!a.active)continue;
+            const isT=a.kind==='truck',since=Date.parse(a.created_at),seenAt=Date.parse(a.seen_at);
+            for(const l of isT?trucks:loads) {
+                if(l.mine||!Number.isFinite(l.ts)||!(l.ts>since)||!availableListing(l,isT))continue;
+                if((a.from_city&&l.from!==a.from_city)||(a.to_city&&l.to!==a.to_city)||(a.vehicle&&l.veh!==a.vehicle)||(a.body&&l.body!==a.body))continue;
+                out.push({alert:a,listing:l,fresh:l.ts>seenAt});
+            }
+        }
+        return out;
+    }
+    async function markSeen() {
+        if(!allowed()||!ready||!rows.some(a=>a.active))return;
+        const account=nakgoMarket.token(),v=version,at=new Date().toISOString();
+        try{await nakgoAuth.routeAlertsSeen();if(account===nakgoMarket.token()&&v===version){rows=rows.map(a=>a.active?{...a,seen_at:at}:a);bell();}}
+        catch(e){}
+    }
+    return {reset,state,list,refresh,ensure,add,toggle,remove,matches,markSeen};
 })();
 
 // Private conversations never enter yy2 or the legacy demo chat store.

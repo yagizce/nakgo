@@ -49,6 +49,15 @@ function listBind() {
     M.querySelectorAll("[data-ro]").forEach(b => b.onclick = () => setRole(b.dataset.ro, 0));
     if ($("#onb2"))
         $("#onb2").onclick = openOnb;
+    if ($("#ra-new"))
+        $("#ra-new").onclick = () => openAlertForm();
+    if ($("#ra-retry"))
+        $("#ra-retry").onclick = () => nakgoAlerts.refresh();
+    M.querySelectorAll("[data-ra-toggle]").forEach(b => b.onclick = () => nakgoAlerts.toggle(+b.dataset.raToggle, b.dataset.raOn === "1"));
+    M.querySelectorAll("[data-ra-del]").forEach(b => b.onclick = () => {
+        if (window.confirm("Bu rota alarmı kaldırılsın mı?"))
+            nakgoAlerts.remove(+b.dataset.raDel);
+    });
     M.querySelectorAll("[data-ad]").forEach(b => b.onclick = () => {
         alerts = alerts.filter(x => String(x.id) !== b.dataset.ad);
         save();
@@ -276,7 +285,7 @@ function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
     return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">${nakgoMarket.active()?"Profil, iletişim, ilanların, taşıma taleplerin, favorilerin ve mesajların hesabında saklanır. Belgelerin özel başvuruda saklanır; onayı yetkili inceleyici verir. Ödeme henüz kullanıma hazır değil.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
+        <p class="estimate-note">${nakgoMarket.active()?"Profilin, iletişim bilgilerin, ilanların, kayıtlı ilanların, rota alarmların ve mesajların hesabında saklanır. Uygulama şu an ücretsiz.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
