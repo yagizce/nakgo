@@ -5,6 +5,7 @@
 
 function render() {
  const m = $("#main"); bell();
+ if (ADMIN_HOST) { m.dataset.screen = "admin"; return renderAdminHost(m); }
  m.dataset.screen = tab;
  if(tab === "list") renderListings(m);
  else if(tab === "post") renderPost(m);

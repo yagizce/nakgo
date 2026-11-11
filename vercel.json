@@ -71,7 +71,8 @@
       "claude/profile-districts": false,
       "claude/whatsapp-core": false,
       "claude/test-maintenance-contact-copy": false,
-      "claude/cleanup": false
+      "claude/cleanup": false,
+      "claude/admin-host": false
     }
   }
 }

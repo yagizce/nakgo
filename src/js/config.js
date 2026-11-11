@@ -162,3 +162,6 @@ const DISTRICTS = {
 "Yozgat":["Akdağmadeni","Aydıncık","Boğazlıyan","Çandır","Çayıralan","Çekerek","Kadışehri","Merkez","Saraykent","Sarıkaya","Sorgun","Şefaatli","Yenifakılı","Yerköy"],
 "Zonguldak":["Alaplı","Çaycuma","Devrek","Ereğli","Gökçebey","Kilimli","Kozlu","Merkez"]
 };
+
+// admin.* adresinde uygulama yalnız yönetici paneli olarak açılır (aynı kod, aynı sunucu yetkisi).
+const ADMIN_HOST = typeof location !== "undefined" && /^admin\./.test(location.hostname);
