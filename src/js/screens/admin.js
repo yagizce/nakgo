@@ -43,6 +43,7 @@ async function openAdminPanel() {
     const host=typeof ADMIN_HOST!=='undefined'&&ADMIN_HOST;
     let section='overview',offset=0,search='',filter='',request=0,stats=null,rows=[],more=false,selected=0,panel=null;
     const titles={overview:'Genel bakış',listings:'İlanlar',users:'Kullanıcılar',moderation:'İşlem geçmişi',stats:'İstatistikler'};
+    const short={overview:'Özet',listings:'İlanlar',users:'Kişiler',moderation:'Geçmiş',stats:'Sayılar'};
     const valid=()=>generation===adminPanelGeneration&&account===nakgoMarket.token()&&body.dataset.k==='admin';
     const date=value=>value?new Date(value).toLocaleString('tr-TR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
     const day=value=>value?new Date(value).toLocaleDateString('tr-TR',{day:'numeric',month:'short',year:'numeric'}):'—';
@@ -64,7 +65,7 @@ async function openAdminPanel() {
             $('#admin-close').onclick=closeSheet;return;
         }
         body.innerHTML='<div class="adm"><div class="adm-shell"><div class="adm-nav" role="navigation" aria-label="Yönetim bölümleri"><span class="adm-brand">NakGo</span>'+
-            Object.entries(titles).map(([key,label])=>'<button class="adm-nav-btn" data-admin-section="'+key+'" aria-pressed="'+(section===key)+'">'+adminIcon(key)+'<span>'+label+'</span></button>').join('')+
+            Object.entries(titles).map(([key,label])=>'<button class="adm-nav-btn" data-admin-section="'+key+'" aria-label="'+label+'" aria-pressed="'+(section===key)+'">'+adminIcon(key)+'<span class="l-long">'+label+'</span><span class="l-short">'+short[key]+'</span></button>').join('')+
             '</div><div class="adm-page"><div class="adm-top"><p class="adm-crumb"><span>Yönetici paneli</span> › <b>'+titles[section]+'</b></p><div class="adm-top-act">'+
             '<button class="adm-btn" id="admin-refresh" type="button">'+adminIcon('refresh')+'Yenile</button><button class="adm-btn" id="admin-close" type="button">'+(host?'Çıkış yap':'Kapat ×')+'</button></div></div>'+content+'</div></div></div>';
         $('#admin-close').onclick=host?()=>{closeSheet();adminHostOpened=false;nakgoAuth.signOut();}:closeSheet;

@@ -64,13 +64,12 @@ function renderProfile(main) {
             <section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
             <section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}
             </section>
-            <section class="profile-group"><h2>Üyelik ve destek</h2>${authCardHTML()}${premCard()}${nakgoAdminAccess.isAdmin()?'<a class="chip" id="profile-admin" href="https://admin.nakgolojistik.com" target="_blank" rel="noopener">Yönetici paneli ↗</a>':''}
+            <section class="profile-group"><h2>Üyelik ve destek</h2>${authCardHTML()}${premCard()}
                 <details class="profile-panel"><summary>Güvenlik ve destek</summary>${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details>
             </section>
         </div>`;
     listBind();
     bindAuthCard();
-    if(nakgoAuth.snapshot().profile)nakgoAdminAccess.ensure();
     $('#profile-save').onclick=async()=>{
         const button=$('#profile-save'); if(button.disabled)return;
         const patch={displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)};
