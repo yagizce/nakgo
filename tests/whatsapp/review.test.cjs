@@ -74,3 +74,18 @@ test('real group layouts: headers, shared lines, trade vehicle names, message ph
  assert.equal(parseListings('❗ BUGÜN (PERŞEMBE) YÜKLER ❗\nKONYA ➡️ ANTALYA\nKAMYON')[0].fields.from.city,'Konya');
  assert.equal(parseListings('İzmir Ankara yük var 0500 000 13 60')[0].fields.vehicle,null);
 });
+test('only posts with phone, route and vehicle type read from the message become drafts',async()=>{
+ const {detected}=require('../../server/whatsapp/review-parser.cjs');
+ const kept=text=>parseListings(text).filter(detected).length;
+ assert.equal(kept('AFYONDAN HADIMKÖYE\nTIR\n0500 000 00 27'),1);
+ assert.equal(kept('AFYONDAN HADIMKÖYE\nTIR'),0,'no phone');
+ assert.equal(kept('AFYONDAN HADIMKÖYE\n0500 000 00 27'),0,'no vehicle');
+ assert.equal(kept('HADIMKÖY TIR\n0500 000 00 27'),0,'no route');
+ assert.equal(kept('Günaydın arkadaşlar hayırlı işler'),0,'chat message');
+ assert.equal(kept('ÇORLU ----- BİLİNMEYENKÖY 1360 KAPALI\n0500 000 00 02'),0,'unknown destination');
+ const saved=[];let n=0;
+ const store={claim:async()=>++n===1?{id:1,lease:'l',text:'KONYA ➡️ ANTALYA\nTIR\n0500 000 00 27\n\nİZMİR ➡️ BİLİNMEYENKÖY\nTIR'}:n===2?{id:2,lease:'l',text:'Selam'}:null,complete:async(id,lease,drafts)=>saved.push(drafts),fail:async()=>assert.fail('must not fail')};
+ assert.deepEqual(await processBatch(store,5),{completed:2,failed:0});
+ assert.deepEqual(saved.map(d=>d.length),[1,0]);
+ assert.equal(saved[0][0].fields.destinations[0].city,'Antalya');
+});

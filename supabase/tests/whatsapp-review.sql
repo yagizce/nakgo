@@ -87,4 +87,11 @@ do $$ begin
  exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+-- A message with nothing detected finishes with no drafts and never becomes a listing.
+do $$ declare job jsonb; before int:=(select count(*) from private.wa_drafts); begin
+ perform public.nakgo_wa_ingest('[{"messageId":"wa-test-empty","text":"Günaydın","timestamp":1794400001}]');
+ job:=public.nakgo_wa_claim();
+ perform public.nakgo_wa_finish((job->>'id')::bigint,(job->>'lease')::uuid,'[]');
+ if (select state from private.wa_sources where id=(job->>'id')::bigint)<>'done' or (select count(*) from private.wa_drafts)<>before then raise exception 'FAIL empty finish';end if;
+end $$;
 rollback;

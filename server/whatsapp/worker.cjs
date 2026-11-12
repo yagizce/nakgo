@@ -1,6 +1,6 @@
 'use strict';
 const {createHash,timingSafeEqual}=require('node:crypto');
-const {parseListings}=require('./review-parser.cjs');
+const {parseListings,detected}=require('./review-parser.cjs');
 const {createStore}=require('./store.cjs');
 function batchSize(env){
  const value=env.WHATSAPP_BATCH_SIZE;
@@ -14,7 +14,7 @@ async function processBatch(store,limit=5){
  // One lease per claim: killed workers recover after expiry, no fire-and-forget work.
  for(let i=0;i<limit;i++){
   const job=await store.claim();if(!job)break;
-  try{await store.complete(job.id,job.lease,parseListings(job.text));completed++;}
+  try{await store.complete(job.id,job.lease,parseListings(job.text).filter(detected));completed++;}
   catch{await store.fail(job.id,job.lease);failed++;}
  }
  return {completed,failed};

@@ -151,4 +151,6 @@ function parseListings(input){
 }
 // Future adapters must return review candidates; cannot write/publish or override source.
 async function analyze(text,{adapter=null}={}){return adapter?adapter({text,rules:parseListings(text)}):parseListings(text);}
-module.exports={parseListings,analyze,stops};
+// Only posts whose phone, route and vehicle type were all read from the message become drafts; nothing is guessed.
+const detected=c=>!!(c.fields.kind&&c.fields.from.city&&c.fields.destinations[0]?.city&&c.fields.vehicle&&c.fields.contactPhone)&&!c.issues.some(x=>x==='origin_missing'||x==='route_incomplete');
+module.exports={parseListings,analyze,stops,detected};

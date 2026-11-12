@@ -76,7 +76,7 @@ declare s private.wa_sources; d jsonb; i integer:=0;
 begin
  select * into s from private.wa_sources where id=p_id for update;
  if s.state is distinct from 'processing' or s.lease is distinct from p_lease or s.lease_until<now() then raise exception 'Stale lease' using errcode='40001'; end if;
- if jsonb_typeof(p_drafts) is distinct from 'array' or jsonb_array_length(p_drafts) not between 1 and 30 then raise exception 'Invalid drafts';end if;
+ if jsonb_typeof(p_drafts) is distinct from 'array' or jsonb_array_length(p_drafts)>30 then raise exception 'Invalid drafts';end if;
  for d in select value from jsonb_array_elements(p_drafts) loop
   if jsonb_typeof(d->'fields') is distinct from 'object' or jsonb_typeof(d->'issues') is distinct from 'array' or length(d->>'fingerprint')<>64 then raise exception 'Invalid draft';end if;
   i:=i+1;insert into private.wa_drafts(source_id,ordinal,fields,issues,confidence,fingerprint) values(p_id,i,d->'fields',d->'issues',(d->>'confidence')::numeric,d->>'fingerprint');
