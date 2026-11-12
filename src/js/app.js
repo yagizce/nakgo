@@ -85,8 +85,11 @@ catch (e) { }
             sessionStorage.setItem("ng-splash", "1");
         }
         catch (e) { }
-        if (again)
+        // Yönetici sitesinde uygulama açılışı gösterilmez.
+        if (again || ADMIN_HOST) {
             sp.style.display = "none";
+            if (ADMIN_HOST) document.body.classList.add("admin-host");
+        }
         else {
             let t = 1500;
             try {

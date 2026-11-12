@@ -20,14 +20,31 @@ const nakgoAdminAccess=(()=>{
 })();
 let adminPanelGeneration=0,adminHostOpened=false;
 // Yönetici adresi: giriş, yetki kontrolü ve tam ekran panel. Yetki her istekte sunucuda yeniden doğrulanır.
+// Yönetici sitesinin giriş ekranı: uygulama açılışı ve uygulama giriş penceresi yerine panelle aynı tasarım.
 function renderAdminHost(m){
-    const head='<div class="load admin-host-card"><h2>NakGo · Yönetici paneli</h2>';
+    const frame=(body)=>'<div class="adm-login"><div class="adm-login-brand"><i aria-hidden="true"></i><div><b>NakGo</b><p>Yönetici paneli</p></div></div><section class="adm-login-card">'+body+'</section></div>';
     const out=()=>{adminHostOpened=false;nakgoAuth.signOut();};
-    if(!nakgoMarket.active()){adminHostOpened=false;m.innerHTML=head+'<p>Devam etmek için yönetici hesabınla giriş yap.</p><button class="btn" id="admin-signin">Giriş yap</button></div>';$('#admin-signin').onclick=()=>nakgoMarket.requireAccount();return;}
+    if(!nakgoMarket.active()){
+        adminHostOpened=false;
+        m.innerHTML=frame('<h1>Yönetici girişi</h1><p>Panel yalnız yönetici hesaplarına açılır.</p>'+
+            '<button class="adm-login-google" id="admin-signin" type="button"><span aria-hidden="true">G</span>Google ile giriş yap</button>'+
+            '<p class="adm-login-or"><span>veya e-postayla</span></p>'+
+            '<form id="admin-login-form" class="adm-login-form"><label for="admin-login-email">E-posta</label><input id="admin-login-email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" required maxlength="254">'+
+            '<label for="admin-login-password">Şifre</label><input id="admin-login-password" type="password" autocomplete="current-password" required maxlength="128">'+
+            '<p id="admin-login-msg" role="status" aria-live="polite"></p><button class="adm-login-submit" id="admin-login-submit" type="submit">Giriş yap</button></form>');
+        const google=$('#admin-signin'),form=$('#admin-login-form'),submit=$('#admin-login-submit'),msg=$('#admin-login-msg');
+        const busy=on=>{google.disabled=on;submit.disabled=on;};
+        google.onclick=async()=>{if(google.disabled)return;busy(true);msg.textContent='Google’a yönlendiriliyorsun…';
+            try{await nakgoAuth.signInGoogle();}catch(error){if(!form.isConnected)return;msg.textContent=nakgoAuth.message(error);busy(false);}};
+        form.onsubmit=async event=>{event.preventDefault();if(submit.disabled)return;busy(true);msg.textContent='Giriş yapılıyor…';
+            try{await nakgoAuth.signIn($('#admin-login-email').value.trim(),$('#admin-login-password').value);}
+            catch(error){if(!form.isConnected)return;msg.textContent=nakgoAuth.message(error);busy(false);}};
+        return;
+    }
     nakgoAdminAccess.ensure();
-    if(!nakgoAdminAccess.checked()){m.innerHTML=head+'<p role="status">Yetki kontrol ediliyor…</p></div>';return;}
-    if(!nakgoAdminAccess.isAdmin()){m.innerHTML=head+'<p role="alert">Bu hesabın yönetici yetkisi yok.</p><button class="chip" id="admin-signout">Çıkış yap</button></div>';$('#admin-signout').onclick=out;return;}
-    m.innerHTML=head+'<p>Panel bu ekranın üstünde açılır. Kapattıysan yeniden açabilirsin.</p><button class="btn" id="admin-open">Paneli aç</button><button class="chip" id="admin-signout">Çıkış yap</button></div>';
+    if(!nakgoAdminAccess.checked()){m.innerHTML=frame('<h1>Yönetici girişi</h1><p role="status">Yetki kontrol ediliyor…</p>');return;}
+    if(!nakgoAdminAccess.isAdmin()){m.innerHTML=frame('<h1>Bu hesap yönetici değil</h1><p role="alert">Bu hesabın yönetici yetkisi yok. Yönetici hesabınla tekrar giriş yap.</p><button class="adm-login-submit" id="admin-signout" type="button">Çıkış yap</button>');$('#admin-signout').onclick=out;return;}
+    m.innerHTML=frame('<h1>Yönetici paneli</h1><p>Panel bu ekranın üstünde açılır. Kapattıysan yeniden açabilirsin.</p><button class="adm-login-submit" id="admin-open" type="button">Paneli aç</button><button class="adm-login-google" id="admin-signout" type="button">Çıkış yap</button>');
     $('#admin-open').onclick=openAdminPanel;$('#admin-signout').onclick=out;
     if(!adminHostOpened){adminHostOpened=true;openAdminPanel();}
 }
