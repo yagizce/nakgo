@@ -35,7 +35,11 @@ function contacts(text){return [...new Set((text.match(phoneRE)||[]).map(value=>
 // Trade names: 13.60/1360 and short dorse/damper are trailers; 10 teker/ortaboy are trucks.
 const vehicleRules=[['Tır',/(?<![a-z0-9])(?:tir|dorse)(?![a-z])|(?<![\d.,])13[ .,/]?60(?![\d.,])|kisa damper/],['Kırkayak',/kirkayak/],['Kamyonet',/kamyonet/],['Kamyon',/kamyon(?!et)|(?<!\d)10 ?teker|ortaboy/],['Panelvan',/panelvan/],['Tanker',/(?<![a-z])tanker/],['Lowbed',/lowbed/],['Konteyner',/konteyner/]];
 const arrowRE=/➡|→|-+>|(?<![<\d])>/;
-const timingOf=s=>s.match(/(?:bug[üu]n|yar[ıiI]n)[ \t()\p{L}]*|\bhemen\b|\d{1,2}[./]\d{1,2}[./]\d{4}/iu)?.[0].trim().slice(0,32)||null;
+const timingOf=s=>s.match(/(?:bug[üu]n|yar[ıiI]n)[ \t()\p{L}]*|\bhemen\b|\d{1,2}[./]\d{1,2}[./]\d{4}|\d{1,2}[:.]\d{2}[ \t]*(?:'?[ae][ \t]*)?kadar[ \t\p{L}]*|\b24[ \t]*saat[ \t\p{L}]*/iu)?.[0].trim().slice(0,32)||null;
+// Reviewed public note: the useful lines of the post, without phones, fares, company lines or bare route lines.
+const routeOnly=line=>stops(line).length>0&&fold(line).replace(/[^a-z0-9]+/g,' ').trim().split(' ').every(word=>stops(word).length>0);
+function noteOf(lines){return lines.filter(line=>!contacts(line).length&&!/navlun|ucret|fiyat|odeme|\btl\b|kdv|nakit|pesin|mazot/.test(fold(line))&&!routeOnly(line))
+ .map(line=>line.replace(/^[^\p{L}\p{N}]+/u,'').trim()).filter(Boolean).join('\n').slice(0,500);}
 function parseListings(input){
  if(typeof input!=='string'||!input.trim()||input.length>MAX_TEXT)throw Error('invalid_text');
  // Per-message caches only: no contact/company data survives the invocation.
@@ -43,8 +47,9 @@ function parseListings(input){
  const normalizedText=text=>{if(!normalized.has(text))normalized.set(text,fold(text));return normalized.get(text);};
  const messageStops=text=>{if(!locations.has(text))locations.set(text,foldedStops(normalizedText(text)));return locations.get(text);};
  const allPhones=contacts(input);
- // Separator rules (———) and blank lines carry no content.
- const lines=clean(input).split(/\r?\n/).map(s=>s.trim()).filter(s=>/[\p{L}\p{N}]/u.test(s));
+ // Separator rules (———, ____, ⬇️⬇️) start a new block; blank lines carry no content.
+ const lines=[],blocks=[];let block=0;
+ for(const raw of clean(input).split(/\r?\n/).map(s=>s.trim())){if(/[\p{L}\p{N}]/u.test(raw)){lines.push(raw);blocks.push(block);}else if(raw.length>=3)block++;}
  const companyLines=lines.filter(s=>/(lojistik|nakliyat|tasimacilik|firma\s*:)/.test(normalizedText(s))&&!/\byukleme\b/.test(normalizedText(s))&&!messageStops(s).length);
  const company=companyLines.length===1?companyLines[0].replace(phoneRE,'').trim():null;
  const conditionLines=lines.filter(s=>/olmali|sart|model|sinirsiz|\d+\s*yer/.test(normalizedText(s)));
@@ -55,20 +60,24 @@ function parseListings(input){
  const bare=line=>lineStops(line).length>0&&!/[a-z0-9]/.test(rest(line));
  const placeOnly=line=>lineStops(line).length===1&&!/[a-z0-9]/.test(rest(line).replace(/\b(yukleme|yukler|depo|depom|cikis|varis)\b/g,''));
  const headerLine=line=>lineStops(line).length===1&&/\byukle(?:me|r|nir|meli)\b/.test(normalizedText(line));
- const kept=lines.filter(line=>!companyLines.includes(line)&&!(/^[+\d\s().-]+$/.test(line)&&contacts(line).length));
+ const keptAt=lines.map((line,i)=>i).filter(i=>!companyLines.includes(lines[i])&&!(/^[+\d\s().-]+$/.test(lines[i])&&contacts(lines[i]).length));
+ const kept=keptAt.map(i=>lines[i]),keptBlock=keptAt.map(i=>blocks[i]);
  const chunks=[];let section=null,pendingTiming=null;
+ // Lines above the first route of a block ("13,60 AÇIK–KAPALI TIR", "TONAJ: 0/26") apply to every route in that block.
+ let shared=[],sharedBlock=-1;
  kept.forEach((line,i)=>{
+  if(keptBlock[i]!==sharedBlock){shared=[];sharedBlock=keptBlock[i];}
   if(!lineStops(line).length){
    // "BUGÜN YÜKLER" above routes dates the routes below it; inside a route it stays with that route.
    if(timingOf(line)&&kept.slice(i+1).some(next=>lineStops(next).length)&&!kept.slice(i+1,i+2).every(next=>!lineStops(next).length&&!timingOf(next))){pendingTiming=timingOf(line);return;}
-   if(chunks.length)chunks.at(-1).lines.push(line);return;
+   const open=chunks.at(-1);if(open&&open.block===keptBlock[i])open.lines.push(line);else shared.push(line);return;
   }
   // "ÇORLU YÜKLEME", "MALKARA YARIN YÜKLER": origin for the lines below it.
-  if(headerLine(line)){section={origin:lineStops(line)[0],timing:timingOf(line)||pendingTiming};chunks.push({lines:[line],header:true,section,timing:section.timing});return;}
+  if(headerLine(line)){section={origin:lineStops(line)[0],timing:timingOf(line)||pendingTiming};chunks.push({lines:[line],header:true,section,timing:section.timing,block:keptBlock[i],shared});return;}
   const current=chunks.at(-1);
   // A line holding only one place (e.g. "ESKİŞEHİR SEYİTGAZİ 📍") continues on the next line as the same route.
   if(current&&!current.header&&!current.section&&current.lines.length===1&&placeOnly(current.lines[0])){current.lines.push(line);return;}
-  chunks.push({lines:[line],section,timing:pendingTiming});
+  chunks.push({lines:[line],section,timing:pendingTiming,block:keptBlock[i],shared});
  });
  // Bare route lines in a row ("BANDIRMA KARAMAN\nMANYAS KARAMAN\n1360") share the lines under the last one.
  for(let k=0;k<chunks.length;k++){let m=k;
@@ -87,7 +96,7 @@ function parseListings(input){
  if(!listings.length)listings.push({lines:lines.length?lines:[clean(input)],section:null,timing:pendingTiming});
  const candidates=new Map();
  return listings.slice(0,30).map(chunk=>{
-  const text=chunk.lines.join('\n'),stopText=chunk.lines.filter(line=>!fieldLine(line)).join('\n');
+  const allLines=[...(chunk.shared||[]),...chunk.lines],text=allLines.join('\n'),stopText=chunk.lines.filter(line=>!fieldLine(line)).join('\n');
   const key=JSON.stringify([text,chunk.section?.origin,chunk.header,chunk.timing]);
   if(candidates.has(key))return structuredClone(candidates.get(key));
   const t=normalizedText(text),st=normalizedText(stopText),loc=messageStops(stopText),v1=parseLoad(text,{freightOnly:true}),issues=listings.length>30?['message_overflow_review']:[];
@@ -101,10 +110,10 @@ function parseListings(input){
   else if(chunk.section&&(loc.length===1||plus)){from=point(chunk.section.origin);destinations=loc.map(point);}
   else if(arrow>=0&&loc.some(p=>p.index<arrow)&&loc.some(p=>p.index>arrow)){from=point(loc.find(p=>p.index<arrow));destinations=loc.filter(p=>p.index>arrow).map(point);}
   else if(loc.length>=2&&plus&&!/yukleme|yukler|yuk var|bos arac/.test(t)){destinations=loc.map(point);issues.push('origin_missing');}
-  else if(loc.length>=2){from=point(loc[0]);destinations=loc.slice(1).map(point);if(!/yukleme|\s(?:→|->|>|dan|den)\s/.test(t))issues.push('route_order_review');}
+  else if(loc.length>=2){from=point(loc[0]);destinations=loc.slice(1).map(point);if(!/yukleme|\s(?:→|->|>|dan|den)\s/.test(t)&&!/[-–]/.test(st.slice(loc[0].end,loc[1].index)))issues.push('route_order_review');}
   else{if(loc.length===1&&/^[ \t]*(?:-+|➡|→|>)/.test(st.slice(loc[0].end)))from=point(loc[0]);issues.push('route_incomplete');}
   if(loc.some(p=>p.alias))issues.push('location_alias_review');
-  const range=t.match(/(?<!\d)(\d+(?:[.,]\d+)?)\s*[-–]\s*(\d+(?:[.,]\d+)?)\s*ton/);
+  const range=t.match(/(?<!\d)(\d+(?:[.,]\d+)?)\s*[-–/]\s*(\d+(?:[.,]\d+)?)\s*ton/);
   const n=s=>Number(s.replace(',','.'));
   const weightMin=range?n(range[1]):v1.weightTon,weightMax=range?n(range[2]):v1.weightTon;
   if(weightMax===null||weightMax<=0||weightMax>100||weightMin<0||weightMin>weightMax)issues.push('weight_review');
@@ -127,7 +136,7 @@ function parseListings(input){
   if(count&&Number(count[1])>1)issues.push('vehicle_count_review');
   if(/bugun/.test(t)&&/yarin/.test(t))issues.push('timing_ambiguous');
   if(!kind)issues.push('kind_unknown');if(!vehicle||!body)issues.push('vehicle_review');if(!cargo&&kind!=='truck')issues.push('cargo_missing');if(!timing)issues.push('timing_missing');if(phones.length!==1)issues.push('contact_review');
-  const fields={kind,from,destinations,vehicle,body,weightMin,weightMax,amount:range?null:v1.weightTon,cargo:kind==='truck'?'':cargo,timing,availableOn:truck?availableOn:null,availableUntil:null,availableTime:'',vehicleCount:count?Number(count[1]):null,conditions,company,contactPhone:phones[0]||null,description:text,publicNote:'',ownerLabel:'NakGo ilan masası',items:[],imageData:null};
+  const fields={kind,from,destinations,vehicle,body,weightMin,weightMax,amount:range?null:v1.weightTon,cargo:kind==='truck'?'':cargo,timing,availableOn:truck?availableOn:null,availableUntil:null,availableTime:'',vehicleCount:count?Number(count[1]):null,conditions,company,contactPhone:phones[0]||null,description:text,publicNote:noteOf(allLines),ownerLabel:'NakGo ilan masası',items:[],imageData:null};
   const fingerprint=createHash('sha256').update(JSON.stringify([kind,from,destinations,vehicle,body,weightMin,weightMax,cargo,fold(timing||'')])).digest('hex');
   const candidate={fields,issues,confidence:Number((Math.max(0,1-issues.length/10)).toFixed(2)),fingerprint,parserVersion:'rules-3'};
   candidates.set(key,candidate);return candidate;

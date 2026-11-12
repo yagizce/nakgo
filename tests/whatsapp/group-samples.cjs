@@ -46,4 +46,6 @@ module.exports=[
   phones:['+905000000023','+905000000024','+905000000025'],expect:[['Balıkesir',null,'Ankara',null,'Tır'],['Balıkesir',null,'Sakarya','Karasu','Tır'],['Balıkesir',null,'Balıkesir','Gönen','Tır'],['Balıkesir',null,'İstanbul','Tuzla','Kırkayak'],['Balıkesir',null,'Mersin',null,'Kamyon'],['Balıkesir',null,'İstanbul',null,'Kamyon'],['Balıkesir',null,'Çorum','Osmancık','Kamyon'],['Bursa',null,'Diyarbakır',null,null]]},
  {text:'Örnek Ulaşım Nakliyat\n🚛 BALIKESİR → VAN\n\n📦 8 METRE PARÇA YÜK\n\nÖrnek Ulaşım Nakliyat\n📞 0500 000 00 21',
   phones:['+905000000021'],expect:[['Balıkesir',null,'Van',null,null]]},
+ {text:'⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️\n13,60 AÇIK–KAPALI TIR\n‼️  22:30 kadar yükleme\n‼️ TONAJ :0/26 TON\n\nİZMİR-BURSA\nİZMİR-BURSA 2 NOKTA\n\n\n____________________\n⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️\n\n‼️ 24 SAAT  YÜKLEMELİ\n‼️ 13,60 KAPALI TIR\n‼️ FRİGO ARAÇLAR YÜKLEME OLUR\n‼️ TONAJ: 0/5 TON HAFİF\n\nİZMİR-ANKARA\n\n0500 000 00 26',
+  phones:['+905000000026'],timing:['22:30 kadar','22:30 kadar','24 SAAT'],notes:[/AÇIK–KAPALI TIR\n22:30 kadar yükleme\nTONAJ :0\/26 TON$/,/2 NOKTA$/,/FRİGO ARAÇLAR YÜKLEME OLUR/],expect:[['İzmir',null,'Bursa',null,'Tır'],['İzmir',null,'Bursa',null,'Tır'],['İzmir',null,'Ankara',null,'Tır']]},
 ];

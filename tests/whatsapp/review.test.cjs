@@ -65,9 +65,11 @@ test('real group layouts: headers, shared lines, trade vehicle names, message ph
    assert.equal(f.contactPhone,sample.phones[0]??null);
    if(sample.phones.length!==1)assert.ok(candidate.issues.includes('contact_review'));
    if(sample.timing)assert.match(f.timing||'',new RegExp('^'+sample.timing[i],'iu'));
+   if(sample.notes)assert.match(f.publicNote,sample.notes[i]);
+   assert.doesNotMatch(f.publicNote,/\d{3}[ .]?\d{3}[ .]?\d{2}[ .]?\d{2}|navlun|kdv/i);
    rows++;});
  }
- assert.equal(rows,85);
+ assert.equal(rows,88);
  // Weekday "PERŞEMBE" is not the Ordu district; phone digits never read as a 13.60 trailer.
  assert.equal(parseListings('❗ BUGÜN (PERŞEMBE) YÜKLER ❗\nKONYA ➡️ ANTALYA\nKAMYON')[0].fields.from.city,'Konya');
  assert.equal(parseListings('İzmir Ankara yük var 0500 000 13 60')[0].fields.vehicle,null);
