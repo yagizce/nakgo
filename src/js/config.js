@@ -23,7 +23,7 @@ const FI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="
 const D = [[450, 480, 155, 700, 660, 940, 1130, 790, 740, 1100, 950], [580, 380, 540, 260, 490, 680, 320, 410, 780, 480], [330, 470, 580, 920, 1100, 830, 980, 1350, 850], [620, 520, 850, 1050, 700, 700, 1050, 800], [320, 550, 850, 640, 850, 1250, 480], [340, 640, 330, 700, 1050, 330], [330, 350, 760, 1100, 70], [460, 850, 1000, 340], [500, 720, 420], [340, 810], [1130]];
 
 // İlk açılış tanıtımı: [ekran görüntüsü, başlık, metin, görüntü açıklaması]. Görüntüler icons/onboarding içinde.
-const SL = [["list", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar boş aracını duyurur. Aracın boş kalmasın, yükün beklemesin.", "İlanlar ekranı: rota arama ve Mersin–Ankara yük ilanı"], ["calc", "Giderini önceden planla", "Mesafeyi ve tüketimi gir; mazot ve yol giderini yola çıkmadan gör.", "Mazot ve Gider Hesaplama ekranı: tahmini toplam gider"], ["detail", "İlan sahibine doğrudan ulaş", "İlanlara giriş yapmadan göz at. Aramak ve mesaj göndermek için ücretsiz hesap aç.", "İlan detayı: taşıma bilgileri ile Ara ve Mesaj gönder düğmeleri"]];
+const SL = [["list", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar boş aracını duyurur. Aracın boş kalmasın, yükün beklemesin.", "İlanlar ekranı: rota arama ve Mersin–Ankara yük ilanı"], ["calc", "Giderini önceden planla", "Mesafeyi ve tüketimi gir; mazot ve yol giderini yola çıkmadan gör.", "Mazot ve Gider Hesaplama ekranı: tahmini toplam gider"], ["detail", "İlan sahibine doğrudan ulaş", "İlanlara giriş yapmadan göz at. Aramak veya WhatsApp'tan yazmak için ücretsiz hesap aç.", "İlan detayı: taşıma bilgileri ile Ara ve WhatsApp düğmeleri"]];
 
 const PLANS = [{ id: "m", name: "Aylık", price: 299, days: 30 }, { id: "y", name: "Yıllık", price: 3099, days: 365 }];
 
@@ -31,7 +31,7 @@ const TTL = { load: 14, truck: 7, offer: 3 };
 
 const SUPPORT_MAIL = "destek@nakgolojistik.com";
 
-const FAQ = [["NakGo'yu kullanmak ücretli mi?", "İlanları görmek, kayıt olmak ve ilan vermek şu an ücretsizdir."], ["İlanları görmek için kayıt olmam gerekir mi?", "Hayır. Açık ilanları herkes görebilir. İlan sahibiyle iletişime geçmek ve ilan vermek için ücretsiz hesap gerekir."], ["İlan sahibiyle nasıl iletişime geçerim?", "Giriş yaptıktan sonra ilan detayındaki Mesaj gönder düğmesiyle uygulama içinden yazabilirsin."], ["İlanımı nasıl verir ve yönetirim?", "İlan ver sekmesinden yük veya boş araç ilanı oluştur. İlanlarını Profil'deki İlanlarım bölümünden düzenleyebilir veya kapatabilirsin."], ["Mazot ve Gider Hesaplama ne işe yarar?", "Mesafe, tüketim ve litre fiyatını girerek yolun yaklaşık giderini hesaplar. Sonuç tahminidir."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan numarasıyla birlikte destek adresimize yaz; ilanı inceleriz."], ["Verilerim nerede tutuluyor?", "Hesap, ilan ve mesaj bilgilerin NakGo sunucularında saklanır. Telefon numaran ilanlarda herkese açık gösterilmez."]];
+const FAQ = [["NakGo'yu kullanmak ücretli mi?", "İlanları görmek, kayıt olmak ve ilan vermek şu an ücretsizdir."], ["İlanları görmek için kayıt olmam gerekir mi?", "Hayır. Açık ilanları herkes görebilir. İlan sahibiyle iletişime geçmek ve ilan vermek için ücretsiz hesap gerekir."], ["İlan sahibiyle nasıl iletişime geçerim?", "Giriş yaptıktan sonra ilan detayındaki Ara veya WhatsApp düğmesiyle ilan sahibine doğrudan ulaşabilirsin."], ["İlanımı nasıl verir ve yönetirim?", "İlan ver sekmesinden yük veya boş araç ilanı oluştur. İlanlarını Profil'deki İlanlarım bölümünden düzenleyebilir veya kapatabilirsin."], ["Mazot ve Gider Hesaplama ne işe yarar?", "Mesafe, tüketim ve litre fiyatını girerek yolun yaklaşık giderini hesaplar. Sonuç tahminidir."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan numarasıyla birlikte destek adresimize yaz; ilanı inceleriz."], ["Verilerim nerede tutuluyor?", "Hesap ve ilan bilgilerin NakGo sunucularında saklanır. İlanındaki telefon numarası yalnızca giriş yapmış kullanıcılara Ara ve WhatsApp için gösterilir; misafirler göremez."]];
 
 /* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ürün kuralları docs/product.md içinde. */
 const FEAT = { prices: { l: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 }, t: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 } } };
@@ -162,3 +162,6 @@ const DISTRICTS = {
 "Yozgat":["Akdağmadeni","Aydıncık","Boğazlıyan","Çandır","Çayıralan","Çekerek","Kadışehri","Merkez","Saraykent","Sarıkaya","Sorgun","Şefaatli","Yenifakılı","Yerköy"],
 "Zonguldak":["Alaplı","Çaycuma","Devrek","Ereğli","Gökçebey","Kilimli","Kozlu","Merkez"]
 };
+
+// admin.* adresinde uygulama yalnız yönetici paneli olarak açılır (aynı kod, aynı sunucu yetkisi).
+const ADMIN_HOST = typeof location !== "undefined" && /^admin\./.test(location.hostname);

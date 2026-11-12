@@ -52,25 +52,13 @@
   "git": {
     "deploymentEnabled": {
       "main": false,
-      "claude/group-ab": false,
-      "claude/test-maintenance": false,
-      "claude/gate-selftest": false,
-      "claude/public-listings": false,
-      "claude/auth-config-timeout-fallback": false,
       "codex/nakgo-ci-publisher-direct": false,
       "codex/nakgo-trusted-ci": false,
       "codex/nakgo-retire-file-guard": false,
       "codex/nakgo-guard-replay-maintenance": false,
       "codex/nakgo-ci-unlock-safety": false,
       "codex/nakgo-guard-approval": false,
-      "claude/session-resilience": false,
-      "claude/onboarding-refresh": false,
-      "claude/ci-no-apt": false,
-      "claude/route-alerts": false,
-      "claude/districts-expiry": false,
-      "claude/profile-districts": false,
-      "claude/whatsapp-core": false,
-      "claude/whatsapp-review": false
+      "nakgo/**": false
     }
   }
 }

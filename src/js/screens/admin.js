@@ -11,12 +11,25 @@ const nakgoAdminAccess=(()=>{
         const current=nakgoMarket.token(),ticket=++generation;busy=true;authorized=false;
         try{const role=await nakgoAuth.adminRole();if(ticket!==generation||current!==nakgoMarket.token())return;account=current;authorized=role===true;ready=true;}
         catch(error){if(ticket===generation&&current===nakgoMarket.token()){account=current;authorized=false;ready=true;}}
-        finally{if(ticket===generation&&current===nakgoMarket.token()){busy=false;if(tab==='me')render();}}
+        finally{if(ticket===generation&&current===nakgoMarket.token()){busy=false;if(tab==='me'||ADMIN_HOST)render();}}
     }
     function ensure(){if(nakgoMarket.active()&&!busy&&(!ready||account!==nakgoMarket.token()))refresh();}
-    return {isAdmin,reset,refresh,ensure};
+    const checked=()=>ready&&account===nakgoMarket.token();
+    return {isAdmin,checked,reset,refresh,ensure};
 })();
-let adminPanelGeneration=0;
+let adminPanelGeneration=0,adminHostOpened=false;
+// Yönetici adresi: giriş, yetki kontrolü ve tam ekran panel. Yetki her istekte sunucuda yeniden doğrulanır.
+function renderAdminHost(m){
+    const head='<div class="load admin-host-card"><h2>NakGo · Yönetici paneli</h2>';
+    const out=()=>{adminHostOpened=false;nakgoAuth.signOut();};
+    if(!nakgoMarket.active()){adminHostOpened=false;m.innerHTML=head+'<p>Devam etmek için yönetici hesabınla giriş yap.</p><button class="btn" id="admin-signin">Giriş yap</button></div>';$('#admin-signin').onclick=()=>nakgoMarket.requireAccount();return;}
+    nakgoAdminAccess.ensure();
+    if(!nakgoAdminAccess.checked()){m.innerHTML=head+'<p role="status">Yetki kontrol ediliyor…</p></div>';return;}
+    if(!nakgoAdminAccess.isAdmin()){m.innerHTML=head+'<p role="alert">Bu hesabın yönetici yetkisi yok.</p><button class="chip" id="admin-signout">Çıkış yap</button></div>';$('#admin-signout').onclick=out;return;}
+    m.innerHTML=head+'<p>Panel bu ekranın üstünde açılır. Kapattıysan yeniden açabilirsin.</p><button class="btn" id="admin-open">Paneli aç</button><button class="chip" id="admin-signout">Çıkış yap</button></div>';
+    $('#admin-open').onclick=openAdminPanel;$('#admin-signout').onclick=out;
+    if(!adminHostOpened){adminHostOpened=true;openAdminPanel();}
+}
 async function openAdminPanel() {
     if(!nakgoMarket.active())return;
     const generation=++adminPanelGeneration,account=nakgoMarket.token(), body=$('#sheetBody');

@@ -1712,6 +1712,13 @@ header p {
   letter-spacing:.2px;
   animation:rise .55s .5s both;
 }
+/* admin.* adresi: alt menü yok, panel kartı ortada. */
+body.admin-host #nav { display:none; }
+.admin-host-card { max-width:520px; margin:24px auto; display:grid; gap:12px; }
+@media (min-width:760px) {
+  body.admin-host #app { max-width:1100px; }
+  body.admin-host .sheet>div { max-width:1000px; }
+}
 
 /* Animasyonlar, hareket azaltma ve dar ekran düzeltmeleri (en sonda, diğer kuralları ezer) */
 
@@ -2318,7 +2325,7 @@ const FI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="
 const D = [[450, 480, 155, 700, 660, 940, 1130, 790, 740, 1100, 950], [580, 380, 540, 260, 490, 680, 320, 410, 780, 480], [330, 470, 580, 920, 1100, 830, 980, 1350, 850], [620, 520, 850, 1050, 700, 700, 1050, 800], [320, 550, 850, 640, 850, 1250, 480], [340, 640, 330, 700, 1050, 330], [330, 350, 760, 1100, 70], [460, 850, 1000, 340], [500, 720, 420], [340, 810], [1130]];
 
 // İlk açılış tanıtımı: [ekran görüntüsü, başlık, metin, görüntü açıklaması]. Görüntüler icons/onboarding içinde.
-const SL = [["list", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar boş aracını duyurur. Aracın boş kalmasın, yükün beklemesin.", "İlanlar ekranı: rota arama ve Mersin–Ankara yük ilanı"], ["calc", "Giderini önceden planla", "Mesafeyi ve tüketimi gir; mazot ve yol giderini yola çıkmadan gör.", "Mazot ve Gider Hesaplama ekranı: tahmini toplam gider"], ["detail", "İlan sahibine doğrudan ulaş", "İlanlara giriş yapmadan göz at. Aramak ve mesaj göndermek için ücretsiz hesap aç.", "İlan detayı: taşıma bilgileri ile Ara ve Mesaj gönder düğmeleri"]];
+const SL = [["list", "Yük bul, araç bul", "Yük sahipleri ilan verir, taşıyıcılar boş aracını duyurur. Aracın boş kalmasın, yükün beklemesin.", "İlanlar ekranı: rota arama ve Mersin–Ankara yük ilanı"], ["calc", "Giderini önceden planla", "Mesafeyi ve tüketimi gir; mazot ve yol giderini yola çıkmadan gör.", "Mazot ve Gider Hesaplama ekranı: tahmini toplam gider"], ["detail", "İlan sahibine doğrudan ulaş", "İlanlara giriş yapmadan göz at. Aramak veya WhatsApp'tan yazmak için ücretsiz hesap aç.", "İlan detayı: taşıma bilgileri ile Ara ve WhatsApp düğmeleri"]];
 
 const PLANS = [{ id: "m", name: "Aylık", price: 299, days: 30 }, { id: "y", name: "Yıllık", price: 3099, days: 365 }];
 
@@ -2326,7 +2333,7 @@ const TTL = { load: 14, truck: 7, offer: 3 };
 
 const SUPPORT_MAIL = "destek@nakgolojistik.com";
 
-const FAQ = [["NakGo'yu kullanmak ücretli mi?", "İlanları görmek, kayıt olmak ve ilan vermek şu an ücretsizdir."], ["İlanları görmek için kayıt olmam gerekir mi?", "Hayır. Açık ilanları herkes görebilir. İlan sahibiyle iletişime geçmek ve ilan vermek için ücretsiz hesap gerekir."], ["İlan sahibiyle nasıl iletişime geçerim?", "Giriş yaptıktan sonra ilan detayındaki Mesaj gönder düğmesiyle uygulama içinden yazabilirsin."], ["İlanımı nasıl verir ve yönetirim?", "İlan ver sekmesinden yük veya boş araç ilanı oluştur. İlanlarını Profil'deki İlanlarım bölümünden düzenleyebilir veya kapatabilirsin."], ["Mazot ve Gider Hesaplama ne işe yarar?", "Mesafe, tüketim ve litre fiyatını girerek yolun yaklaşık giderini hesaplar. Sonuç tahminidir."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan numarasıyla birlikte destek adresimize yaz; ilanı inceleriz."], ["Verilerim nerede tutuluyor?", "Hesap, ilan ve mesaj bilgilerin NakGo sunucularında saklanır. Telefon numaran ilanlarda herkese açık gösterilmez."]];
+const FAQ = [["NakGo'yu kullanmak ücretli mi?", "İlanları görmek, kayıt olmak ve ilan vermek şu an ücretsizdir."], ["İlanları görmek için kayıt olmam gerekir mi?", "Hayır. Açık ilanları herkes görebilir. İlan sahibiyle iletişime geçmek ve ilan vermek için ücretsiz hesap gerekir."], ["İlan sahibiyle nasıl iletişime geçerim?", "Giriş yaptıktan sonra ilan detayındaki Ara veya WhatsApp düğmesiyle ilan sahibine doğrudan ulaşabilirsin."], ["İlanımı nasıl verir ve yönetirim?", "İlan ver sekmesinden yük veya boş araç ilanı oluştur. İlanlarını Profil'deki İlanlarım bölümünden düzenleyebilir veya kapatabilirsin."], ["Mazot ve Gider Hesaplama ne işe yarar?", "Mesafe, tüketim ve litre fiyatını girerek yolun yaklaşık giderini hesaplar. Sonuç tahminidir."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan numarasıyla birlikte destek adresimize yaz; ilanı inceleriz."], ["Verilerim nerede tutuluyor?", "Hesap ve ilan bilgilerin NakGo sunucularında saklanır. İlanındaki telefon numarası yalnızca giriş yapmış kullanıcılara Ara ve WhatsApp için gösterilir; misafirler göremez."]];
 
 /* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ürün kuralları docs/product.md içinde. */
 const FEAT = { prices: { l: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 }, t: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 } } };
@@ -2457,6 +2464,9 @@ const DISTRICTS = {
 "Yozgat":["Akdağmadeni","Aydıncık","Boğazlıyan","Çandır","Çayıralan","Çekerek","Kadışehri","Merkez","Saraykent","Sarıkaya","Sorgun","Şefaatli","Yenifakılı","Yerköy"],
 "Zonguldak":["Alaplı","Çaycuma","Devrek","Ereğli","Gökçebey","Kilimli","Kozlu","Merkez"]
 };
+
+// admin.* adresinde uygulama yalnız yönetici paneli olarak açılır (aynı kod, aynı sunucu yetkisi).
+const ADMIN_HOST = typeof location !== "undefined" && /^admin\./.test(location.hostname);
 
 /**
  * Durum ve örnek veri
@@ -4378,7 +4388,7 @@ function openOnb() {
             $("#ob-next").focus({ preventScroll: true });
         }
         else {
-            el.innerHTML = `${top(i)}<div class="ob-body ob-roles"><h2 id="ob-title">Seni tanıyalım</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilinden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="role-txt"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></span></button><button class="rolebtn" id="r-o"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span class="role-txt"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></span></button><p class="ob-note">Kayıt olmadan ilanlara göz atabilirsin. Aramak ve mesaj göndermek için ücretsiz hesap gerekir.</p></div>${dots(3)}`;
+            el.innerHTML = `${top(i)}<div class="ob-body ob-roles"><h2 id="ob-title">Seni tanıyalım</h2><p>Ana sayfanı buna göre hazırlayalım. Sonra profilinden değiştirebilirsin.</p><button class="rolebtn" id="r-c"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6h13v10H1zM14 10h4l3 3v3h-7"/><circle cx="5" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="role-txt"><b>Taşıyıcıyım</b><span>Aracım var, yük arıyorum</span></span></button><button class="rolebtn" id="r-o"><span class="role-ic" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"/></svg></span><span class="role-txt"><b>Yük sahibiyim</b><span>Taşıtacak yüküm var</span></span></button><p class="ob-note">Kayıt olmadan ilanlara göz atabilirsin. Aramak veya WhatsApp'tan yazmak için ücretsiz hesap gerekir.</p></div>${dots(3)}`;
             $("#r-c").onclick = () => setRole("carrier", 1);
             $("#r-o").onclick = () => setRole("owner", 1);
         }
@@ -4525,7 +4535,7 @@ function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
     return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">${nakgoMarket.active()?"Profilin, iletişim bilgilerin, ilanların, kayıtlı ilanların, rota alarmların ve mesajların hesabında saklanır. Uygulama şu an ücretsiz.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
+        <p class="estimate-note">${nakgoMarket.active()?"Profilin, iletişim bilgilerin, ilanların, kayıtlı ilanların ve rota alarmların hesabında saklanır. Uygulama şu an ücretsiz.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
@@ -4576,7 +4586,7 @@ function openAuth(kind='signin') {
             <button type="button" class="auth-provider" disabled><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.5 3c-1.4.1-3 1-3.8 2-.7.8-1.2 2-1 3.2 1.5.1 3-.7 3.9-1.8.8-.9 1.2-2.2.9-3.4ZM20 16.3c-.4 1-1 2.3-1.8 3.4-.8 1-1.7 2.1-3 2.1-1.2 0-1.6-.8-3.1-.8-1.6 0-2 .8-3.2.8-1.3 0-2.2-1.1-3-2.2C3.5 16.4 3 11.8 4.5 9.5c1-1.6 2.6-2.5 4.1-2.5 1.3 0 2.4.8 3.2.8.7 0 2-.9 3.5-.8 1.3.1 2.6.8 3.4 1.9-3 1.6-2.5 5.8 1.3 7.4Z"/></svg><span>Apple ile devam et</span><small>Yakında</small></button></div>
             <p class="auth-switch-copy">${kind==='signin'?'Henüz hesabın yok mu?':'Zaten hesabın var mı?'}</p><button class="btn auth-switch" id="${kind==='signin'?'account-register':'account-back'}">${kind==='signin'?'Kayıt ol':'Giriş yap'}</button>`:
             '<p class="auth-switch-copy">Hesabına dönmeye hazır mısın?</p><button class="btn auth-switch" id="account-back">Giriş yap</button>'}
-            <p class="auth-preview-note">Test sürümü · E-posta ve Google ile giriş açık.<br>Test hesabınla ilan ve mesajlarını kullanabilirsin.</p>
+            <p class="auth-preview-note">Test sürümü · E-posta ve Google ile giriş açık.<br>Test hesabınla ilan verebilir, ilanlara Ara ve WhatsApp ile ulaşabilirsin.</p>
         </section></div>`:'<button class="btn alt" id="close">Kapat</button>'}`;
     const form=$('#account-form'), feedback=$('#account-feedback'), button=$('#account-submit');
     const google=$('#account-google');
@@ -5723,12 +5733,25 @@ const nakgoAdminAccess=(()=>{
         const current=nakgoMarket.token(),ticket=++generation;busy=true;authorized=false;
         try{const role=await nakgoAuth.adminRole();if(ticket!==generation||current!==nakgoMarket.token())return;account=current;authorized=role===true;ready=true;}
         catch(error){if(ticket===generation&&current===nakgoMarket.token()){account=current;authorized=false;ready=true;}}
-        finally{if(ticket===generation&&current===nakgoMarket.token()){busy=false;if(tab==='me')render();}}
+        finally{if(ticket===generation&&current===nakgoMarket.token()){busy=false;if(tab==='me'||ADMIN_HOST)render();}}
     }
     function ensure(){if(nakgoMarket.active()&&!busy&&(!ready||account!==nakgoMarket.token()))refresh();}
-    return {isAdmin,reset,refresh,ensure};
+    const checked=()=>ready&&account===nakgoMarket.token();
+    return {isAdmin,checked,reset,refresh,ensure};
 })();
-let adminPanelGeneration=0;
+let adminPanelGeneration=0,adminHostOpened=false;
+// Yönetici adresi: giriş, yetki kontrolü ve tam ekran panel. Yetki her istekte sunucuda yeniden doğrulanır.
+function renderAdminHost(m){
+    const head='<div class="load admin-host-card"><h2>NakGo · Yönetici paneli</h2>';
+    const out=()=>{adminHostOpened=false;nakgoAuth.signOut();};
+    if(!nakgoMarket.active()){adminHostOpened=false;m.innerHTML=head+'<p>Devam etmek için yönetici hesabınla giriş yap.</p><button class="btn" id="admin-signin">Giriş yap</button></div>';$('#admin-signin').onclick=()=>nakgoMarket.requireAccount();return;}
+    nakgoAdminAccess.ensure();
+    if(!nakgoAdminAccess.checked()){m.innerHTML=head+'<p role="status">Yetki kontrol ediliyor…</p></div>';return;}
+    if(!nakgoAdminAccess.isAdmin()){m.innerHTML=head+'<p role="alert">Bu hesabın yönetici yetkisi yok.</p><button class="chip" id="admin-signout">Çıkış yap</button></div>';$('#admin-signout').onclick=out;return;}
+    m.innerHTML=head+'<p>Panel bu ekranın üstünde açılır. Kapattıysan yeniden açabilirsin.</p><button class="btn" id="admin-open">Paneli aç</button><button class="chip" id="admin-signout">Çıkış yap</button></div>';
+    $('#admin-open').onclick=openAdminPanel;$('#admin-signout').onclick=out;
+    if(!adminHostOpened){adminHostOpened=true;openAdminPanel();}
+}
 async function openAdminPanel() {
     if(!nakgoMarket.active())return;
     const generation=++adminPanelGeneration,account=nakgoMarket.token(), body=$('#sheetBody');
@@ -6013,7 +6036,7 @@ function openLoad(id) {
         ${!cloud && !nakgoMarket.locked() ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
         ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
         <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", esc(cargoText(l.cargo))], ["Tonaj", esc(amountText(l.ton))], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", esc(dateLabel(l))], ...(postedAt(l,true) ? [["İlan yayın zamanı", esc(postedAt(l,true))]] : [])])}${l.note ? `<p class="detail-note">${esc(l.note)}</p>` : ""}</section>
-        <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefon veya mesaj üzerinden görüşebilirsin.</p></section>
+        <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefonda veya WhatsApp'ta görüşebilirsin.</p></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
         <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${esc(l.owner || (l.uid ? nm(l.uid) : "Bireysel"))}</b></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button></div></section>
         <div class="detail-actions"><button class="chip" id="sh">Paylaş</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me && !l.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
@@ -6096,6 +6119,7 @@ function contactDockHTML(unavailable=false,mine=false) {
 
 function render() {
  const m = $("#main"); bell();
+ if (ADMIN_HOST) { m.dataset.screen = "admin"; return renderAdminHost(m); }
  m.dataset.screen = tab;
  if(tab === "list") renderListings(m);
  else if(tab === "post") renderPost(m);
@@ -6306,7 +6330,8 @@ render();
 deep();
 
 try {
-    if (!localStorage.getItem("yy-onb"))
+    if (ADMIN_HOST) document.body.classList.add("admin-host");
+    else if (!localStorage.getItem("yy-onb"))
         openOnb();
 }
 catch (e) { }
