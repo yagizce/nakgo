@@ -1214,7 +1214,7 @@ body.admin-host .sheet>div::before { display:none; }
 
 .delete-list { padding-left:18px; line-height:1.55; margin:8px 0 12px; }
 
-/* Yönetici paneli teması: beyaz ana yüzey, siyah vurgu (#18181b), açık gri zemin.
+/* Yönetici paneli teması: beyaz ana yüzey, siyah vurgu (#18181b), açık gri zemin; yalnız açık tema.
    Yük yeşil, boş araç mavi; durumlar renkli rozet. Yalnız .adm ve giriş ekranında geçerlidir. */
 .adm,.adm-login {
   --black:#18181b; --on-black:#fff;
@@ -1226,27 +1226,11 @@ body.admin-host .sheet>div::before { display:none; }
   --tag-bg:#f1f2f4;
   font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
 }
-@media (prefers-color-scheme:dark) {
-  :root:not([data-theme="light"]) .adm,:root:not([data-theme="light"]) .adm-login {
-    --black:#f4f4f5; --on-black:#18181b;
-    --bg:#121214; --card:#1c1c1f; --ink:#f4f4f5; --mute:#a1a1aa; --line:#2c2c31; --soft:#232327;
-    --brand:#f4f4f5; --brand-strong:#fff; --brand-ink:#f4f4f5; --brand-soft:#26262a; --on-brand:#18181b;
-    --load:#22c55e; --truck:#60a5fa; --sel:#60a5fa; --sel-soft:#1b2433;
-    --accent:#60a5fa; --accent-ink:#93c5fd;
-    --ok:#4ade80; --ok-soft:#14261b; --warn:#fb923c; --warn-soft:#2b1d12; --bad:#f87171; --bad-soft:#2d1717; --info:#a5b4fc; --info-soft:#1e1f33;
-    --tag-bg:#26262a;
-  }
-}
-:root[data-theme="dark"] .adm,:root[data-theme="dark"] .adm-login {
-  --black:#f4f4f5; --on-black:#18181b;
-  --bg:#121214; --card:#1c1c1f; --ink:#f4f4f5; --mute:#a1a1aa; --line:#2c2c31; --soft:#232327;
-  --brand:#f4f4f5; --brand-strong:#fff; --brand-ink:#f4f4f5; --brand-soft:#26262a; --on-brand:#18181b;
-  --load:#22c55e; --truck:#60a5fa; --sel:#60a5fa; --sel-soft:#1b2433;
-  --accent:#60a5fa; --accent-ink:#93c5fd;
-  --ok:#4ade80; --ok-soft:#14261b; --warn:#fb923c; --warn-soft:#2b1d12; --bad:#f87171; --bad-soft:#2d1717; --info:#a5b4fc; --info-soft:#1e1f33;
-  --tag-bg:#26262a;
-}
-body.admin-host .sheet { background:var(--bg); }
+/* Panel her zaman açık temadır; cihaz veya uygulama koyu temada olsa da değişmez. */
+.adm,.adm-login { color-scheme:light; }
+html.admin-host,html.admin-host body,body.admin-host .sheet { background:#eceff0; }
+/* Yönetici sitesinde uygulama açılışı ve başlığı ilk karede bile çizilmez (sınıf sayfa başındaki küçük betikle eklenir). */
+html.admin-host .splash,html.admin-host header { display:none !important; }
 /* Menü: beyaz yüzey, seçili bölüm siyah. */
 .adm .adm-nav { background:var(--card); border-bottom:1px solid var(--line); grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:8px; position:static; }
 .adm .adm-nav-btn { color:var(--mute); border-radius:10px; font-weight:600; min-height:60px; padding:8px 4px; gap:5px; font-size:12.5px; line-height:1.2; }
