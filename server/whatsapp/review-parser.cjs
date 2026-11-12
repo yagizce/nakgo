@@ -7,74 +7,130 @@ const vehicleMatchers=vehicles.map(value=>({value,re:new RegExp('(?<![a-z])'+fol
 const places={...Object.fromEntries(cities.map(x=>[fold(x),{city:x,district:null}])),...Object.fromEntries(Object.entries({...districts,Tuzla:'İstanbul',Derince:'Kocaeli',Gazipaşa:'Antalya',Korkuteli:'Antalya',Serik:'Antalya'}).map(([x,city])=>[fold(x),{city,district:x}]))};
 // Tüm ilçeler: tek ilde olan ve sıradan kelimeye benzemeyen ad tek başına; diğerleri yalnız "Şehir İlçe" biçiminde.
 const districtCities={};for(const [city,list] of Object.entries(allDistricts))for(const d of list){if(fold(d)==='merkez')continue;(districtCities[fold(d)]=districtCities[fold(d)]||{name:d,cities:[]}).cities.push(city);}
-const commonWords=new Set(['arac','cay','tut','can','han','orta','kure','olur','sur','bor','of','cat','guney','mut','bahce','maden','cinar','bala','ulus','genc','hani','dinar','hamur','kose','evren','kaman','kumlu','selim','susuz','emet','kale','pazar','saray','yenice','yenisehir']);
+const commonWords=new Set(['arac','cay','tut','can','han','orta','kure','olur','sur','bor','of','cat','guney','mut','bahce','maden','cinar','bala','ulus','genc','hani','dinar','hamur','kose','evren','kaman','kumlu','selim','susuz','emet','kale','pazar','saray','yenice','yenisehir','carsamba','persembe']);
 for(const [key,{name,cities:list}] of Object.entries(districtCities))if(list.length===1&&!commonWords.has(key)&&!places[key])places[key]={city:list[0],district:name};
-const pairRE=new RegExp('(?<![a-z])('+Object.keys(allDistricts).map(fold).sort((a,b)=>b.length-a.length).join('|')+")[\\s,/-]+("+Object.keys(districtCities).sort((a,b)=>b.length-a.length).join('|')+')(?![a-z])','g');
+// Ambiguous district names (several provinces) count only when the same text names one of their provinces.
+const ambiguous={};for(const [key,{name,cities:list}] of Object.entries(districtCities))if(list.length>1&&!commonWords.has(key)&&!places[key])ambiguous[key]={name,cities:list};
+// "Şehir İlçe" pairs: plain space, slash/comma or a bare hyphen; " - " separates a route instead.
+const pairRE=new RegExp('(?<![a-z])('+Object.keys(allDistricts).map(fold).sort((a,b)=>b.length-a.length).join('|')+")(?:[ \\t]*[,/][ \\t]*|[ \\t]+|-)("+Object.keys(districtCities).sort((a,b)=>b.length-a.length).join('|')+')(?![a-z])','g');
 for(const [name,city] of Object.entries({maras:'Kahramanmaraş',antep:'Gaziantep',urfa:'Şanlıurfa',afyon:'Afyonkarahisar',ist:'İstanbul',ank:'Ankara',erzrum:'Erzurum',diyarbkr:'Diyarbakır'}))places[name]={city,district:null,alias:true};
-const locationRE=new RegExp('(?<![a-z])('+Object.keys(places).sort((a,b)=>b.length-a.length).join('|')+")(?:'?(?:dan|den|tan|ten|ya|ye))?(?![a-z])",'g');
-function foldedStops(text){const result=[],spans=[];
- for(const m of text.matchAll(pairRE)){const city=cities.find(c=>fold(c)===m[1]),d=districtCities[m[2]];if(city&&d&&d.cities.includes(city)){result.push({city,district:d.name,index:m.index});spans.push([m.index,m.index+m[0].length]);}}
- for(const m of text.matchAll(locationRE)){if(spans.some(([a,b])=>m.index>=a&&m.index<b))continue;const p={...places[m[1]],index:m.index};const last=result.at(-1);if(last&&last.city===p.city&&!last.district&&p.district){result[result.length-1]=p;}else result.push(p);}return result.sort((x,y)=>x.index-y.index);}
+const locationRE=new RegExp('(?<![a-z])('+[...Object.keys(places),...Object.keys(ambiguous)].sort((a,b)=>b.length-a.length).join('|')+")(?:'?(?:dan|den|tan|ten|ya|ye))?(?![a-z])",'g');
+function foldedStops(text){const found=[],spans=[],pending=[];
+ for(const m of text.matchAll(pairRE)){const city=cities.find(c=>fold(c)===m[1]),d=districtCities[m[2]];if(city&&d&&d.cities.includes(city)){found.push({city,district:d.name,index:m.index,end:m.index+m[0].length});spans.push([m.index,m.index+m[0].length]);}}
+ for(const m of text.matchAll(locationRE)){if(spans.some(([a,b])=>m.index>=a&&m.index<b))continue;const end=m.index+m[0].length;if(places[m[1]])found.push({...places[m[1]],index:m.index,end});else pending.push({key:m[1],index:m.index,end});}
+ for(const a of pending){const city=found.map(p=>p.city).find(c=>ambiguous[a.key].cities.includes(c));if(city)found.push({city,district:ambiguous[a.key].name,index:a.index,end:a.end,resolved:true});}
+ const result=[];
+ for(const p of found.sort((x,y)=>x.index-y.index)){const last=result.at(-1),gap=last?text.slice(last.end,p.index):'';
+  if(last&&!last.district&&p.district){
+   if(last.city===p.city&&/^[ \t/,]*$/.test(gap)){result[result.length-1]={...p,index:last.index};continue;}
+   // "ANK KARAPÜRÇEK", "EDİRNE HAVZA": a district of another province right after a city is a local place name.
+   if(last.city!==p.city&&!p.resolved&&/^[ \t]+$/.test(gap))continue;
+  }
+  result.push(p);}
+ return result;}
 function stops(text){return foldedStops(fold(text));}
 const clean=s=>s.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,' ').replace(/<[^>]*>/g,' ');
 const phoneRE=/(?<![+\d])(?:\+90|0090|90|0)?[ (]*[235]\d{2}[ ).-]*\d{3}[ .-]*\d{2}[ .-]*\d{2}(?!\d)/g;
 function contacts(text){return [...new Set((text.match(phoneRE)||[]).map(value=>{let d=value.replace(/\D/g,'');if(d.startsWith('0090'))d=d.slice(4);else if(d.length===12&&d.startsWith('90'))d=d.slice(2);else if(d.length===11&&d.startsWith('0'))d=d.slice(1);return /^[235]\d{9}$/.test(d)&&!/^([0-9])\1{9}$/.test(d)?'+90'+d:null;}).filter(Boolean))];}
+// Trade names: 13.60/1360 and short dorse/damper are trailers; 10 teker/ortaboy are trucks.
+const vehicleRules=[['Tır',/(?<![a-z0-9])(?:tir|dorse)(?![a-z])|(?<![\d.,])13[ .,/]?60(?![\d.,])|kisa damper/],['Kırkayak',/kirkayak/],['Kamyonet',/kamyonet/],['Kamyon',/kamyon(?!et)|(?<!\d)10 ?teker|ortaboy/],['Panelvan',/panelvan/],['Tanker',/(?<![a-z])tanker/],['Lowbed',/lowbed/],['Konteyner',/konteyner/]];
+const arrowRE=/➡|→|-+>|(?<![<\d])>/;
+const timingOf=s=>s.match(/(?:bug[üu]n|yar[ıiI]n)[ \t()\p{L}]*|\bhemen\b|\d{1,2}[./]\d{1,2}[./]\d{4}/iu)?.[0].trim().slice(0,32)||null;
 function parseListings(input){
  if(typeof input!=='string'||!input.trim()||input.length>MAX_TEXT)throw Error('invalid_text');
  // Per-message caches only: no contact/company data survives the invocation.
- const normalized=new Map(),locations=new Map(),candidates=new Map();
+ const normalized=new Map(),locations=new Map();
  const normalizedText=text=>{if(!normalized.has(text))normalized.set(text,fold(text));return normalized.get(text);};
  const messageStops=text=>{if(!locations.has(text))locations.set(text,foldedStops(normalizedText(text)));return locations.get(text);};
- const lines=clean(input).split(/\r?\n/).map(s=>s.trim()).filter(Boolean),allPhones=contacts(input);
- const companyLines=lines.filter(s=>/(lojistik|nakliyat|tasimacilik|firma\s*:)/.test(normalizedText(s))&&!/\byukleme\b/.test(normalizedText(s)));
+ const allPhones=contacts(input);
+ // Separator rules (———) and blank lines carry no content.
+ const lines=clean(input).split(/\r?\n/).map(s=>s.trim()).filter(s=>/[\p{L}\p{N}]/u.test(s));
+ const companyLines=lines.filter(s=>/(lojistik|nakliyat|tasimacilik|firma\s*:)/.test(normalizedText(s))&&!/\byukleme\b/.test(normalizedText(s))&&!messageStops(s).length);
  const company=companyLines.length===1?companyLines[0].replace(phoneRE,'').trim():null;
- const conditionLines=lines.filter(s=>/olmali|sart|model|sinirsiz|\d+\s+yer/.test(normalizedText(s)));
- const chunks=[];let current=[];
- // A line holding only one place (e.g. "ESKİŞEHİR SEYİTGAZİ 📍") continues on the next line as the same route.
- const placeOnly=line=>{const f=normalizedText(line);let rest=f;for(const m of f.matchAll(locationRE))rest=rest.replace(m[0],' ');for(const m of f.matchAll(pairRE))rest=rest.replace(m[0],' ');return messageStops(line).length===1&&!/[a-z0-9]/.test(rest.replace(/\b(yukleme|yukler|depo|depom|cikis|varis)\b/g,''));};
- for(const line of lines){if(companyLines.includes(line)||(/^[+\d\s().-]+$/.test(line)&&contacts(line).length))continue;
-  const continues=current.length===1&&placeOnly(current[0]);
-  if(messageStops(line).length&&current.length&&!continues){chunks.push(current.join('\n'));current=[];}current.push(line);
+ const conditionLines=lines.filter(s=>/olmali|sart|model|sinirsiz|\d+\s*yer/.test(normalizedText(s)));
+ // Field lines (📦 YÜK:, 💰 NAVLUN...) describe the load; "SÖĞÜT ODUNU" is not a place.
+ const fieldLine=line=>/^(?:📦|💰|💵|⚖|📏|✅)/u.test(line)||/^\W*(?:yuk\s*:|navlun|odeme|olcu|tonaj)/.test(normalizedText(line));
+ const lineStops=line=>fieldLine(line)?[]:messageStops(line);
+ const rest=line=>{let r=normalizedText(line);for(const m of r.matchAll(pairRE))r=r.replace(m[0],' ');for(const m of r.matchAll(locationRE))r=r.replace(m[0],' ');return r;};
+ const bare=line=>lineStops(line).length>0&&!/[a-z0-9]/.test(rest(line));
+ const placeOnly=line=>lineStops(line).length===1&&!/[a-z0-9]/.test(rest(line).replace(/\b(yukleme|yukler|depo|depom|cikis|varis)\b/g,''));
+ const headerLine=line=>lineStops(line).length===1&&/\byukle(?:me|r|nir|meli)\b/.test(normalizedText(line));
+ const kept=lines.filter(line=>!companyLines.includes(line)&&!(/^[+\d\s().-]+$/.test(line)&&contacts(line).length));
+ const chunks=[];let section=null,pendingTiming=null;
+ kept.forEach((line,i)=>{
+  if(!lineStops(line).length){
+   // "BUGÜN YÜKLER" above routes dates the routes below it; inside a route it stays with that route.
+   if(timingOf(line)&&kept.slice(i+1).some(next=>lineStops(next).length)&&!kept.slice(i+1,i+2).every(next=>!lineStops(next).length&&!timingOf(next))){pendingTiming=timingOf(line);return;}
+   if(chunks.length)chunks.at(-1).lines.push(line);return;
+  }
+  // "ÇORLU YÜKLEME", "MALKARA YARIN YÜKLER": origin for the lines below it.
+  if(headerLine(line)){section={origin:lineStops(line)[0],timing:timingOf(line)||pendingTiming};chunks.push({lines:[line],header:true,section,timing:section.timing});return;}
+  const current=chunks.at(-1);
+  // A line holding only one place (e.g. "ESKİŞEHİR SEYİTGAZİ 📍") continues on the next line as the same route.
+  if(current&&!current.header&&!current.section&&current.lines.length===1&&placeOnly(current.lines[0])){current.lines.push(line);return;}
+  chunks.push({lines:[line],section,timing:pendingTiming});
+ });
+ // Bare route lines in a row ("BANDIRMA KARAMAN\nMANYAS KARAMAN\n1360") share the lines under the last one.
+ for(let k=0;k<chunks.length;k++){let m=k;
+  while(m<chunks.length-1&&!chunks[m].header&&!chunks[m+1].header&&chunks[m].lines.length===1&&bare(chunks[m].lines[0])&&bare(chunks[m+1].lines[0]))m++;
+  if(m>k){const shared=chunks[m].lines.slice(1);for(let j=k;j<m;j++)chunks[j].lines.push(...shared);k=m;}
  }
- if(current.length)chunks.push(current.join('\n'));if(!chunks.length)chunks.push(clean(input));
- return chunks.slice(0,30).map(text=>{
-  if(candidates.has(text))return structuredClone(candidates.get(text));
-  const t=normalizedText(text),loc=messageStops(text),v1=parseLoad(text,{freightOnly:true}),issues=chunks.length>30?['message_overflow_review']:[];
+ // A header with routes under it is not a listing itself; its notes go to a single route below it.
+ const listings=chunks.filter(chunk=>{
+  if(!chunk.header)return true;
+  const items=chunks.filter(c=>!c.header&&c.section===chunk.section);
+  if(!items.length)return true;
+  if(chunk.lines.length===1)return false;
+  if(items.length===1){items[0].lines.unshift(...chunk.lines.slice(1));return false;}
+  return true;
+ });
+ if(!listings.length)listings.push({lines:lines.length?lines:[clean(input)],section:null,timing:pendingTiming});
+ const candidates=new Map();
+ return listings.slice(0,30).map(chunk=>{
+  const text=chunk.lines.join('\n'),stopText=chunk.lines.filter(line=>!fieldLine(line)).join('\n');
+  const key=JSON.stringify([text,chunk.section?.origin,chunk.header,chunk.timing]);
+  if(candidates.has(key))return structuredClone(candidates.get(key));
+  const t=normalizedText(text),st=normalizedText(stopText),loc=messageStops(stopText),v1=parseLoad(text,{freightOnly:true}),issues=listings.length>30?['message_overflow_review']:[];
   const truck=/bos\s+(arac|tir|kamyon)|aracim\s+bos|bosum/.test(t),load=/yukleme|yukler|yuk\s+var|malzeme|profil|palet|yukumuz/.test(t);
   // Group posts are loads unless they clearly offer an empty vehicle.
   const kind=truck&&!load?'truck':truck&&load?null:'load';
   const point=p=>p?{city:p.city,district:p.district}:{city:null,district:null};
+  const plus=/[a-z]\s*\+\s*[a-z]/.test(st),arrow=st.search(arrowRE);
   let from=point(null),destinations=[];
-  if(loc.length>=2&&/[a-z]\s*\+\s*[a-z]/.test(t)&&!/yukleme|yukler|yuk var|bos arac/.test(t)){destinations=loc.map(point);issues.push('origin_missing');}
+  if(chunk.header){from=point(chunk.section.origin);issues.push('route_incomplete');}
+  else if(chunk.section&&(loc.length===1||plus)){from=point(chunk.section.origin);destinations=loc.map(point);}
+  else if(arrow>=0&&loc.some(p=>p.index<arrow)&&loc.some(p=>p.index>arrow)){from=point(loc.find(p=>p.index<arrow));destinations=loc.filter(p=>p.index>arrow).map(point);}
+  else if(loc.length>=2&&plus&&!/yukleme|yukler|yuk var|bos arac/.test(t)){destinations=loc.map(point);issues.push('origin_missing');}
   else if(loc.length>=2){from=point(loc[0]);destinations=loc.slice(1).map(point);if(!/yukleme|\s(?:→|->|>|dan|den)\s/.test(t))issues.push('route_order_review');}
-  else issues.push('route_incomplete');
+  else{if(loc.length===1&&/^[ \t]*(?:-+|➡|→|>)/.test(st.slice(loc[0].end)))from=point(loc[0]);issues.push('route_incomplete');}
   if(loc.some(p=>p.alias))issues.push('location_alias_review');
   const range=t.match(/(?<!\d)(\d+(?:[.,]\d+)?)\s*[-–]\s*(\d+(?:[.,]\d+)?)\s*ton/);
   const n=s=>Number(s.replace(',','.'));
   const weightMin=range?n(range[1]):v1.weightTon,weightMax=range?n(range[2]):v1.weightTon;
   if(weightMax===null||weightMax<=0||weightMax>100||weightMin<0||weightMin>weightMax)issues.push('weight_review');
-  const foundVehicles=vehicleMatchers.filter(({re})=>re.test(t)).map(({value})=>value);
-  const vehicle=foundVehicles.length===1?foundVehicles[0]:!foundVehicles.length&&/dorse/.test(t)?'Tır':null;
+  // Phone digits ("... 13 60") must not read as a trailer size.
+  const vt=t.replace(phoneRE,' '),foundVehicles=vehicleRules.filter(([,re])=>re.test(vt)).map(([value])=>value);
+  const vehicle=foundVehicles.length===1?foundVehicles[0]:null;
   const bodies=[[/acik/,'Açık kasa'],[/kapali/,'Kapalı kasa'],[/tenteli|tente/,'Tenteli'],[/frigo/,'Frigorifik'],[/damperli|damper/,'Damperli']].filter(([x])=>x.test(t));
   const body=bodies.length===1?bodies[0][1]:null;
-  const timing=text.match(/bugün[^\n,;]*|yarın[^\n,;]*|hemen|\d{1,2}[./]\d{1,2}[./]\d{4}/iu)?.[0]||null;
-  const calendar=text.match(/(?<!\d)(\d{1,2})[./](\d{1,2})[./](\d{4})(?!\d)/);
+  const timing=timingOf(text)||chunk.timing||chunk.section?.timing||null;
+  const calendar=(timing||'').match(/(?<!\d)(\d{1,2})[./](\d{1,2})[./](\d{4})(?!\d)/);
   let availableOn=null;
   if(calendar){const iso=calendar[3]+'-'+calendar[2].padStart(2,'0')+'-'+calendar[1].padStart(2,'0');const date=new Date(iso+'T12:00:00Z');if(Number.isFinite(date.getTime())&&date.toISOString().slice(0,10)===iso)availableOn=iso;}
   if(truck&&!availableOn)issues.push('truck_calendar_review');
   const count=t.match(/(\d+)\s*(?:adet\s*)?(?:arac|tir|kamyon)(?![a-z])/);
+  // Only numbers written in the message; the first one is offered, more than one goes to review.
   const localPhones=contacts(text),phones=localPhones.length?localPhones:allPhones;
   const cargo=/profil/.test(t)?'Profil malzemesi':v1.cargo;
   const conditions=conditionLines.filter(s=>text.includes(s)).join('\n')||null;
   if(conditions)issues.push('conditions_review');
   if(count&&Number(count[1])>1)issues.push('vehicle_count_review');
   if(/bugun/.test(t)&&/yarin/.test(t))issues.push('timing_ambiguous');
-  if(allPhones.length>1&&!issues.includes('contact_review'))issues.push('contact_review');
   if(!kind)issues.push('kind_unknown');if(!vehicle||!body)issues.push('vehicle_review');if(!cargo&&kind!=='truck')issues.push('cargo_missing');if(!timing)issues.push('timing_missing');if(phones.length!==1)issues.push('contact_review');
-  const fields={kind,from,destinations,vehicle,body,weightMin,weightMax,amount:range?null:v1.weightTon,cargo:kind==='truck'?'':cargo,timing,availableOn:truck?availableOn:null,availableUntil:null,availableTime:'',vehicleCount:count?Number(count[1]):null,conditions,company,contactPhone:phones.length===1?phones[0]:null,description:text,publicNote:'',ownerLabel:'NakGo ilan masası',items:[],imageData:null};
+  const fields={kind,from,destinations,vehicle,body,weightMin,weightMax,amount:range?null:v1.weightTon,cargo:kind==='truck'?'':cargo,timing,availableOn:truck?availableOn:null,availableUntil:null,availableTime:'',vehicleCount:count?Number(count[1]):null,conditions,company,contactPhone:phones[0]||null,description:text,publicNote:'',ownerLabel:'NakGo ilan masası',items:[],imageData:null};
   const fingerprint=createHash('sha256').update(JSON.stringify([kind,from,destinations,vehicle,body,weightMin,weightMax,cargo,fold(timing||'')])).digest('hex');
-  const candidate={fields,issues,confidence:Number((Math.max(0,1-issues.length/10)).toFixed(2)),fingerprint,parserVersion:'rules-2'};
-  candidates.set(text,candidate);return candidate;
+  const candidate={fields,issues,confidence:Number((Math.max(0,1-issues.length/10)).toFixed(2)),fingerprint,parserVersion:'rules-3'};
+  candidates.set(key,candidate);return candidate;
  });
 }
 // Future adapters must return review candidates; cannot write/publish or override source.

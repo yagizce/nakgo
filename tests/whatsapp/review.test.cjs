@@ -55,3 +55,20 @@ test('group post formats: arrows, stacked pins, districts, FRİGO, DORSE; messag
  assert.deepEqual(parseListings('Pazar günü araç lazım İzmir Ankara kamyon 0500 000 00 04')[0].fields.from,{city:'İzmir',district:null});
  assert.equal(parseListings('İzmir Ankara kamyon')[0].fields.contactPhone,null);
 });
+test('real group layouts: headers, shared lines, trade vehicle names, message phones only',()=>{
+ const samples=require('./group-samples.cjs');let rows=0;
+ for(const sample of samples){
+  const got=parseListings(sample.text);
+  assert.equal(got.length,sample.expect.length,sample.text.slice(0,40));
+  got.forEach((candidate,i)=>{const f=candidate.fields,[fromCity,fromDistrict,toCity,toDistrict,vehicle]=sample.expect[i];
+   assert.deepEqual([f.from.city,f.from.district,f.destinations[0]?.city??null,f.destinations[0]?.district??null,f.vehicle],[fromCity,fromDistrict,toCity,toDistrict,vehicle],sample.text.slice(0,40)+' #'+i);
+   assert.equal(f.contactPhone,sample.phones[0]??null);
+   if(sample.phones.length!==1)assert.ok(candidate.issues.includes('contact_review'));
+   if(sample.timing)assert.match(f.timing||'',new RegExp('^'+sample.timing[i],'iu'));
+   rows++;});
+ }
+ assert.equal(rows,85);
+ // Weekday "PERŞEMBE" is not the Ordu district; phone digits never read as a 13.60 trailer.
+ assert.equal(parseListings('❗ BUGÜN (PERŞEMBE) YÜKLER ❗\nKONYA ➡️ ANTALYA\nKAMYON')[0].fields.from.city,'Konya');
+ assert.equal(parseListings('İzmir Ankara yük var 0500 000 13 60')[0].fields.vehicle,null);
+});
