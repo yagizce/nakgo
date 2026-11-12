@@ -1714,7 +1714,6 @@ header p {
 }
 /* admin.* adresi: alt menü yok; panel tam ekran açılır. */
 body.admin-host #nav { display:none; }
-.admin-host-card { max-width:520px; margin:24px auto; display:grid; gap:12px; }
 body.admin-host #app { max-width:none; }
 body.admin-host .sheet { background:var(--bg); backdrop-filter:none; }
 body.admin-host .sheet>div { max-width:none; max-height:100%; height:100%; border-radius:0; padding:0; animation:none; }
@@ -1731,7 +1730,6 @@ body.admin-host .sheet>div::before { display:none; }
 .adm-nav-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:0; border:1px solid transparent; background:transparent; color:var(--mute); border-radius:12px; padding:8px 2px; font:600 11px/1.15 inherit; text-align:center; cursor:pointer; }
 .adm-nav-btn span { max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .adm-nav-btn .l-long { display:none; }
-.adm-nav-btn[aria-pressed="true"] { background:var(--ink); color:var(--card); }
 .adm-page { display:grid; gap:14px; padding:14px 12px calc(20px + env(safe-area-inset-bottom,0px)); min-width:0; align-content:start; }
 .adm-top { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; }
 .adm-crumb { margin:0; color:var(--mute); font-size:13px; }
@@ -1747,10 +1745,6 @@ body.admin-host .sheet>div::before { display:none; }
 .adm-kpi span { font-size:12.5px; color:var(--mute); }
 .adm-kpi b { font-size:26px; line-height:1.15; letter-spacing:-.5px; color:var(--brand-ink); }
 .adm-kpi small { font-size:12px; color:var(--mute); overflow-wrap:anywhere; }
-.adm-kpi.ok { border-bottom-color:var(--ok); } .adm-kpi.ok b { color:var(--ok); }
-.adm-kpi.accent { border-bottom-color:var(--accent); } .adm-kpi.accent b { color:var(--accent-ink); }
-.adm-kpi.bad { border-bottom-color:var(--bad); } .adm-kpi.bad b { color:var(--bad); }
-.adm-kpi.mute { border-bottom-color:var(--mute); } .adm-kpi.mute b { color:var(--ink); }
 .adm-main { display:grid; grid-template-columns:minmax(0,1fr); gap:14px; align-items:start; }
 .adm-card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; display:grid; gap:12px; min-width:0; }
 .adm-card-head { display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; }
@@ -1794,9 +1788,8 @@ body.admin-host .sheet>div::before { display:none; }
 .adm-back { justify-self:start; border:0; background:none; color:var(--brand-ink); font:600 14px inherit; padding:4px 0; cursor:pointer; }
 .adm-d-head h3 { margin:0; font-size:21px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .adm-d-head p { margin:4px 0 0; color:var(--mute); }
-/* Durum özeti her temada koyu yüzeydir (referanstaki özet kutusu). */
-.adm-summary { background:#16292d; color:#eef5f4; border:1px solid color-mix(in srgb,var(--brand) 25%,transparent); border-radius:12px; padding:12px 14px; }
-.adm-summary span { display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:#f1d68b; }
+.adm-summary { border-radius:12px; padding:12px 14px; }
+.adm-summary span { display:inline-block; font-size:12px; font-weight:700; }
 .adm-summary p { margin:6px 0 0; font-size:14px; line-height:1.5; }
 .adm-detail h4 { margin:4px 0 0; font-size:11.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--mute); }
 .adm-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
@@ -1823,10 +1816,6 @@ body.admin-host .sheet>div::before { display:none; }
 .adm-legend { margin:0; display:flex; gap:14px; align-items:center; font-size:12.5px; color:var(--mute); }
 .adm-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:-8px; }
 .adm-days .adm-row { cursor:default; }
-.adm-bar { display:block; height:5px; border-radius:3px; background:var(--tag-bg); overflow:hidden; margin-top:auto; }
-.adm-bar.empty { visibility:hidden; padding:0; }
-.adm-bar em { display:block; height:100%; border-radius:inherit; background:currentColor; color:var(--brand); }
-.adm-kpi.ok .adm-bar em { color:var(--ok); } .adm-kpi.accent .adm-bar em { color:var(--accent); } .adm-kpi.bad .adm-bar em { color:var(--bad); } .adm-kpi.mute .adm-bar em { color:var(--mute); }
 .adm-side { display:grid; gap:14px; align-content:start; order:-1; min-width:0; }
 .adm-period .adm-grid small { color:var(--mute); font-size:11.5px; }
 .adm-period h4 { margin:2px 0 0; font-size:11.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--mute); }
@@ -1895,7 +1884,6 @@ body.admin-host .sheet>div::before { display:none; }
   .adm-brand { display:block; font-weight:800; letter-spacing:-.3px; color:var(--brand-ink); text-align:center; margin-bottom:10px; }
   .adm-nav-btn { padding:10px 4px; gap:5px; font-size:11.5px; }
   .adm-nav-btn .l-long { display:block; white-space:normal; }
-  .adm-nav-btn .l-short { display:none; }
   .adm-nav-btn .adm-ic { width:22px; height:22px; }
   .adm-page { padding:18px 22px 28px; gap:16px; }
   .adm-kpis { grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
@@ -1929,6 +1917,162 @@ body.admin-host .sheet>div::before { display:none; }
 @media (prefers-reduced-motion:reduce) { .adm * { transition:none !important; animation:none !important; } }
 
 .delete-list { padding-left:18px; line-height:1.55; margin:8px 0 12px; }
+
+/* Yönetici paneli teması: beyaz ana yüzey, siyah vurgu (#18181b), açık gri zemin.
+   Yük yeşil, boş araç mavi; durumlar renkli rozet. Yalnız .adm ve giriş ekranında geçerlidir. */
+.adm,.adm-login {
+  --black:#18181b; --on-black:#fff;
+  --bg:#eceff0; --card:#fff; --ink:#18181b; --mute:#6b7078; --line:#e6e8eb; --soft:#f5f6f7;
+  --brand:#18181b; --brand-strong:#000; --brand-ink:#18181b; --brand-soft:#f1f2f3; --on-brand:#fff;
+  --load:#16a34a; --truck:#2563eb; --sel:#2563eb; --sel-soft:#eff5ff;
+  --accent:#2563eb; --accent-ink:#1d4ed8;
+  --ok:#15803d; --ok-soft:#e7f6ec; --warn:#c2410c; --warn-soft:#fff1e6; --bad:#c81e1e; --bad-soft:#fdecec; --info:#4f46e5; --info-soft:#eef0ff;
+  --tag-bg:#f1f2f4;
+  font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) .adm,:root:not([data-theme="light"]) .adm-login {
+    --black:#f4f4f5; --on-black:#18181b;
+    --bg:#121214; --card:#1c1c1f; --ink:#f4f4f5; --mute:#a1a1aa; --line:#2c2c31; --soft:#232327;
+    --brand:#f4f4f5; --brand-strong:#fff; --brand-ink:#f4f4f5; --brand-soft:#26262a; --on-brand:#18181b;
+    --load:#22c55e; --truck:#60a5fa; --sel:#60a5fa; --sel-soft:#1b2433;
+    --accent:#60a5fa; --accent-ink:#93c5fd;
+    --ok:#4ade80; --ok-soft:#14261b; --warn:#fb923c; --warn-soft:#2b1d12; --bad:#f87171; --bad-soft:#2d1717; --info:#a5b4fc; --info-soft:#1e1f33;
+    --tag-bg:#26262a;
+  }
+}
+:root[data-theme="dark"] .adm,:root[data-theme="dark"] .adm-login {
+  --black:#f4f4f5; --on-black:#18181b;
+  --bg:#121214; --card:#1c1c1f; --ink:#f4f4f5; --mute:#a1a1aa; --line:#2c2c31; --soft:#232327;
+  --brand:#f4f4f5; --brand-strong:#fff; --brand-ink:#f4f4f5; --brand-soft:#26262a; --on-brand:#18181b;
+  --load:#22c55e; --truck:#60a5fa; --sel:#60a5fa; --sel-soft:#1b2433;
+  --accent:#60a5fa; --accent-ink:#93c5fd;
+  --ok:#4ade80; --ok-soft:#14261b; --warn:#fb923c; --warn-soft:#2b1d12; --bad:#f87171; --bad-soft:#2d1717; --info:#a5b4fc; --info-soft:#1e1f33;
+  --tag-bg:#26262a;
+}
+body.admin-host .sheet { background:var(--bg); }
+/* Menü: beyaz yüzey, seçili bölüm siyah. */
+.adm .adm-nav { background:var(--card); border-bottom:1px solid var(--line); grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:8px; position:static; }
+.adm .adm-nav-btn { color:var(--mute); border-radius:10px; font-weight:600; min-height:60px; padding:8px 4px; gap:5px; font-size:12.5px; line-height:1.2; }
+.adm .adm-nav-btn:hover { color:var(--ink); background:var(--soft); }
+.adm .adm-nav-btn[aria-pressed="true"] { background:var(--black); color:var(--on-black); box-shadow:none; }
+.adm .adm-nav-btn .l-long { display:block; white-space:normal; overflow:visible; text-overflow:clip; }
+.adm .adm-brand { color:var(--ink); font-weight:800; font-size:19px; letter-spacing:-.4px; }
+/* Sayfa başı */
+.adm .adm-page { padding:14px 12px calc(24px + env(safe-area-inset-bottom,0px)); gap:12px; }
+.adm .adm-top { grid-template-columns:minmax(0,1fr) auto; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+.adm .adm-crumb { font-size:13px; color:var(--mute); }
+.adm .adm-crumb b { color:var(--ink); font-size:14px; }
+.adm .adm-btn { border-radius:8px; border-color:var(--line); background:var(--card); }
+.adm .adm-btn:hover:not(:disabled) { border-color:var(--ink); }
+.adm .adm-btn.primary,.adm .btn { background:var(--black); border-color:var(--black); color:var(--on-black); border-radius:8px; box-shadow:none; background-image:none; }
+.adm .btn:hover:not(:disabled),.adm .adm-btn.primary:hover:not(:disabled) { opacity:.9; }
+.adm .adm-btn.danger { color:var(--bad); border-color:color-mix(in srgb,var(--bad) 40%,var(--line)); }
+/* Özet kartları: beyaz, renkli alt çizgi ve renkli sayı. */
+.adm .adm-kpis { gap:10px; background:none; border:0; border-radius:0; overflow:visible; }
+.adm .adm-kpi { background:var(--card); border:1px solid var(--line); border-bottom:2px solid var(--black); border-radius:10px; padding:12px 14px; }
+.adm .adm-kpi span { font-size:13px; color:var(--mute); }
+.adm .adm-kpi b { color:var(--ink); font-size:28px; font-weight:800; letter-spacing:-.8px; margin-top:2px; }
+.adm .adm-kpi small { color:var(--ink); font-weight:500; }
+.adm .adm-kpi.ok { border-bottom-color:var(--ok); } .adm .adm-kpi.ok b { color:var(--ok); }
+.adm .adm-kpi.accent { border-bottom-color:var(--warn); } .adm .adm-kpi.accent b { color:var(--warn); }
+.adm .adm-kpi.bad { border-bottom-color:var(--bad); } .adm .adm-kpi.bad b { color:var(--bad); }
+.adm .adm-kpi.mute { border-bottom-color:var(--mute); } .adm .adm-kpi.mute b { color:var(--ink); }
+/* Kartlar ve tablolar */
+.adm .adm-card { border-radius:12px; padding:16px 14px; }
+.adm .adm-card-head h2 { font-size:20px; font-weight:800; letter-spacing:-.4px; }
+.adm .adm-row:hover { background:var(--soft); }
+.adm .adm-row.on { background:var(--sel-soft); box-shadow:inset 3px 0 0 var(--sel); }
+.adm .adm-chip { border-radius:999px; height:30px; padding:0 10px; }
+.adm .adm-chip b { background:var(--tag-bg); color:var(--mute); border-radius:999px; padding:2px 7px; font-size:11.5px; margin-left:4px; }
+.adm .adm-chip[aria-pressed="true"] { background:var(--black); border-color:var(--black); color:var(--on-black); }
+.adm .adm-chip[aria-pressed="true"] b { background:color-mix(in srgb,var(--on-black) 22%,transparent); color:inherit; opacity:1; }
+.adm .adm-link { color:var(--ink); border-radius:8px; font-weight:700; }
+.adm .adm-act { border-radius:8px; }
+.adm .adm-pill { border-radius:6px; padding:3px 8px; font-weight:600; }
+.adm .adm-pill.ok { background:var(--ok-soft); color:var(--ok); }
+.adm .adm-pill.warn { background:var(--warn-soft); color:var(--warn); }
+.adm .adm-pill.bad { background:var(--bad-soft); color:var(--bad); }
+.adm .adm-pill.mute { background:var(--tag-bg); color:var(--mute); }
+.adm .adm-pill.brand { background:var(--info-soft); color:var(--info); }
+.adm .adm-search input,.adm .adm-form textarea,.adm .adm-fgrid input,.adm .adm-fgrid select,.adm .adm-rform input { border-radius:8px; background:var(--card); }
+.adm .adm-filters { border-radius:10px; background:var(--card); }
+.adm .adm-filters>summary b { background:var(--black); color:var(--on-black); border-radius:999px; }
+/* Toplu işlem: seçim varken siyah çubuk. */
+.adm .adm-bulk:has(#admin-bulk) { background:var(--black); color:var(--on-black); border-radius:10px; padding:10px 12px; }
+.adm .adm-bulk:has(#admin-bulk) b { background:none; color:inherit; padding:0; }
+.adm .adm-bulk:has(#admin-bulk) .adm-btn { background:transparent; color:var(--on-black); border-color:color-mix(in srgb,var(--on-black) 30%,transparent); }
+.adm .adm-bulk:has(#admin-bulk) .adm-link { color:var(--on-black); background:transparent; border-color:transparent; }
+/* Grafik ve sıralamalar: yük yeşil, boş araç mavi. */
+.adm .adm-chart .b-load,.adm .adm-legend .b-load,.adm .adm-tip .b-load { fill:var(--load); background:var(--load); }
+.adm .adm-chart .b-truck,.adm .adm-legend .b-truck,.adm .adm-tip .b-truck { fill:var(--truck); background:var(--truck); }
+.adm .adm-rank em { background:var(--black); }
+.adm .adm-rank i { background:var(--tag-bg); }
+.adm .adm-tip { border-radius:8px; background:var(--soft); }
+.adm .adm-seg button[aria-pressed="true"] { background:var(--card); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.08); }
+/* Ayrıntı: güzergâh sade metin, durum özeti siyah kutu. */
+.adm .adm-sign { margin:4px 0 0; color:var(--mute); font-size:14px; }
+.adm .adm-sign small { color:inherit; }
+.adm .adm-summary { background:var(--black); color:var(--on-black); border:0; border-radius:12px; padding:14px 16px; }
+.adm .adm-summary span { display:inline-block; text-transform:none; letter-spacing:0; font-size:12px; font-weight:700; color:var(--on-black); background:color-mix(in srgb,var(--on-black) 14%,transparent); border-radius:6px; padding:3px 8px; }
+.adm .adm-summary p { color:color-mix(in srgb,var(--on-black) 88%,transparent); }
+.adm h4,.adm .adm-detail h4,.adm .adm-period h4 { text-transform:uppercase; letter-spacing:.6px; font-size:11.5px; font-weight:700; color:var(--mute); margin-top:6px; }
+.adm .adm-grid div { border-radius:8px; background:var(--soft); }
+.adm .adm-steps li.done::before { background:var(--ok); border-color:var(--ok); }
+.adm .adm-steps li.now::before { background:var(--sel); border-color:var(--sel); box-shadow:0 0 0 4px color-mix(in srgb,var(--sel) 22%,transparent); }
+.adm .adm-detail { border-radius:12px; }
+@container adm (min-width:720px) {
+  .adm .adm-nav { display:flex; border:0; border-right:1px solid var(--line); padding:14px 10px; position:sticky; }
+  .adm .adm-nav-btn { min-height:0; }
+  .adm .adm-page { padding:16px 20px 28px; gap:14px; }
+  .adm .adm-card { padding:18px; }
+  .adm .adm-kpis { gap:12px; }
+  .adm .adm-thead { text-transform:uppercase; letter-spacing:.5px; font-size:11px; font-weight:600; }
+}
+@container adm (min-width:1080px) {
+  .adm .adm-shell { grid-template-columns:212px minmax(0,1fr); }
+  .adm .adm-nav { padding:20px 12px; gap:4px; }
+  .adm .adm-brand { text-align:left; padding:0 10px; margin-bottom:16px; }
+  .adm .adm-nav-btn { flex-direction:row; justify-content:flex-start; gap:12px; padding:10px 12px; font-size:14px; text-align:left; }
+  .adm .adm-nav-btn .adm-ic { width:20px; height:20px; }
+  .adm .adm-nav-btn .l-long { white-space:nowrap; }
+  .adm .adm-kpi { padding:16px 18px; }
+  .adm .adm-kpi b { font-size:32px; }
+}
+@media (prefers-reduced-motion:reduce) { .adm * { transition:none !important; } }
+
+/* Yönetici sitesi giriş ekranı: uygulama başlığı ve menüsü yok; panelle aynı renkler. */
+body.admin-host header,body.admin-host #off:not(.on) { display:none; }
+body.admin-host #main { padding:0; }
+.adm-login { min-height:100dvh; display:grid; place-items:center; align-content:center; gap:18px; padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px)); background:var(--bg); color:var(--ink); }
+.adm-login-brand { display:flex; align-items:center; gap:12px; }
+.adm-login-brand i { width:44px; height:44px; border-radius:12px; background:var(--black); display:grid; place-items:center; }
+.adm-login-brand i::before { content:"N"; color:var(--on-black); font:800 22px/1 'Archivo',system-ui,sans-serif; font-style:normal; letter-spacing:-1px; }
+.adm-login-brand b { font-size:22px; font-weight:800; letter-spacing:-.6px; }
+.adm-login-brand p { margin:0; color:var(--mute); font-size:14px; }
+.adm-login-brand div { display:grid; gap:1px; }
+.adm-login-card { width:100%; max-width:420px; padding:26px 22px; background:var(--card); border:1px solid var(--line); border-radius:16px; display:grid; gap:14px; }
+.adm-login-card h1 { margin:0; font-size:24px; font-weight:800; letter-spacing:-.5px; }
+.adm-login-card > p { margin:0; color:var(--mute); font-size:15px; line-height:1.5; }
+.adm-login-form { display:grid; gap:8px; }
+.adm-login-form label { font-size:13px; font-weight:600; color:var(--ink); margin-top:4px; }
+.adm-login-form input { width:100%; height:48px; margin:0; border:1px solid var(--line); border-radius:10px; padding:0 14px; background:var(--card); color:var(--ink); font-family:inherit; font-size:16px; font-weight:500; }
+.adm-login-form input:focus-visible { outline:2px solid var(--black); outline-offset:1px; }
+.adm-login-form p { margin:2px 0 0; min-height:20px; font-size:13.5px; color:var(--mute); }
+.adm-login-submit,.adm-login-google { width:100%; height:50px; display:flex; align-items:center; justify-content:center; gap:10px; border-radius:10px; font-family:inherit; font-size:15.5px; font-weight:700; cursor:pointer; }
+.adm-login-submit { background:var(--black); border:1px solid var(--black); color:var(--on-black); }
+.adm-login-submit:hover:not(:disabled) { opacity:.9; }
+.adm-login-google { background:var(--card); border:1px solid var(--line); color:var(--ink); }
+.adm-login-google:hover:not(:disabled) { border-color:var(--ink); }
+.adm-login-google span { width:24px; height:24px; border-radius:50%; display:grid; place-items:center; background:var(--soft); color:var(--ink); font-size:13px; font-weight:800; border:1px solid var(--line); }
+.adm-login button:disabled { opacity:.55; cursor:default; }
+.adm-login button:focus-visible { outline:2px solid var(--black); outline-offset:2px; }
+.adm-login-or { display:flex; align-items:center; gap:12px; margin:2px 0 0; color:var(--mute); font-size:13px; }
+.adm-login-or::before,.adm-login-or::after { content:""; flex:1; height:1px; background:var(--line); }
+@media (min-width:860px) { .adm-login-card { padding:34px 32px; } }
+.adm .adm-bulk:has(#admin-bulk) { padding:8px 12px; gap:8px 14px; }
+.adm .adm-bulk:has(#admin-bulk) .adm-btn,.adm .adm-bulk:has(#admin-bulk) .adm-link { height:34px; }
+.adm .adm-bulk label { color:inherit; }
 
 /* Animasyonlar, hareket azaltma ve dar ekran düzeltmeleri (en sonda, diğer kuralları ezer) */
 
@@ -5979,14 +6123,31 @@ const nakgoAdminAccess=(()=>{
 })();
 let adminPanelGeneration=0,adminHostOpened=false;
 // Yönetici adresi: giriş, yetki kontrolü ve tam ekran panel. Yetki her istekte sunucuda yeniden doğrulanır.
+// Yönetici sitesinin giriş ekranı: uygulama açılışı ve uygulama giriş penceresi yerine panelle aynı tasarım.
 function renderAdminHost(m){
-    const head='<div class="load admin-host-card"><h2>NakGo · Yönetici paneli</h2>';
+    const frame=(body)=>'<div class="adm-login"><div class="adm-login-brand"><i aria-hidden="true"></i><div><b>NakGo</b><p>Yönetici paneli</p></div></div><section class="adm-login-card">'+body+'</section></div>';
     const out=()=>{adminHostOpened=false;nakgoAuth.signOut();};
-    if(!nakgoMarket.active()){adminHostOpened=false;m.innerHTML=head+'<p>Devam etmek için yönetici hesabınla giriş yap.</p><button class="btn" id="admin-signin">Giriş yap</button></div>';$('#admin-signin').onclick=()=>nakgoMarket.requireAccount();return;}
+    if(!nakgoMarket.active()){
+        adminHostOpened=false;
+        m.innerHTML=frame('<h1>Yönetici girişi</h1><p>Panel yalnız yönetici hesaplarına açılır.</p>'+
+            '<button class="adm-login-google" id="admin-signin" type="button"><span aria-hidden="true">G</span>Google ile giriş yap</button>'+
+            '<p class="adm-login-or"><span>veya e-postayla</span></p>'+
+            '<form id="admin-login-form" class="adm-login-form"><label for="admin-login-email">E-posta</label><input id="admin-login-email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" required maxlength="254">'+
+            '<label for="admin-login-password">Şifre</label><input id="admin-login-password" type="password" autocomplete="current-password" required maxlength="128">'+
+            '<p id="admin-login-msg" role="status" aria-live="polite"></p><button class="adm-login-submit" id="admin-login-submit" type="submit">Giriş yap</button></form>');
+        const google=$('#admin-signin'),form=$('#admin-login-form'),submit=$('#admin-login-submit'),msg=$('#admin-login-msg');
+        const busy=on=>{google.disabled=on;submit.disabled=on;};
+        google.onclick=async()=>{if(google.disabled)return;busy(true);msg.textContent='Google’a yönlendiriliyorsun…';
+            try{await nakgoAuth.signInGoogle();}catch(error){if(!form.isConnected)return;msg.textContent=nakgoAuth.message(error);busy(false);}};
+        form.onsubmit=async event=>{event.preventDefault();if(submit.disabled)return;busy(true);msg.textContent='Giriş yapılıyor…';
+            try{await nakgoAuth.signIn($('#admin-login-email').value.trim(),$('#admin-login-password').value);}
+            catch(error){if(!form.isConnected)return;msg.textContent=nakgoAuth.message(error);busy(false);}};
+        return;
+    }
     nakgoAdminAccess.ensure();
-    if(!nakgoAdminAccess.checked()){m.innerHTML=head+'<p role="status">Yetki kontrol ediliyor…</p></div>';return;}
-    if(!nakgoAdminAccess.isAdmin()){m.innerHTML=head+'<p role="alert">Bu hesabın yönetici yetkisi yok.</p><button class="chip" id="admin-signout">Çıkış yap</button></div>';$('#admin-signout').onclick=out;return;}
-    m.innerHTML=head+'<p>Panel bu ekranın üstünde açılır. Kapattıysan yeniden açabilirsin.</p><button class="btn" id="admin-open">Paneli aç</button><button class="chip" id="admin-signout">Çıkış yap</button></div>';
+    if(!nakgoAdminAccess.checked()){m.innerHTML=frame('<h1>Yönetici girişi</h1><p role="status">Yetki kontrol ediliyor…</p>');return;}
+    if(!nakgoAdminAccess.isAdmin()){m.innerHTML=frame('<h1>Bu hesap yönetici değil</h1><p role="alert">Bu hesabın yönetici yetkisi yok. Yönetici hesabınla tekrar giriş yap.</p><button class="adm-login-submit" id="admin-signout" type="button">Çıkış yap</button>');$('#admin-signout').onclick=out;return;}
+    m.innerHTML=frame('<h1>Yönetici paneli</h1><p>Panel bu ekranın üstünde açılır. Kapattıysan yeniden açabilirsin.</p><button class="adm-login-submit" id="admin-open" type="button">Paneli aç</button><button class="adm-login-google" id="admin-signout" type="button">Çıkış yap</button>');
     $('#admin-open').onclick=openAdminPanel;$('#admin-signout').onclick=out;
     if(!adminHostOpened){adminHostOpened=true;openAdminPanel();}
 }
@@ -6006,7 +6167,6 @@ async function openAdminPanel() {
     let retention=null,query={},checked=new Map(),filtersOpen=false,range={days:30,from:'',to:''},insights=null,dayPage=0,tip=-1;
     const history=new Map();
     const titles={overview:'Genel bakış',listings:'İlanlar',users:'Kullanıcılar',moderation:'İşlem geçmişi',archive:'Arşiv ve saklama',stats:'İstatistikler'};
-    const short={overview:'Özet',listings:'İlanlar',users:'Kişiler',moderation:'Geçmiş',archive:'Arşiv',stats:'Sayılar'};
     const valid=()=>generation===adminPanelGeneration&&account===nakgoMarket.token()&&body.dataset.k==='admin';
     // Tüm saatler Türkiye saatiyle gösterilir; cihazın saat dilimi sonucu değiştirmez.
     const TZ='Europe/Istanbul';
@@ -6045,7 +6205,7 @@ async function openAdminPanel() {
             $('#admin-close').onclick=closeSheet;return;
         }
         body.innerHTML='<div class="adm"><div class="adm-shell"><div class="adm-nav" role="navigation" aria-label="Yönetim bölümleri"><span class="adm-brand">NakGo</span>'+
-            Object.entries(titles).map(([key,label])=>'<button class="adm-nav-btn" data-admin-section="'+key+'" aria-label="'+label+'" aria-pressed="'+(section===key)+'">'+adminIcon(key)+'<span class="l-long">'+label+'</span><span class="l-short">'+short[key]+'</span></button>').join('')+
+            Object.entries(titles).map(([key,label])=>'<button class="adm-nav-btn" data-admin-section="'+key+'" aria-label="'+label+'" aria-pressed="'+(section===key)+'">'+adminIcon(key)+'<span class="l-long">'+label+'</span></button>').join('')+
             '</div><div class="adm-page"><div class="adm-top"><p class="adm-crumb"><span>Yönetici paneli</span> › <b>'+titles[section]+'</b></p><div class="adm-top-act">'+
             '<button class="adm-btn" id="admin-refresh" type="button">'+adminIcon('refresh')+'Yenile</button><button class="adm-btn" id="admin-close" type="button">'+(host?'Çıkış yap':'Kapat ×')+'</button></div></div>'+content+'</div></div></div>';
         $('#admin-close').onclick=host?()=>{closeSheet();adminHostOpened=false;nakgoAuth.signOut();}:closeSheet;
@@ -6094,23 +6254,22 @@ async function openAdminPanel() {
         // İlanlar sayfasında üst kartlar yok; durum çipleri sayıları zaten gösterir.
         if(section==='listings')return '';
         const s=stats||{},st=s.listing_states||{},t=s.totals||{},ty=s.user_types||{},month=(s.periods&&s.periods.month)||{};
-        // Her kart: değer, yüzde açıklaması ve varsa oran çubuğu.
-        const tile=(label,value,note,tone,share)=>'<div class="adm-kpi '+tone+'"><span>'+label+'</span><b>'+value+'</b><small>'+note+'</small>'+
-            '<i class="adm-bar'+(share===null||share===undefined?' empty':'')+'" aria-hidden="true"><em style="width:'+Math.min(100,Math.max(0,Number(share)||0))+'%"></em></i></div>';
+        // Her kart: değer ve yüzde açıklaması.
+        const tile=(label,value,note,tone)=>'<div class="adm-kpi '+tone+'"><span>'+label+'</span><b>'+value+'</b><small>'+note+'</small></div>';
         const removed=Number(s.listings_removed)||0,dayChange=change(s.listings_today,s.yesterday);
         const sets={
-            overview:[['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','brand',pct(s.listings,st.all)],
-                ['Bugün eklenen',num(s.listings_today),dayChange===null?'dün kayıt yok':'Düne göre '+changeText(dayChange),'ok',pct(s.listings_today,s.periods&&s.periods.week&&s.periods.week.listings)],
-                ['Kullanıcı',num(s.users),pctText(pct(s.users_week,s.users))+' bu hafta yeni','accent',pct(s.users_week,s.users)],
-                ['Kaldırılan / askıda',num(removed),pctText(pct(removed,st.all))+' ilanların · '+num(s.accounts_suspended)+' hesap askıda','bad',pct(removed,st.all)]],
-            users:[['Toplam kullanıcı',num(s.users),pctText(pct(ty.carrier,s.users))+' taşıyıcı','brand',pct(ty.carrier,s.users)],['Bu hafta yeni',num(s.users_week),pctText(pct(s.users_week,s.users))+' toplamın','ok',pct(s.users_week,s.users)],
-                ['Taşıyıcı',num(ty.carrier),pctText(pct(ty.owner,s.users))+' yük sahibi ('+num(ty.owner)+')','accent',pct(ty.carrier,s.users)],['Askıda',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','bad',pct(s.accounts_suspended,s.users)]],
-            moderation:[['Son 30 gün',num(s.actions_month),'yönetici işlemi','brand',null],['Kaldırılan ilan',num(s.listings_removed),pctText(pct(removed,st.all))+' ilanların','bad',pct(removed,st.all)],
-                ['Askıdaki hesap',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','accent',pct(s.accounts_suspended,s.users)],['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','ok',pct(s.listings,st.all)]],
-            archive:(r=>[['Arşivde',num(r.archived),'kişisel bilgisi temizlenmiş ilan','brand',null],['30 gün içinde silinecek',num(r.purge_30),'1 yıllık süresi dolan','bad',pct(r.purge_30,r.archived)],
-                ['Temizlik bekleyen',num(r.pending_cleanup),'bitişten 8 gün sonra temizlenir','accent',null],['Yasal saklamada',num(r.held),'otomatik silinmez','mute',null]])(retention||{}),
-            stats:[['Toplam ilan',num(t.listings),pctText(pct(month.listings,t.listings))+' son 30 günde','brand',pct(month.listings,t.listings)],['Yük ilanı',num(t.loads),pctText(pct(t.loads,t.listings))+' tüm ilanların','ok',pct(t.loads,t.listings)],
-                ['Boş araç ilanı',num(t.trucks),pctText(pct(t.trucks,t.listings))+' tüm ilanların','accent',pct(t.trucks,t.listings)],['Toplam kullanıcı',num(s.users),pctText(pct(month.users,s.users))+' son 30 günde katıldı','mute',pct(month.users,s.users)]]};
+            overview:[['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','brand'],
+                ['Bugün eklenen',num(s.listings_today),dayChange===null?'dün kayıt yok':'Düne göre '+changeText(dayChange),'ok'],
+                ['Kullanıcı',num(s.users),pctText(pct(s.users_week,s.users))+' bu hafta yeni','accent'],
+                ['Kaldırılan / askıda',num(removed),pctText(pct(removed,st.all))+' ilanların · '+num(s.accounts_suspended)+' hesap askıda','bad']],
+            users:[['Toplam kullanıcı',num(s.users),pctText(pct(ty.carrier,s.users))+' taşıyıcı','brand'],['Bu hafta yeni',num(s.users_week),pctText(pct(s.users_week,s.users))+' toplamın','ok'],
+                ['Taşıyıcı',num(ty.carrier),pctText(pct(ty.owner,s.users))+' yük sahibi ('+num(ty.owner)+')','accent'],['Askıda',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','bad']],
+            moderation:[['Son 30 gün',num(s.actions_month),'yönetici işlemi','brand'],['Kaldırılan ilan',num(s.listings_removed),pctText(pct(removed,st.all))+' ilanların','bad'],
+                ['Askıdaki hesap',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','accent'],['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','ok']],
+            archive:(r=>[['Arşivde',num(r.archived),'kişisel bilgisi temizlenmiş ilan','brand'],['30 gün içinde silinecek',num(r.purge_30),'1 yıllık süresi dolan','bad'],
+                ['Temizlik bekleyen',num(r.pending_cleanup),'bitişten 8 gün sonra temizlenir','accent'],['Yasal saklamada',num(r.held),'otomatik silinmez','mute']])(retention||{}),
+            stats:[['Toplam ilan',num(t.listings),pctText(pct(month.listings,t.listings))+' son 30 günde','brand'],['Yük ilanı',num(t.loads),pctText(pct(t.loads,t.listings))+' tüm ilanların','ok'],
+                ['Boş araç ilanı',num(t.trucks),pctText(pct(t.trucks,t.listings))+' tüm ilanların','accent'],['Toplam kullanıcı',num(s.users),pctText(pct(month.users,s.users))+' son 30 günde katıldı','mute']]};
         return '<section class="adm-kpis" aria-label="Özet">'+sets[section].map(x=>tile(...x)).join('')+'</section>';
     }
     // Gün/Hafta/Ay özeti: sunucudaki sayılardan kural tabanlı metin (yapay zekâ değil).
@@ -6247,7 +6406,7 @@ async function openAdminPanel() {
             const ended=row.updated_at&&row.expires_at?(Date.parse(row.updated_at)<Date.parse(row.expires_at)?row.updated_at:row.expires_at):row.expires_at;
             const act='<button class="btn adm-detail-act" type="button" data-admin-do="'+(row.hold?'release':'hold')+'" data-admin-index="'+index+'">'+(row.hold?'Yasal saklamayı kaldır':'Yasal saklamaya al')+'</button>';
             loadHistory(String(row.id));
-            return back+'<div class="adm-d-head"><h3>İlan #'+esc(String(row.id))+' '+pill(row.hold?'Yasal saklama':'Arşiv',row.hold?'warn':'mute')+'</h3><p>'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
+            return back+'<div class="adm-d-head"><h3>İlan #'+esc(String(row.id))+' '+pill(row.hold?'Yasal saklama':'Arşiv',row.hold?'warn':'mute')+'</h3><p class="adm-sign">'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
                 '<div class="adm-summary"><span>Saklama durumu</span><p>'+(row.hold?'Yasal saklamada: kaldırılana kadar otomatik silinmez.':'Kişisel bilgiler temizlendi. Kayıt '+day(row.purge_at)+' tarihinde otomatik silinir.')+'</p></div>'+
                 '<h4>İlan bilgileri</h4>'+grid([['Tür',kindText(row.kind)],['Araç',esc(row.vehicle||'—')],['Kasa',esc(row.body||'—')],['Yönetici kararı',num(row.decisions)]])+(row.hold_reason?'<h4>Saklama gerekçesi</h4><p class="adm-reason">'+esc(row.hold_reason)+'</p>':'')+
                 '<h4>Zaman çizelgesi</h4>'+timeline([['Oluşturuldu',date(row.created_at),'done'],['Yayın bitti',date(ended),'done'],['Kişisel bilgiler temizlendi',date(row.redacted_at),'done'],['Kayıt silinir',row.hold?'Yasal saklamada':day(row.purge_at),'']])+
@@ -6271,7 +6430,7 @@ async function openAdminPanel() {
         const ownerLink=row.owner_id?'<button class="adm-btn" type="button" data-admin-owner="'+esc(String(row.owner_id))+'">İlan sahibine git</button>':'';
         const id=String(row.id);loadHistory(id);
         const holdBtn='<button class="adm-btn" type="button" data-admin-do="'+(row.hold?'release':'hold')+'" data-admin-index="'+index+'">'+(row.hold?'Yasal saklamayı kaldır':'Yasal saklamaya al')+'</button>';
-        return back+'<div class="adm-d-head"><h3>İlan #'+esc(id)+' '+pill(label,tone)+'</h3><p>'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
+        return back+'<div class="adm-d-head"><h3>İlan #'+esc(id)+' '+pill(label,tone)+'</h3><p class="adm-sign">'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
             '<div class="adm-summary"><span>Durum özeti</span><p>'+summary+'</p></div><h4>İlan bilgileri</h4>'+
             grid([['Tür',kindText(row.kind)],['Araç',esc(row.vehicle||'—')],['Kasa',esc(row.body||'—')],['Sahibi',esc(ownerName||'—')],['Yükleme',esc(row.loading_text||'—')],['Yük',esc(row.cargo||'—')],['Oluşturma',date(row.created_at)],['Yayın bitişi',date(row.expires_at)]])+
             '<h4>Zaman çizelgesi</h4>'+timeline(steps)+'<h4>İşlem geçmişi</h4>'+historyHTML(id)+'<div class="adm-d-act">'+act+ownerLink+holdBtn+'</div>';
@@ -6765,8 +6924,11 @@ catch (e) { }
             sessionStorage.setItem("ng-splash", "1");
         }
         catch (e) { }
-        if (again)
+        // Yönetici sitesinde uygulama açılışı gösterilmez.
+        if (again || ADMIN_HOST) {
             sp.style.display = "none";
+            if (ADMIN_HOST) document.body.classList.add("admin-host");
+        }
         else {
             let t = 1500;
             try {

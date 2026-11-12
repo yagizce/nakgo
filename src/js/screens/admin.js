@@ -20,14 +20,31 @@ const nakgoAdminAccess=(()=>{
 })();
 let adminPanelGeneration=0,adminHostOpened=false;
 // Yönetici adresi: giriş, yetki kontrolü ve tam ekran panel. Yetki her istekte sunucuda yeniden doğrulanır.
+// Yönetici sitesinin giriş ekranı: uygulama açılışı ve uygulama giriş penceresi yerine panelle aynı tasarım.
 function renderAdminHost(m){
-    const head='<div class="load admin-host-card"><h2>NakGo · Yönetici paneli</h2>';
+    const frame=(body)=>'<div class="adm-login"><div class="adm-login-brand"><i aria-hidden="true"></i><div><b>NakGo</b><p>Yönetici paneli</p></div></div><section class="adm-login-card">'+body+'</section></div>';
     const out=()=>{adminHostOpened=false;nakgoAuth.signOut();};
-    if(!nakgoMarket.active()){adminHostOpened=false;m.innerHTML=head+'<p>Devam etmek için yönetici hesabınla giriş yap.</p><button class="btn" id="admin-signin">Giriş yap</button></div>';$('#admin-signin').onclick=()=>nakgoMarket.requireAccount();return;}
+    if(!nakgoMarket.active()){
+        adminHostOpened=false;
+        m.innerHTML=frame('<h1>Yönetici girişi</h1><p>Panel yalnız yönetici hesaplarına açılır.</p>'+
+            '<button class="adm-login-google" id="admin-signin" type="button"><span aria-hidden="true">G</span>Google ile giriş yap</button>'+
+            '<p class="adm-login-or"><span>veya e-postayla</span></p>'+
+            '<form id="admin-login-form" class="adm-login-form"><label for="admin-login-email">E-posta</label><input id="admin-login-email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" required maxlength="254">'+
+            '<label for="admin-login-password">Şifre</label><input id="admin-login-password" type="password" autocomplete="current-password" required maxlength="128">'+
+            '<p id="admin-login-msg" role="status" aria-live="polite"></p><button class="adm-login-submit" id="admin-login-submit" type="submit">Giriş yap</button></form>');
+        const google=$('#admin-signin'),form=$('#admin-login-form'),submit=$('#admin-login-submit'),msg=$('#admin-login-msg');
+        const busy=on=>{google.disabled=on;submit.disabled=on;};
+        google.onclick=async()=>{if(google.disabled)return;busy(true);msg.textContent='Google’a yönlendiriliyorsun…';
+            try{await nakgoAuth.signInGoogle();}catch(error){if(!form.isConnected)return;msg.textContent=nakgoAuth.message(error);busy(false);}};
+        form.onsubmit=async event=>{event.preventDefault();if(submit.disabled)return;busy(true);msg.textContent='Giriş yapılıyor…';
+            try{await nakgoAuth.signIn($('#admin-login-email').value.trim(),$('#admin-login-password').value);}
+            catch(error){if(!form.isConnected)return;msg.textContent=nakgoAuth.message(error);busy(false);}};
+        return;
+    }
     nakgoAdminAccess.ensure();
-    if(!nakgoAdminAccess.checked()){m.innerHTML=head+'<p role="status">Yetki kontrol ediliyor…</p></div>';return;}
-    if(!nakgoAdminAccess.isAdmin()){m.innerHTML=head+'<p role="alert">Bu hesabın yönetici yetkisi yok.</p><button class="chip" id="admin-signout">Çıkış yap</button></div>';$('#admin-signout').onclick=out;return;}
-    m.innerHTML=head+'<p>Panel bu ekranın üstünde açılır. Kapattıysan yeniden açabilirsin.</p><button class="btn" id="admin-open">Paneli aç</button><button class="chip" id="admin-signout">Çıkış yap</button></div>';
+    if(!nakgoAdminAccess.checked()){m.innerHTML=frame('<h1>Yönetici girişi</h1><p role="status">Yetki kontrol ediliyor…</p>');return;}
+    if(!nakgoAdminAccess.isAdmin()){m.innerHTML=frame('<h1>Bu hesap yönetici değil</h1><p role="alert">Bu hesabın yönetici yetkisi yok. Yönetici hesabınla tekrar giriş yap.</p><button class="adm-login-submit" id="admin-signout" type="button">Çıkış yap</button>');$('#admin-signout').onclick=out;return;}
+    m.innerHTML=frame('<h1>Yönetici paneli</h1><p>Panel bu ekranın üstünde açılır. Kapattıysan yeniden açabilirsin.</p><button class="adm-login-submit" id="admin-open" type="button">Paneli aç</button><button class="adm-login-google" id="admin-signout" type="button">Çıkış yap</button>');
     $('#admin-open').onclick=openAdminPanel;$('#admin-signout').onclick=out;
     if(!adminHostOpened){adminHostOpened=true;openAdminPanel();}
 }
@@ -47,7 +64,6 @@ async function openAdminPanel() {
     let retention=null,query={},checked=new Map(),filtersOpen=false,range={days:30,from:'',to:''},insights=null,dayPage=0,tip=-1;
     const history=new Map();
     const titles={overview:'Genel bakış',listings:'İlanlar',users:'Kullanıcılar',moderation:'İşlem geçmişi',archive:'Arşiv ve saklama',stats:'İstatistikler'};
-    const short={overview:'Özet',listings:'İlanlar',users:'Kişiler',moderation:'Geçmiş',archive:'Arşiv',stats:'Sayılar'};
     const valid=()=>generation===adminPanelGeneration&&account===nakgoMarket.token()&&body.dataset.k==='admin';
     // Tüm saatler Türkiye saatiyle gösterilir; cihazın saat dilimi sonucu değiştirmez.
     const TZ='Europe/Istanbul';
@@ -86,7 +102,7 @@ async function openAdminPanel() {
             $('#admin-close').onclick=closeSheet;return;
         }
         body.innerHTML='<div class="adm"><div class="adm-shell"><div class="adm-nav" role="navigation" aria-label="Yönetim bölümleri"><span class="adm-brand">NakGo</span>'+
-            Object.entries(titles).map(([key,label])=>'<button class="adm-nav-btn" data-admin-section="'+key+'" aria-label="'+label+'" aria-pressed="'+(section===key)+'">'+adminIcon(key)+'<span class="l-long">'+label+'</span><span class="l-short">'+short[key]+'</span></button>').join('')+
+            Object.entries(titles).map(([key,label])=>'<button class="adm-nav-btn" data-admin-section="'+key+'" aria-label="'+label+'" aria-pressed="'+(section===key)+'">'+adminIcon(key)+'<span class="l-long">'+label+'</span></button>').join('')+
             '</div><div class="adm-page"><div class="adm-top"><p class="adm-crumb"><span>Yönetici paneli</span> › <b>'+titles[section]+'</b></p><div class="adm-top-act">'+
             '<button class="adm-btn" id="admin-refresh" type="button">'+adminIcon('refresh')+'Yenile</button><button class="adm-btn" id="admin-close" type="button">'+(host?'Çıkış yap':'Kapat ×')+'</button></div></div>'+content+'</div></div></div>';
         $('#admin-close').onclick=host?()=>{closeSheet();adminHostOpened=false;nakgoAuth.signOut();}:closeSheet;
@@ -135,23 +151,22 @@ async function openAdminPanel() {
         // İlanlar sayfasında üst kartlar yok; durum çipleri sayıları zaten gösterir.
         if(section==='listings')return '';
         const s=stats||{},st=s.listing_states||{},t=s.totals||{},ty=s.user_types||{},month=(s.periods&&s.periods.month)||{};
-        // Her kart: değer, yüzde açıklaması ve varsa oran çubuğu.
-        const tile=(label,value,note,tone,share)=>'<div class="adm-kpi '+tone+'"><span>'+label+'</span><b>'+value+'</b><small>'+note+'</small>'+
-            '<i class="adm-bar'+(share===null||share===undefined?' empty':'')+'" aria-hidden="true"><em style="width:'+Math.min(100,Math.max(0,Number(share)||0))+'%"></em></i></div>';
+        // Her kart: değer ve yüzde açıklaması.
+        const tile=(label,value,note,tone)=>'<div class="adm-kpi '+tone+'"><span>'+label+'</span><b>'+value+'</b><small>'+note+'</small></div>';
         const removed=Number(s.listings_removed)||0,dayChange=change(s.listings_today,s.yesterday);
         const sets={
-            overview:[['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','brand',pct(s.listings,st.all)],
-                ['Bugün eklenen',num(s.listings_today),dayChange===null?'dün kayıt yok':'Düne göre '+changeText(dayChange),'ok',pct(s.listings_today,s.periods&&s.periods.week&&s.periods.week.listings)],
-                ['Kullanıcı',num(s.users),pctText(pct(s.users_week,s.users))+' bu hafta yeni','accent',pct(s.users_week,s.users)],
-                ['Kaldırılan / askıda',num(removed),pctText(pct(removed,st.all))+' ilanların · '+num(s.accounts_suspended)+' hesap askıda','bad',pct(removed,st.all)]],
-            users:[['Toplam kullanıcı',num(s.users),pctText(pct(ty.carrier,s.users))+' taşıyıcı','brand',pct(ty.carrier,s.users)],['Bu hafta yeni',num(s.users_week),pctText(pct(s.users_week,s.users))+' toplamın','ok',pct(s.users_week,s.users)],
-                ['Taşıyıcı',num(ty.carrier),pctText(pct(ty.owner,s.users))+' yük sahibi ('+num(ty.owner)+')','accent',pct(ty.carrier,s.users)],['Askıda',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','bad',pct(s.accounts_suspended,s.users)]],
-            moderation:[['Son 30 gün',num(s.actions_month),'yönetici işlemi','brand',null],['Kaldırılan ilan',num(s.listings_removed),pctText(pct(removed,st.all))+' ilanların','bad',pct(removed,st.all)],
-                ['Askıdaki hesap',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','accent',pct(s.accounts_suspended,s.users)],['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','ok',pct(s.listings,st.all)]],
-            archive:(r=>[['Arşivde',num(r.archived),'kişisel bilgisi temizlenmiş ilan','brand',null],['30 gün içinde silinecek',num(r.purge_30),'1 yıllık süresi dolan','bad',pct(r.purge_30,r.archived)],
-                ['Temizlik bekleyen',num(r.pending_cleanup),'bitişten 8 gün sonra temizlenir','accent',null],['Yasal saklamada',num(r.held),'otomatik silinmez','mute',null]])(retention||{}),
-            stats:[['Toplam ilan',num(t.listings),pctText(pct(month.listings,t.listings))+' son 30 günde','brand',pct(month.listings,t.listings)],['Yük ilanı',num(t.loads),pctText(pct(t.loads,t.listings))+' tüm ilanların','ok',pct(t.loads,t.listings)],
-                ['Boş araç ilanı',num(t.trucks),pctText(pct(t.trucks,t.listings))+' tüm ilanların','accent',pct(t.trucks,t.listings)],['Toplam kullanıcı',num(s.users),pctText(pct(month.users,s.users))+' son 30 günde katıldı','mute',pct(month.users,s.users)]]};
+            overview:[['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','brand'],
+                ['Bugün eklenen',num(s.listings_today),dayChange===null?'dün kayıt yok':'Düne göre '+changeText(dayChange),'ok'],
+                ['Kullanıcı',num(s.users),pctText(pct(s.users_week,s.users))+' bu hafta yeni','accent'],
+                ['Kaldırılan / askıda',num(removed),pctText(pct(removed,st.all))+' ilanların · '+num(s.accounts_suspended)+' hesap askıda','bad']],
+            users:[['Toplam kullanıcı',num(s.users),pctText(pct(ty.carrier,s.users))+' taşıyıcı','brand'],['Bu hafta yeni',num(s.users_week),pctText(pct(s.users_week,s.users))+' toplamın','ok'],
+                ['Taşıyıcı',num(ty.carrier),pctText(pct(ty.owner,s.users))+' yük sahibi ('+num(ty.owner)+')','accent'],['Askıda',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','bad']],
+            moderation:[['Son 30 gün',num(s.actions_month),'yönetici işlemi','brand'],['Kaldırılan ilan',num(s.listings_removed),pctText(pct(removed,st.all))+' ilanların','bad'],
+                ['Askıdaki hesap',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','accent'],['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','ok']],
+            archive:(r=>[['Arşivde',num(r.archived),'kişisel bilgisi temizlenmiş ilan','brand'],['30 gün içinde silinecek',num(r.purge_30),'1 yıllık süresi dolan','bad'],
+                ['Temizlik bekleyen',num(r.pending_cleanup),'bitişten 8 gün sonra temizlenir','accent'],['Yasal saklamada',num(r.held),'otomatik silinmez','mute']])(retention||{}),
+            stats:[['Toplam ilan',num(t.listings),pctText(pct(month.listings,t.listings))+' son 30 günde','brand'],['Yük ilanı',num(t.loads),pctText(pct(t.loads,t.listings))+' tüm ilanların','ok'],
+                ['Boş araç ilanı',num(t.trucks),pctText(pct(t.trucks,t.listings))+' tüm ilanların','accent'],['Toplam kullanıcı',num(s.users),pctText(pct(month.users,s.users))+' son 30 günde katıldı','mute']]};
         return '<section class="adm-kpis" aria-label="Özet">'+sets[section].map(x=>tile(...x)).join('')+'</section>';
     }
     // Gün/Hafta/Ay özeti: sunucudaki sayılardan kural tabanlı metin (yapay zekâ değil).
@@ -288,7 +303,7 @@ async function openAdminPanel() {
             const ended=row.updated_at&&row.expires_at?(Date.parse(row.updated_at)<Date.parse(row.expires_at)?row.updated_at:row.expires_at):row.expires_at;
             const act='<button class="btn adm-detail-act" type="button" data-admin-do="'+(row.hold?'release':'hold')+'" data-admin-index="'+index+'">'+(row.hold?'Yasal saklamayı kaldır':'Yasal saklamaya al')+'</button>';
             loadHistory(String(row.id));
-            return back+'<div class="adm-d-head"><h3>İlan #'+esc(String(row.id))+' '+pill(row.hold?'Yasal saklama':'Arşiv',row.hold?'warn':'mute')+'</h3><p>'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
+            return back+'<div class="adm-d-head"><h3>İlan #'+esc(String(row.id))+' '+pill(row.hold?'Yasal saklama':'Arşiv',row.hold?'warn':'mute')+'</h3><p class="adm-sign">'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
                 '<div class="adm-summary"><span>Saklama durumu</span><p>'+(row.hold?'Yasal saklamada: kaldırılana kadar otomatik silinmez.':'Kişisel bilgiler temizlendi. Kayıt '+day(row.purge_at)+' tarihinde otomatik silinir.')+'</p></div>'+
                 '<h4>İlan bilgileri</h4>'+grid([['Tür',kindText(row.kind)],['Araç',esc(row.vehicle||'—')],['Kasa',esc(row.body||'—')],['Yönetici kararı',num(row.decisions)]])+(row.hold_reason?'<h4>Saklama gerekçesi</h4><p class="adm-reason">'+esc(row.hold_reason)+'</p>':'')+
                 '<h4>Zaman çizelgesi</h4>'+timeline([['Oluşturuldu',date(row.created_at),'done'],['Yayın bitti',date(ended),'done'],['Kişisel bilgiler temizlendi',date(row.redacted_at),'done'],['Kayıt silinir',row.hold?'Yasal saklamada':day(row.purge_at),'']])+
@@ -312,7 +327,7 @@ async function openAdminPanel() {
         const ownerLink=row.owner_id?'<button class="adm-btn" type="button" data-admin-owner="'+esc(String(row.owner_id))+'">İlan sahibine git</button>':'';
         const id=String(row.id);loadHistory(id);
         const holdBtn='<button class="adm-btn" type="button" data-admin-do="'+(row.hold?'release':'hold')+'" data-admin-index="'+index+'">'+(row.hold?'Yasal saklamayı kaldır':'Yasal saklamaya al')+'</button>';
-        return back+'<div class="adm-d-head"><h3>İlan #'+esc(id)+' '+pill(label,tone)+'</h3><p>'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
+        return back+'<div class="adm-d-head"><h3>İlan #'+esc(id)+' '+pill(label,tone)+'</h3><p class="adm-sign">'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
             '<div class="adm-summary"><span>Durum özeti</span><p>'+summary+'</p></div><h4>İlan bilgileri</h4>'+
             grid([['Tür',kindText(row.kind)],['Araç',esc(row.vehicle||'—')],['Kasa',esc(row.body||'—')],['Sahibi',esc(ownerName||'—')],['Yükleme',esc(row.loading_text||'—')],['Yük',esc(row.cargo||'—')],['Oluşturma',date(row.created_at)],['Yayın bitişi',date(row.expires_at)]])+
             '<h4>Zaman çizelgesi</h4>'+timeline(steps)+'<h4>İşlem geçmişi</h4>'+historyHTML(id)+'<div class="adm-d-act">'+act+ownerLink+holdBtn+'</div>';
