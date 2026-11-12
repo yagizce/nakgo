@@ -508,12 +508,19 @@ const nakgoAuth = (() => {
     }
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
     async function adminPage(section,offset=0,search='',filter='',query=null){const account=listingAccount(),args={p_section:section,p_offset:offset,p_search:search};if(filter)args.p_filter=filter;if(query&&typeof query==='object'&&Object.keys(query).length)args.p_query=query;return messageResult(requireClient().rpc('nakgo_admin_page',args),account);}
+    // Hesap silme: sunucu kişisel bilgileri hemen siler; ardından bu cihazdaki oturum kapatılır.
+    async function deleteMyAccount(){
+        if(!state.user||state.recovery)throw Error('Sign in required');
+        const {error}=await requireClient().rpc('nakgo_delete_my_account');
+        if(error)throw error;
+        try{await signOut();}catch{revision++;state.user=null;state.profile=null;state.recovery=false;state.error='';changed();}
+    }
     async function adminModerate(kind,target,action,reason,expectedRevision){
         const account=listingAccount();
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
+    return {adminRole,adminModerate,adminPage,deleteMyAccount,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.

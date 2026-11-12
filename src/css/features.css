@@ -1224,3 +1224,4 @@ body.admin-host .sheet>div::before { display:none; }
 }
 @media (prefers-reduced-motion:reduce) { .adm * { transition:none !important; animation:none !important; } }
 
+.delete-list { padding-left:18px; line-height:1.55; margin:8px 0 12px; }

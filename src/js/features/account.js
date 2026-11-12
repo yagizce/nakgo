@@ -289,7 +289,7 @@ function authCardHTML() {
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
-            <div class="chips"><button class="chip on" data-auth-open="${s.recovery?'password':'profile'}">${s.recovery?'Yeni şifre belirle':'Hesap bilgileri'}</button><button class="chip" id="account-signout">Çıkış yap</button></div>`:
+            <div class="chips"><button class="chip on" data-auth-open="${s.recovery?'password':'profile'}">${s.recovery?'Yeni şifre belirle':'Hesap bilgileri'}</button><button class="chip" id="account-signout">Çıkış yap</button>${s.recovery?'':'<button class="chip" id="account-delete">Hesabımı sil</button>'}</div>`:
             '<div class="chips"><button class="chip on" data-auth-open="signin">Giriş yap</button><button class="chip" data-auth-open="signup">Kayıt ol</button></div>'}
         <p id="account-status" role="status" class="estimate-note"></p>
     </div>`;
@@ -297,6 +297,7 @@ function authCardHTML() {
 
 function bindAuthCard() {
     document.querySelectorAll('[data-auth-open]').forEach(button=>button.onclick=()=>openAuth(button.dataset.authOpen));
+    const remove=$('#account-delete');if(remove)remove.onclick=openDeleteAccount;
     const out=$('#account-signout');
     if(out)out.onclick=async()=>{
         if(out.disabled)return;
@@ -304,6 +305,32 @@ function bindAuthCard() {
         try {await nakgoAuth.signOut();toast('Hesabından çıkış yapıldı');}
         catch(error){const status=$('#account-status');if(status)status.textContent=nakgoAuth.message(error);out.disabled=false;}
     };
+}
+
+// Hesabı kalıcı silme onayı. Silinenler ve yasal olarak saklananlar açıkça yazılır.
+function openDeleteAccount() {
+    const s=nakgoAuth.snapshot(), B=$('#sheetBody');
+    if(!s.user||s.recovery)return;
+    B.dataset.k='account-delete';
+    B.innerHTML=`<h2>Hesabımı sil</h2>
+        <p>Hesabın hemen kapanır ve geri alınamaz.</p>
+        <ul class="delete-list"><li>Adın, telefonun, şehrin ve tanıtım yazın silinir.</li><li>Tüm ilanların yayından kalkar; iletişim bilgileri ve notları silinir.</li><li>Kayıtlı ilanların ve rota alarmların silinir.</li><li>Google veya e-posta bağlantın kaldırılır; aynı adresle yeniden kayıt olabilirsin.</li></ul>
+        <p class="estimate-note">Kanun gereği giriş kayıtları (IP adresi ve zamanı) 1 yıl saklanır, sonra hesabın kalan kısmıyla birlikte tamamen silinir.</p>
+        <form id="account-delete-form"><label for="account-delete-word">Onaylamak için SİL yaz</label><input id="account-delete-word" autocomplete="off" autocapitalize="characters" maxlength="10" required>
+        <p id="account-delete-feedback" role="alert" class="estimate-note"></p>
+        <button type="submit" class="btn" id="account-delete-submit">Hesabımı kalıcı olarak sil</button></form>
+        <button class="btn alt" id="close">Vazgeç</button>`;
+    $('#close').onclick=closeSheet;
+    const form=$('#account-delete-form'), button=$('#account-delete-submit'), feedback=$('#account-delete-feedback');
+    form.onsubmit=async event=>{
+        event.preventDefault();if(button.disabled)return;
+        if($('#account-delete-word').value.trim().toLocaleUpperCase('tr-TR')!=='SİL'){feedback.textContent='Onay için SİL yaz.';return;}
+        button.disabled=true;feedback.textContent='Hesabın siliniyor…';
+        try{await nakgoAuth.deleteMyAccount();closeSheet();toast('Hesabın silindi');}
+        catch(error){button.disabled=false;const m=String(error?.message||'');
+            feedback.textContent=m.includes('Owner account')||m.includes('Last administrator')?'Yönetici hesabı uygulamadan silinemez.':'Hesap silinemedi. Bağlantını kontrol edip tekrar dene.';}
+    };
+    $('#sheet').classList.add('open');
 }
 
 function openAuth(kind='signin') {

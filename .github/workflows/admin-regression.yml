@@ -34,3 +34,4 @@ jobs:
           mkdir -p work
           python tests/admin_panel_browser.py
           python tests/admin_tools_browser.py
+          python tests/admin_accounts_browser.py
