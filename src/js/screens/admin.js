@@ -98,8 +98,10 @@ async function openAdminPanel() {
     function frame(content,authorized=false){
         if(!valid())return;
         if(!authorized){
-            body.innerHTML='<div class="detail-top"><b>NakGo · Yönetici paneli</b><button class="chip" id="admin-close">Kapat ×</button></div><div class="load">'+content+'</div>';
-            $('#admin-close').onclick=closeSheet;return;
+            // Yükleniyor ve hata durumları da panelle aynı tasarımda gösterilir.
+            body.innerHTML='<div class="adm-login adm-state"><div class="adm-login-brand"><i aria-hidden="true"></i><div><b>NakGo</b><p>Yönetici paneli</p></div></div><section class="adm-login-card">'+content+
+                '<button class="adm-login-google" id="admin-close" type="button">'+(host?'Çıkış yap':'Kapat')+'</button></section></div>';
+            $('#admin-close').onclick=host?()=>{closeSheet();adminHostOpened=false;nakgoAuth.signOut();}:closeSheet;return;
         }
         body.innerHTML='<div class="adm"><div class="adm-shell"><div class="adm-nav" role="navigation" aria-label="Yönetim bölümleri"><span class="adm-brand">NakGo</span>'+
             Object.entries(titles).map(([key,label])=>'<button class="adm-nav-btn" data-admin-section="'+key+'" aria-label="'+label+'" aria-pressed="'+(section===key)+'">'+adminIcon(key)+'<span class="l-long">'+label+'</span></button>').join('')+
@@ -384,7 +386,7 @@ async function openAdminPanel() {
     function statsQuery(){return range.days?{from:addDays(isoToday(),-(range.days-1)),to:isoToday()}:{from:range.from,to:range.to||isoToday()};}
     async function load(){
         const ticket=++request;
-        if(!stats)frame('<p role="status">Yönetici erişimi kontrol ediliyor…</p>');
+        if(!stats)frame('<h1>Yönetici paneli</h1><p role="status">Yönetici erişimi kontrol ediliyor…</p>');
         try{
             const overview=await nakgoAuth.adminPage('overview',0,'','');
             if(!valid()||ticket!==request)return;
@@ -401,7 +403,7 @@ async function openAdminPanel() {
             if(selected>=rows.length)selected=0;
             history.clear();
             panel=null;render();
-        }catch(error){if(valid()&&ticket===request){stats=null;frame('<p role="alert">Yönetici paneli açılamadı. Yetkini ve bağlantını kontrol et.</p><button class="chip" id="admin-retry">Tekrar dene</button>');$('#admin-retry').onclick=load;}}
+        }catch(error){if(valid()&&ticket===request){stats=null;frame('<h1>Panel açılamadı</h1><p role="alert">Yönetici paneli açılamadı. Yetkini ve bağlantını kontrol et.</p><button class="adm-login-submit" id="admin-retry" type="button">Tekrar dene</button>');$('#admin-retry').onclick=load;}}
     }
     // Toplu kaldırma: tek gerekçe, ilanlar sırayla tek tek işlenir; her biri ayrı denetim kaydı bırakır.
     function bulkRemove(){

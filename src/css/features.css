@@ -1353,3 +1353,15 @@ body.admin-host #main { padding:0; }
 .adm .adm-bulk:has(#admin-bulk) { padding:8px 12px; gap:8px 14px; }
 .adm .adm-bulk:has(#admin-bulk) .adm-btn,.adm .adm-bulk:has(#admin-bulk) .adm-link { height:34px; }
 .adm .adm-bulk label { color:inherit; }
+
+/* Panel içindeki ikincil düğmeler (Vazgeç vb.) uygulama renklerini değil panel temasını kullanır. */
+.adm .chip { display:inline-flex; align-items:center; justify-content:center; min-height:38px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:8px; font-weight:600; box-shadow:none; background-image:none; }
+.adm .chip:hover:not(:disabled) { border-color:var(--ink); }
+.adm .btn:disabled,.adm .chip:disabled { opacity:.5; }
+/* Panel içinde açılan yükleniyor ve hata ekranı tam sayfa kaplar. */
+.sheet>div:has(.adm-state)::before { display:none; }
+.sheet>div:has(.adm-state) { padding:0; }
+.adm-state { min-height:100%; }
+/* Tablo işlem sütunu kırılmaz. */
+.adm .adm-row .c-act > * { white-space:nowrap; }
+@container adm (min-width:720px) { .adm .adm-row .c-act { gap:10px; } }
