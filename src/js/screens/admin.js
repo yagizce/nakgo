@@ -70,7 +70,10 @@ async function openAdminPanel() {
     const states={active:['Yayında','ok'],expired:['Süresi doldu','warn'],closed:['Kapalı','mute'],removed:['Kaldırıldı','bad'],redacted:['Temizlendi','mute']};
     const statusText={active:'Yayında',closed:'Kapalı',archived:'Arşiv'};
     const pill=(text,tone)=>'<span class="adm-pill '+tone+'">'+esc(text)+'</span>';
-    const actionText={suspend:'Faaliyetler askıya alındı',resume:'Askı kaldırıldı',remove:'İlan kaldırıldı',restore:'İlan engeli açıldı'};
+    const actionText={suspend:'Faaliyetler askıya alındı',resume:'Askı kaldırıldı',remove:'İlan kaldırıldı',restore:'İlan engeli açıldı',ban:'Kalıcı engellendi',unban:'Engel kaldırıldı',
+        delete:'Hesap silindi',self_delete:'Kullanıcı hesabını sildi',grant_admin:'Yönetici yapıldı',revoke_admin:'Yöneticilik alındı'};
+    // Hesap durumu: ana yönetici, yönetici, silindi, engelli, askıda veya aktif.
+    const userState=row=>row.owner?['Ana yönetici','brand']:row.protected?['Yönetici','brand']:row.deleted_at?['Silindi','mute']:row.banned?['Engelli','bad']:row.suspended?['Askıda','bad']:['Aktif','ok'];
     const option=(value,label,current)=>'<option value="'+esc(value)+'"'+(current===value?' selected':'')+'>'+esc(label)+'</option>';
     const list=name=>{try{return name==='cities'?cities:name==='vehicles'?vehicles:bodies;}catch{return [];}};
     const activeFilters=()=>Object.values(query).filter(v=>v!==''&&v!==undefined&&v!==null).length+(search?1:0);
@@ -97,6 +100,7 @@ async function openAdminPanel() {
         on('[data-admin-kind]',button=>button.onclick=()=>{const v=button.dataset.adminKind;if(query.kind===v||v==='')delete query.kind;else query.kind=v;reset();load();});
         on('[data-admin-open]',item=>item.onclick=event=>{if(event.target.closest('[data-admin-action],[data-admin-check]'))return;selected=Number(item.dataset.adminOpen);panel={mode:'detail'};render();});
         on('[data-admin-action]',button=>button.onclick=()=>confirmAction(rows[Number(button.dataset.adminAction)]));
+        on('[data-admin-do]',button=>button.onclick=()=>confirmAction(rows[Number(button.dataset.adminIndex)],button.dataset.adminDo));
         on('[data-admin-check]',box=>box.onchange=()=>{const row=rows[Number(box.dataset.adminCheck)];if(!row)return;if(box.checked)checked.set(String(row.id),row);else checked.delete(String(row.id));render();});
         on('[data-admin-owner]',button=>button.onclick=()=>{const id=button.dataset.adminOwner;section='users';search='';filter='';query={user:id};reset();load();});
         on('[data-admin-range]',button=>button.onclick=()=>{range={days:Number(button.dataset.adminRange),from:'',to:''};dayPage=0;tip=-1;load();});
@@ -172,7 +176,8 @@ async function openAdminPanel() {
             return '<div class="adm-chips" role="group" aria-label="Durum">'+stateChips.map(([k,l,c])=>chip('data-admin-state',k,l,c,(query.state||'')===k)).join('')+
                 chip('data-admin-kind','load','Yük',undefined,query.kind==='load')+chip('data-admin-kind','truck','Boş araç',undefined,query.kind==='truck')+'</div>';
         }
-        const sets={users:[['','Tümü',stats&&stats.users],['new','Bu hafta',stats&&stats.users_week],['carrier','Taşıyıcı',ty.carrier],['owner','Yük sahibi',ty.owner],['tir','Tır',vu.tir],['kamyon','Kamyon',vu.kamyon],['kamyonet','Kamyonet',vu.kamyonet],['suspended','Askıda',stats&&stats.accounts_suspended]],
+        const sets={users:[['','Tümü',stats&&stats.users],['new','Bu hafta',stats&&stats.users_week],['carrier','Taşıyıcı',ty.carrier],['owner','Yük sahibi',ty.owner],['tir','Tır',vu.tir],['kamyon','Kamyon',vu.kamyon],['kamyonet','Kamyonet',vu.kamyonet],['suspended','Askıda',stats&&stats.accounts_suspended],
+                ['banned','Engelli',stats&&stats.accounts_banned],['admins','Yöneticiler',stats&&stats.admins],['deleted','Silinen',stats&&stats.accounts_deleted]],
             moderation:[['','Tümü'],['listing','İlan işlemleri'],['user','Hesap işlemleri']]}[section];
         return sets?'<div class="adm-chips" role="group" aria-label="Filtre">'+sets.map(([key,label,count])=>chip('data-admin-filter',key,label,count,filter===key)).join('')+'</div>':'';
     }
@@ -193,8 +198,8 @@ async function openAdminPanel() {
         const open=' data-admin-open="'+index+'"',on=selected===index?' on':'';
         const view='<button class="adm-link" type="button" data-admin-open="'+index+'">Görüntüle</button>';
         if(section==='users'){
-            const act=row.protected?'<span class="adm-note">Korumalı</span>':'<button class="adm-act" type="button" data-admin-action="'+index+'">'+(row.suspended?'Askıyı kaldır':'Faaliyetleri askıya al')+'</button>';
-            const status=row.protected?pill('Yönetici','brand'):row.suspended?pill('Askıda','bad'):pill('Aktif','ok');
+            const act=row.protected?'<span class="adm-note">Korumalı</span>':row.deleted_at?'<span class="adm-note">Silindi</span>':row.banned?'<span class="adm-note">Engelli</span>':'<button class="adm-act" type="button" data-admin-action="'+index+'">'+(row.suspended?'Askıyı kaldır':'Faaliyetleri askıya al')+'</button>';
+            const status=pill(...userState(row));
             return '<div class="adm-row'+on+'"'+open+'><b class="c-main">'+esc(row.display_name||'İsimsiz hesap')+'</b><span>'+esc(row.city||'—')+'</span><span>'+typeText(row.account_type)+(Array.isArray(row.vehicles)&&row.vehicles.length?' <small>'+esc(row.vehicles.join(', '))+'</small>':'')+'</span><span>'+day(row.created_at)+'</span><span class="c-num">'+num(row.listings)+' ilan</span><span>'+status+'</span><span class="c-act">'+act+view+'</span></div>';
         }
         if(section==='moderation'){
@@ -248,9 +253,18 @@ async function openAdminPanel() {
         const back='<button class="adm-back" id="admin-back" type="button">‹ Listeye dön</button>';
         const grid=items=>'<div class="adm-grid">'+items.map(([k,v])=>'<div><span>'+k+'</span><b>'+v+'</b></div>').join('')+'</div>';
         if(section==='users'){
-            const act=row.protected?'<p class="adm-note">Yönetici hesabı korumalıdır.</p>':'<button class="btn adm-detail-act" type="button" data-admin-action="'+index+'">'+(row.suspended?'Askıyı kaldır':'Faaliyetleri askıya al')+'</button>';
-            const summary=row.protected?'Yönetici hesabı. Panelden askıya alınamaz.':row.suspended?'Faaliyetleri askıda: yeni ilan veremez. Hesabına giriş yapabilir.':'Hesap aktif. '+num(row.listings)+' ilanı var.';
-            return back+'<div class="adm-d-head"><h3>'+esc(row.display_name||'İsimsiz hesap')+'</h3><p>'+esc(row.city||'Şehir yok')+' · '+typeText(row.account_type)+'</p></div><div class="adm-summary"><span>Durum özeti</span><p>'+summary+'</p></div>'+
+            const btn=(action,label,tone='')=>'<button class="adm-btn'+(tone?' '+tone:'')+'" type="button" data-admin-do="'+action+'" data-admin-index="'+index+'">'+label+'</button>';
+            let act;
+            if(row.is_self)act='<p class="adm-note">Bu senin hesabın. Kendi hesabında işlem yapılamaz.</p>';
+            else if(row.owner)act='<p class="adm-note">Ana yönetici hesabı korumalıdır.</p>';
+            else if(row.deleted_at)act='<p class="adm-note">Hesap silindi. Kalan kayıt '+day(plus(row.deleted_at,365))+' tarihinde tamamen silinir.</p>';
+            else if(row.protected)act='<p class="adm-note">Yönetici hesabı. Engellemek veya silmek için önce yöneticiliği al.</p>'+btn('revoke_admin','Yöneticiliği al','danger');
+            else act=(row.banned?'':'<button class="btn adm-detail-act" type="button" data-admin-action="'+index+'">'+(row.suspended?'Askıyı kaldır':'Faaliyetleri askıya al')+'</button>')+
+                '<div class="adm-factions">'+btn(row.banned?'unban':'ban',row.banned?'Engeli kaldır':'Kalıcı engelle',row.banned?'':'danger')+
+                (!row.banned&&!row.suspended&&row.verified!==false?btn('grant_admin','Yönetici yap','primary'):'')+btn('delete','Hesabı sil','danger')+'</div>';
+            const summary=row.owner?'Ana yönetici. Tüm yetkiler açık; kimse bu hesabı değiştiremez.':row.protected?'Yönetici. Tüm panel yetkileri açık.':row.deleted_at?'Hesap '+day(row.deleted_at)+' tarihinde silindi; kişisel bilgiler temizlendi.':
+                row.banned?'Kalıcı engelli: giriş yapamaz, ilan veremez.':row.suspended?'Faaliyetleri askıda: yeni ilan veremez. Hesabına giriş yapabilir.':'Hesap aktif. '+num(row.listings)+' ilanı var.';
+            return back+'<div class="adm-d-head"><h3>'+esc(row.display_name||'İsimsiz hesap')+' '+pill(...userState(row))+'</h3><p>'+esc(row.city||'Şehir yok')+' · '+typeText(row.account_type)+'</p></div><div class="adm-summary"><span>Durum özeti</span><p>'+summary+'</p></div>'+
                 '<h4>Hesap bilgileri</h4>'+grid([['Kayıt',day(row.created_at)],['İlan sayısı',num(row.listings)],['Tür',typeText(row.account_type)],['Araç (ilanlarından)',Array.isArray(row.vehicles)&&row.vehicles.length?esc(row.vehicles.join(', ')):'—']])+(row.reason?'<h4>Son gerekçe</h4><p class="adm-reason">'+esc(row.reason)+'</p>':'')+'<div class="adm-d-act">'+act+'</div>';
         }
         if(section==='moderation'){
@@ -374,20 +388,24 @@ async function openAdminPanel() {
             $('#admin-reload').onclick=load;
         };
     }
-    function confirmAction(row){
+    function confirmAction(row,forced){
         if(!valid()||!row)return;
         ++request;
-        const kind=section==='users'?'user':'listing',action=kind==='user'?(row.suspended?'resume':'suspend'):(row.removed?'restore':'remove');
-        const label=({suspend:'Faaliyetleri askıya al',resume:'Askıyı kaldır',remove:'İlanı yayından kaldır',restore:'Kaldırma engelini aç'})[action];
-        const explanation=({suspend:'Yeni ilan verme durdurulur. Hesaba giriş devam eder. Mevcut ilanlar otomatik kaldırılmaz.',resume:'Hesabın yeni işlem yapmasına yeniden izin verilir.',remove:'İlan yayından kalkar ve sahibi yeniden yayımlayamaz. Kayıt 1 yıl bekletilir.',restore:'İlan kapalı duruma alınır. Sahibi tarihini kontrol ederek yeniden yayımlayabilir.'})[action];
+        const kind=section==='users'?'user':'listing',action=forced||(kind==='user'?(row.suspended?'resume':'suspend'):(row.removed?'restore':'remove'));
+        const label=({suspend:'Faaliyetleri askıya al',resume:'Askıyı kaldır',remove:'İlanı yayından kaldır',restore:'Kaldırma engelini aç',ban:'Kalıcı engelle',unban:'Engeli kaldır',delete:'Hesabı sil',grant_admin:'Yönetici yap',revoke_admin:'Yöneticiliği al'})[action];
+        const explanation=({suspend:'Yeni ilan verme durdurulur. Hesaba giriş devam eder. Mevcut ilanlar otomatik kaldırılmaz.',resume:'Hesabın yeni işlem yapmasına yeniden izin verilir.',remove:'İlan yayından kalkar ve sahibi yeniden yayımlayamaz. Kayıt 1 yıl bekletilir.',restore:'İlan kapalı duruma alınır. Sahibi tarihini kontrol ederek yeniden yayımlayabilir.',
+            ban:'Hesaba giriş kapanır, açık oturumlar sonlanır ve yayındaki ilanları kapanır. Engeli kaldırana kadar geri gelemez.',unban:'Hesap yeniden giriş yapabilir. Kapanan ilanları kendisi yeniden yayımlayabilir.',
+            delete:'Geri alınamaz. Ad, telefon, şehir, ilan iletişim bilgileri, kayıtlı ilanlar ve rota alarmları hemen silinir; giriş bağlantısı kaldırılır. Kanun gereği giriş kayıtları (IP ve zaman) ile bu işlem kaydı 1 yıl saklanır, sonra hesap tamamen silinir.',
+            grant_admin:'Bu kişi yönetici panelindeki tüm yetkileri alır: ilan kaldırma, askıya alma, engelleme, hesap silme ve yönetici atama.',revoke_admin:'Yönetici panelindeki yetkileri hemen kapanır. Hesap normal kullanıcı olarak devam eder.'})[action];
         const target=kind==='listing'?'<p id="admin-target">İlan #'+esc(String(row.id))+' · '+esc(row.from_city)+' → '+esc(row.to_city)+'</p>':'';
         const show=html=>{panel={mode:'confirm',html};render();};
-        show('<button class="adm-back" id="admin-back" type="button">‹ Vazgeç</button><div class="adm-d-head"><h3>'+label+'</h3><p>'+esc(row.display_name||row.owner_label||'')+'</p></div>'+target+'<div class="adm-summary"><span>Ne olur?</span><p>'+explanation+'</p></div><form id="admin-confirm" class="adm-form"><label for="admin-reason">İşlem gerekçesi (zorunlu)</label><textarea id="admin-reason" minlength="3" maxlength="500" required></textarea><p id="admin-action-error" role="alert"></p><button class="btn" id="admin-submit" type="submit">'+label+'</button><button class="chip" id="admin-cancel" type="button">Vazgeç</button></form>');
+        show('<button class="adm-back" id="admin-back" type="button">‹ Vazgeç</button><div class="adm-d-head"><h3>'+label+'</h3><p>'+esc(row.display_name||row.owner_label||'')+'</p></div>'+target+'<div class="adm-summary"><span>Ne olur?</span><p>'+explanation+'</p></div><form id="admin-confirm" class="adm-form"><label for="admin-reason">İşlem gerekçesi (zorunlu)</label><textarea id="admin-reason" minlength="3" maxlength="500" required></textarea>'+(action==='delete'?'<label for="admin-confirm-word">Onaylamak için SİL yaz</label><input id="admin-confirm-word" autocomplete="off" maxlength="10" required>':'')+'<p id="admin-action-error" role="alert"></p><button class="btn" id="admin-submit" type="submit">'+label+'</button><button class="chip" id="admin-cancel" type="button">Vazgeç</button></form>');
         $('#admin-cancel').onclick=()=>{panel=null;render();};
         let sending=false;
         $('#admin-confirm').onsubmit=async event=>{
             event.preventDefault();if(sending||!valid())return;
             const reason=$('#admin-reason').value.trim();if(reason.length<3){$('#admin-action-error').textContent='En az 3 karakterlik bir gerekçe yaz.';return;}
+            if(action==='delete'&&$('#admin-confirm-word').value.trim().toLocaleUpperCase('tr-TR')!=='SİL'){$('#admin-action-error').textContent='Silmek için SİL yaz.';return;}
             sending=true;$('#admin-submit').disabled=true;$('#admin-cancel').disabled=true;
             try{await nakgoAuth.adminModerate(kind,String(row.id),action,reason,Number(row.revision));if(valid())await load();}
             catch(error){if(!valid())return;
