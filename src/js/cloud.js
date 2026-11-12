@@ -166,7 +166,7 @@ const nakgoAuth = (() => {
     let client = null, revision = 0, started = false, retryTimer = null, retryCount = 0;
     const state = {enabled:false, ready:false, checked:false, user:null, profile:null, recovery:false, error:''};
     const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
-    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'mine') render(); };
+    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'mine' || (typeof ADMIN_HOST !== 'undefined' && ADMIN_HOST)) render(); };
     const message = error => ({
         invalid_credentials:'E-posta veya şifre doğru değil.',
         email_not_confirmed:'Giriş yapmadan önce e-postandaki doğrulama bağlantısını aç.',

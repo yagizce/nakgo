@@ -3191,7 +3191,7 @@ const nakgoAuth = (() => {
     let client = null, revision = 0, started = false, retryTimer = null, retryCount = 0;
     const state = {enabled:false, ready:false, checked:false, user:null, profile:null, recovery:false, error:''};
     const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
-    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'mine') render(); };
+    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'mine' || (typeof ADMIN_HOST !== 'undefined' && ADMIN_HOST)) render(); };
     const message = error => ({
         invalid_credentials:'E-posta veya şifre doğru değil.',
         email_not_confirmed:'Giriş yapmadan önce e-postandaki doğrulama bağlantısını aç.',
@@ -5860,12 +5860,13 @@ const nakgoAdminAccess=(()=>{
     let generation=0,account='',ready=false,busy=false,authorized=false;
     const isAdmin=()=>nakgoMarket.active()&&ready&&authorized&&account===nakgoMarket.token();
     function reset(){generation++;account='';ready=busy=authorized=false;}
+    // Profil yüklenmeden gelen "giriş gerekli" hatası ret sayılmaz; profil gelince yeniden sorulur.
     async function refresh(){
         if(!nakgoMarket.active()||busy)return;
-        const current=nakgoMarket.token(),ticket=++generation;busy=true;authorized=false;
+        const current=nakgoMarket.token(),ticket=++generation;busy=true;authorized=false;let retry=false;
         try{const role=await nakgoAuth.adminRole();if(ticket!==generation||current!==nakgoMarket.token())return;account=current;authorized=role===true;ready=true;}
-        catch(error){if(ticket===generation&&current===nakgoMarket.token()){account=current;authorized=false;ready=true;}}
-        finally{if(ticket===generation&&current===nakgoMarket.token()){busy=false;if(tab==='me'||ADMIN_HOST)render();}}
+        catch(error){if(ticket===generation&&current===nakgoMarket.token()){if(error?.message==='Sign in required')retry=true;else{account=current;authorized=false;ready=true;}}}
+        finally{if(ticket===generation&&current===nakgoMarket.token()){busy=false;if(!retry&&(tab==='me'||ADMIN_HOST))render();}}
     }
     function ensure(){if(nakgoMarket.active()&&!busy&&(!ready||account!==nakgoMarket.token()))refresh();}
     const checked=()=>ready&&account===nakgoMarket.token();
