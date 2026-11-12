@@ -7,25 +7,31 @@ const vehicleMatchers=vehicles.map(value=>({value,re:new RegExp('(?<![a-z])'+fol
 const places={...Object.fromEntries(cities.map(x=>[fold(x),{city:x,district:null}])),...Object.fromEntries(Object.entries({...districts,Tuzla:'İstanbul',Derince:'Kocaeli',Gazipaşa:'Antalya',Korkuteli:'Antalya',Serik:'Antalya'}).map(([x,city])=>[fold(x),{city,district:x}]))};
 // Tüm ilçeler: tek ilde olan ve sıradan kelimeye benzemeyen ad tek başına; diğerleri yalnız "Şehir İlçe" biçiminde.
 const districtCities={};for(const [city,list] of Object.entries(allDistricts))for(const d of list){if(fold(d)==='merkez')continue;(districtCities[fold(d)]=districtCities[fold(d)]||{name:d,cities:[]}).cities.push(city);}
-const commonWords=new Set(['arac','cay','tut','can','han','orta','kure','olur','sur','bor','of','cat','guney','mut','bahce','maden','cinar','bala','ulus','genc','hani','dinar','hamur','kose','evren','kaman','kumlu','selim','susuz','emet','kale','pazar','saray','yenice','yenisehir','carsamba','persembe']);
+const commonWords=new Set(['arac','cay','tut','can','han','orta','kure','olur','sur','bor','of','cat','guney','mut','bahce','maden','cinar','bala','ulus','genc','hani','dinar','hamur','kose','evren','kaman','kumlu','selim','susuz','emet','kale','pazar','saray','yenice','yenisehir','carsamba','persembe','talas','kavak','sogut']);
 for(const [key,{name,cities:list}] of Object.entries(districtCities))if(list.length===1&&!commonWords.has(key)&&!places[key])places[key]={city:list[0],district:name};
+// Well-known logistics localities that are not districts: the name itself is kept as the district text.
+const localities={Hadımköy:'İstanbul',Değirmenköy:'İstanbul',Selimpaşa:'İstanbul',Halkalı:'İstanbul',İkitelli:'İstanbul',Aydınlı:'İstanbul',Habibler:'İstanbul',Kıraç:'İstanbul',Hoşdere:'İstanbul',Dudullu:'İstanbul',Orhanlı:'İstanbul',Yakuplu:'İstanbul',Akçaburgaz:'İstanbul',Mahmutbey:'İstanbul',Ostim:'Ankara',İvedik:'Ankara',Şekerpınar:'Kocaeli',Muallimköy:'Kocaeli',Velimeşe:'Tekirdağ',Mumcular:'Muğla',Eğriöz:'Kütahya'};
+for(const [name,city] of Object.entries(localities))if(!places[fold(name)]&&!districtCities[fold(name)])places[fold(name)]={city,district:name,locality:true};
 // Ambiguous district names (several provinces) count only when the same text names one of their provinces.
 const ambiguous={};for(const [key,{name,cities:list}] of Object.entries(districtCities))if(list.length>1&&!commonWords.has(key)&&!places[key])ambiguous[key]={name,cities:list};
 // "Şehir İlçe" pairs: plain space, slash/comma or a bare hyphen; " - " separates a route instead.
 const pairRE=new RegExp('(?<![a-z])('+Object.keys(allDistricts).map(fold).sort((a,b)=>b.length-a.length).join('|')+")(?:[ \\t]*[,/][ \\t]*|[ \\t]+|-)("+Object.keys(districtCities).sort((a,b)=>b.length-a.length).join('|')+')(?![a-z])','g');
 for(const [name,city] of Object.entries({maras:'Kahramanmaraş',antep:'Gaziantep',urfa:'Şanlıurfa',afyon:'Afyonkarahisar',ist:'İstanbul',ank:'Ankara',erzrum:'Erzurum',diyarbkr:'Diyarbakır'}))places[name]={city,district:null,alias:true};
-const locationRE=new RegExp('(?<![a-z])('+[...Object.keys(places),...Object.keys(ambiguous)].sort((a,b)=>b.length-a.length).join('|')+")(?:'?(?:dan|den|tan|ten|ya|ye))?(?![a-z])",'g');
+const locationRE=new RegExp('(?<![a-z])('+[...Object.keys(places),...Object.keys(ambiguous)].sort((a,b)=>b.length-a.length).join('|')+")(?:'?(?:dan|den|tan|ten|ya|ye|da|de|ta|te)|'[ae]|(?<=[a-z]{5})[ae])?(?![a-z])",'g');
 function foldedStops(text){const found=[],spans=[],pending=[];
  for(const m of text.matchAll(pairRE)){const city=cities.find(c=>fold(c)===m[1]),d=districtCities[m[2]];if(city&&d&&d.cities.includes(city)){found.push({city,district:d.name,index:m.index,end:m.index+m[0].length});spans.push([m.index,m.index+m[0].length]);}}
- for(const m of text.matchAll(locationRE)){if(spans.some(([a,b])=>m.index>=a&&m.index<b))continue;const end=m.index+m[0].length;if(places[m[1]])found.push({...places[m[1]],index:m.index,end});else pending.push({key:m[1],index:m.index,end});}
- for(const a of pending){const city=found.map(p=>p.city).find(c=>ambiguous[a.key].cities.includes(c));if(city)found.push({city,district:ambiguous[a.key].name,index:a.index,end:a.end,resolved:true});}
+ for(const m of text.matchAll(locationRE)){if(spans.some(([a,b])=>m.index>=a&&m.index<b))continue;const end=m.index+m[0].length,suffixed=m[0].length>m[1].length;if(places[m[1]])found.push({...places[m[1]],index:m.index,end,suffixed});else pending.push({key:m[1],index:m.index,end,suffixed});}
+ for(const a of pending){const city=found.map(p=>p.city).find(c=>ambiguous[a.key].cities.includes(c));if(city)found.push({city,district:ambiguous[a.key].name,index:a.index,end:a.end,suffixed:a.suffixed,resolved:true});}
  const result=[];
  for(const p of found.sort((x,y)=>x.index-y.index)){const last=result.at(-1),gap=last?text.slice(last.end,p.index):'';
   if(last&&!last.district&&p.district){
    if(last.city===p.city&&/^[ \t/,]*$/.test(gap)){result[result.length-1]={...p,index:last.index};continue;}
    // "ANK KARAPÜRÇEK", "EDİRNE HAVZA": a district of another province right after a city is a local place name.
-   if(last.city!==p.city&&!p.resolved&&/^[ \t]+$/.test(gap))continue;
+   // A direction suffix ("AFYONDAN HADIMKÖYE") makes them two stops.
+   if(last.city!==p.city&&!p.resolved&&!last.suffixed&&!p.suffixed&&/^[ \t]+$/.test(gap))continue;
   }
+  // "BODRUM / MUMCULAR", "TUZLA / AYDINLI": a locality after its own district adds no stop.
+  if(last&&last.district&&p.locality&&last.city===p.city&&/^[ \t/,]*$/.test(gap))continue;
   result.push(p);}
  return result;}
 function stops(text){return foldedStops(fold(text));}
@@ -116,7 +122,7 @@ function parseListings(input){
   const range=t.match(/(?<!\d)(\d+(?:[.,]\d+)?)\s*[-–/]\s*(\d+(?:[.,]\d+)?)\s*ton/);
   const n=s=>Number(s.replace(',','.'));
   const weightMin=range?n(range[1]):v1.weightTon,weightMax=range?n(range[2]):v1.weightTon;
-  if(weightMax===null||weightMax<=0||weightMax>100||weightMin<0||weightMin>weightMax)issues.push('weight_review');
+  if(weightMax!==null&&(weightMax<=0||weightMax>100||weightMin<0||weightMin>weightMax))issues.push('weight_review');
   // Phone digits ("... 13 60") must not read as a trailer size.
   const vt=t.replace(phoneRE,' '),foundVehicles=vehicleRules.filter(([,re])=>re.test(vt)).map(([value])=>value);
   const vehicle=foundVehicles.length===1?foundVehicles[0]:null;
@@ -135,7 +141,8 @@ function parseListings(input){
   if(conditions)issues.push('conditions_review');
   if(count&&Number(count[1])>1)issues.push('vehicle_count_review');
   if(/bugun/.test(t)&&/yarin/.test(t))issues.push('timing_ambiguous');
-  if(!kind)issues.push('kind_unknown');if(!vehicle||!body)issues.push('vehicle_review');if(!cargo&&kind!=='truck')issues.push('cargo_missing');if(!timing)issues.push('timing_missing');if(phones.length!==1)issues.push('contact_review');
+    // Review is about the three essentials: phone, route and vehicle type. Cargo, weight and time are optional.
+  if(!kind)issues.push('kind_unknown');if(!vehicle)issues.push('vehicle_review');if(phones.length!==1)issues.push('contact_review');
   const fields={kind,from,destinations,vehicle,body,weightMin,weightMax,amount:range?null:v1.weightTon,cargo:kind==='truck'?'':cargo,timing,availableOn:truck?availableOn:null,availableUntil:null,availableTime:'',vehicleCount:count?Number(count[1]):null,conditions,company,contactPhone:phones[0]||null,description:text,publicNote:noteOf(allLines),ownerLabel:'NakGo ilan masası',items:[],imageData:null};
   const fingerprint=createHash('sha256').update(JSON.stringify([kind,from,destinations,vehicle,body,weightMin,weightMax,cargo,fold(timing||'')])).digest('hex');
   const candidate={fields,issues,confidence:Number((Math.max(0,1-issues.length/10)).toFixed(2)),fingerprint,parserVersion:'rules-3'};
