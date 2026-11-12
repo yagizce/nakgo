@@ -33,3 +33,4 @@ jobs:
         run: |
           mkdir -p work
           python tests/admin_panel_browser.py
+          python tests/admin_tools_browser.py
