@@ -130,6 +130,7 @@ jobs:
           python -I tests/admin_panel_browser.py
           python -I tests/admin_tools_browser.py
           python -I tests/admin_accounts_browser.py
+          python -I tests/admin_archive_browser.py
       - name: Trusted RLS and Storage regressions
         run: NODE_PATH="$RUNNER_TEMP/nakgo-admin-db/node_modules" node tools/admin-db-check.cjs
       - name: Trusted unit tests
