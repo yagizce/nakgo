@@ -1022,7 +1022,7 @@ body.admin-host .sheet>div::before { display:none; }
 .adm { container:adm/inline-size; min-height:100%; background:var(--bg); color:var(--ink); font-variant-numeric:tabular-nums; }
 .adm-shell { display:grid; grid-template-columns:minmax(0,1fr); min-height:100%; }
 .adm-ic { width:20px; height:20px; flex:none; }
-.adm-nav { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; padding:8px; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; }
+.adm-nav { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; padding:8px; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; }
 .adm-brand { display:none; }
 .adm-nav-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:0; border:1px solid transparent; background:transparent; color:var(--mute); border-radius:12px; padding:8px 2px; font:600 11px/1.15 inherit; text-align:center; cursor:pointer; }
 .adm-nav-btn span { max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1120,7 +1120,7 @@ body.admin-host .sheet>div::before { display:none; }
 .adm-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:-8px; }
 .adm-days .adm-row { cursor:default; }
 .adm-bar { display:block; height:5px; border-radius:3px; background:var(--tag-bg); overflow:hidden; margin-top:auto; }
-.adm-bar.empty { visibility:hidden; }
+.adm-bar.empty { visibility:hidden; padding:0; }
 .adm-bar em { display:block; height:100%; border-radius:inherit; background:currentColor; color:var(--brand); }
 .adm-kpi.ok .adm-bar em { color:var(--ok); } .adm-kpi.accent .adm-bar em { color:var(--accent); } .adm-kpi.bad .adm-bar em { color:var(--bad); } .adm-kpi.mute .adm-bar em { color:var(--mute); }
 .adm-side { display:grid; gap:14px; align-content:start; order:-1; min-width:0; }

@@ -1726,7 +1726,7 @@ body.admin-host .sheet>div::before { display:none; }
 .adm { container:adm/inline-size; min-height:100%; background:var(--bg); color:var(--ink); font-variant-numeric:tabular-nums; }
 .adm-shell { display:grid; grid-template-columns:minmax(0,1fr); min-height:100%; }
 .adm-ic { width:20px; height:20px; flex:none; }
-.adm-nav { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; padding:8px; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; }
+.adm-nav { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:4px; padding:8px; background:var(--card); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; }
 .adm-brand { display:none; }
 .adm-nav-btn { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:0; border:1px solid transparent; background:transparent; color:var(--mute); border-radius:12px; padding:8px 2px; font:600 11px/1.15 inherit; text-align:center; cursor:pointer; }
 .adm-nav-btn span { max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1824,7 +1824,7 @@ body.admin-host .sheet>div::before { display:none; }
 .adm-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:-8px; }
 .adm-days .adm-row { cursor:default; }
 .adm-bar { display:block; height:5px; border-radius:3px; background:var(--tag-bg); overflow:hidden; margin-top:auto; }
-.adm-bar.empty { visibility:hidden; }
+.adm-bar.empty { visibility:hidden; padding:0; }
 .adm-bar em { display:block; height:100%; border-radius:inherit; background:currentColor; color:var(--brand); }
 .adm-kpi.ok .adm-bar em { color:var(--ok); } .adm-kpi.accent .adm-bar em { color:var(--accent); } .adm-kpi.bad .adm-bar em { color:var(--bad); } .adm-kpi.mute .adm-bar em { color:var(--mute); }
 .adm-side { display:grid; gap:14px; align-content:start; order:-1; min-width:0; }
@@ -5994,7 +5994,7 @@ function renderAdminHost(m){
 // değişir: dar ekranda liste kartlara döner, ayrıntı tam ekran açılır. Görünen her değer esc ile kaçırılır.
 const adminIcons={overview:'<path d="M4 11.5 12 5l8 6.5V20h-5v-5H9v5H4z"/>',listings:'<path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="17" r="1.6"/><circle cx="17" cy="17" r="1.6"/>',
     users:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.7-3.2 2.9-5 5.5-5s4.8 1.8 5.5 5"/><path d="M15.5 5.2a3 3 0 0 1 0 5.6M17.5 14.4c1.6.6 2.6 2.1 3 4.6"/>',
-    moderation:'<path d="M12 4 5 7v5c0 4 3 6.7 7 8 4-1.3 7-4 7-8V7z"/><path d="m9 12 2 2 4-4"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>',
+    moderation:'<path d="M12 4 5 7v5c0 4 3 6.7 7 8 4-1.3 7-4 7-8V7z"/><path d="m9 12 2 2 4-4"/>',archive:'<path d="M4 5h16v4H4zM5.5 9v10h13V9"/><path d="M10 13h4"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>',
     refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'};
 const adminIcon=name=>'<svg class="adm-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+adminIcons[name]+'</svg>';
 async function openAdminPanel() {
@@ -6003,10 +6003,10 @@ async function openAdminPanel() {
     const host=typeof ADMIN_HOST!=='undefined'&&ADMIN_HOST;
     let section='overview',offset=0,search='',filter='',request=0,stats=null,rows=[],more=false,selected=0,panel=null,period='day';
     // query: birleşik filtreler (sunucuda doğrulanır). checked: toplu işlem için seçili ilanlar (yalnız bu sayfa).
-    let query={},checked=new Map(),filtersOpen=false,range={days:30,from:'',to:''},insights=null,dayPage=0,tip=-1;
+    let retention=null,query={},checked=new Map(),filtersOpen=false,range={days:30,from:'',to:''},insights=null,dayPage=0,tip=-1;
     const history=new Map();
-    const titles={overview:'Genel bakış',listings:'İlanlar',users:'Kullanıcılar',moderation:'İşlem geçmişi',stats:'İstatistikler'};
-    const short={overview:'Özet',listings:'İlanlar',users:'Kişiler',moderation:'Geçmiş',stats:'Sayılar'};
+    const titles={overview:'Genel bakış',listings:'İlanlar',users:'Kullanıcılar',moderation:'İşlem geçmişi',archive:'Arşiv ve saklama',stats:'İstatistikler'};
+    const short={overview:'Özet',listings:'İlanlar',users:'Kişiler',moderation:'Geçmiş',archive:'Arşiv',stats:'Sayılar'};
     const valid=()=>generation===adminPanelGeneration&&account===nakgoMarket.token()&&body.dataset.k==='admin';
     // Tüm saatler Türkiye saatiyle gösterilir; cihazın saat dilimi sonucu değiştirmez.
     const TZ='Europe/Istanbul';
@@ -6030,7 +6030,7 @@ async function openAdminPanel() {
     const statusText={active:'Yayında',closed:'Kapalı',archived:'Arşiv'};
     const pill=(text,tone)=>'<span class="adm-pill '+tone+'">'+esc(text)+'</span>';
     const actionText={suspend:'Faaliyetler askıya alındı',resume:'Askı kaldırıldı',remove:'İlan kaldırıldı',restore:'İlan engeli açıldı',ban:'Kalıcı engellendi',unban:'Engel kaldırıldı',
-        delete:'Hesap silindi',self_delete:'Kullanıcı hesabını sildi',grant_admin:'Yönetici yapıldı',revoke_admin:'Yöneticilik alındı'};
+        delete:'Hesap silindi',self_delete:'Kullanıcı hesabını sildi',grant_admin:'Yönetici yapıldı',revoke_admin:'Yöneticilik alındı',hold:'Yasal saklamaya alındı',release:'Yasal saklama kaldırıldı'};
     // Hesap durumu: ana yönetici, yönetici, silindi, engelli, askıda veya aktif.
     const userState=row=>row.owner?['Ana yönetici','brand']:row.protected?['Yönetici','brand']:row.deleted_at?['Silindi','mute']:row.banned?['Engelli','bad']:row.suspended?['Askıda','bad']:['Aktif','ok'];
     const option=(value,label,current)=>'<option value="'+esc(value)+'"'+(current===value?' selected':'')+'>'+esc(label)+'</option>';
@@ -6107,6 +6107,8 @@ async function openAdminPanel() {
                 ['Taşıyıcı',num(ty.carrier),pctText(pct(ty.owner,s.users))+' yük sahibi ('+num(ty.owner)+')','accent',pct(ty.carrier,s.users)],['Askıda',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','bad',pct(s.accounts_suspended,s.users)]],
             moderation:[['Son 30 gün',num(s.actions_month),'yönetici işlemi','brand',null],['Kaldırılan ilan',num(s.listings_removed),pctText(pct(removed,st.all))+' ilanların','bad',pct(removed,st.all)],
                 ['Askıdaki hesap',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','accent',pct(s.accounts_suspended,s.users)],['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','ok',pct(s.listings,st.all)]],
+            archive:(r=>[['Arşivde',num(r.archived),'kişisel bilgisi temizlenmiş ilan','brand',null],['30 gün içinde silinecek',num(r.purge_30),'1 yıllık süresi dolan','bad',pct(r.purge_30,r.archived)],
+                ['Temizlik bekleyen',num(r.pending_cleanup),'bitişten 8 gün sonra temizlenir','accent',null],['Yasal saklamada',num(r.held),'otomatik silinmez','mute',null]])(retention||{}),
             stats:[['Toplam ilan',num(t.listings),pctText(pct(month.listings,t.listings))+' son 30 günde','brand',pct(month.listings,t.listings)],['Yük ilanı',num(t.loads),pctText(pct(t.loads,t.listings))+' tüm ilanların','ok',pct(t.loads,t.listings)],
                 ['Boş araç ilanı',num(t.trucks),pctText(pct(t.trucks,t.listings))+' tüm ilanların','accent',pct(t.trucks,t.listings)],['Toplam kullanıcı',num(s.users),pctText(pct(month.users,s.users))+' son 30 günde katıldı','mute',pct(month.users,s.users)]]};
         return '<section class="adm-kpis" aria-label="Özet">'+sets[section].map(x=>tile(...x)).join('')+'</section>';
@@ -6137,7 +6139,8 @@ async function openAdminPanel() {
         }
         const sets={users:[['','Tümü',stats&&stats.users],['new','Bu hafta',stats&&stats.users_week],['carrier','Taşıyıcı',ty.carrier],['owner','Yük sahibi',ty.owner],['tir','Tır',vu.tir],['kamyon','Kamyon',vu.kamyon],['kamyonet','Kamyonet',vu.kamyonet],['suspended','Askıda',stats&&stats.accounts_suspended],
                 ['banned','Engelli',stats&&stats.accounts_banned],['admins','Yöneticiler',stats&&stats.admins],['deleted','Silinen',stats&&stats.accounts_deleted]],
-            moderation:[['','Tümü'],['listing','İlan işlemleri'],['user','Hesap işlemleri']]}[section];
+            moderation:[['','Tümü'],['listing','İlan işlemleri'],['user','Hesap işlemleri']],
+            archive:[['','Tümü',retention&&retention.archived],['soon','30 gün içinde silinecek',retention&&retention.purge_30],['hold','Yasal saklamada',retention&&retention.held]]}[section];
         return sets?'<div class="adm-chips" role="group" aria-label="Filtre">'+sets.map(([key,label,count])=>chip('data-admin-filter',key,label,count,filter===key)).join('')+'</div>':'';
     }
     // Birleşik ilan filtreleri: dar ekranda katlanır, geniş ekranda açık başlar.
@@ -6161,6 +6164,9 @@ async function openAdminPanel() {
             const status=pill(...userState(row));
             return '<div class="adm-row'+on+'"'+open+'><b class="c-main">'+esc(row.display_name||'İsimsiz hesap')+'</b><span>'+esc(row.city||'—')+'</span><span>'+typeText(row.account_type)+(Array.isArray(row.vehicles)&&row.vehicles.length?' <small>'+esc(row.vehicles.join(', '))+'</small>':'')+'</span><span>'+day(row.created_at)+'</span><span class="c-num">'+num(row.listings)+' ilan</span><span>'+status+'</span><span class="c-act">'+act+view+'</span></div>';
         }
+        if(section==='archive'){
+            return '<div class="adm-row'+on+'"'+open+'><b class="c-main">#'+esc(String(row.id))+(row.hold?' '+pill('Yasal saklama','warn'):'')+'</b><span>'+place(row.from_city,row.from_district)+'</span><span>→ '+place(row.to_city,row.to_district)+'</span><span>'+esc(row.vehicle||'—')+' <small>'+kindText(row.kind)+'</small></span><span>'+day(row.redacted_at)+'</span><span>'+(row.hold?'Silinmez':day(row.purge_at))+'</span><span class="c-act">'+view+'</span></div>';
+        }
         if(section==='moderation'){
             return '<div class="adm-row'+on+'"'+open+'><b class="c-main">'+esc(actionText[row.action]||row.action)+'</b><span>'+esc(row.target)+'</span><span class="c-wide">'+esc(row.reason)+'</span><span>'+esc(row.actor_label)+'</span><span>'+date(row.created_at)+'</span><span class="c-act">'+view+'</span></div>';
         }
@@ -6170,20 +6176,31 @@ async function openAdminPanel() {
         const owner=row.owner_name||row.owner_label;
         return '<div class="adm-row'+on+'"'+open+'><b class="c-main">'+box+'#'+esc(String(row.id))+(owner?' <small>'+esc(owner)+'</small>':'')+'</b><span>'+place(row.from_city,row.from_district)+'</span><span>→ '+place(row.to_city,row.to_district)+'</span><span>'+esc(row.vehicle||'—')+' <small>'+kindText(row.kind)+'</small></span><span>'+pill(label,tone)+'</span><span>'+date(row.created_at)+'</span><span class="c-act">'+act+view+'</span></div>';
     }
-    const heads={listings:['İlan','Çıkış','Varış','Araç · tür','Durum','Oluşturma',''],overview:['İlan','Çıkış','Varış','Araç · tür','Durum','Oluşturma',''],users:['Ad','Şehir','Tür','Kayıt','İlan','Durum',''],moderation:['İşlem','Hedef','Gerekçe','Yönetici','Tarih','']};
+    const heads={listings:['İlan','Çıkış','Varış','Araç · tür','Durum','Oluşturma',''],overview:['İlan','Çıkış','Varış','Araç · tür','Durum','Oluşturma',''],users:['Ad','Şehir','Tür','Kayıt','İlan','Durum',''],archive:['İlan','Çıkış','Varış','Araç · tür','Temizlendi','Silinecek',''],moderation:['İşlem','Hedef','Gerekçe','Yönetici','Tarih','']};
     function listCard(){
-        const listTitle=section==='overview'?'Son ilanlar':titles[section];
+        const listTitle=section==='overview'?'Son ilanlar · son 24 saat':section==='archive'?'Arşiv kayıtları':titles[section];
         const searchForm=section==='users'?'<form id="admin-search" class="adm-search" role="search"><label for="admin-term">Ada göre ara</label><input id="admin-term" maxlength="100" value="'+esc(search)+'" placeholder="Örn. Ahmet Yılmaz"><button class="adm-btn" type="submit">Ara</button></form>':section==='listings'?filterForm():'';
         const userNote=section==='users'&&query.user?'<p class="adm-filter-note">Tek kullanıcı gösteriliyor (ilan sahibinden). <button class="adm-link" id="admin-user-clear" type="button">Tüm kullanıcılar</button></p>':'';
         const pager=section==='overview'?'<div class="adm-pager"><button class="adm-btn" type="button" data-admin-go="listings">Tüm ilanlar →</button></div>':
             '<div class="adm-pager"><button class="adm-btn" id="admin-prev" type="button" '+(offset===0?'disabled':'')+'>Önceki</button><span>Sayfa '+(offset/20+1)+'</span><button class="adm-btn" id="admin-next" type="button" '+(!more?'disabled':'')+'>Sonraki</button></div>';
-        const total=section==='listings'&&rows[0]&&rows[0].total!==undefined?Number(rows[0].total):null;
-        const countText=section==='listings'?(total===null?'0 sonuç':num(total)+' sonuç'+(activeFilters()?' · filtreli':'')):rows.length+(more?'+':'')+' kayıt gösteriliyor';
+        const total=(section==='listings'||section==='archive'||section==='overview')&&rows[0]&&rows[0].total!==undefined?Number(rows[0].total):null;
+        const countText=section==='overview'?(total===null?'Son 24 saatte ilan yok':num(total)+' ilan · 24 saati geçen ilanlar listeden çıkar'):section==='archive'?num(total||0)+' kayıt':section==='listings'?(total===null?'0 sonuç':num(total)+' sonuç'+(activeFilters()?' · filtreli':'')):rows.length+(more?'+':'')+' kayıt gösteriliyor';
         const selectable=rows.filter(r=>!r.removed);
         const bulk=section==='listings'&&selectable.length?'<div class="adm-bulk"><label><input type="checkbox" id="admin-check-all"'+(selectable.every(r=>checked.has(String(r.id)))?' checked':'')+'> Sayfadakileri seç</label>'+
             (checked.size?'<b>'+checked.size+' ilan seçildi</b><button class="adm-btn danger" id="admin-bulk" type="button">Seçilenleri kaldır</button><button class="adm-link" id="admin-bulk-clear" type="button">Seçimi temizle</button>':'')+'</div>':'';
         return '<section class="adm-card adm-list"><div class="adm-card-head"><h2>'+listTitle+'</h2><small id="admin-count">'+countText+'</small></div>'+searchForm+userNote+chips()+bulk+
             (rows.length?'<div class="adm-table"><div class="adm-thead" aria-hidden="true">'+heads[section].map(h=>'<span>'+h+'</span>').join('')+'</div>'+rows.map(rowHTML).join('')+'</div>':'<p class="adm-empty">Kayıt bulunamadı.</p>')+pager+'</section>';
+    }
+    // Saklama kuralları ve gece temizliğinin son çalışmaları (her gün 03:00, Türkiye saati).
+    function retentionCard(){
+        const r=retention||{},runs=Array.isArray(r.runs)?r.runs:[];
+        const run=x=>{const c=x.counts||{};return '<li><span>'+date(x.ran_at)+'</span><b>'+(c.skipped?'Atlandı (başka çalışma sürüyordu)':num(c.listings_redacted)+' temizlendi · '+num(c.listings_deleted)+' silindi')+'</b></li>';};
+        return '<section class="adm-card"><div class="adm-card-head"><h2>Saklama kuralları</h2><small>Gece temizliği her gün 03:00</small></div>'+
+            '<ol class="adm-steps"><li class="done"><b>Yayın</b><small>İlan 6 saat yayında kalır.</small></li><li class="done"><b>8 gün sonra</b><small>Kapanan veya süresi dolan ilanın kişisel bilgileri (iletişim, not, isim) temizlenir; ilan arşive geçer.</small></li>'+
+            '<li class="done"><b>1 yıl sonra</b><small>Arşivdeki kayıt, giriş kayıtları (IP/saat) ve yönetici kararları otomatik silinir. Yönetimin kaldırdığı ilan önce 1 yıl olduğu gibi bekletilir.</small></li>'+
+            '<li><b>Yasal saklama</b><small>Resmî talep olan kayıt saklamaya alınırsa kaldırılana kadar temizlenmez ve silinmez.</small></li></ol>'+
+            '<div class="adm-grid"><div><span>Yönetimin beklettiği</span><b>'+num(r.removed_held)+'</b></div><div><span>Silinecek hesap kalıntısı</span><b>'+num(r.accounts_pending_purge)+'</b></div><div><span>Giriş kaydı</span><b>'+num(r.access_logs)+'</b></div><div><span>En eski giriş kaydı</span><b>'+day(r.oldest_log)+'</b></div></div>'+
+            '<h4>Son çalışmalar</h4>'+(runs.length?'<ol class="adm-routes">'+runs.map(run).join('')+'</ol>':'<p class="adm-note">Gece temizliği henüz çalışmadı.</p>')+'</section>';
     }
     function timeline(items){return '<ol class="adm-steps">'+items.map(([label,when,state])=>'<li class="'+state+'"><b>'+label+'</b><small>'+when+'</small></li>').join('')+'</ol>';}
     // İlan geçmişi: kimin oluşturduğu/değiştirdiği ve yönetici kararları. IP gösterilmez.
@@ -6206,7 +6223,7 @@ async function openAdminPanel() {
         try{const r=await nakgoAuth.adminPage('history',0,'','',{id});if(!valid())return;history.set(id,Array.isArray(r)?r:[]);}
         catch{if(!valid())return;history.set(id,'error');}
         // Onay formu açıkken yeniden çizilmez; yoksa yazılan gerekçe ve form bağlantısı kaybolur.
-        if((section==='listings'||section==='overview')&&!(panel&&panel.mode==='confirm'))render();
+        if((section==='listings'||section==='overview'||section==='archive')&&!(panel&&panel.mode==='confirm'))render();
     }
     function detail(row,index){
         const back='<button class="adm-back" id="admin-back" type="button">‹ Listeye dön</button>';
@@ -6226,6 +6243,16 @@ async function openAdminPanel() {
             return back+'<div class="adm-d-head"><h3>'+esc(row.display_name||'İsimsiz hesap')+' '+pill(...userState(row))+'</h3><p>'+esc(row.city||'Şehir yok')+' · '+typeText(row.account_type)+'</p></div><div class="adm-summary"><span>Durum özeti</span><p>'+summary+'</p></div>'+
                 '<h4>Hesap bilgileri</h4>'+grid([['Kayıt',day(row.created_at)],['İlan sayısı',num(row.listings)],['Tür',typeText(row.account_type)],['Araç (ilanlarından)',Array.isArray(row.vehicles)&&row.vehicles.length?esc(row.vehicles.join(', ')):'—']])+(row.reason?'<h4>Son gerekçe</h4><p class="adm-reason">'+esc(row.reason)+'</p>':'')+'<div class="adm-d-act">'+act+'</div>';
         }
+        if(section==='archive'){
+            const ended=row.updated_at&&row.expires_at?(Date.parse(row.updated_at)<Date.parse(row.expires_at)?row.updated_at:row.expires_at):row.expires_at;
+            const act='<button class="btn adm-detail-act" type="button" data-admin-do="'+(row.hold?'release':'hold')+'" data-admin-index="'+index+'">'+(row.hold?'Yasal saklamayı kaldır':'Yasal saklamaya al')+'</button>';
+            loadHistory(String(row.id));
+            return back+'<div class="adm-d-head"><h3>İlan #'+esc(String(row.id))+' '+pill(row.hold?'Yasal saklama':'Arşiv',row.hold?'warn':'mute')+'</h3><p>'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
+                '<div class="adm-summary"><span>Saklama durumu</span><p>'+(row.hold?'Yasal saklamada: kaldırılana kadar otomatik silinmez.':'Kişisel bilgiler temizlendi. Kayıt '+day(row.purge_at)+' tarihinde otomatik silinir.')+'</p></div>'+
+                '<h4>İlan bilgileri</h4>'+grid([['Tür',kindText(row.kind)],['Araç',esc(row.vehicle||'—')],['Kasa',esc(row.body||'—')],['Yönetici kararı',num(row.decisions)]])+(row.hold_reason?'<h4>Saklama gerekçesi</h4><p class="adm-reason">'+esc(row.hold_reason)+'</p>':'')+
+                '<h4>Zaman çizelgesi</h4>'+timeline([['Oluşturuldu',date(row.created_at),'done'],['Yayın bitti',date(ended),'done'],['Kişisel bilgiler temizlendi',date(row.redacted_at),'done'],['Kayıt silinir',row.hold?'Yasal saklamada':day(row.purge_at),'']])+
+                '<h4>İşlem geçmişi</h4>'+historyHTML(String(row.id))+'<div class="adm-d-act">'+act+'</div>';
+        }
         if(section==='moderation'){
             return back+'<div class="adm-d-head"><h3>'+esc(actionText[row.action]||row.action)+'</h3><p>'+date(row.created_at)+'</p></div><h4>İşlem bilgileri</h4>'+grid([['Hedef',esc(row.target)],['Yönetici',esc(row.actor_label)]])+'<h4>Gerekçe</h4><p class="adm-reason">'+esc(row.reason)+'</p>';
         }
@@ -6243,10 +6270,11 @@ async function openAdminPanel() {
         const ownerName=row.owner_name||row.owner_label;
         const ownerLink=row.owner_id?'<button class="adm-btn" type="button" data-admin-owner="'+esc(String(row.owner_id))+'">İlan sahibine git</button>':'';
         const id=String(row.id);loadHistory(id);
+        const holdBtn='<button class="adm-btn" type="button" data-admin-do="'+(row.hold?'release':'hold')+'" data-admin-index="'+index+'">'+(row.hold?'Yasal saklamayı kaldır':'Yasal saklamaya al')+'</button>';
         return back+'<div class="adm-d-head"><h3>İlan #'+esc(id)+' '+pill(label,tone)+'</h3><p>'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
             '<div class="adm-summary"><span>Durum özeti</span><p>'+summary+'</p></div><h4>İlan bilgileri</h4>'+
             grid([['Tür',kindText(row.kind)],['Araç',esc(row.vehicle||'—')],['Kasa',esc(row.body||'—')],['Sahibi',esc(ownerName||'—')],['Yükleme',esc(row.loading_text||'—')],['Yük',esc(row.cargo||'—')],['Oluşturma',date(row.created_at)],['Yayın bitişi',date(row.expires_at)]])+
-            '<h4>Zaman çizelgesi</h4>'+timeline(steps)+'<h4>İşlem geçmişi</h4>'+historyHTML(id)+'<div class="adm-d-act">'+act+ownerLink+'</div>';
+            '<h4>Zaman çizelgesi</h4>'+timeline(steps)+'<h4>İşlem geçmişi</h4>'+historyHTML(id)+'<div class="adm-d-act">'+act+ownerLink+holdBtn+'</div>';
     }
     // İstatistikler: seçilen aralığın her günü (boş günler sıfır), yük turkuaz, boş araç sarı.
     function rangeLabel(){return range.days?'Son '+range.days+' gün':day(range.from+'T12:00:00Z')+' – '+day((range.to||isoToday())+'T12:00:00Z');}
@@ -6295,7 +6323,7 @@ async function openAdminPanel() {
         if(panel&&panel.mode==='confirm')side=panel.html;
         else if(row&&(panel||wide))side=detail(row,selected);
         const summary=section==='overview'?summaryCard():'',detailHTML=side?'<aside class="adm-detail'+(panel?' open':'')+'" aria-label="Kayıt ayrıntısı">'+side+'</aside>':'';
-        frame(kpis()+'<div class="adm-main'+(side||summary?' has-detail':'')+'">'+listCard()+(summary?'<div class="adm-side">'+summary+detailHTML+'</div>':detailHTML)+'</div>',true);
+        frame(kpis()+(section==='archive'?retentionCard():'')+'<div class="adm-main'+(side||summary?' has-detail':'')+'">'+listCard()+(summary?'<div class="adm-side">'+summary+detailHTML+'</div>':detailHTML)+'</div>',true);
     }
     function statsQuery(){return range.days?{from:addDays(isoToday(),-(range.days-1)),to:isoToday()}:{from:range.from,to:range.to||isoToday()};}
     async function load(){
@@ -6304,11 +6332,12 @@ async function openAdminPanel() {
         try{
             const overview=await nakgoAuth.adminPage('overview',0,'','');
             if(!valid()||ticket!==request)return;
-            const listSection=section==='overview'?'listings':section,listQuery=section==='stats'?statsQuery():section==='overview'?null:query;
-            const list=await nakgoAuth.adminPage(listSection,section==='overview'||section==='stats'?0:offset,section==='users'||section==='listings'?search:'',section==='users'||section==='moderation'?filter:'',listQuery);
+            const listSection=section==='overview'?'listings':section,listQuery=section==='stats'?statsQuery():section==='overview'?{recent:'24h'}:section==='archive'?null:query;
+            const list=await nakgoAuth.adminPage(listSection,section==='overview'||section==='stats'?0:offset,section==='users'||section==='listings'?search:'',section==='users'||section==='moderation'||section==='archive'?filter:'',listQuery);
             if(!valid()||ticket!==request)return;
             let extra=null;
             if(section==='stats'){extra=await nakgoAuth.adminPage('insights',0,'','',listQuery);if(!valid()||ticket!==request)return;}
+            if(section==='archive'){const r=await nakgoAuth.adminPage('retention',0,'');if(!valid()||ticket!==request)return;retention=r&&typeof r==='object'&&!Array.isArray(r)?r:{};}
             stats=overview&&typeof overview==='object'?overview:{};
             insights=extra&&typeof extra==='object'?extra:null;
             const all=Array.isArray(list)?list:[];
@@ -6351,11 +6380,12 @@ async function openAdminPanel() {
         if(!valid()||!row)return;
         ++request;
         const kind=section==='users'?'user':'listing',action=forced||(kind==='user'?(row.suspended?'resume':'suspend'):(row.removed?'restore':'remove'));
-        const label=({suspend:'Faaliyetleri askıya al',resume:'Askıyı kaldır',remove:'İlanı yayından kaldır',restore:'Kaldırma engelini aç',ban:'Kalıcı engelle',unban:'Engeli kaldır',delete:'Hesabı sil',grant_admin:'Yönetici yap',revoke_admin:'Yöneticiliği al'})[action];
+        const label=({suspend:'Faaliyetleri askıya al',resume:'Askıyı kaldır',remove:'İlanı yayından kaldır',restore:'Kaldırma engelini aç',ban:'Kalıcı engelle',unban:'Engeli kaldır',delete:'Hesabı sil',grant_admin:'Yönetici yap',revoke_admin:'Yöneticiliği al',hold:'Yasal saklamaya al',release:'Yasal saklamayı kaldır'})[action];
         const explanation=({suspend:'Yeni ilan verme durdurulur. Hesaba giriş devam eder. Mevcut ilanlar otomatik kaldırılmaz.',resume:'Hesabın yeni işlem yapmasına yeniden izin verilir.',remove:'İlan yayından kalkar ve sahibi yeniden yayımlayamaz. Kayıt 1 yıl bekletilir.',restore:'İlan kapalı duruma alınır. Sahibi tarihini kontrol ederek yeniden yayımlayabilir.',
             ban:'Hesaba giriş kapanır, açık oturumlar sonlanır ve yayındaki ilanları kapanır. Engeli kaldırana kadar geri gelemez.',unban:'Hesap yeniden giriş yapabilir. Kapanan ilanları kendisi yeniden yayımlayabilir.',
             delete:'Geri alınamaz. Ad, telefon, şehir, ilan iletişim bilgileri, kayıtlı ilanlar ve rota alarmları hemen silinir; giriş bağlantısı kaldırılır. Kanun gereği giriş kayıtları (IP ve zaman) ile bu işlem kaydı 1 yıl saklanır, sonra hesap tamamen silinir.',
-            grant_admin:'Bu kişi yönetici panelindeki tüm yetkileri alır: ilan kaldırma, askıya alma, engelleme, hesap silme ve yönetici atama.',revoke_admin:'Yönetici panelindeki yetkileri hemen kapanır. Hesap normal kullanıcı olarak devam eder.'})[action];
+            grant_admin:'Bu kişi yönetici panelindeki tüm yetkileri alır: ilan kaldırma, askıya alma, engelleme, hesap silme ve yönetici atama.',revoke_admin:'Yönetici panelindeki yetkileri hemen kapanır. Hesap normal kullanıcı olarak devam eder.',
+            hold:'Resmî bir talep veya inceleme için kullanılır. Bu ilan, geçmişi ve kararları kaldırılana kadar gece temizliğinde temizlenmez ve silinmez.',release:'İlan normal saklama düzenine döner: süresi geçtiyse bir sonraki gece temizliğinde işlenir.'})[action];
         const target=kind==='listing'?'<p id="admin-target">İlan #'+esc(String(row.id))+' · '+esc(row.from_city)+' → '+esc(row.to_city)+'</p>':'';
         const show=html=>{panel={mode:'confirm',html};render();};
         show('<button class="adm-back" id="admin-back" type="button">‹ Vazgeç</button><div class="adm-d-head"><h3>'+label+'</h3><p>'+esc(row.display_name||row.owner_label||'')+'</p></div>'+target+'<div class="adm-summary"><span>Ne olur?</span><p>'+explanation+'</p></div><form id="admin-confirm" class="adm-form"><label for="admin-reason">İşlem gerekçesi (zorunlu)</label><textarea id="admin-reason" minlength="3" maxlength="500" required></textarea>'+(action==='delete'?'<label for="admin-confirm-word">Onaylamak için SİL yaz</label><input id="admin-confirm-word" autocomplete="off" maxlength="10" required>':'')+'<p id="admin-action-error" role="alert"></p><button class="btn" id="admin-submit" type="submit">'+label+'</button><button class="chip" id="admin-cancel" type="button">Vazgeç</button></form>');
