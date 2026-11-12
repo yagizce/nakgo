@@ -1229,8 +1229,8 @@ body.admin-host .sheet>div::before { display:none; }
 /* Yönetici paneli teması: yol tabelası. Otoyol yeşili = yük ve ana vurgu, devlet yolu mavisi = boş araç,
    asfalt = menü. Yalnız .adm içinde geçerlidir; uygulamanın renkleri değişmez. */
 .adm {
-  --asfalt:#1f252b; --asfalt-ink:#c3ccd3;
-  --bg:#f1f3f2; --card:#fff; --ink:#1c2127; --mute:#5a6470; --line:#e0e4e6;
+  --asfalt:#000; --asfalt-ink:#c9c9c9;
+  --bg:#f2f3f2; --card:#fff; --ink:#000; --mute:#5a6470; --line:#e0e4e6;
   --brand:#00704a; --brand-strong:#005f3f; --brand-ink:#005a3c; --brand-soft:#e2f0ea; --on-brand:#fff;
   --accent:#1d5fb4; --accent-ink:#174d93; --accent-dark:#174d93;
   --ok:#00704a; --bad:#b42318; --warn:#9a6700; --tag-bg:#eef1f0;
@@ -1238,19 +1238,19 @@ body.admin-host .sheet>div::before { display:none; }
 }
 @media (prefers-color-scheme:dark) {
   :root:not([data-theme="light"]) .adm {
-    --asfalt:#0f1316; --asfalt-ink:#aab4bc;
-    --bg:#14181b; --card:#1b2024; --ink:#e9edef; --mute:#9aa4ad; --line:#2b3237;
+    --asfalt:#000; --asfalt-ink:#b5b5b5;
+    --bg:#000; --card:#111; --ink:#fff; --mute:#a3a3a3; --line:#262626;
     --brand:#2bb57f; --brand-strong:#38c48c; --brand-ink:#5fd3a4; --brand-soft:#173327; --on-brand:#06140e;
     --accent:#5b97e6; --accent-ink:#8db8f0; --accent-dark:#8db8f0;
-    --ok:#4cc595; --bad:#f08a7e; --warn:#e0b45c; --tag-bg:#22282d;
+    --ok:#4cc595; --bad:#f08a7e; --warn:#e0b45c; --tag-bg:#1c1c1c;
   }
 }
 :root[data-theme="dark"] .adm {
-  --asfalt:#0f1316; --asfalt-ink:#aab4bc;
-  --bg:#14181b; --card:#1b2024; --ink:#e9edef; --mute:#9aa4ad; --line:#2b3237;
+  --asfalt:#000; --asfalt-ink:#b5b5b5;
+  --bg:#000; --card:#111; --ink:#fff; --mute:#a3a3a3; --line:#262626;
   --brand:#2bb57f; --brand-strong:#38c48c; --brand-ink:#5fd3a4; --brand-soft:#173327; --on-brand:#06140e;
   --accent:#5b97e6; --accent-ink:#8db8f0; --accent-dark:#8db8f0;
-  --ok:#4cc595; --bad:#f08a7e; --warn:#e0b45c; --tag-bg:#22282d;
+  --ok:#4cc595; --bad:#f08a7e; --warn:#e0b45c; --tag-bg:#1c1c1c;
 }
 body.admin-host .sheet { background:var(--bg); }
 /* Menü: asfalt şerit; seçili bölüm yeşil tabela gibi. */
@@ -1305,11 +1305,22 @@ body.admin-host .sheet { background:var(--bg); }
 .adm .adm-steps li.done::before { background:var(--brand); border-color:var(--brand); }
 .adm .adm-tip { border-radius:8px; }
 .adm .adm-rank em { background:var(--brand); }
+/* Telefon: masaüstüyle aynı bölüm adları, 3×2 simetrik menü. */
+.adm .adm-nav { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:8px; position:static; }
+.adm .adm-nav-btn { min-height:60px; padding:8px 4px; gap:5px; font-size:12.5px; line-height:1.2; }
+.adm .adm-nav-btn .l-short { display:none; }
+.adm .adm-nav-btn .l-long { display:block; white-space:normal; overflow:visible; text-overflow:clip; }
+.adm .adm-top { grid-template-columns:minmax(0,1fr) auto; align-items:end; }
+.adm .adm-page { padding:16px 14px calc(24px + env(safe-area-inset-bottom,0px)); gap:14px; }
+.adm .adm-card { padding:16px 14px; }
 /* Başlıklar ve tablo başlıkları cümle düzeninde. */
 .adm h4,.adm .adm-period h4 { text-transform:none; letter-spacing:0; font-size:14px; font-weight:700; color:var(--ink); }
 .adm .adm-crumb b { color:var(--ink); }
 @container adm (min-width:720px) {
-  .adm .adm-nav { border:0; }
+  .adm .adm-nav { border:0; display:flex; padding:14px 8px; position:sticky; }
+  .adm .adm-nav-btn { min-height:0; }
+  .adm .adm-page { padding:18px 22px 28px; gap:16px; }
+  .adm .adm-card { padding:16px; }
   .adm .adm-thead { text-transform:none; letter-spacing:0; font-size:12.5px; }
 }
 @container adm (min-width:1080px) {
