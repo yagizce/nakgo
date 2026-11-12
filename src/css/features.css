@@ -1229,7 +1229,7 @@ body.admin-host .sheet>div::before { display:none; }
 /* Panel her zaman açık temadır; cihaz veya uygulama koyu temada olsa da değişmez. */
 .adm,.adm-login { color-scheme:light; }
 html.admin-host,html.admin-host body,body.admin-host .sheet { background:#eceff0; }
-/* Yönetici sitesinde uygulama açılışı ve başlığı ilk karede bile çizilmez (sınıf <head> içinde eklenir). */
+/* Yönetici sitesinde uygulama açılışı ve başlığı ilk karede bile çizilmez (sınıf sayfa başındaki küçük betikle eklenir). */
 html.admin-host .splash,html.admin-host header { display:none !important; }
 /* Menü: beyaz yüzey, seçili bölüm siyah. */
 .adm .adm-nav { background:var(--card); border-bottom:1px solid var(--line); grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:8px; position:static; }
