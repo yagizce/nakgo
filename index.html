@@ -1930,6 +1930,104 @@ body.admin-host .sheet>div::before { display:none; }
 
 .delete-list { padding-left:18px; line-height:1.55; margin:8px 0 12px; }
 
+/* Yönetici paneli teması: yol tabelası. Otoyol yeşili = yük ve ana vurgu, devlet yolu mavisi = boş araç,
+   asfalt = menü. Yalnız .adm içinde geçerlidir; uygulamanın renkleri değişmez. */
+.adm {
+  --asfalt:#1f252b; --asfalt-ink:#c3ccd3;
+  --bg:#f1f3f2; --card:#fff; --ink:#1c2127; --mute:#5a6470; --line:#e0e4e6;
+  --brand:#00704a; --brand-strong:#005f3f; --brand-ink:#005a3c; --brand-soft:#e2f0ea; --on-brand:#fff;
+  --accent:#1d5fb4; --accent-ink:#174d93; --accent-dark:#174d93;
+  --ok:#00704a; --bad:#b42318; --warn:#9a6700; --tag-bg:#eef1f0;
+  font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) .adm {
+    --asfalt:#0f1316; --asfalt-ink:#aab4bc;
+    --bg:#14181b; --card:#1b2024; --ink:#e9edef; --mute:#9aa4ad; --line:#2b3237;
+    --brand:#2bb57f; --brand-strong:#38c48c; --brand-ink:#5fd3a4; --brand-soft:#173327; --on-brand:#06140e;
+    --accent:#5b97e6; --accent-ink:#8db8f0; --accent-dark:#8db8f0;
+    --ok:#4cc595; --bad:#f08a7e; --warn:#e0b45c; --tag-bg:#22282d;
+  }
+}
+:root[data-theme="dark"] .adm {
+  --asfalt:#0f1316; --asfalt-ink:#aab4bc;
+  --bg:#14181b; --card:#1b2024; --ink:#e9edef; --mute:#9aa4ad; --line:#2b3237;
+  --brand:#2bb57f; --brand-strong:#38c48c; --brand-ink:#5fd3a4; --brand-soft:#173327; --on-brand:#06140e;
+  --accent:#5b97e6; --accent-ink:#8db8f0; --accent-dark:#8db8f0;
+  --ok:#4cc595; --bad:#f08a7e; --warn:#e0b45c; --tag-bg:#22282d;
+}
+body.admin-host .sheet { background:var(--bg); }
+/* Menü: asfalt şerit; seçili bölüm yeşil tabela gibi. */
+.adm .adm-nav { background:var(--asfalt); border-bottom:0; gap:2px; padding:6px; }
+.adm .adm-nav-btn { color:var(--asfalt-ink); border-radius:8px; font-weight:600; }
+.adm .adm-nav-btn:hover { color:#fff; background:rgba(255,255,255,.06); }
+.adm .adm-nav-btn[aria-pressed="true"] { background:var(--brand); color:var(--on-brand); box-shadow:inset 0 0 0 2px rgba(255,255,255,.9),0 0 0 1px var(--brand); }
+.adm .adm-brand { color:#fff; font-weight:800; font-size:19px; letter-spacing:-.4px; }
+.adm .adm-brand::after { content:""; display:block; height:3px; margin-top:8px; background:repeating-linear-gradient(90deg,#f2f4f3 0 14px,transparent 14px 26px); opacity:.55; }
+/* Sayfa başı */
+.adm .adm-crumb { font-size:13px; }
+.adm .adm-crumb b { font-size:20px; letter-spacing:-.3px; display:block; margin-top:2px; }
+.adm .adm-crumb span,.adm .adm-crumb > span + * { color:var(--mute); }
+.adm .adm-btn { border-radius:8px; border-color:var(--line); }
+.adm .adm-btn:hover:not(:disabled) { border-color:var(--ink); }
+.adm .adm-btn.primary,.adm .btn { background:var(--brand); border-color:var(--brand); color:var(--on-brand); border-radius:8px; box-shadow:none; background-image:none; }
+.adm .btn:hover:not(:disabled),.adm .adm-btn.primary:hover:not(:disabled) { background:var(--brand-strong); border-color:var(--brand-strong); }
+.adm .adm-btn.danger { color:var(--bad); border-color:color-mix(in srgb,var(--bad) 45%,var(--line)); }
+/* Özet sayıları: tek panelde, ince çizgiyle ayrılmış hücreler. */
+.adm .adm-kpis { gap:1px; background:var(--line); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+.adm .adm-kpi { border:0; border-radius:0; background:var(--card); padding:14px 16px; }
+.adm .adm-kpi span { display:flex; align-items:center; gap:7px; font-size:13px; color:var(--mute); }
+.adm .adm-kpi span::before { content:""; width:8px; height:8px; border-radius:2px; background:var(--brand); flex:none; }
+.adm .adm-kpi.ok span::before { background:var(--ok); } .adm .adm-kpi.accent span::before { background:var(--accent); }
+.adm .adm-kpi.bad span::before { background:var(--bad); } .adm .adm-kpi.mute span::before { background:var(--mute); }
+.adm .adm-kpi b,.adm .adm-kpi.ok b,.adm .adm-kpi.accent b,.adm .adm-kpi.bad b,.adm .adm-kpi.mute b { color:var(--ink); font-size:30px; font-weight:700; letter-spacing:-1px; margin-top:4px; }
+.adm .adm-bar { height:4px; background:var(--tag-bg); }
+/* Kartlar ve tablolar */
+.adm .adm-card { border-radius:12px; padding:16px; }
+.adm .adm-card-head h2 { font-size:17px; font-weight:700; letter-spacing:-.2px; }
+.adm .adm-thead { color:var(--mute); font-size:12px; font-weight:600; }
+.adm .adm-row:hover { background:color-mix(in srgb,var(--ink) 3%,transparent); }
+.adm .adm-row.on { background:var(--brand-soft); box-shadow:inset 3px 0 0 var(--brand); }
+.adm .adm-chip { border-radius:8px; height:32px; }
+.adm .adm-chip[aria-pressed="true"] { background:var(--asfalt); border-color:var(--asfalt); color:#fff; }
+.adm .adm-link { color:var(--brand-ink); border-radius:8px; }
+.adm .adm-act { border-radius:8px; }
+.adm .adm-pill { border-radius:6px; padding:3px 8px; }
+.adm .adm-pill.warn { background:color-mix(in srgb,var(--warn) 16%,transparent); color:var(--warn); }
+.adm .adm-pill.brand { background:var(--brand-soft); color:var(--brand-ink); }
+.adm .adm-search input,.adm .adm-form textarea,.adm .adm-fgrid input,.adm .adm-fgrid select,.adm .adm-rform input { border-radius:8px; background:var(--card); }
+.adm .adm-filters { border-radius:12px; background:var(--card); }
+.adm .adm-filters>summary b,.adm .adm-bulk b { background:var(--brand); color:var(--on-brand); border-radius:6px; }
+/* Ayrıntı: güzergâh gerçek bir otoyol tabelası gibi; özet sade bir not. */
+.adm .adm-sign { display:inline-flex; align-items:center; gap:8px; margin:8px 0 0; padding:7px 14px; border-radius:7px; background:var(--brand); color:var(--on-brand);
+  font-weight:700; font-size:16px; letter-spacing:-.1px; box-shadow:inset 0 0 0 2px var(--card),0 0 0 1px var(--brand); }
+.adm .adm-sign small { color:inherit; opacity:.8; font-weight:500; }
+.adm .adm-summary { background:var(--brand-soft); color:var(--ink); border:0; border-left:3px solid var(--brand); border-radius:8px; }
+.adm .adm-summary span { text-transform:none; letter-spacing:0; font-size:13px; font-weight:700; color:var(--brand-ink); }
+.adm .adm-detail h4 { text-transform:none; letter-spacing:0; font-size:14px; font-weight:700; color:var(--ink); margin-top:8px; }
+.adm .adm-grid div { border-radius:8px; }
+.adm .adm-steps li.done::before { background:var(--brand); border-color:var(--brand); }
+.adm .adm-tip { border-radius:8px; }
+.adm .adm-rank em { background:var(--brand); }
+/* Başlıklar ve tablo başlıkları cümle düzeninde. */
+.adm h4,.adm .adm-period h4 { text-transform:none; letter-spacing:0; font-size:14px; font-weight:700; color:var(--ink); }
+.adm .adm-crumb b { color:var(--ink); }
+@container adm (min-width:720px) {
+  .adm .adm-nav { border:0; }
+  .adm .adm-thead { text-transform:none; letter-spacing:0; font-size:12.5px; }
+}
+@container adm (min-width:1080px) {
+  .adm .adm-shell { grid-template-columns:212px minmax(0,1fr); }
+  .adm .adm-nav { padding:22px 14px; gap:4px; }
+  .adm .adm-brand { text-align:left; padding:0 10px; margin-bottom:18px; }
+  .adm .adm-nav-btn { flex-direction:row; justify-content:flex-start; gap:12px; padding:11px 12px; font-size:14px; text-align:left; }
+  .adm .adm-nav-btn .adm-ic { width:20px; height:20px; }
+  .adm .adm-nav-btn .l-long { white-space:nowrap; }
+  .adm .adm-kpi { padding:18px 20px; }
+  .adm .adm-kpi b { font-size:34px; }
+}
+@media (prefers-reduced-motion:reduce) { .adm * { transition:none !important; } }
+
 /* Animasyonlar, hareket azaltma ve dar ekran düzeltmeleri (en sonda, diğer kuralları ezer) */
 
 /* ----- Animasyonlar ve hareket azaltma ----- */
@@ -6247,7 +6345,7 @@ async function openAdminPanel() {
             const ended=row.updated_at&&row.expires_at?(Date.parse(row.updated_at)<Date.parse(row.expires_at)?row.updated_at:row.expires_at):row.expires_at;
             const act='<button class="btn adm-detail-act" type="button" data-admin-do="'+(row.hold?'release':'hold')+'" data-admin-index="'+index+'">'+(row.hold?'Yasal saklamayı kaldır':'Yasal saklamaya al')+'</button>';
             loadHistory(String(row.id));
-            return back+'<div class="adm-d-head"><h3>İlan #'+esc(String(row.id))+' '+pill(row.hold?'Yasal saklama':'Arşiv',row.hold?'warn':'mute')+'</h3><p>'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
+            return back+'<div class="adm-d-head"><h3>İlan #'+esc(String(row.id))+' '+pill(row.hold?'Yasal saklama':'Arşiv',row.hold?'warn':'mute')+'</h3><p class="adm-sign">'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
                 '<div class="adm-summary"><span>Saklama durumu</span><p>'+(row.hold?'Yasal saklamada: kaldırılana kadar otomatik silinmez.':'Kişisel bilgiler temizlendi. Kayıt '+day(row.purge_at)+' tarihinde otomatik silinir.')+'</p></div>'+
                 '<h4>İlan bilgileri</h4>'+grid([['Tür',kindText(row.kind)],['Araç',esc(row.vehicle||'—')],['Kasa',esc(row.body||'—')],['Yönetici kararı',num(row.decisions)]])+(row.hold_reason?'<h4>Saklama gerekçesi</h4><p class="adm-reason">'+esc(row.hold_reason)+'</p>':'')+
                 '<h4>Zaman çizelgesi</h4>'+timeline([['Oluşturuldu',date(row.created_at),'done'],['Yayın bitti',date(ended),'done'],['Kişisel bilgiler temizlendi',date(row.redacted_at),'done'],['Kayıt silinir',row.hold?'Yasal saklamada':day(row.purge_at),'']])+
@@ -6271,7 +6369,7 @@ async function openAdminPanel() {
         const ownerLink=row.owner_id?'<button class="adm-btn" type="button" data-admin-owner="'+esc(String(row.owner_id))+'">İlan sahibine git</button>':'';
         const id=String(row.id);loadHistory(id);
         const holdBtn='<button class="adm-btn" type="button" data-admin-do="'+(row.hold?'release':'hold')+'" data-admin-index="'+index+'">'+(row.hold?'Yasal saklamayı kaldır':'Yasal saklamaya al')+'</button>';
-        return back+'<div class="adm-d-head"><h3>İlan #'+esc(id)+' '+pill(label,tone)+'</h3><p>'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
+        return back+'<div class="adm-d-head"><h3>İlan #'+esc(id)+' '+pill(label,tone)+'</h3><p class="adm-sign">'+place(row.from_city,row.from_district)+' → '+place(row.to_city,row.to_district)+'</p></div>'+
             '<div class="adm-summary"><span>Durum özeti</span><p>'+summary+'</p></div><h4>İlan bilgileri</h4>'+
             grid([['Tür',kindText(row.kind)],['Araç',esc(row.vehicle||'—')],['Kasa',esc(row.body||'—')],['Sahibi',esc(ownerName||'—')],['Yükleme',esc(row.loading_text||'—')],['Yük',esc(row.cargo||'—')],['Oluşturma',date(row.created_at)],['Yayın bitişi',date(row.expires_at)]])+
             '<h4>Zaman çizelgesi</h4>'+timeline(steps)+'<h4>İşlem geçmişi</h4>'+historyHTML(id)+'<div class="adm-d-act">'+act+ownerLink+holdBtn+'</div>';
