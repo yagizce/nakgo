@@ -70,8 +70,14 @@ function parseListings(input){
  const kept=keptAt.map(i=>lines[i]),keptBlock=keptAt.map(i=>blocks[i]);
  const chunks=[];let section=null,pendingTiming=null;
  // Lines above the first route of a block ("13,60 AÇIK–KAPALI TIR", "TONAJ: 0/26") apply to every route in that block.
+ // Footer: after the last route, from the first company or phone line on. Its notices
+ // ("WhatsApp üzerinden gelen aramalara cevap veremiyoruz") belong to every listing of the post.
+ const lastRoute=lines.findLastIndex(line=>lineStops(line).length);
+ const footerFrom=lastRoute<0?lines.length:lines.findIndex((line,i)=>i>lastRoute&&(companyLines.includes(line)||contacts(line).length>0));
+ const footer=footerFrom<0?[]:lines.slice(footerFrom).filter(line=>!companyLines.includes(line));
  let shared=[],sharedBlock=-1;
  kept.forEach((line,i)=>{
+  if(footerFrom>=0&&keptAt[i]>=footerFrom)return;
   if(keptBlock[i]!==sharedBlock){shared=[];sharedBlock=keptBlock[i];}
   if(!lineStops(line).length){
    // "BUGÜN YÜKLER" above routes dates the routes below it; inside a route it stays with that route.
@@ -143,7 +149,7 @@ function parseListings(input){
   if(/bugun/.test(t)&&/yarin/.test(t))issues.push('timing_ambiguous');
     // Review is about the three essentials: phone, route and vehicle type. Cargo, weight and time are optional.
   if(!kind)issues.push('kind_unknown');if(!vehicle)issues.push('vehicle_review');if(phones.length!==1)issues.push('contact_review');
-  const fields={kind,from,destinations,vehicle,body,weightMin,weightMax,amount:range?null:v1.weightTon,cargo:kind==='truck'?'':cargo,timing,availableOn:truck?availableOn:null,availableUntil:null,availableTime:'',vehicleCount:count?Number(count[1]):null,conditions,company,contactPhone:phones[0]||null,description:text,publicNote:noteOf(allLines),ownerLabel:'NakGo ilan masası',items:[],imageData:null};
+  const fields={kind,from,destinations,vehicle,body,weightMin,weightMax,amount:range?null:v1.weightTon,cargo:kind==='truck'?'':cargo,timing,availableOn:truck?availableOn:null,availableUntil:null,availableTime:'',vehicleCount:count?Number(count[1]):null,conditions,company,contactPhone:phones[0]||null,description:text,publicNote:noteOf([...allLines,...footer]),ownerLabel:'NakGo ilan masası',items:[],imageData:null};
   const fingerprint=createHash('sha256').update(JSON.stringify([kind,from,destinations,vehicle,body,weightMin,weightMax,cargo,fold(timing||'')])).digest('hex');
   const candidate={fields,issues,confidence:Number((Math.max(0,1-issues.length/10)).toFixed(2)),fingerprint,parserVersion:'rules-3'};
   candidates.set(key,candidate);return candidate;

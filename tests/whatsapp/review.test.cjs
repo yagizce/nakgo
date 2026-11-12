@@ -70,6 +70,10 @@ test('real group layouts: headers, shared lines, trade vehicle names, message ph
    rows++;});
  }
  assert.equal(rows,89);
+ // A footer notice applies to every listing of the post, not only the last one.
+ const uzun=parseListings(samples[9].text);
+ assert.ok(uzun.length>5&&uzun.every(c=>/WhatsApp ÜZERİNDEN GELEN ARAMALARA CEVAP VEREMİYORUZ$/.test(c.fields.publicNote)));
+ assert.match(uzun.at(-1).fields.publicNote,/^KIRŞEHİR TIR AÇIK SEHPALI CAM 6x16 BRANDA\n/);
  // Weekday "PERŞEMBE" is not the Ordu district; phone digits never read as a 13.60 trailer.
  assert.equal(parseListings('❗ BUGÜN (PERŞEMBE) YÜKLER ❗\nKONYA ➡️ ANTALYA\nKAMYON')[0].fields.from.city,'Konya');
  assert.equal(parseListings('İzmir Ankara yük var 0500 000 13 60')[0].fields.vehicle,null);
