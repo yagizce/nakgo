@@ -507,7 +507,7 @@ const nakgoAuth = (() => {
         const account=listingAccount();return messageResult(requireClient().rpc('nakgo_message_unread_count'),account);
     }
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
-    async function adminPage(section,offset=0,search='',filter=''){const account=listingAccount(),args={p_section:section,p_offset:offset,p_search:search};if(filter)args.p_filter=filter;return messageResult(requireClient().rpc('nakgo_admin_page',args),account);}
+    async function adminPage(section,offset=0,search='',filter='',query=null){const account=listingAccount(),args={p_section:section,p_offset:offset,p_search:search};if(filter)args.p_filter=filter;if(query&&typeof query==='object'&&Object.keys(query).length)args.p_query=query;return messageResult(requireClient().rpc('nakgo_admin_page',args),account);}
     async function adminModerate(kind,target,action,reason,expectedRevision){
         const account=listingAccount();
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
