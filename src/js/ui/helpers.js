@@ -21,7 +21,7 @@ function deep() {
 function shareLoad(l) {
     track("sh", l.id);
     if(l._remote)return toast("Gerçek ilan paylaşımı henüz hazır değil.");
-    const url = APPURL + "#l=" + l.id, text = l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton";
+    const url = APPURL + "#l=" + l.id, text = l.from + " → " + l.to + " · " + cargoText(l.cargo) + " · " + amountText(l.ton);
     const copy = () => {
         if (navigator.clipboard)
             navigator.clipboard.writeText(text + " " + url).then(() => toast("Bağlantı kopyalandı")).catch(() => toast("Kopyalanamadı"));

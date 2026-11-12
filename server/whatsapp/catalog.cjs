@@ -12,5 +12,9 @@ const vehicles=Object.freeze(literal('vehicles','\\[[^\\n]+\\]'));
 const bodies=Object.freeze(literal('bodies','\\[[^\\n]+\\]'));
 // Yeni ve sınırlı ilçe eşlemesi; şehir/araç listesi kopyalanmaz. Kaynaklar docs/whatsapp-v1.md.
 const districts=Object.freeze({Aliağa:'İzmir',Bornova:'İzmir',Kemalpaşa:'İzmir',Menemen:'İzmir',Torbalı:'İzmir',Gebze:'Kocaeli',Dilovası:'Kocaeli',Çorlu:'Tekirdağ',Çerkezköy:'Tekirdağ'});
-if(cities.length!==81||Object.values(districts).some(c=>!cities.includes(c)))throw Error('NakGo katalog tutarsız');
-module.exports={cities,vehicles,bodies,districts};
+// Tam il/ilçe listesi (config.js DISTRICTS, 81 il / 973 ilçe): JSON olarak okunur.
+const dm=source.match(/const DISTRICTS = (\{[\s\S]*?\n\});/);
+if(!dm)throw Error('NakGo ilçe kataloğu bulunamadı');
+const allDistricts=Object.freeze(JSON.parse(dm[1]));
+if(cities.length!==81||Object.values(districts).some(c=>!cities.includes(c))||Object.keys(allDistricts).length!==81||Object.keys(allDistricts).some(c=>!cities.includes(c)))throw Error('NakGo katalog tutarsız');
+module.exports={cities,vehicles,bodies,districts,allDistricts};
