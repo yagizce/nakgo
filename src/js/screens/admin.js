@@ -310,7 +310,7 @@ async function openAdminPanel() {
             '<div class="adm-duo"><section class="adm-card"><div class="adm-card-head"><h2>En çok ilan çıkan 5 şehir</h2><small>'+rangeLabel()+'</small></div>'+bars(ins.cities,'ilan')+'</section>'+
             '<section class="adm-card"><div class="adm-card-head"><h2>En çok kullanılan araç türleri</h2><small>'+rangeLabel()+'</small></div>'+bars(ins.vehicles,'ilan')+'</section></div>'+
             '<div class="adm-duo"><section class="adm-card"><div class="adm-card-head"><h2>Günlük yeni kullanıcı</h2><small>'+num(sum('users'))+' kişi</small></div>'+(days.length?chartSVG(days,{key:'users',label:'yeni kullanıcı',h:150,stack:false}):'')+'</section>'+
-            '<section class="adm-card"><div class="adm-card-head"><h2>Ortalama yayında kalma</h2><small>Biten '+num(ins.ended)+' ilan üzerinden</small></div><p class="adm-big">'+avg+'</p><p class="adm-note">İlanın açılışından süresinin dolmasına, sahibinin kapatmasına ya da kaldırılmasına kadar geçen süre. Temizlenen eski ilanlar bu ortalamaya girmez.</p></section></div>'+
+            '<section class="adm-card"><div class="adm-card-head"><h2>Ortalama yayında kalma</h2><small>Biten '+num(ins.ended)+' ilan üzerinden</small></div><p class="adm-big">'+avg+'</p><p class="adm-note">İlanın açılışından süresinin dolmasına, sahibinin kapatmasına ya da kaldırılmasına kadar geçen süre. Kişisel bilgileri temizlenen ilanlar da hesaba katılır.</p></section></div>'+
             '<section class="adm-card"><div class="adm-card-head"><h2>Günlük kayıt</h2><small>'+rangeLabel()+' · en yeni gün üstte</small></div>'+table+'</section>';
     }
     function render(){
