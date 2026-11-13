@@ -10,6 +10,11 @@ function privateProfile() {
 }
 function profileIdentityHTML(own,name) {
     const profile=privateProfile();
+    // Girişsiz ziyaretçi hesaplar açıkken cihazdaki demo profili görmez.
+    if(nakgoMarket.guest())return `<div class="profile-cover">
+        <div class="avatar">M</div>
+        <div><span class="profile-eyebrow">NAKGO HESABIM</span><b>Misafir</b><div class="profile-caption">Giriş yapılmadı</div></div>
+    </div>`;
     return `<div class="profile-cover">
         <div class="avatar">${esc(name.replace(/&[^;]+;/g,'?')[0].toUpperCase())}</div>
         <div><span class="profile-eyebrow">NAKGO HESABIM</span>
@@ -58,19 +63,23 @@ function profileInfoHTML() {
 
 function renderProfile(main) {
     const own=[...mineL(),...mineT()].filter(item=>!item.closed&&!expired(item,typeof item.id==='string'?'truck':'load'));
-    const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim';
-    main.innerHTML=`${profileIdentityHTML(own.length,name)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar ve diğer işlemler cihazdaki demodur.</p>' : demoNotice()}${profileToolsHTML()}
-        <div class="profile-grid">
-            <section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
+    const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim', guest=nakgoMarket.guest();
+    const ownSections=guest
+        ? '<section class="profile-group"><h2>Profil ve ilanlarım</h2><div class="empty">Profil oluşturmak, ilan vermek ve rota alarmı kurmak için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="profile-signin" style="margin-top:12px">Kayıt ol / Giriş yap</button></div></section>'
+        : `<section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
             <section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}
-            </section>
-            <section class="profile-group"><h2>Üyelik ve destek</h2>${authCardHTML()}${premCard()}
+            </section>`;
+    main.innerHTML=`${profileIdentityHTML(own.length,name)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar ve diğer işlemler cihazdaki demodur.</p>' : guest ? '' : demoNotice()}${profileToolsHTML()}
+        <div class="profile-grid">
+            ${ownSections}
+            <section class="profile-group"><h2>Üyelik ve destek</h2>${authCardHTML()}${guest?'':premCard()}
                 <details class="profile-panel"><summary>Güvenlik ve destek</summary>${reportsCard()}${blockedCard()}${installCard()}${helpCard()}</details>
             </section>
         </div>`;
     listBind();
     bindAuthCard();
-    $('#profile-save').onclick=async()=>{
+    if(guest){$('#profile-signin').onclick=()=>nakgoMarket.requireAccount();}
+    else $('#profile-save').onclick=async()=>{
         const button=$('#profile-save'); if(button.disabled)return;
         const patch={displayName:$('#profile-name').value.trim().slice(0,60),city:$('#profile-city').value,about:$('#profile-about').value.trim().slice(0,200)};
         if(privateProfile()!==null) {
