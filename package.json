@@ -23,7 +23,7 @@
     "build:vercel": "node tools/bundle.js && node tools/whatsapp-web-output.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": "24.x"
   },
   "license": "UNLICENSED"
 }

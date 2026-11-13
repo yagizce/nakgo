@@ -24,6 +24,8 @@ geçer; eski kayıtlar tarihsel kanıt olarak kalır.
 | Zamanlanmış işler | `nakgo-retention` 00:00 UTC (03:00 TR), `nakgo-daily-stats` 21:30 UTC. 13 Kasım gece çalışması başarılı. İlk ilan silme dalgası 19 Kasım 03:00 TR |
 | İletişim | Uygulama içi mesaj yok; girişli kullanıcıya Ara ve WhatsApp ([#71](https://github.com/yagizce/nakgo/pull/71)) |
 | Admin erişim koruması | Cloudflare Zero Trust Free açıldı. Access uygulaması `NakGo Admin` (`admin.nakgolojistik.com`) yalnız izinli e-postalara açık; giriş e-posta kodu (One-time PIN) veya Cloudflare hesabıyla, oturum 1 ay. `NakGo Admin sertifika` uygulaması `/.well-known/acme-challenge` yolunu Bypass eder ki Vercel sertifikası yenilenebilsin. `admin` CNAME kaydı Proxied; zone SSL modu Full. Yeni yönetici atanınca e-postası `NakGo yoneticiler` ilkesine eklenmelidir |
+| Admin kaynak koruması | Kökteki `middleware.js` ([PR #93](https://github.com/yagizce/nakgo/pull/93)) `admin.nakgolojistik.com` isteklerinde Cloudflare Access JWT'sini (imza, ekip, `NakGo Admin` AUD etiketi, süre) doğrular; belgesiz istek 403 alır, böylece Cloudflare atlanarak Vercel'e doğrudan gelinemez. `/.well-known/acme-challenge/` açık; diğer alan adları etkilenmez. Access uygulaması yeniden oluşturulursa AUD etiketi değişir ve dosyada güncellenmelidir. Canlı kabul: sahip hesap Access koduyla panele girdi |
+| Node | Vercel proje ayarı ve CI Node 24; `package.json` `engines` `24.x` |
 | Dallar | `nakgo/` önekli dallar için Vercel önizlemesi `nakgo/**` kuralıyla kapalı ([#77](https://github.com/yagizce/nakgo/pull/77)). `codex/nakgo-group-capacity` ve `codex/nakgo-local-ui-fixes` silindi; son commit'leri PR #44/#48 kayıtlarında durur |
 
 Açık işler (13 Kasım): WhatsApp grup ilanları [PR #76](https://github.com/yagizce/nakgo/pull/76)

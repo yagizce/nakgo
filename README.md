@@ -4,7 +4,7 @@ Telefon düzeninde yük ve boş araç pazarı; turkuaz/sarı marka, açık/koyu 
 
 ## Çalıştırma
 
-Node 18+ ile proje kökünde:
+Node 24 ile proje kökünde (Vercel ve CI da Node 24 kullanır):
 
 ```sh
 npm run bundle         # kaynaklardan index.html üret
