@@ -284,8 +284,8 @@ const helpCard = () => `<div class="load" style="cursor:default"><b>Yardım ve d
 function authCardHTML() {
     const s=nakgoAuth.snapshot();
     if(!s.enabled)return '';
-    return `<div class="load profile-info"><h3>NakGo hesabı · test</h3>
-        <p class="estimate-note">${nakgoMarket.active()?"Profilin, iletişim bilgilerin, ilanların, kayıtlı ilanların ve rota alarmların hesabında saklanır. Uygulama şu an ücretsiz.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
+    return `<div class="load profile-info"><h3>NakGo hesabı</h3>
+        <p class="estimate-note">${nakgoMarket.guest()?"Ücretsiz hesapla ilan verebilir, ilan sahiplerini arayabilir ve WhatsApp'tan yazabilirsin.":nakgoMarket.active()?"Profilin, iletişim bilgilerin, ilanların, kayıtlı ilanların ve rota alarmların hesabında saklanır. Uygulama şu an ücretsiz.":"Hesap bağlantısı gerçektir. Profil ve iletişim bilgileri hesabında saklanır. İlanlar, işler, mesajlar ve belgeler henüz cihazdaki demoya aittir."}</p>
         ${s.error?`<p role="status" class="estimate-note">${esc(s.error)}</p>`:''}
         ${!s.ready?'<p role="status">Hesap bağlantısı hazırlanıyor. Bağlantı kurulamazsa sayfayı yenile.</p>':s.user?`
             <p>${esc(s.profile?.display_name||'Hesabım')}</p><p class="estimate-note">${esc(s.user.email)}</p>
