@@ -1,11 +1,34 @@
 # NakGo proje devir rehberi
 
-Son güncelleme: **10 Kasım 2026 — Europe/Istanbul**.
+Son güncelleme: **13 Kasım 2026 — Europe/Istanbul**.
 Önce [AGENTS.md](../AGENTS.md), sonra bu rehber okunur. Bu dosya mevcut ürünü,
 kararları ve kabul kanıtlarını yeni ajana devreder; yeni özellik veya yetki
 vermez. Bir sonraki ürün/entegrasyon işini kullanıcı ayrıca belirleyecektir.
 
 ## 1. Güncel durum ve tamamlanan kabul
+
+### 13 Kasım 2026 güncellemesi
+
+Bu bölüm aşağıdaki 10 Kasım ve 28 Ekim kayıtlarıyla çelişen satırların yerine
+geçer; eski kayıtlar tarihsel kanıt olarak kalır.
+
+| Konu | 13 Kasım 2026 durumu |
+| --- | --- |
+| Main / canlı uygulama | Main `4a58661` ([PR #89](https://github.com/yagizce/nakgo/pull/89)); Production yayını `dpl_FYZ3K58ywJjUYTygXqVJ8Xbpvo8Y`, READY. Main otomatik yayını hâlâ kapalı; yayın ayrı onayla elle başlatılır |
+| Uygulama kabuğu | `nakgo-v65-admin-states` |
+| Migration | Production son sürüm `20261112060000_recent_archive` (24 kayıt). Yeni migration öncesi ledger yeniden okunur |
+| Yönetici paneli | Yalnız `admin.nakgolojistik.com` adresinde açılır; uygulamada yönetici girişi yoktur ([PR #75](https://github.com/yagizce/nakgo/pull/75), [#79](https://github.com/yagizce/nakgo/pull/79)). Beyaz/siyah panel tasarımı, açık tema ([#87](https://github.com/yagizce/nakgo/pull/87), [#88](https://github.com/yagizce/nakgo/pull/88)), hata/yükleniyor ekranları ([#89](https://github.com/yagizce/nakgo/pull/89)) |
+| Yönetici yetkisi | Tek yönetici kuralı [PR #84](https://github.com/yagizce/nakgo/pull/84) ile kaldırıldı: sahip hesap yönetici atar; atanan yöneticiler de atama/kaldırma, kalıcı engel ve hesap silme yapabilir. Aşağıdaki "tek genel yönetici" anlatımları tarihseldir |
+| Panel araçları | Filtre, toplu kaldırma, ilan geçmişi, istatistik ([#82](https://github.com/yagizce/nakgo/pull/82)); son 24 saat, arşiv ve saklama sayfası, yasal bekletme ([#86](https://github.com/yagizce/nakgo/pull/86)). Admin RPC'leri: `nakgo_admin_page`, `nakgo_admin_moderate`; kullanıcı kendi hesabını `nakgo_delete_my_account` ile siler |
+| İlan ömrü | Yayın 6 saat ([#69](https://github.com/yagizce/nakgo/pull/69)); bitmiş ilan 8 gün sonra kişisel alanlarını kaybeder, 1 yıl sonra silinir ([#78](https://github.com/yagizce/nakgo/pull/78)). Yasal bekletmedeki kayıt silinmez |
+| Zamanlanmış işler | `nakgo-retention` 00:00 UTC (03:00 TR), `nakgo-daily-stats` 21:30 UTC. 13 Kasım gece çalışması başarılı. İlk ilan silme dalgası 19 Kasım 03:00 TR |
+| İletişim | Uygulama içi mesaj yok; girişli kullanıcıya Ara ve WhatsApp ([#71](https://github.com/yagizce/nakgo/pull/71)) |
+| Admin erişim koruması | Cloudflare Zero Trust Free açıldı. Access uygulaması `NakGo Admin` (`admin.nakgolojistik.com`) yalnız izinli e-postalara açık; giriş e-posta kodu (One-time PIN) veya Cloudflare hesabıyla, oturum 1 ay. `NakGo Admin sertifika` uygulaması `/.well-known/acme-challenge` yolunu Bypass eder ki Vercel sertifikası yenilenebilsin. `admin` CNAME kaydı Proxied; zone SSL modu Full. Yeni yönetici atanınca e-postası `NakGo yoneticiler` ilkesine eklenmelidir |
+| Dallar | `nakgo/` önekli dallar için Vercel önizlemesi `nakgo/**` kuralıyla kapalı ([#77](https://github.com/yagizce/nakgo/pull/77)). `codex/nakgo-group-capacity` ve `codex/nakgo-local-ui-fixes` silindi; son commit'leri PR #44/#48 kayıtlarında durur |
+
+Açık işler (13 Kasım): WhatsApp grup ilanları [PR #76](https://github.com/yagizce/nakgo/pull/76)
+(canlı için ayrı hat ve gizli anahtarlar gerekir), KVKK aydınlatma metni ve hesap
+silme bilgilendirmesi, Öne Çıkar ödemeleri (sağlayıcı kararı bekliyor).
 
 ### 10 Kasım 2026 güncellemesi
 
