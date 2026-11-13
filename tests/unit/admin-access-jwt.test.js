@@ -1,11 +1,15 @@
 /* Admin sitesi Cloudflare Access belgesi (JWT) olmadan açılmaz; diğer alan adları etkilenmez. */
 module.exports=({test,fs,path,ROOT})=>{
  test('Admin sitesi geçerli Access belgesi ister, diğer adresler serbest',async()=>{
-  const os=require('node:os'),out=[],ok=(v,m)=>out.push([!!v,m]);
-  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'nakgo-mw-'));
-  const file=path.join(dir,'middleware.mjs');
-  fs.copyFileSync(path.join(ROOT,'middleware.js'),file);
-  const mw=await import(require('node:url').pathToFileURL(file).href);
+  const out=[],ok=(v,m)=>out.push([!!v,m]);
+  // middleware.js bir ES modülü; dinamik import yerine vm ile yüklenir (izole koşucu kendi vm'ini verir).
+  const vm=require('node:vm');
+  const code=fs.readFileSync(path.join(ROOT,'middleware.js'),'utf8')
+   .replace(/^export default async function /m,'async function ')
+   .replace(/^export (async )?function /gm,'$1function ');
+  const ctx=vm.createContext({crypto:globalThis.crypto,atob,TextEncoder,TextDecoder,Response,URL,__out:null});
+  vm.runInContext(code+'\n;__out={default:middleware,verifyAccessToken,_resetKeyCache};',ctx);
+  const mw=ctx.__out;
   const src=fs.readFileSync(path.join(ROOT,'middleware.js'),'utf8');
   const TEAM=src.match(/const TEAM = '([^']+)'/)[1], AUD=src.match(/const AUD = '([^']+)'/)[1];
   const {subtle}=globalThis.crypto;
@@ -44,7 +48,6 @@ module.exports=({test,fs,path,ROOT})=>{
   mw._resetKeyCache();
   const down={fetcher:async()=>({ok:false,json:async()=>({})})};
   ok((await mw.default(req('admin.nakgolojistik.com','/',{'cf-access-jwt-assertion':good}),{},down)).status===403,'anahtar alınamazsa kapalı kalır');
-  fs.rmSync(dir,{recursive:true,force:true});
   return out;
  });
 };
