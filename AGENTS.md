@@ -46,12 +46,16 @@ ve veritabanı durumu yeni oturumda yeniden doğrulanır.
   eski kurulum rehberlerindeki kapalı/boş ortam notları güncel durum değildir.
 - RLS, sütun izinleri ve sunucu RPC kontrolleri esastır. Arayüz gizleme güvenlik
   sınırı değildir. Rol yalnız sunucudan strict `true` sonucuyla gösterilir.
-- Tek aktif genel yönetici `private.admin_members` ve unique index ile korunur.
-  Belge inceleyicisi ayrı `private.document_reviewers` üyeliğidir; genel yönetici
-  olmak özel belge inceleme yetkisi vermez. Otomatik rol ataması yapmayın.
-- Production'da son kabulde 1 genel yönetici, 0 aktif belge inceleyici vardır.
-  Geçici belge inceleme yetkisi test sonunda geri alınmıştır. Normal test
-  hesabına yönetici/inceleyici verilmez. Yeni işlemde güncel rolü doğrulayın.
+- Yöneticiler `private.admin_members` üyeliğidir; tek sahip hesap
+  (`owner`) unique index ile korunur. Sahip ve atanan yöneticiler yönetici
+  atayıp kaldırabilir, kalıcı engel ve hesap silme yapabilir (PR #84). Sahip ve
+  son yönetici uygulamadan silinemez. Belge inceleyicisi ayrı
+  `private.document_reviewers` üyeliğidir; belge özelliği uygulamadan
+  kaldırılmıştır. Otomatik rol ataması yapmayın.
+- Yönetici paneli yalnız `admin.nakgolojistik.com` adresinde açılır ve
+  Cloudflare Access arkasındadır. Yeni yönetici atanınca e-postası Access
+  ilkesine (`NakGo yoneticiler`) eklenmelidir. Normal test hesabına yönetici
+  verilmez. Yeni işlemde güncel rolü sunucudan doğrulayın.
 - Şifre, token, OAuth secret, service-role anahtarı, oturum veya özel dosya
   içeriğini loga/sohbete/frontend'e/PR'a koymayın. Hesap e-posta/UUID bilgilerini
   public belgelere sabitlemeyin. Sırları kullanıcının uygun servis UI'sinde yönetin.
