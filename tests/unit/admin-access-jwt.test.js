@@ -1,0 +1,50 @@
+/* Admin sitesi Cloudflare Access belgesi (JWT) olmadan açılmaz; diğer alan adları etkilenmez. */
+module.exports=({test,fs,path,ROOT})=>{
+ test('Admin sitesi geçerli Access belgesi ister, diğer adresler serbest',async()=>{
+  const os=require('node:os'),out=[],ok=(v,m)=>out.push([!!v,m]);
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'nakgo-mw-'));
+  const file=path.join(dir,'middleware.mjs');
+  fs.copyFileSync(path.join(ROOT,'middleware.js'),file);
+  const mw=await import(require('node:url').pathToFileURL(file).href);
+  const src=fs.readFileSync(path.join(ROOT,'middleware.js'),'utf8');
+  const TEAM=src.match(/const TEAM = '([^']+)'/)[1], AUD=src.match(/const AUD = '([^']+)'/)[1];
+  const {subtle}=globalThis.crypto;
+  const pair=await subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
+  const other=await subtle.generateKey({name:'RSASSA-PKCS1-v1_5',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},true,['sign','verify']);
+  const pub=await subtle.exportKey('jwk',pair.publicKey);
+  const b64=b=>Buffer.from(b).toString('base64url');
+  const now=Math.floor(Date.now()/1000);
+  const sign=async(claims,key=pair.privateKey,kid='k1')=>{
+   const h=b64(JSON.stringify({alg:'RS256',kid,typ:'JWT'})), p=b64(JSON.stringify(claims));
+   return h+'.'+p+'.'+b64(new Uint8Array(await subtle.sign('RSASSA-PKCS1-v1_5',key,new TextEncoder().encode(h+'.'+p))));
+  };
+  let certCalls=0;
+  const fetcher=async url=>{certCalls++;return {ok:url===TEAM+'/cdn-cgi/access/certs',json:async()=>({keys:[{...pub,kid:'k1'}]})};};
+  const opts={fetcher};
+  const req=(host,pathname='/',headers={})=>new Request('https://'+host+pathname,{headers:{host,...headers}});
+  const status=async r=>{const res=await mw.default(r,{},opts);return res.headers.get('x-middleware-next')==='1'?'pass':res.status;};
+  const good=await sign({iss:TEAM,aud:[AUD],exp:now+600,email:'admin@example.test'});
+  mw._resetKeyCache();
+  ok(await status(req('nakgo.vercel.app'))==='pass','uygulama adresi etkilenmez');
+  ok(certCalls===0,'uygulama adresinde anahtar istenmez');
+  ok(await status(req('admin.nakgolojistik.com'))===403,'belgesiz admin isteği reddedilir');
+  ok(await status(req('admin.nakgolojistik.com','/',{'cf-access-jwt-assertion':good}))==='pass','geçerli belgeyle açılır');
+  ok(await status(req('admin.nakgolojistik.com','/api/auth/config',{cookie:'a=1; CF_Authorization='+good}))==='pass','çerezdeki belge de kabul edilir');
+  ok(await status(req('ADMIN.nakgolojistik.com:443','/',{}))===403,'büyük harf ve port ile atlanamaz');
+  ok(await status(req('admin.nakgolojistik.com.','/',{}))===403,'sondaki nokta ile atlanamaz');
+  ok(await status(req('admin.nakgolojistik.com','/',{'cf-access-jwt-assertion':await sign({iss:TEAM,aud:[AUD],exp:now-5})}))===403,'süresi geçmiş belge reddedilir');
+  ok(await status(req('admin.nakgolojistik.com','/',{'cf-access-jwt-assertion':await sign({iss:TEAM,aud:['baska-uygulama'],exp:now+600})}))===403,'başka uygulamanın belgesi reddedilir');
+  ok(await status(req('admin.nakgolojistik.com','/',{'cf-access-jwt-assertion':await sign({iss:'https://baska.cloudflareaccess.com',aud:[AUD],exp:now+600})}))===403,'başka ekibin belgesi reddedilir');
+  ok(await status(req('admin.nakgolojistik.com','/',{'cf-access-jwt-assertion':await sign({iss:TEAM,aud:[AUD],exp:now+600},other.privateKey)}))===403,'sahte imza reddedilir');
+  const [h,p,s]=good.split('.'), forged=h+'.'+b64(JSON.stringify({iss:TEAM,aud:[AUD],exp:now+99999}))+'.'+s;
+  ok(await status(req('admin.nakgolojistik.com','/',{'cf-access-jwt-assertion':forged}))===403,'içeriği değiştirilmiş belge reddedilir');
+  const none=b64(JSON.stringify({alg:'none',kid:'k1'}))+'.'+p+'.';
+  ok(await status(req('admin.nakgolojistik.com','/',{'cf-access-jwt-assertion':none}))===403,'imzasız belge reddedilir');
+  ok(await status(req('admin.nakgolojistik.com','/.well-known/acme-challenge/x'))==='pass','sertifika yolu açık kalır');
+  mw._resetKeyCache();
+  const down={fetcher:async()=>({ok:false,json:async()=>({})})};
+  ok((await mw.default(req('admin.nakgolojistik.com','/',{'cf-access-jwt-assertion':good}),{},down)).status===403,'anahtar alınamazsa kapalı kalır');
+  fs.rmSync(dir,{recursive:true,force:true});
+  return out;
+ });
+};
