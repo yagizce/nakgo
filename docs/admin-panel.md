@@ -38,7 +38,7 @@ Var olan işler/görüşmeler silinmez. İstemci audit tablosuna doğrudan yazam
   doğrulanmış hesaba gerçekten verdiğinde `private.contact_clicks` tablosunda saatlik
   sayılır. Tabloda hesap, ilan, telefon veya IP yoktur. Kendi ilanı ve reddedilen
   istekler sayılmaz. Aynı kişinin tekrar tıklaması da sayılır (tekil kişi sayımı yok).
-- Migration (`20261115010000_admin_live.sql`) istemciden önce uygulanmalıdır;
+- Migration (`20261115075953_admin_live.sql`) istemciden önce uygulanmalıdır;
   yeni istemci `p_channel` gönderir.
 
 ## DEV kurulumu

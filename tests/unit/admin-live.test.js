@@ -76,7 +76,7 @@ module.exports=({test,fs,path,ROOT})=>{
   const details=fs.readFileSync(path.join(ROOT,'src/js/screens/details.js'),'utf8'),cloud=fs.readFileSync(path.join(ROOT,'src/js/cloud.js'),'utf8');
   ok(details.includes('nakgoAuth.listingContact(item.remoteId, channel)'),'detay ekranı kanalı iletir');
   ok(cloud.includes("{p_id:id,p_channel:channel}")&&cloud.includes("channel==='call'||channel==='whatsapp'"),'yalnız call/whatsapp gönderilir');
-  const sql=fs.readFileSync(path.join(ROOT,'supabase/migrations/20261115010000_admin_live.sql'),'utf8');
+  const sql=fs.readFileSync(path.join(ROOT,'supabase/migrations/20261115075953_admin_live.sql'),'utf8');
   const table=(/create table private\.contact_clicks \(([\s\S]*?)\n\);/.exec(sql)||[])[1]||'';
   ok(/hour timestamptz/.test(table)&&/channel text/.test(table)&&!/user|listing|phone|ip\b|actor/.test(table),'sayaç tablosunda kişi veya ilan bilgisi yok');
   ok(/revoke all on private\.contact_clicks from public,anon,authenticated/.test(sql)&&/if not private\.is_nakgo_admin\(\)/.test(sql),'sayaç doğrudan okunamaz, canlı veri yalnız yöneticiye');
