@@ -30,7 +30,7 @@ function renderAdminHost(m){
             '<button class="adm-login-google" id="admin-signin" type="button"><span aria-hidden="true">G</span>Google ile giriş yap</button>'+
             '<p class="adm-login-or"><span>veya e-postayla</span></p>'+
             '<form id="admin-login-form" class="adm-login-form"><label for="admin-login-email">E-posta</label><input id="admin-login-email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" required maxlength="254">'+
-            '<label for="admin-login-password">Şifre</label><input id="admin-login-password" type="password" autocomplete="current-password" required maxlength="128">'+
+            '<label for="admin-login-password">Şifre</label><input id="admin-login-password" type="password" autocomplete="current-password" required minlength="10" maxlength="128">'+
             '<p id="admin-login-msg" role="status" aria-live="polite"></p><button class="adm-login-submit" id="admin-login-submit" type="submit">Giriş yap</button></form>');
         const google=$('#admin-signin'),form=$('#admin-login-form'),submit=$('#admin-login-submit'),msg=$('#admin-login-msg');
         const busy=on=>{google.disabled=on;submit.disabled=on;};

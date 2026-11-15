@@ -180,6 +180,7 @@ const nakgoAuth = (() => {
         email_address_not_authorized:'Test ortamı şu an yalnız proje ekibinin e-posta adreslerine gönderim yapabiliyor.',
         weak_password:'Daha güçlü bir şifre seç.',
         same_password:'Önceki şifrenden farklı bir şifre seç.',
+        password_too_short:'Şifre en az 10 karakter olmalı.',
         otp_expired:'Bağlantının süresi dolmuş veya daha önce kullanılmış. Yeni bağlantı iste.',
         flow_state_not_found:'Bağlantıyı isteği başlattığın tarayıcıda aç veya yeni bağlantı iste.',
         bad_code_verifier:'Bu bağlantı tarayıcıdaki sıfırlama isteğiyle eşleşmiyor. Buradan yeni bağlantı iste ve en son gelen e-postayı kullan.'
@@ -345,7 +346,10 @@ const nakgoAuth = (() => {
             throw error;
         }
     }
+    // Yeni şifreler en az 10 karakter (formdaki sınırın kod tarafındaki karşılığı).
+    const longEnough = value => { if (typeof value !== 'string' || value.length < 10) throw Object.assign(Error('short password'),{code:'password_too_short'}); };
     async function signUp(email,password,displayName,accountType) {
+        longEnough(password);
         const {data,error} = await requireClient().auth.signUp({email,password,options:{
             emailRedirectTo:redirectTo(),data:{display_name:displayName.trim().slice(0,60),account_type:accountType}
         }});
@@ -361,6 +365,7 @@ const nakgoAuth = (() => {
     }
     async function password(value) {
         if(!state.recovery || !state.user)throw Error('Recovery session required');
+        longEnough(value);
         const {error} = await requireClient().auth.updateUser({password:value});
         if(error)throw error;
         // Keep the recovery gate until sign-out succeeds; do not leave a reset session active.
@@ -370,6 +375,7 @@ const nakgoAuth = (() => {
     async function changePassword(current,next) {
         const email=state.user?.email;
         if(!email)throw Error('Session required');
+        longEnough(next);
         const auth=requireClient().auth;
         const check=await auth.signInWithPassword({email,password:current});
         if(check.error)throw check.error.code==='invalid_credentials'?Object.assign(Error('wrong current'),{code:'wrong_current_password'}):check.error;

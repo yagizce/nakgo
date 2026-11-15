@@ -351,8 +351,8 @@ function openAuth(kind='signin') {
         ${details?`<label for="account-name">Adın / firma adı</label><input id="account-name" autocomplete="name" required maxlength="60" value="${kind==='profile'?esc(s.profile?.display_name||''):''}">
         <label for="account-type">Hesap türü</label><select id="account-type"><option value="carrier">Taşıyıcı</option><option value="owner" ${s.profile?.account_type==='owner'?'selected':''}>Yük sahibi</option></select>`:''}
         ${email?'<label for="account-email">E-posta</label><input id="account-email" type="email" autocomplete="email" inputmode="email" autocapitalize="none" required maxlength="254">':''}
-        ${kind==='change'?'<label for="account-current">Mevcut şifre</label><input id="account-current" type="password" autocomplete="current-password" required maxlength="128">':''}
-        ${password?`<label for="account-password">${kind==='change'?'Yeni şifre':'Şifre'}${kind==='signin'?'':' · en az 10 karakter'}</label><input id="account-password" type="password" autocomplete="${kind==='signin'?'current-password':'new-password'}" required minlength="${kind==='signin'?1:10}" maxlength="128">`:''}
+        ${kind==='change'?'<label for="account-current">Mevcut şifre</label><input id="account-current" type="password" autocomplete="current-password" required minlength="10" maxlength="128">':''}
+        ${password?`<label for="account-password">${kind==='change'?'Yeni şifre':'Şifre'}${kind==='signin'?'':' · en az 10 karakter'}</label><input id="account-password" type="password" autocomplete="${kind==='signin'?'current-password':'new-password'}" required minlength="10" maxlength="128">`:''}
         ${['password','signup','change'].includes(kind)?'<label for="account-repeat">'+(kind==='change'?'Yeni şifre tekrar':'Şifre tekrar')+'</label><input id="account-repeat" type="password" autocomplete="new-password" required minlength="10" maxlength="128">':''}
         <p id="account-feedback" role="status" aria-live="polite" class="estimate-note"></p>
         <button type="submit" class="btn" id="account-submit">${submit[kind]}</button>
