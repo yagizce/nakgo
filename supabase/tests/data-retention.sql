@@ -7,7 +7,8 @@ declare
 begin
  insert into auth.users(id,email_confirmed_at) values(owner_id,t0),(carrier_id,t0);
  perform set_config('request.jwt.claim.sub',owner_id::text,true);
- perform set_config('request.headers','{"x-forwarded-for":"203.0.113.7, 10.0.0.1"}',true);
+ -- Headers as the Supabase gateway forwards them (gateway and Cloudflare set the real client IP).
+ perform set_config('request.headers','{"x-forwarded-for":"203.0.113.7, 10.0.0.1","sb-forwarded-for":"203.0.113.7","cf-connecting-ip":"203.0.113.7"}',true);
  set local role authenticated;
  with seeded as (
   insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,note,loading_text,contact_phone,contact_consent,owner_label)
