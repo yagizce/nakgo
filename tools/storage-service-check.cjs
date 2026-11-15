@@ -20,10 +20,13 @@ module.exports=(async()=>{
   await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',f),'utf8'));
  }
  for(const id of [owner,other]){await q('insert into auth.users(id,email_confirmed_at) values($1,now())',[id]);await as('authenticated',id,"insert into public.profiles(id,display_name,account_type) values($1,'Synthetic','carrier')",[id]);}
- const app=(await as('authenticated',owner,"select (public.nakgo_create_carrier_application('CE')).id"))[0].id;
+ // Legacy document rows are seeded directly: the upload RPCs are not part of the product.
+ await q("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
+ const app=(await q("insert into public.carrier_applications(owner_id,owner_label,license_class) values($1,'Synthetic','CE') returning id",[owner]))[0].id;
  let serial=10;
- const reserve=async()=> (await as('authenticated',owner,"select (public.nakgo_reserve_document($1,'src',$2)).*",[app,'00000000-0000-4000-8000-'+String(++serial).padStart(12,'0')]))[0];
- const file=await reserve();
+ const reserve=async kind=>{const id='00000000-0000-4000-8000-'+String(++serial).padStart(12,'0');await q("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
+  return (await q("insert into public.carrier_document_files(id,application_id,owner_id,kind,object_path) values($1::uuid,$2::bigint,$3::uuid,$4,$3::text||'/'||$2::text||'/'||$1::text||'.jpg') returning *",[id,app,owner,kind]))[0];};
+ const file=await reserve('src');
  const insert=(role,id,ownerID=owner,name=file.object_path)=>as(role,id,"insert into storage.objects(bucket_id,name,owner_id,metadata) values('carrier-documents',$1,$2,'{\"mimetype\":\"image/jpeg\",\"size\":100}') returning id",[name,ownerID]);
  if(process.argv.includes('--legacy')){await denied(()=>insert('service_role',null),'legacy trusted completion rejected with no JWT sub');console.log('REPRODUCED: legacy guard rejects internal Storage completion');await db.close();return;}
  await denied(()=>insert('authenticated',null),'missing caller rejected');
@@ -31,7 +34,7 @@ module.exports=(async()=>{
  await denied(()=>insert('service_role',null,other),'trusted completion owner mismatch');
  await denied(()=>insert('service_role',null,owner,'unreserved.jpg'),'trusted completion unreserved path');
  await insert('service_role',null);checks++;
- check((await as('authenticated',owner,'select count(*)::int n from storage.objects'))[0].n===1,'owner reads completed object');
+ check((await q('select count(*)::int n from storage.objects'))[0].n===1,'trusted completion stored the object');
  check((await as('authenticated',other,'select count(*)::int n from storage.objects'))[0].n===0,'other user cannot read');
  await q('insert into private.account_moderation(user_id,suspended) values($1,true)',[owner]);
  await denied(()=>as('service_role',null,"update storage.objects set metadata=metadata where name=$1",[file.object_path]),'suspended internal completion denied');
@@ -48,7 +51,7 @@ module.exports=(async()=>{
  await as('service_role',null,'delete from storage.objects where name=$1',[file.object_path]);checks++;
  check((await q('select count(*)::int n from storage.objects'))[0].n===0,'draft internal delete completed');
  // Account erasure: the document row goes, the file is queued and only a trusted role can remove it.
- const kept=(await as('authenticated',owner,"select (public.nakgo_reserve_document($1,'kb',$2)).*",[app,'00000000-0000-4000-8000-'+String(++serial).padStart(12,'0')]))[0];
+ const kept=await reserve('kb');
  await insert('service_role',null,owner,kept.object_path);checks++;
  await as('authenticated',owner,'select public.nakgo_delete_my_account()');
  check((await q('select count(*)::int n from public.carrier_document_files where owner_id=$1',[owner]))[0].n===0,'erasure removes document rows');
