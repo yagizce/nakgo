@@ -62,11 +62,11 @@ module.exports=({test,fs,path,ROOT})=>{
  });
  test('Canlı harita verisi 81 ilin tamamını uygulamadaki il adlarıyla içerir',()=>{
   const read=f=>fs.readFileSync(path.join(ROOT,f),'utf8');
-  const LL=JSON.parse(read('src/js/config.js').match(/const LL = (\{[^;]*\});/)[1]),map={il:JSON.parse(read('src/js/features/tr-map-data.js').match(/il:(\{.*\})\};/)[1])};
+  const LL=JSON.parse(read('src/js/config.js').match(/const LL = (\{[^;]*\});/)[1]),map={il:JSON.parse(read('src/js/screens/admin.js').match(/const TR_MAP=\{.*?il:(\{.*\})\};/)[1])};
   const names=Object.keys(map.il),out=[];
   out.push([names.length===81&&names.every(n=>LL[n])&&Object.keys(LL).every(n=>map.il[n]),'81 il, adlar birebir']);
   out.push([names.every(n=>/^M[-\d lz M]+$/.test(map.il[n])),'yollar yalnız sayı ve çizim komutu içerir']);
-  out.push([/Natural Earth/.test(read('src/js/features/tr-map-data.js')),'veri kaynağı yazılı']);
+  out.push([/Natural Earth/.test(read('src/js/screens/admin.js')),'veri kaynağı yazılı']);
   return out;
  });
  test('Ara ve WhatsApp tıklaması kanal bilgisiyle sunucuya gider',()=>{
