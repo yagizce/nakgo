@@ -46,7 +46,7 @@ function updTheme() {
     try {
         const m = document.querySelector('meta[name="theme-color"]');
         if (m)
-            m.content = isDark() ? "#43bfb4" : "#29aaa0";
+            m.content = "#5ee0cf"; // Üst çubuk iki temada da aynı açık turkuaz.
     }
     catch (e) { }
 }
