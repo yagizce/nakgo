@@ -17,44 +17,47 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <script id="admin-boot">/* Yönetici sitesi: uygulama açılışı hiç görünmesin diye sınıf ilk çizimden önce eklenir. */if(/^admin\./.test(location.hostname)){document.documentElement.classList.add("admin-host");var t=document.querySelector('meta[name="theme-color"]');if(t)t.content="#eceff0";}</script>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* Renk değişkenleri, açık/koyu tema ve temel stiller */
 
 /* ----- Renk ve tema değişkenleri (açık/koyu tema) ----- */
 
 :root {
-  --bg:#f3f7f6;
+  --bg:#f8fafa;
   --card:#fff;
-  --ink:#183034;
-  --mute:#627477;
-  --line:#d9e3e1;
-  --brand:#29aaa0;
-  --brand-start:#188d86;
-  --brand-end:#74d8cc;
-  --brand-strong:#259e95;
-  --brand-highlight:#65c9bb;
-  --brand-soft:#e2f1ec;
-  --brand-ink:#176a64;
-  --on-brand:#102527;
-  --on-gradient-brand:#031513;
-  --accent:#e4b646;
-  --accent-start:#be811d;
-  --accent-end:#f4d77a;
-  --accent-dark:#c99434;
-  --accent-highlight:#f1d68b;
-  --on-accent:#2b240b;
-  --accent-ink:#806716;
+  --ink:#0b1f1d;
+  --mute:#5b6b69;
+  --line:#e4ebea;
+  --brand:#5ee0cf;
+  --brand-start:#5ee0cf;
+  --brand-end:#5ee0cf;
+  --brand-strong:#3dd6c4;
+  --brand-highlight:#7ee8da;
+  --brand-soft:#e8f8f5;
+  --brand-ink:#0a6a60;
+  --on-brand:#062b27;
+  --on-gradient-brand:#062b27;
+  --accent:#5ee0cf;
+  --accent-start:#5ee0cf;
+  --accent-end:#5ee0cf;
+  --accent-dark:#3dd6c4;
+  --accent-highlight:#7ee8da;
+  --on-accent:#062b27;
+  --accent-ink:#0a6a60;
   --ok:#1f7a4d;
   --bad:#c0392b;
-  --tag-bg:#f1f7f5;
-  --tag-ink:#176a64;
-  /* Aydınlık, mat marka yüzeylerinde koyu metin kontrastı korunur. */
+  --tag-bg:#eef3f2;
+  --tag-ink:#0a6a60;
+  /* Açık turkuaz yüzeylerde metin koyudur. Geçişler tek renktir (görünüşte düz); kontrast testleri her durağa karşı ölçer. */
   --brand-fill:var(--brand);
-  --gradient-brand:linear-gradient(120deg,var(--brand-start) 0%,var(--brand) 55%,var(--brand-end) 100%);
-  --gradient-brand-soft:linear-gradient(100deg,var(--tag-bg) 0%,var(--brand-soft) 45%,color-mix(in srgb,var(--brand) 20%,var(--card)) 100%);
-  --gradient-accent:linear-gradient(120deg,var(--accent-start) 10%,var(--accent) 60%,var(--accent-end) 100%);
+  --gradient-brand:linear-gradient(var(--brand),var(--brand));
+  --gradient-brand-soft:linear-gradient(var(--brand-soft),var(--brand-soft));
+  --gradient-accent:linear-gradient(var(--accent),var(--accent));
   --app-gradient:var(--gradient-brand);
+  /* Yükleri keşfet kartı: açık modda üst çubuktan bir ton açık turkuaz. */
+  --hero-bg:color-mix(in srgb,var(--brand) 38%,#fff);
+  --hero-field:var(--card);
   --accent-soft:var(--accent-highlight);
   --brand-overlay:color-mix(in srgb,var(--card) 8%,transparent);
   --brand-edge:color-mix(in srgb,var(--on-brand) 24%,transparent);
@@ -70,26 +73,28 @@
     --ink:#edf4f3;
     --mute:#a7b6b7;
     --line:#304044;
-    --brand:#43bfb4;
-    --brand-start:#218e86;
-    --brand-end:#8ad9cd;
-    --brand-strong:#3bb2a8;
-    --brand-highlight:#78d2c4;
+    --brand:#5ee0cf;
+    --brand-start:#5ee0cf;
+    --brand-end:#5ee0cf;
+    --brand-strong:#3dd6c4;
+    --brand-highlight:#7ee8da;
     --brand-soft:#2d4646;
-    --brand-ink:#79cbc4;
-    --on-brand:#102527;
+    --brand-ink:#7ee8da;
+    --on-brand:#062b27;
     --on-brand-bad:#4b1812;
     --brand-fill:var(--brand);
-    --accent:#d1b05a;
-    --accent-start:#b48733;
-    --accent-end:#edd28b;
-    --accent-dark:#b18b42;
-    --accent-highlight:#e4c982;
-    --accent-ink:#d0b76f;
+    --accent:#5ee0cf;
+    --accent-start:#5ee0cf;
+    --accent-end:#5ee0cf;
+    --accent-dark:#3dd6c4;
+    --accent-highlight:#7ee8da;
+    --accent-ink:#7ee8da;
     --ok:#71b791;
     --bad:#e8998d;
     --tag-bg:#253638;
     --tag-ink:#a1cbc6;
+    --hero-bg:color-mix(in srgb,var(--brand) 85%,#152123);
+    --hero-field:#1b2a2d;
     --shadow:0 6px 20px rgba(0,0,0,.14);
   }
 }
@@ -100,26 +105,28 @@
   --ink:#edf4f3;
   --mute:#a7b6b7;
   --line:#304044;
-  --brand:#43bfb4;
-  --brand-start:#218e86;
-  --brand-end:#8ad9cd;
-  --brand-strong:#3bb2a8;
-  --brand-highlight:#78d2c4;
+  --brand:#5ee0cf;
+  --brand-start:#5ee0cf;
+  --brand-end:#5ee0cf;
+  --brand-strong:#3dd6c4;
+  --brand-highlight:#7ee8da;
   --brand-soft:#2d4646;
-  --brand-ink:#79cbc4;
-  --on-brand:#102527;
+  --brand-ink:#7ee8da;
+  --on-brand:#062b27;
   --on-brand-bad:#4b1812;
   --brand-fill:var(--brand);
-  --accent:#d1b05a;
-  --accent-start:#b48733;
-  --accent-end:#edd28b;
-  --accent-dark:#b18b42;
-  --accent-highlight:#e4c982;
-  --accent-ink:#d0b76f;
+  --accent:#5ee0cf;
+  --accent-start:#5ee0cf;
+  --accent-end:#5ee0cf;
+  --accent-dark:#3dd6c4;
+  --accent-highlight:#7ee8da;
+  --accent-ink:#7ee8da;
   --ok:#71b791;
   --bad:#e8998d;
   --tag-bg:#253638;
   --tag-ink:#a1cbc6;
+  --hero-bg:color-mix(in srgb,var(--brand) 85%,#152123);
+  --hero-field:#1b2a2d;
   --shadow:0 6px 20px rgba(0,0,0,.14);
 }
 
@@ -140,7 +147,7 @@ body {
   height:100%;
   background:var(--bg);
   color:var(--ink);
-  font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;
   display:flex;
   justify-content:center;
   font-variant-numeric:tabular-nums;
@@ -169,7 +176,7 @@ select {
   border-radius:12px;
   background:var(--card);
   color:var(--ink);
-  font:500 16px 'Archivo',sans-serif;
+  font:500 16px 'Geist',sans-serif;
   outline:none;
 }
 
@@ -2346,6 +2353,28 @@ header p { opacity:1; }
 .wa-glyph { width:20px; height:20px; flex:none; }
 .field-note { font-size:12.5px; color:var(--mute); margin:6px 2px 0; }
 
+/* Liste kartı: sade, sık düzen. Güzergâh tek satır, ince çerçeve, gölge ve kenar şeridi yok. */
+.listing-grid .load { border-radius:16px; padding:14px 16px 8px; box-shadow:none; }
+.listing-grid .load.feat { border:1px solid var(--accent); padding-left:16px; box-shadow:none; }
+.listing-grid .listing-label { margin-bottom:8px; }
+.listing-grid .card-main { margin:0 0 10px; align-items:center; }
+.listing-grid .card-main.contact-card { display:block; }
+.listing-grid .card-contact { display:none; }
+.listing-grid .card-route { flex-direction:row; flex-wrap:wrap; align-items:baseline; gap:2px 8px; }
+.listing-grid .card-route>div { padding-left:0; }
+.listing-grid .card-route>div::before, .listing-grid .card-route i, .listing-grid .card-route small { display:none; }
+.listing-grid .card-route b { display:inline; font-size:20px; font-weight:650; letter-spacing:-.4px; }
+.listing-grid .card-route>div:first-child::after { content:"→"; margin-left:8px; color:var(--mute); font-size:18px; font-weight:400; }
+.listing-grid .card-main .capacity-summary { padding:0; align-items:flex-end; }
+.listing-grid .cargo-icon { width:28px; height:28px; border-radius:8px; }
+.listing-grid .cargo-icon svg { width:17px; height:17px; }
+.listing-grid .cargo-ton { color:var(--ink); }
+.listing-grid .listing-spec { margin-top:8px; }
+.listing-grid .listing-footer { margin-top:8px; padding-top:4px; }
+.listing-grid .card-main:not(.contact-card) { grid-template-columns:minmax(0,1fr) auto; }
+.listing-grid .card-main .capacity-summary { background:none; text-align:right; }
+.listing-grid .card-main .capacity-value { color:var(--ink); font-size:22px; }
+
 /* Ortak tasarım sistemi ve telefon düzeni */
 
 :root { --space:16px; --radius:16px; }
@@ -2403,11 +2432,10 @@ header,.route-search,.detail-top,.detail-summary,.screen-heading,.profile-cover,
 header { background:var(--app-gradient); padding-top:calc(12px + env(safe-area-inset-top,0px)); padding-bottom:12px; gap:10px; flex:none; }
 header h1 { font-size:24px; letter-spacing:-1px; }
 header>div:nth-child(2) { flex:1; min-width:0; }
-header p { font-family:'Trebuchet MS','Segoe UI',sans-serif; font-size:11px; font-weight:700; letter-spacing:.1px; line-height:1.3; margin-top:3px; color:var(--on-brand); }
+header p { font-family:inherit; font-size:12px; font-weight:500; letter-spacing:.1px; line-height:1.3; margin-top:3px; color:var(--on-brand); }
 .logo { width:50px; height:50px; background:transparent; border-radius:16px; }
 .logo img { display:block; width:50px; height:50px; border:0; border-radius:16px; }
-.bell { width:44px; min-height:44px; border:1px solid var(--brand-fill); background:var(--brand-fill); color:var(--on-brand); flex:none; }
-#bell { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
+.bell { width:44px; min-height:44px; border:1px solid color-mix(in srgb,var(--on-brand) 14%,transparent); background:color-mix(in srgb,var(--on-brand) 8%,transparent); color:var(--on-brand); flex:none; }
 .bell:focus-visible { outline:2px solid var(--on-brand); outline-offset:3px; }
 #thh+.bell { margin-left:0; }
 main { background:var(--bg); }
@@ -2417,7 +2445,7 @@ nav button { justify-content:center; border-radius:16px; padding:7px 2px; gap:5p
 nav button svg { width:23px; height:23px; }
 nav button.on { background:var(--gradient-brand-soft); color:var(--brand-ink); }
 nav button.on::before { display:none; }
-nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-accent); box-shadow:0 4px 14px #c9901630; transform:translateY(-4px); font-weight:800; }
+nav button[data-t=post] { background:var(--accent); color:var(--on-accent); font-weight:700; }
 .list-actions { position:absolute; left:0; right:0; bottom:var(--nav-height); z-index:2; padding:10px 16px; background:var(--card); border-top:1px solid var(--line); box-shadow:0 -8px 24px #003e4508; }
 .list-controls { display:flex; gap:10px; align-items:center; margin:auto; }
 .list-controls>* { flex:1; min-width:0; }
@@ -2429,8 +2457,9 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .dock-hint { font-size:12px; color:var(--mute); }
 .list-actions .cmpbar { position:static; box-shadow:none; margin:0 auto 10px; padding:0; border:0; max-width:720px; background:transparent; color:var(--ink); gap:8px; font-size:12px; }
 .list-actions .cmpbar .chip { padding:8px 12px; }
-.route-search { background:var(--app-gradient); padding:16px; border-radius:24px; color:var(--on-brand); position:relative; overflow:hidden; box-shadow:0 8px 20px #00686d20; margin-bottom:14px; }
-.route-search::before { content:""; position:absolute; width:170px; height:170px; right:-60px; top:-55px; border:22px solid #ffffff0d; border-radius:50%; pointer-events:none; }
+.route-search { background:var(--hero-bg); padding:16px; border-radius:20px; color:var(--on-brand); position:relative; overflow:hidden; margin-bottom:14px; }
+.route-search::before { content:""; position:absolute; width:220px; height:220px; right:-70px; top:-60px; border:28px solid color-mix(in srgb,#fff 14%,transparent); border-radius:50%; pointer-events:none; }
+.route-search select { background-color:var(--hero-field); }
 .route-search-heading,.route-fields { position:relative; }
 .route-search .eyebrow { color:var(--on-brand); letter-spacing:1.2px; font-size:9px; }
 .route-search h2 { font-size:23px; line-height:1.2; margin:6px 0 14px; max-width:none; letter-spacing:-.7px; }
@@ -2442,7 +2471,7 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .route-swap { width:30px; height:46px; background:var(--brand-overlay); color:var(--on-brand); border:1px solid var(--brand-edge); }
 .seg { padding:4px; border-radius:16px; background:var(--card); border:1px solid var(--line); }
 .seg button { border-radius:12px; }
-.seg button.on { background:var(--gradient-brand); color:var(--on-brand); box-shadow:0 3px 10px #007f8320; }
+.seg button.on { background:var(--brand); color:var(--on-brand); }
 .demo-note { font-size:10px; padding:8px 10px; background:var(--card); border-style:dashed; border-radius:12px; margin-bottom:12px; }
 .listing-search input { border-radius:16px; }
 .listing-count { font-size:12px; }
