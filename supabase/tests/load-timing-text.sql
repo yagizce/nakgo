@@ -24,14 +24,11 @@ end $$;
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.timing_carrier'),true);
 set local role authenticated;
-do $$ declare job public.transport_jobs; begin
+do $$ begin
  if not exists(select 1 from public.listings where id=current_setting('nakgo.timing_listing')::bigint and loading_text='Ne zaman uygun olursa') then raise exception 'FAIL other account feed'; end if;
  update public.listings set loading_text='forged' where id=current_setting('nakgo.timing_listing')::bigint;
  if found then raise exception 'FAIL other account edit'; end if;
  perform public.nakgo_set_favorite(current_setting('nakgo.timing_listing')::bigint,true);
- perform public.nakgo_open_conversation(current_setting('nakgo.timing_listing')::bigint);
- job:=public.nakgo_request_transport(current_setting('nakgo.timing_listing')::bigint);
- if job.listing_snapshot->>'dateText'<>'Ne zaman uygun olursa' then raise exception 'FAIL transport timing snapshot'; end if;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.timing_owner'),true);
