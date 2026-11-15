@@ -7,7 +7,8 @@ declare
 begin
  insert into auth.users(id,email_confirmed_at) values(owner_id,t0),(carrier_id,t0);
  perform set_config('request.jwt.claim.sub',owner_id::text,true);
- perform set_config('request.headers','{"x-forwarded-for":"203.0.113.7, 10.0.0.1"}',true);
+ -- Headers as the Supabase gateway forwards them: the client may prepend a fake x-forwarded-for entry.
+ perform set_config('request.headers','{"x-forwarded-for":"192.0.2.66,203.0.113.7","sb-forwarded-for":"203.0.113.7","cf-connecting-ip":"203.0.113.7","x-real-ip":"192.0.2.77"}',true);
  set local role authenticated;
  with seeded as (
   insert into public.listings(kind,from_city,to_city,from_district,to_district,vehicle,body,amount,cargo,note,loading_text,contact_phone,contact_consent,owner_label)
@@ -17,6 +18,14 @@ begin
  reset role;
  if (select count(*) from private.access_log where user_id=owner_id and action='listing_create' and ip='203.0.113.7')<>5 then
   raise exception 'FAIL listing create logged with client IP'; end if;
+ -- Only gateway-set headers are trusted; client-controlled x-forwarded-for / x-real-ip are never logged.
+ perform set_config('request.headers','{"x-forwarded-for":"192.0.2.66","x-real-ip":"192.0.2.77"}',true);
+ if private.request_ip() is not null then raise exception 'FAIL untrusted forwarded header used'; end if;
+ perform set_config('request.headers','{"cf-connecting-ip":"198.51.100.7","x-forwarded-for":"192.0.2.66"}',true);
+ if private.request_ip()<>'198.51.100.7'::inet then raise exception 'FAIL cf-connecting-ip fallback'; end if;
+ perform set_config('request.headers','{"sb-forwarded-for":"not-an-ip","x-forwarded-for":"192.0.2.66"}',true);
+ if private.request_ip() is not null then raise exception 'FAIL malformed gateway header replaced by client value'; end if;
+ perform set_config('request.headers','{"sb-forwarded-for":"203.0.113.7","cf-connecting-ip":"203.0.113.7","x-forwarded-for":"192.0.2.66,203.0.113.7"}',true);
 
  -- Age fixtures only. [1] ended 9 days ago, [2] 7 days ago, [3] moderated 9 days ago,
  -- [4] cleared over a year ago, [5] closed by the owner 9 days ago.
