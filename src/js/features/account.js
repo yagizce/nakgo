@@ -79,7 +79,7 @@ function listBind() {
             if (it) {
                 const off = it.closed || expired(it, k === "l" ? "load" : "truck");
                 if (off && validDay(it.date) && (it.dateEnd||it.date)<localDay()) return openEdit(k,id,true);
-                patchIt(k, id, off ? { closed: false, ts: Date.now() } : { closed: true });
+                Promise.resolve(patchIt(k, id, off ? { closed: false, ts: Date.now() } : { closed: true })).then(done => { if (done && off) toast(nakgoMarket.active() ? "İlan yeniden yayında · 6 saat" : "İlan yeniden yayında"); });
             }
         };
     });

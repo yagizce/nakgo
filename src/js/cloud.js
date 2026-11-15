@@ -563,7 +563,7 @@ const nakgoMarket = (() => {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
             from:r.from_city,to:r.to_city,fromD:r.from_district||'',toD:r.to_district||'',veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
             owner:r.owner_label||'NakGo üyesi',who:r.owner_label||'NakGo üyesi',date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note||'',
-            items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active'||Date.parse(r.expires_at)<=Date.now(),archived:r.status==='archived',
+            items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active'||Date.parse(r.expires_at)<=Date.now(),shut:r.status!=='active',expiresAt:Date.parse(r.expires_at),archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};
     }
     function put(rows,replace=false) {

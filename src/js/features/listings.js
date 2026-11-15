@@ -272,9 +272,21 @@ function askDel(k, id) {
     $("#sheet").classList.add("open");
 }
 
+// İlan durumu: yayında (kalan süre), süresi doldu veya sahibi kapattı. Hesaplı ilanlarda süre sunucudan gelir.
+const ownState = (it, kind) => {
+    const off = it.closed || expired(it, kind);
+    if (!off) {
+        const left = it._remote && Number.isFinite(it.expiresAt) ? it.expiresAt - Date.now() : 0;
+        const h = Math.floor(left / 36e5), m = Math.max(1, Math.ceil(left % 36e5 / 6e4));
+        return { off, text: left > 0 ? "Yayında · " + (h ? h + " sa " : "") + m + " dk kaldı" : "Yayında" };
+    }
+    return { off, text: it._remote && !it.shut ? "Süresi doldu" : it.closed ? "Kapattın" : "Süresi doldu" };
+};
+
 const myListHTML = () => {
-    const a = [...mineL().map(l => ({ k: "l", id: l.id, r: routeText(l), v: l.ton + " ton", c: l.closed || expired(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: routeText(t), v: t.cap + " ton", c: t.closed || expired(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))];
-    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" && !nakgoMarket.active() ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${esc(x.id)}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
+    const a = [...mineL().map(l => ({ k: "l", id: l.id, r: routeText(l), v: l.ton + " ton", st: ownState(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: routeText(t), v: t.cap + " ton", st: ownState(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))]
+        .sort((x, y) => x.st.off - y.st.off);
+    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => { const c = x.st.off; return `<div class="kv own-item${c ? " is-off" : ""}" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div><div class="own-state">${esc(x.st.text)}</div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span>${c ? `<button class="chip on" data-mc="${x.k}|${esc(x.id)}">${nakgoMarket.active() ? "Yeniden yayınla · 6 saat" : "Yeniden yayınla"}</button>` : ""}<button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" && !nakgoMarket.active() ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}${!c ? `<button class="chip" data-mc="${x.k}|${esc(x.id)}">Kapat</button>` : ""}<button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`; }).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
 };
 
 const itemsTxt = l => (Array.isArray(l.items) ? l.items : []).slice(0, 6).map(i => esc(i.n) + " " + (+i.q || 0) + " " + esc(i.u)).join(", ");
@@ -306,7 +318,7 @@ function itemsUI() {
     };
 }
 
-const expired = (x, k) => !!(!x._remote && x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
+const expired = (x, k) => !!(!x._remote && x.ts && Date.now()-x.ts>TTL[k]*864e5) || !!(x._remote && !x.shut && Number.isFinite(x.expiresAt) && x.expiresAt<=Date.now()) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
 const availableListing = (x,isT=false) => !!x && !x.archived && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
 const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||x.who||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
 function contactAllowed(x,isT=false,allowOwn=false) {
