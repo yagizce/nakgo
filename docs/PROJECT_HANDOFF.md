@@ -7,6 +7,27 @@ vermez. Bir sonraki ürün/entegrasyon işini kullanıcı ayrıca belirleyecekti
 
 ## 1. Güncel durum ve tamamlanan kabul
 
+### 15 Kasım 2026 güncellemesi (güvenlik denetimi ve sağlamlaştırma)
+
+Bu bölüm aşağıdaki 13 Kasım ve daha eski kayıtlarla çelişen satırların yerine geçer.
+
+| Konu | 15 Kasım 2026 durumu |
+| --- | --- |
+| Main / canlı uygulama | Production yayını `dpl_GftfZvJSboMTFngkDWHnTzLoryTh` ([PR #113](https://github.com/yagizce/nakgo/pull/113)), READY. Yayın hâlâ ayrı onayla elle başlatılır |
+| Uygulama kabuğu | `nakgo-v78-current-password` |
+| Migration | Production 32 kayıt, son `20261115184145_close_legacy_features`. `apply_migration` kendi zaman damgasını yazar; repodaki dosya adı sonraki PR'da Production sürümüyle eşitlenir |
+| Güvenlik denetimi | `.claude/skills/security-audit` ([PR #107](https://github.com/yagizce/nakgo/pull/107)) yalnız açıkça istenince çalışır. 4 bulgu [PR #108](https://github.com/yagizce/nakgo/pull/108) ile kapandı: kişi başı en fazla 10 yayında ilan (`54000`), erişim kaydında yalnız gateway IP'si (`sb-forwarded-for`, yoksa `cf-connecting-ip`), silinen hesapların serbest metinleri ve ilçeleri de silinir, silinen belge satırının Storage dosyası `private.storage_cleanup` kuyruğuna girer (`tools/storage-cleanup.cjs`, service role ile çalışır). Ayrıca CSP başlığı, Access anahtar yenileme sınırı, bundle `</script` koruması |
+| Moderasyon | Ban kalkınca bandan önceki askı geri gelir (`suspended_before_ban`) ([PR #110](https://github.com/yagizce/nakgo/pull/110)) |
+| Yasal saklama | Saklamadaki ilan hesap silinince silinmez, yalnız yayından kalkar; saklama kaldırılınca bir sonraki gece temizliğinde silinir (KVKK m.5/2-ç,e; Silme Yönetmeliği m.7). Aydınlatma metni hukukçuya gösterilmelidir |
+| Kaldırılmış özellikler | Mesajlaşma, taşıma işi ve taşıyıcı belgesi RPC'leri, `message_inbox` görünümü ve `carrier-documents` kullanıcı Storage politikaları kaldırıldı; bu tablolarda kullanıcı okuması kapalı ([PR #112](https://github.com/yagizce/nakgo/pull/112)). Tablolar ve veriler korunur. Aşağıdaki "Favoriler ve mesajlar" ile "Özel belgeler" anlatımları tarihseldir |
+| Şifre | Tüm şifreler en az 10 karakter (Supabase ayarı da 10). Şifre değiştirme mevcut şifreyi ister; Supabase "Require current password when updating" açık, uygulama `current_password` gönderir |
+| Test bakımı | Korumalı test değişikliği gerektiğinde önce eski ve yeni kodla uyumlu ayrı test PR'ı açılır ([#109](https://github.com/yagizce/nakgo/pull/109), [#111](https://github.com/yagizce/nakgo/pull/111)). Branch koruması gevşetilmez |
+
+Açık işler (15 Kasım): Storage temizlik aracının gerçek Supabase'te service role ile
+ilk çalıştırılması; "Şifremi unuttum" akışının yeni şifre ayarıyla telefonda denenmesi;
+CSP'de `'unsafe-inline'` yerine hash; çok hesapla ilan seli için ek önlem. 13 Kasım
+listesindeki WhatsApp, KVKK metni ve ödeme işleri sürüyor.
+
 ### 13 Kasım 2026 güncellemesi
 
 Bu bölüm aşağıdaki 10 Kasım ve 28 Ekim kayıtlarıyla çelişen satırların yerine
