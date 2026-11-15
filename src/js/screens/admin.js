@@ -395,6 +395,17 @@ async function openAdminPanel() {
     }
     // İl haritası: 81 il sınırı (TR_MAP); il rengi o ildeki ilan sayısıyla koyulaşır, en yoğun 5 il yazılır.
     // Çıkış yeşil (yük rengi), varış mavi (boş araç rengi). Harita verisi yoksa yalnız sıralama listeleri kalır.
+    // İl yolunun (M x y l dx dy … z) en büyük halkasının alan ağırlık merkezi; bir kez hesaplanır.
+    const centers={};
+    function mapCenter(map,name){
+        if(centers[name])return centers[name];
+        let best=null,bestArea=0;
+        for(const ring of String(map.il[name]||'').split('z')){const n=ring.match(/-?\d+/g);if(!n||n.length<6)continue;
+            const pts=[[+n[0],+n[1]]];for(let i=2;i+1<n.length;i+=2)pts.push([pts[pts.length-1][0]+ +n[i],pts[pts.length-1][1]+ +n[i+1]]);
+            let a=0,cx=0,cy=0;pts.forEach((p,i)=>{const q=pts[(i+1)%pts.length],f=p[0]*q[1]-q[0]*p[1];a+=f;cx+=(p[0]+q[0])*f;cy+=(p[1]+q[1])*f;});
+            if(Math.abs(a)>bestArea){bestArea=Math.abs(a);best=[cx/(3*a),cy/(3*a)];}}
+        return best&&(centers[name]=best);
+    }
     function liveMap(counts){
         const map=typeof TR_MAP==='object'&&TR_MAP?TR_MAP:null,ll=typeof LL==='object'&&LL?LL:{};
         if(!map)return '<p class="adm-empty">Harita yüklenemedi.</p>';
@@ -402,8 +413,9 @@ async function openAdminPanel() {
         const xy=([lon,lat])=>[(lon-map.x0)*map.k*map.s+10,(map.y1-lat)*map.s+10];
         const shapes=Object.entries(map.il).map(([name,d])=>{const c=Number(counts[name])||0,level=c?Math.round(22+Math.sqrt(c/max)*78):0;
             return '<path d="'+d+'"'+(c?' class="on" style="--lv:'+level+'%"':'')+'><title>'+esc(name)+': '+(c?c+' ilan':'ilan yok')+'</title></path>';}).join('');
-        const names=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5).filter(([name])=>ll[name]).map(([name,c])=>{const [x,y]=xy(ll[name]);
-            return '<text x="'+x.toFixed(1)+'" y="'+(y+8).toFixed(1)+'" text-anchor="middle">'+esc(name)+' <tspan>'+num(c)+'</tspan></text>';}).join('');
+        // Renklenen her il yazılır; etiket ilin en büyük parçasının ağırlık merkezine konur (il merkezi kıyıda kalabilir).
+        const names=Object.entries(counts).filter(([name,c])=>map.il[name]&&Number(c)>0).sort((a,b)=>a[1]-b[1]).map(([name,c])=>{const [x,y]=mapCenter(map,name)||xy(ll[name]||[0,0]);
+            return '<text x="'+x.toFixed(1)+'" y="'+(y+5).toFixed(1)+'" text-anchor="middle">'+esc(name)+' <tspan>'+num(c)+'</tspan></text>';}).join('');
         return '<svg class="adm-map '+(liveSide==='from'?'is-from':'is-to')+'" viewBox="0 0 '+map.w+' '+map.h+'" role="img" aria-label="Bugün il bazında '+side+' sayıları">'+shapes+names+'</svg>'+
             '<p class="adm-legend adm-map-scale"><span>Az</span><i aria-hidden="true"></i><span>Çok '+side+'</span></p>';
     }

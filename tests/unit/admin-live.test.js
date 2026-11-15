@@ -35,6 +35,8 @@ module.exports=({test,fs,path,ROOT})=>{
   ok(html.includes('>5<')&&html.includes('>9<')&&html.includes('Dün bu saate göre +50%'),'sayılar ve düne göre değişim gösterilir');
   ok(html.includes('İzmir → Manisa')&&html.includes('data-admin-live-open="41"'),'son ilanlar akışı');
   ok(html.includes('class="adm-map is-from"')&&html.includes('İzmir: 3 ilan')&&html.includes('Hakkari: 1 ilan')&&html.includes('Manisa: ilan yok'),'il haritası her ili çizer, çıkış sayılarını renklendirir');
+  const mapSvg=(html.match(/<svg class="adm-map[\s\S]*?<\/svg>/)||[''])[0];
+  ok((mapSvg.match(/<text /g)||[]).length===2&&mapSvg.includes('İzmir <tspan>3</tspan>')&&mapSvg.includes('Hakkari <tspan>1</tspan>'),'renklenen her ilin adı yazılır');
   ok(!html.includes('adm-dark'),'varsayılan açık görünüm');
   ok(h.timers.length===1&&h.timers[0][1]===30000,'30 saniyede bir yenilenir');
   await h.click('data-admin-live-side','to');
