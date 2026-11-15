@@ -165,6 +165,10 @@ async function initCloud() {
 const nakgoAuth = (() => {
     let client = null, revision = 0, started = false, retryTimer = null, retryCount = 0;
     const state = {enabled:false, ready:false, checked:false, user:null, profile:null, recovery:false, error:''};
+    // Açılış kontrolü: hesap ayarı gelene kadar cihazdaki demo veri gösterilmez (ekranda anlık eski ilan görünmesin).
+    // Ayar alınamazsa veya dosyadan açılan demoda bekleme biter; davranış öncekiyle aynıdır.
+    let booting = typeof location !== 'undefined' && location.protocol !== 'file:';
+    const endBoot = () => { if (!booting) return; booting = false; if (typeof render === 'function') render(); };
     const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
     const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'own' || (typeof ADMIN_HOST !== 'undefined' && ADMIN_HOST)) render(); };
     const message = error => ({
@@ -248,7 +252,8 @@ const nakgoAuth = (() => {
     }
 
     async function init() {
-        if (started || typeof window === 'undefined' || !window.fetch) return;
+        if (started) return;
+        if (typeof window === 'undefined' || !window.fetch) return endBoot();
         started = true;
         // Capture the callback before the SDK consumes its code and changes the URL.
         const address = new URL(location.href);
@@ -273,13 +278,13 @@ const nakgoAuth = (() => {
             for (const wait of [0,1500,4000]) {
                 if (wait) await new Promise(done => setTimeout(done, wait));
                 try { response = await window.fetch('/api/auth/config', {cache:'no-store', signal:timeoutSignal(8000)}); }
-                catch (error) { response = null; continue; }
+                catch (error) { response = null; endBoot(); continue; }
                 if (response.ok || response.status < 500) break;
             }
-            if (!response?.ok) return;
+            if (!response?.ok) return endBoot();
             const config = await response.json();
-            if (!configOK(config)) return;
-            state.enabled = true; state.marketplace = config.marketplaceEnabled === true; changed();
+            if (!configOK(config)) return endBoot();
+            booting = false; state.enabled = true; state.marketplace = config.marketplaceEnabled === true; changed();
             await loadSDK();
             client = window.supabase.createClient(config.url,config.publishableKey, {auth:{
                 flowType:'pkce', persistSession:true, autoRefreshToken:true, detectSessionInUrl:true,
@@ -319,7 +324,7 @@ const nakgoAuth = (() => {
                 if(!state.error)state.error='Sıfırlama oturumu doğrulanamadı. En son e-postadaki bağlantıyı kullan veya buradan yeni bağlantı iste.';
                 showReturn();
             } else if(callbackError) {tab='me';setNav();changed();}
-        } catch(error) { if(state.enabled) {state.error=message(error); state.checked=!!client; changed(); if(recoveryReturn||callbackError)showReturn();} }
+        } catch(error) { endBoot(); if(state.enabled) {state.error=message(error); state.checked=!!client; changed(); if(recoveryReturn||callbackError)showReturn();} }
     }
 
     async function signIn(email,password) {
@@ -522,7 +527,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
+    return {adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.

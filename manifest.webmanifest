@@ -54,9 +54,9 @@
       ]
     },
     {
-      "name": "İşlerim",
-      "short_name": "İşler",
-      "url": "./?go=mine",
+      "name": "İlanlarım",
+      "short_name": "İlanlarım",
+      "url": "./?go=own",
       "icons": [
         {
           "src": "icons/icon-192.png",
