@@ -4,7 +4,7 @@ module.exports = ({run,fs,path,ROOT}) => {
     run('Kaldırılan iş, puan, karşılaştırma ve belge giriş noktaları yok',(r,ok)=>{
         ok(r(`return ['requestLoad','withdrawOffer','setStage','openCompare','toggleCmp','ratingOf','openRate','cOk','carCard','vbadge','lvU','lvT','nakgoJobs','nakgoDocuments'].every(n=>new Function('return typeof '+n)()==='undefined')`),'eski fonksiyon ve modüller tanımlı değil');
         const nav=fs.readFileSync(path.join(ROOT,'src/index.template.html'),'utf8');
-        ok(!nav.includes('data-t="mine"')&&nav.includes('data-t="list"')&&nav.includes('data-t="post"')&&nav.includes('data-t="me"'),'alt menüde İşlerim yok, diğer sekmeler duruyor');
+        ok(!nav.includes('data-t="mine"')&&nav.includes('data-t="list"')&&nav.includes('data-t="post"')&&nav.includes('data-t="own"')&&nav.includes('data-t="me"'),'alt menüde İşlerim yok; İlanlar, İlan ver, İlanlarım ve Profil var');
     });
     run('İlan listesi ve detayında puan, rozet, karşılaştırma ve talep yok',(r,ok)=>{
         r("mode='load';tab='list';F=F0();render()");

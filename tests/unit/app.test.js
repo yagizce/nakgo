@@ -92,7 +92,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     ok(s.daily[6] === 1 && s.daily[5] === 1, "günlük dağılım");
     r("openStats(700)"); const h = r("return sheet()"); ok(h.includes("İlan performansı") && h.includes("Talep oranı") && h.includes("%100"), "istatistik penceresi");
     ok(!/En yüksek teklif|İlan ücreti/.test(h), "ilan performansında taşıma ücretleri yok");
-    r("tab='me';render()"); ok(r("return main()").includes('data-st2="700"'), "İlanlarım'da İstatistik düğmesi");
+    r("tab='own';render()"); ok(r("return main()").includes('data-st2="700"'), "İlanlarım'da İstatistik düğmesi");
   });
 
   // ===== premium =====
@@ -119,7 +119,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     r("el('#fbuy').onclick()"); ok(r("return isF(findIt('t','t900'))") === true && r("return findIt('t','t900').featPaid") === 32, "boş araç öne çıkar");
     r("mode='load';tab='list';F=F0();render()"); let m = r("return main()"); ok(m.indexOf('data-id="800"') < m.indexOf('data-id="1"') && m.includes("Öne çıkan"), "yük listesinde başta ve etiketli");
     r("mode='truck';render()"); m = r("return main()"); ok(m.indexOf('data-tid="t900"') < m.indexOf('data-tid="t1"') && m.includes("Öne çıkan"), "boş araç listesinde başta ve etiketli");
-    r("tab='me';render()"); m = r("return main()"); ok(m.includes('data-ft="l|800"') && m.includes('data-ft="t|t900"') && m.includes("Uzat"), "İlanlarım'da iki türde de Uzat");
+    r("tab='own';render()"); m = r("return main()"); ok(m.includes('data-ft="l|800"') && m.includes('data-ft="t|t900"') && m.includes("Uzat"), "İlanlarım'da iki türde de Uzat");
     r("openFeature('l',800)"); ok(r("return sheet()").includes("yeni süre bitince başlar"), "aktifken yeni süre bitişten başlar");
   });
 
@@ -131,7 +131,7 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     r("openStats(810)"); const h = r("return sheet()"); ok(h.includes("Öne çıkarmanın etkisi") && h.includes("saatlik") && !h.includes("Örnek veri"), "istatistik ekranında etki kutusu");
     r("events=events.slice(0,2)"); ok(r("return statsOf(loads[0]).fx.lift") === null, "az veride sonuç vermez");
     r("openStats(810)"); ok(r("return sheet()").includes("Henüz yeterli veri yok. Anlamlı"), "yetersiz veri uyarısı");
-    r("tab='me';render()"); const m = r("return main()"); ok(m.includes('data-st2="810"') && m.includes('data-me="l|810"'), "profilde ilan yönetimi korunur");
+    r("tab='own';render()"); const m = r("return main()"); ok(m.includes('data-st2="810"') && m.includes('data-me="l|810"'), "İlanlarım sekmesinde ilan yönetimi korunur");
     r("cloud=false;loads.unshift({id:811,from:'İzmir',to:'Bursa',cargo:'Demo',ton:3,veh:'Kamyon',price:10000,date:'Cuma',mine:true,featFrom:Date.now(),featUntil:Date.now()+6*36e5,featPaid:32});openStats(811)");
     ok(r("return sheet()").includes("Örnek veri"), "yerel modda örnek veri olarak işaretlenir");
     r("openFeature('l',811)");r("el('#fbuy').onclick()"); ok(r("const x=findIt('l',811);return isF(x)&&x.featUntil>Date.now()+11*36e5&&x.featWin.length===2")===true, "aktifken uzatma kesintisiz sürer, pencere kaydedilir");

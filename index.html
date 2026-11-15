@@ -2531,6 +2531,17 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .road-tool .profile-tool-copy { flex:1; min-width:0; }
 .road-tool b { display:block; font-size:16px; }
 .road-tool small { display:block; color:var(--on-brand); margin-top:3px; font-size:11px; }
+.profile-tool.wide-tool { grid-column:1/-1; flex-direction:row; align-items:center; gap:12px; padding:14px 16px; }
+.wide-tool .profile-tool-icon { width:44px; height:44px; margin:0; flex:none; }
+.wide-tool .profile-tool-copy { flex:1; min-width:0; }
+.wide-tool b { display:block; font-size:15px; }
+.wide-tool small { display:block; margin-top:3px; font-size:11.5px; line-height:1.35; }
+.wide-tool>svg:last-child { flex:none; color:var(--mute); }
+.fuel-tool { border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 14%,var(--card)),var(--card) 70%); }
+.fuel-tool .profile-tool-icon { background:var(--gradient-accent); color:var(--on-accent); }
+.tool-figure { display:flex; flex-direction:column; align-items:flex-end; flex:none; text-align:right; }
+.tool-figure b { font-size:16px; white-space:nowrap; }
+.tool-figure small { margin:0; font-size:10.5px; }
 .profile-group h2 { font-size:16px; margin:22px 2px 12px; }
 .profile-info { cursor:default; padding:16px; }
 .profile-info label:first-child { margin-top:0; }
@@ -2607,6 +2618,8 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 }
 
 .admin-tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.profile-own-link { width:100%; font:inherit; text-align:inherit; cursor:pointer; }
+.profile-own-link:focus-visible { outline:2px solid var(--brand-ink); outline-offset:2px; }
 
 /* Gerçek Türkiye haritası ve mobil yol noktaları */
 .road-map { position:relative; height:255px; min-height:180px; overflow:hidden; border:1px solid var(--line); border-radius:17px; background:var(--tag-bg); isolation:isolate; }
@@ -2676,6 +2689,7 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
   <nav id="nav" aria-label="Ana menü">
     <button data-t="list" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>İlanlar</span></button>
     <button data-t="post"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>İlan ver</span></button>
+    <button data-t="own"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6M9 18h3"/></svg><span>İlanlarım</span></button>
     <button data-t="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>Profil</span></button>
   </nav>
   <div class="onb" id="onb" role="dialog" aria-modal="true" aria-labelledby="ob-title"></div>
@@ -2716,7 +2730,7 @@ const TTL = { load: 14, truck: 7, offer: 3 };
 
 const SUPPORT_MAIL = "destek@nakgolojistik.com";
 
-const FAQ = [["NakGo'yu kullanmak ücretli mi?", "İlanları görmek, kayıt olmak ve ilan vermek şu an ücretsizdir."], ["İlanları görmek için kayıt olmam gerekir mi?", "Hayır. Açık ilanları herkes görebilir. İlan sahibiyle iletişime geçmek ve ilan vermek için ücretsiz hesap gerekir."], ["İlan sahibiyle nasıl iletişime geçerim?", "Giriş yaptıktan sonra ilan detayındaki Ara veya WhatsApp düğmesiyle ilan sahibine doğrudan ulaşabilirsin."], ["İlanımı nasıl verir ve yönetirim?", "İlan ver sekmesinden yük veya boş araç ilanı oluştur. İlanlarını Profil'deki İlanlarım bölümünden düzenleyebilir veya kapatabilirsin."], ["Mazot ve Gider Hesaplama ne işe yarar?", "Mesafe, tüketim ve litre fiyatını girerek yolun yaklaşık giderini hesaplar. Sonuç tahminidir."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan numarasıyla birlikte destek adresimize yaz; ilanı inceleriz."], ["Verilerim nerede tutuluyor?", "Hesap ve ilan bilgilerin NakGo sunucularında saklanır. İlanındaki telefon numarası yalnızca giriş yapmış kullanıcılara Ara ve WhatsApp için gösterilir; misafirler göremez."]];
+const FAQ = [["NakGo'yu kullanmak ücretli mi?", "İlanları görmek, kayıt olmak ve ilan vermek şu an ücretsizdir."], ["İlanları görmek için kayıt olmam gerekir mi?", "Hayır. Açık ilanları herkes görebilir. İlan sahibiyle iletişime geçmek ve ilan vermek için ücretsiz hesap gerekir."], ["İlan sahibiyle nasıl iletişime geçerim?", "Giriş yaptıktan sonra ilan detayındaki Ara veya WhatsApp düğmesiyle ilan sahibine doğrudan ulaşabilirsin."], ["İlanımı nasıl verir ve yönetirim?", "İlan ver sekmesinden yük veya boş araç ilanı oluştur. İlanlarını İlanlarım sekmesinden düzenleyebilir veya kapatabilirsin."], ["Mazot ve Gider Hesaplama ne işe yarar?", "Mesafe, tüketim ve litre fiyatını girerek yolun yaklaşık giderini hesaplar. Sonuç tahminidir."], ["Şüpheli bir ilan görürsem ne yapmalıyım?", "İlan numarasıyla birlikte destek adresimize yaz; ilanı inceleriz."], ["Verilerim nerede tutuluyor?", "Hesap ve ilan bilgilerin NakGo sunucularında saklanır. İlanındaki telefon numarası yalnızca giriş yapmış kullanıcılara Ara ve WhatsApp için gösterilir; misafirler göremez."]];
 
 /* Öne çıkan ilan ve boş araç ilanı: sabit fiyat listesi, saate göre değişmez. Ürün kuralları docs/product.md içinde. */
 const FEAT = { prices: { l: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 }, t: { 3: 19, 6: 32, 12: 61, 24: 99, 72: 267 } } };
@@ -3436,7 +3450,7 @@ const nakgoAuth = (() => {
     let client = null, revision = 0, started = false, retryTimer = null, retryCount = 0;
     const state = {enabled:false, ready:false, checked:false, user:null, profile:null, recovery:false, error:''};
     const snapshot = () => ({...state, user:state.user ? {...state.user} : null, profile:state.profile ? {...state.profile} : null});
-    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'mine' || (typeof ADMIN_HOST !== 'undefined' && ADMIN_HOST)) render(); };
+    const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'own' || (typeof ADMIN_HOST !== 'undefined' && ADMIN_HOST)) render(); };
     const message = error => ({
         invalid_credentials:'E-posta veya şifre doğru değil.',
         email_not_confirmed:'Giriş yapmadan önce e-postandaki doğrulama bağlantısını aç.',
@@ -6068,28 +6082,27 @@ function profileIdentityHTML(own,name) {
             <div class="profile-caption">${(profile ? profile.account_type : role)==='owner'?'Yük sahibi':(profile && !profile.account_type ? 'Hesabım' : 'Taşıyıcı')}${(profile ? profile.city : myCar.city)?' · '+esc(profile ? profile.city : myCar.city):''}</div>
         </div>
     </div>
-    <div class="stat profile-stats">
-        <div><b>${own}</b><span>Aktif ilanım</span></div>
-    </div>`;
+    <button class="stat profile-stats profile-own-link" id="profile-own" type="button" aria-label="${own} aktif ilan, İlanlarım sekmesini aç">
+        <div><b>${own}</b><span>Aktif ilanım · İlanlarım'da yönet</span></div>
+    </button>`;
 }
 
 function profileToolsHTML() {
-    const saved=nakgoMarket.active()?nakgoFavorites.state():null;
-    const favoriteCaption=saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
     // Uygulama içi mesajlaşma kapalı: iletişim ilan detayındaki Ara ve WhatsApp ile yapılır.
-    const tools=[
-        ['favorites','heart','Kaydettiklerim',favoriteCaption],
-        ['fuel','fuel','Mazot ve Gider Hesaplama','Yol giderini planla']
-    ];
+    // Mazot kartı son hesaplanan toplam gideri gösterir; değerler yalnız bu cihazda tutulur.
+    const last=fuelEstimate(calc);
     return `<div class="profile-shortcuts">
         <button class="profile-tool road-tool" id="profile-map">
             <span class="profile-tool-icon">${uiIcon('map')}</span>
             <span class="profile-tool-copy"><b>Yol haritası</b><small>Türkiye'nin yollarını keşfet</small></span>
             ${uiIcon('arrow')}
         </button>
-        ${tools.map(([id,icon,title,caption])=>`<button class="profile-tool" id="profile-${id}">
-            <span class="profile-tool-icon">${uiIcon(icon)}</span><b>${title}</b><small>${caption}</small>
-        </button>`).join('')}
+        <button class="profile-tool wide-tool fuel-tool" id="profile-fuel">
+            <span class="profile-tool-icon">${uiIcon('fuel')}</span>
+            <span class="profile-tool-copy"><b>Mazot ve gider hesaplama</b><small>Mesafe, tüketim ve mazot fiyatıyla sefer giderini çıkar</small></span>
+            ${last?`<span class="tool-figure"><small>Son hesap</small><b>${fmt(Math.round(last.total))}</b><small>${last.distance.toLocaleString('tr-TR')} km</small></span>`:''}
+            ${uiIcon('arrow')}
+        </button>
     </div>`;
 }
 
@@ -6111,10 +6124,9 @@ function renderProfile(main) {
     const own=[...mineL(),...mineT()].filter(item=>!item.closed&&!expired(item,typeof item.id==='string'?'truck':'load'));
     const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim', guest=nakgoMarket.guest();
     const ownSections=guest
-        ? '<section class="profile-group"><h2>Profil ve ilanlarım</h2><div class="empty">Profil oluşturmak, ilan vermek ve rota alarmı kurmak için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="profile-signin" style="margin-top:12px">Kayıt ol / Giriş yap</button></div></section>'
+        ? '<section class="profile-group"><h2>Profil</h2><div class="empty">Profil oluşturmak ve iletişim bilgilerini eklemek için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="profile-signin" style="margin-top:12px">Kayıt ol / Giriş yap</button></div></section>'
         : `<section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
-            <section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}
-            </section>`;
+`;
     main.innerHTML=`${profileIdentityHTML(own.length,name)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar ve diğer işlemler cihazdaki demodur.</p>' : guest ? '' : demoNotice()}${profileToolsHTML()}
         <div class="profile-grid">
             ${ownSections}
@@ -6138,8 +6150,41 @@ function renderProfile(main) {
         }
     };
     $('#profile-fuel').onclick=()=>openCalc();
-    $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
+    if($('#profile-own'))$('#profile-own').onclick=()=>{tab='own';setNav();render();$('#main').scrollTop=0;};
     $('#profile-map').onclick=()=>openRoadMap();
+}
+
+// Kaydedilen ilan sayısı; hesapta okuma başarılı olmadan sıfır gösterilmez.
+function favoriteCaption() {
+    const saved=nakgoMarket.active()?nakgoFavorites.state():null;
+    return saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
+}
+
+// İlanlarım sekmesi: kendi ilanları, rota alarmları ve kaydedilen ilanlar. Hesap ve destek Profil'de kalır.
+function renderMine(main) {
+    if(nakgoMarket.guest()){
+        main.innerHTML='<section class="profile-group"><h2>İlanlarım</h2><div class="empty">İlan vermek, rota alarmı kurmak ve ilan kaydetmek için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="mine-signin">Kayıt ol veya giriş yap</button></div></section>';
+        $('#mine-signin').onclick=()=>nakgoMarket.requireAccount();
+        return;
+    }
+    const all=[...mineL().map(x=>[x,'load']),...mineT().map(x=>[x,'truck'])];
+    const open=all.filter(([x,k])=>!x.closed&&!expired(x,k)).length;
+    const alertCount=nakgoMarket.active()?nakgoAlerts.list().filter(a=>a.active).length:alerts.length;
+    main.innerHTML=`<div class="stat profile-stats mine-stats">
+            <div><b>${open}</b><span>Yayında</span></div>
+            <div><b>${all.length-open}</b><span>Kapanan</span></div>
+            <div><b>${alertCount}</b><span>Rota alarmı</span></div>
+        </div>
+        <div class="profile-shortcuts">
+            <button class="profile-tool wide-tool" id="mine-favorites"><span class="profile-tool-icon">${uiIcon('heart')}</span>
+                <span class="profile-tool-copy"><b>Kaydettiklerim</b><small>${favoriteCaption()}</small></span>${uiIcon('arrow')}</button>
+        </div>
+        <div class="profile-grid">
+            <section class="profile-group">${myListHTML()}</section>
+            <section class="profile-group">${alertsCard()}</section>
+        </div>`;
+    listBind();
+    $('#mine-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
 }
 
 /**
@@ -6954,6 +6999,7 @@ function render() {
  m.dataset.screen = tab;
  if(tab === "list") renderListings(m);
  else if(tab === "post") renderPost(m);
+ else if(tab === "own") renderMine(m);
  else if(tab === "me") renderProfile(m);
  if(nakgoMarket.locked() && m.insertAdjacentHTML) {
     m.insertAdjacentHTML('afterbegin',nakgoMarket.controls());
@@ -6961,7 +7007,7 @@ function render() {
     if($('#market-signin'))$('#market-signin').onclick=()=>nakgoMarket.requireAccount();
     if($('#market-more'))$('#market-more').onclick=()=>nakgoMarket.refresh(true);
  }
- if(nakgoMarket.active()&&(tab==='list'||tab==='me')) {
+ if(nakgoMarket.active()&&(tab==='list'||tab==='own')) {
     if(m.insertAdjacentHTML)m.insertAdjacentHTML('afterbegin',nakgoFavorites.controls());
     nakgoFavorites.bind();nakgoFavorites.ensure();
  }

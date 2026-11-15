@@ -9,6 +9,7 @@ function render() {
  m.dataset.screen = tab;
  if(tab === "list") renderListings(m);
  else if(tab === "post") renderPost(m);
+ else if(tab === "own") renderMine(m);
  else if(tab === "me") renderProfile(m);
  if(nakgoMarket.locked() && m.insertAdjacentHTML) {
     m.insertAdjacentHTML('afterbegin',nakgoMarket.controls());
@@ -16,7 +17,7 @@ function render() {
     if($('#market-signin'))$('#market-signin').onclick=()=>nakgoMarket.requireAccount();
     if($('#market-more'))$('#market-more').onclick=()=>nakgoMarket.refresh(true);
  }
- if(nakgoMarket.active()&&(tab==='list'||tab==='me')) {
+ if(nakgoMarket.active()&&(tab==='list'||tab==='own')) {
     if(m.insertAdjacentHTML)m.insertAdjacentHTML('afterbegin',nakgoFavorites.controls());
     nakgoFavorites.bind();nakgoFavorites.ensure();
  }

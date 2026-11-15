@@ -20,6 +20,17 @@
 .road-tool .profile-tool-copy { flex:1; min-width:0; }
 .road-tool b { display:block; font-size:16px; }
 .road-tool small { display:block; color:var(--on-brand); margin-top:3px; font-size:11px; }
+.profile-tool.wide-tool { grid-column:1/-1; flex-direction:row; align-items:center; gap:12px; padding:14px 16px; }
+.wide-tool .profile-tool-icon { width:44px; height:44px; margin:0; flex:none; }
+.wide-tool .profile-tool-copy { flex:1; min-width:0; }
+.wide-tool b { display:block; font-size:15px; }
+.wide-tool small { display:block; margin-top:3px; font-size:11.5px; line-height:1.35; }
+.wide-tool>svg:last-child { flex:none; color:var(--mute); }
+.fuel-tool { border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 14%,var(--card)),var(--card) 70%); }
+.fuel-tool .profile-tool-icon { background:var(--gradient-accent); color:var(--on-accent); }
+.tool-figure { display:flex; flex-direction:column; align-items:flex-end; flex:none; text-align:right; }
+.tool-figure b { font-size:16px; white-space:nowrap; }
+.tool-figure small { margin:0; font-size:10.5px; }
 .profile-group h2 { font-size:16px; margin:22px 2px 12px; }
 .profile-info { cursor:default; padding:16px; }
 .profile-info label:first-child { margin-top:0; }
@@ -96,3 +107,5 @@
 }
 
 .admin-tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.profile-own-link { width:100%; font:inherit; text-align:inherit; cursor:pointer; }
+.profile-own-link:focus-visible { outline:2px solid var(--brand-ink); outline-offset:2px; }

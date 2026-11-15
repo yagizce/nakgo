@@ -22,28 +22,27 @@ function profileIdentityHTML(own,name) {
             <div class="profile-caption">${(profile ? profile.account_type : role)==='owner'?'Yük sahibi':(profile && !profile.account_type ? 'Hesabım' : 'Taşıyıcı')}${(profile ? profile.city : myCar.city)?' · '+esc(profile ? profile.city : myCar.city):''}</div>
         </div>
     </div>
-    <div class="stat profile-stats">
-        <div><b>${own}</b><span>Aktif ilanım</span></div>
-    </div>`;
+    <button class="stat profile-stats profile-own-link" id="profile-own" type="button" aria-label="${own} aktif ilan, İlanlarım sekmesini aç">
+        <div><b>${own}</b><span>Aktif ilanım · İlanlarım'da yönet</span></div>
+    </button>`;
 }
 
 function profileToolsHTML() {
-    const saved=nakgoMarket.active()?nakgoFavorites.state():null;
-    const favoriteCaption=saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
     // Uygulama içi mesajlaşma kapalı: iletişim ilan detayındaki Ara ve WhatsApp ile yapılır.
-    const tools=[
-        ['favorites','heart','Kaydettiklerim',favoriteCaption],
-        ['fuel','fuel','Mazot ve Gider Hesaplama','Yol giderini planla']
-    ];
+    // Mazot kartı son hesaplanan toplam gideri gösterir; değerler yalnız bu cihazda tutulur.
+    const last=fuelEstimate(calc);
     return `<div class="profile-shortcuts">
         <button class="profile-tool road-tool" id="profile-map">
             <span class="profile-tool-icon">${uiIcon('map')}</span>
             <span class="profile-tool-copy"><b>Yol haritası</b><small>Türkiye'nin yollarını keşfet</small></span>
             ${uiIcon('arrow')}
         </button>
-        ${tools.map(([id,icon,title,caption])=>`<button class="profile-tool" id="profile-${id}">
-            <span class="profile-tool-icon">${uiIcon(icon)}</span><b>${title}</b><small>${caption}</small>
-        </button>`).join('')}
+        <button class="profile-tool wide-tool fuel-tool" id="profile-fuel">
+            <span class="profile-tool-icon">${uiIcon('fuel')}</span>
+            <span class="profile-tool-copy"><b>Mazot ve gider hesaplama</b><small>Mesafe, tüketim ve mazot fiyatıyla sefer giderini çıkar</small></span>
+            ${last?`<span class="tool-figure"><small>Son hesap</small><b>${fmt(Math.round(last.total))}</b><small>${last.distance.toLocaleString('tr-TR')} km</small></span>`:''}
+            ${uiIcon('arrow')}
+        </button>
     </div>`;
 }
 
@@ -65,10 +64,9 @@ function renderProfile(main) {
     const own=[...mineL(),...mineT()].filter(item=>!item.closed&&!expired(item,typeof item.id==='string'?'truck':'load'));
     const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim', guest=nakgoMarket.guest();
     const ownSections=guest
-        ? '<section class="profile-group"><h2>Profil ve ilanlarım</h2><div class="empty">Profil oluşturmak, ilan vermek ve rota alarmı kurmak için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="profile-signin" style="margin-top:12px">Kayıt ol / Giriş yap</button></div></section>'
+        ? '<section class="profile-group"><h2>Profil</h2><div class="empty">Profil oluşturmak ve iletişim bilgilerini eklemek için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="profile-signin" style="margin-top:12px">Kayıt ol / Giriş yap</button></div></section>'
         : `<section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
-            <section class="profile-group"><h2>İlanlarım</h2>${myListHTML()}${alertsCard()}
-            </section>`;
+`;
     main.innerHTML=`${profileIdentityHTML(own.length,name)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar ve diğer işlemler cihazdaki demodur.</p>' : guest ? '' : demoNotice()}${profileToolsHTML()}
         <div class="profile-grid">
             ${ownSections}
@@ -92,6 +90,39 @@ function renderProfile(main) {
         }
     };
     $('#profile-fuel').onclick=()=>openCalc();
-    $('#profile-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
+    if($('#profile-own'))$('#profile-own').onclick=()=>{tab='own';setNav();render();$('#main').scrollTop=0;};
     $('#profile-map').onclick=()=>openRoadMap();
+}
+
+// Kaydedilen ilan sayısı; hesapta okuma başarılı olmadan sıfır gösterilmez.
+function favoriteCaption() {
+    const saved=nakgoMarket.active()?nakgoFavorites.state():null;
+    return saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
+}
+
+// İlanlarım sekmesi: kendi ilanları, rota alarmları ve kaydedilen ilanlar. Hesap ve destek Profil'de kalır.
+function renderMine(main) {
+    if(nakgoMarket.guest()){
+        main.innerHTML='<section class="profile-group"><h2>İlanlarım</h2><div class="empty">İlan vermek, rota alarmı kurmak ve ilan kaydetmek için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="mine-signin">Kayıt ol veya giriş yap</button></div></section>';
+        $('#mine-signin').onclick=()=>nakgoMarket.requireAccount();
+        return;
+    }
+    const all=[...mineL().map(x=>[x,'load']),...mineT().map(x=>[x,'truck'])];
+    const open=all.filter(([x,k])=>!x.closed&&!expired(x,k)).length;
+    const alertCount=nakgoMarket.active()?nakgoAlerts.list().filter(a=>a.active).length:alerts.length;
+    main.innerHTML=`<div class="stat profile-stats mine-stats">
+            <div><b>${open}</b><span>Yayında</span></div>
+            <div><b>${all.length-open}</b><span>Kapanan</span></div>
+            <div><b>${alertCount}</b><span>Rota alarmı</span></div>
+        </div>
+        <div class="profile-shortcuts">
+            <button class="profile-tool wide-tool" id="mine-favorites"><span class="profile-tool-icon">${uiIcon('heart')}</span>
+                <span class="profile-tool-copy"><b>Kaydettiklerim</b><small>${favoriteCaption()}</small></span>${uiIcon('arrow')}</button>
+        </div>
+        <div class="profile-grid">
+            <section class="profile-group">${myListHTML()}</section>
+            <section class="profile-group">${alertsCard()}</section>
+        </div>`;
+    listBind();
+    $('#mine-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
 }
