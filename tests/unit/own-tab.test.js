@@ -22,4 +22,13 @@ module.exports = ({run}) => {
         ok(r("return expired(loads.find(l=>l.id===9101),'load')")&&r('return myListHTML()').split('Süresi doldu').length===3,'uygulama açıkken süresi dolan ilan kapanmış sayılır');
         r("loads=loads.filter(l=>![9101,9102,9103].includes(l.id))");
     });
+    run('İlan listesi: Son yayınlanan sıralaması',(r,ok)=>{
+        const order=r(`const a={_remote:true,id:1,ts:Date.now()-20*36e5,expiresAt:Date.now()+5*36e5},
+            b={_remote:true,id:2,ts:Date.now()-36e5,expiresAt:Date.now()+2*36e5},c={id:3,ts:Date.now()-3*36e5};
+            sort='fresh';const out=sortL([b,c,a]).map(x=>x.id);sort='new';return out.join(',');`);
+        ok(order==='1,3,2','yeniden yayınlanan eski ilan, son yayınlanma zamanına göre üste çıkar');
+        ok(r("sort='new';const x=[{id:2},{id:1}];return sortL(x)===x"),'En yeni eklenen sırası değişmez');
+        r("mode='load';tab='list';F=F0();render()");
+        ok(r('return main()').includes('<option value="fresh"'),'sıralama menüsünde Son yayınlanan var');
+    });
 };

@@ -164,7 +164,10 @@ function toggleNear() {
 
 const nearRow = () => nearOn ? `<div class="chips" aria-label="Yakınlık mesafesi">${[100, 250, 500, 0].map(k => `<button class="chip ${nearR === k ? "on" : ""}" data-nr="${k}">${k ? k + " km" : "Tümü"}</button>`).join("")}</div>` : "";
 
-const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 9e9) - (listingDistance(y) || 9e9)) : a;
+// Son yayınlanma: hesaplı ilanda bitişten 6 saat önce (yeniden yayınlanınca sunucu süreyi baştan başlatır), demoda ts.
+const publishedAt = x => x._remote && Number.isFinite(x.expiresAt) ? x.expiresAt - 6 * 36e5 : (Number(x.ts) || 0);
+const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 9e9) - (listingDistance(y) || 9e9))
+    : sort === "fresh" ? [...a].sort((x, y) => publishedAt(y) - publishedAt(x)) : a;
 
 // ===== İlanlarım =====
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
