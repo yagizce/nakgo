@@ -100,6 +100,19 @@ function favoriteCaption() {
     return saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
 }
 
+// İlanlarım açıkken kalan süre ve süresi dolan ilanlar dakikada bir güncellenir (pencere açıksa beklenir).
+let ownTimer=0;
+function scheduleOwnRefresh(){
+    if(typeof setTimeout!=='function')return;
+    clearTimeout(ownTimer);
+    ownTimer=setTimeout(()=>{
+        if(tab!=='own')return;
+        if((typeof document!=='undefined'&&document.hidden)||$('#sheet')?.classList?.contains('open'))return scheduleOwnRefresh();
+        render();
+    },60000);
+    ownTimer?.unref?.();
+}
+
 // İlanlarım sekmesi: kendi ilanları, rota alarmları ve kaydedilen ilanlar. Hesap ve destek Profil'de kalır.
 function renderMine(main) {
     if(nakgoMarket.guest()){
@@ -124,5 +137,6 @@ function renderMine(main) {
             <section class="profile-group">${alertsCard()}</section>
         </div>`;
     listBind();
+    scheduleOwnRefresh();
     $('#mine-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
 }

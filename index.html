@@ -2620,6 +2620,9 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .admin-tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
 .profile-own-link { width:100%; font:inherit; text-align:inherit; cursor:pointer; }
 .profile-own-link:focus-visible { outline:2px solid var(--brand-ink); outline-offset:2px; }
+.own-state { margin-top:4px; font-size:12.5px; font-weight:700; color:var(--brand-ink); }
+.own-item.is-off .own-state { color:var(--mute); }
+.own-item.is-off>div:first-child { opacity:.7; }
 
 /* Gerçek Türkiye haritası ve mobil yol noktaları */
 .road-map { position:relative; height:255px; min-height:180px; overflow:hidden; border:1px solid var(--line); border-radius:17px; background:var(--tag-bg); isolation:isolate; }
@@ -3847,7 +3850,7 @@ const nakgoMarket = (() => {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
             from:r.from_city,to:r.to_city,fromD:r.from_district||'',toD:r.to_district||'',veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
             owner:r.owner_label||'NakGo üyesi',who:r.owner_label||'NakGo üyesi',date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note||'',
-            items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active'||Date.parse(r.expires_at)<=Date.now(),archived:r.status==='archived',
+            items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active'||Date.parse(r.expires_at)<=Date.now(),shut:r.status!=='active',expiresAt:Date.parse(r.expires_at),archived:r.status==='archived',
             ts:Date.parse(r.created_at),rate:'Yeni'};
     }
     function put(rows,replace=false) {
@@ -4308,7 +4311,10 @@ function toggleNear() {
 
 const nearRow = () => nearOn ? `<div class="chips" aria-label="Yakınlık mesafesi">${[100, 250, 500, 0].map(k => `<button class="chip ${nearR === k ? "on" : ""}" data-nr="${k}">${k ? k + " km" : "Tümü"}</button>`).join("")}</div>` : "";
 
-const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 9e9) - (listingDistance(y) || 9e9)) : a;
+// Son yayınlanma: hesaplı ilanda bitişten 6 saat önce (yeniden yayınlanınca sunucu süreyi baştan başlatır), demoda ts.
+const publishedAt = x => x._remote && Number.isFinite(x.expiresAt) ? x.expiresAt - 6 * 36e5 : (Number(x.ts) || 0);
+const sortL = a => sort === "km" ? [...a].sort((x, y) => (listingDistance(x) || 9e9) - (listingDistance(y) || 9e9))
+    : sort === "fresh" ? [...a].sort((x, y) => publishedAt(y) - publishedAt(x)) : a;
 
 // ===== İlanlarım =====
 // Kendi ilanlarını ve boş araçlarını düzenleme, kapatma, silme, ilan verirken kalem ve süre yardımcıları.
@@ -4416,9 +4422,21 @@ function askDel(k, id) {
     $("#sheet").classList.add("open");
 }
 
+// İlan durumu: yayında (kalan süre), süresi doldu veya sahibi kapattı. Hesaplı ilanlarda süre sunucudan gelir.
+const ownState = (it, kind) => {
+    const off = it.closed || expired(it, kind);
+    if (!off) {
+        const left = it._remote && Number.isFinite(it.expiresAt) ? it.expiresAt - Date.now() : 0;
+        const h = Math.floor(left / 36e5), m = Math.max(1, Math.ceil(left % 36e5 / 6e4));
+        return { off, text: left > 0 ? "Yayında · " + (h ? h + " sa " : "") + m + " dk kaldı" : "Yayında" };
+    }
+    return { off, text: it._remote && !it.shut ? "Süresi doldu" : it.closed ? "Kapattın" : "Süresi doldu" };
+};
+
 const myListHTML = () => {
-    const a = [...mineL().map(l => ({ k: "l", id: l.id, r: routeText(l), v: l.ton + " ton", c: l.closed || expired(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: routeText(t), v: t.cap + " ton", c: t.closed || expired(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))];
-    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => `<div class="kv" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.c ? " · kapalı" : ""}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span><button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" && !nakgoMarket.active() ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!x.c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}<button class="chip" data-mc="${x.k}|${esc(x.id)}">${x.c ? "Yeniden aç" : "Kapat"}</button><button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
+    const a = [...mineL().map(l => ({ k: "l", id: l.id, r: routeText(l), v: l.ton + " ton", st: ownState(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: routeText(t), v: t.cap + " ton", st: ownState(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))]
+        .sort((x, y) => x.st.off - y.st.off);
+    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => { const c = x.st.off; return `<div class="kv own-item${c ? " is-off" : ""}" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div><div class="own-state">${esc(x.st.text)}</div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span>${c ? `<button class="chip on" data-mc="${x.k}|${esc(x.id)}">${nakgoMarket.active() ? "Yeniden yayınla · 6 saat" : "Yeniden yayınla"}</button>` : ""}<button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" && !nakgoMarket.active() ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}${!c ? `<button class="chip" data-mc="${x.k}|${esc(x.id)}">Kapat</button>` : ""}<button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`; }).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
 };
 
 const itemsTxt = l => (Array.isArray(l.items) ? l.items : []).slice(0, 6).map(i => esc(i.n) + " " + (+i.q || 0) + " " + esc(i.u)).join(", ");
@@ -4450,7 +4468,7 @@ function itemsUI() {
     };
 }
 
-const expired = (x, k) => !!(!x._remote && x.ts && Date.now()-x.ts>TTL[k]*864e5) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
+const expired = (x, k) => !!(!x._remote && x.ts && Date.now()-x.ts>TTL[k]*864e5) || !!(x._remote && !x.shut && Number.isFinite(x.expiresAt) && x.expiresAt<=Date.now()) || (validDay(x.date) && (validDay(x.dateEnd)?x.dateEnd:x.date)<localDay());
 const availableListing = (x,isT=false) => !!x && !x.archived && !x.closed && !expired(x,isT?"truck":"load") && !(x.uid && blocked.includes(x.uid));
 const visibleListing = (x,isT=false) => availableListing(x,isT) && (!nearOn || !nearR || dKm(x)<=nearR) && match(x,isT) && (!q || (x.from+" "+x.to+" "+(x.cargo||x.who||"")).toLocaleLowerCase("tr").includes(q.toLocaleLowerCase("tr")));
 function contactAllowed(x,isT=false,allowOwn=false) {
@@ -4731,7 +4749,7 @@ function listBind() {
             if (it) {
                 const off = it.closed || expired(it, k === "l" ? "load" : "truck");
                 if (off && validDay(it.date) && (it.dateEnd||it.date)<localDay()) return openEdit(k,id,true);
-                patchIt(k, id, off ? { closed: false, ts: Date.now() } : { closed: true });
+                Promise.resolve(patchIt(k, id, off ? { closed: false, ts: Date.now() } : { closed: true })).then(done => { if (done && off) toast(nakgoMarket.active() ? "İlan yeniden yayında · 6 saat" : "İlan yeniden yayında"); });
             }
         };
     });
@@ -5841,7 +5859,7 @@ function renderListings(m) {
         m.innerHTML = routeSearch() + SEG + (!cloud && !nakgoMarket.locked() ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${esc(q)}" style="margin:0"></div>
     ${nearRow()}${ac.length ? `<div class="chips active-filters wrap">${ac.map(c => `<button class="chip on" data-x="${c[0]}" data-v="${esc(c[1])}">${esc(c[2])} ×</button>`).join("")}</div>` : ""}
     <div class="meta listing-count" style="margin:0 2px 10px"><span>${items.length} ${isT ? "boş araç" : "ilan"}${(nakgoMarket.locked() || !isT) && (F.from || F.to) ? ` <button class="chip" id="al" style="margin-left:6px;padding:4px 10px;font-size:12px">Alarm kur</button>` : ""}</span><span>Yola çıkmaya hazır</span></div>
-    <div class="listing-grid">${!listingReady && !(saved?.error||saved?.pageError) ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : saved && (saved.error||saved.pageError) ? '<div class="empty">Kayıtlı ilanlarını görmek için yeniden dene.</div>' : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div><section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section><div class="list-actions" aria-label="İlan araçları"><div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
+    <div class="listing-grid">${!listingReady && !(saved?.error||saved?.pageError) ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : saved && (saved.error||saved.pageError) ? '<div class="empty">Kayıtlı ilanlarını görmek için yeniden dene.</div>' : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div><section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section><div class="list-actions" aria-label="İlan araçları"><div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni eklenen</option><option value="fresh" ${sort === "fresh" ? "selected" : ""}>Son yayınlanan</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
         if(saved) {
             const hidden=nakgoFavorites.unavailable();
             if(hidden.length)m.innerHTML+='<section aria-label="Yayında olmayan kayıtlar"><h2>Yayında olmayan kayıtlar</h2>'+hidden.map(id=>'<article class="load"><p>Bu ilan artık yayında değil.</p><button class="chip" data-unsave="'+id+'" '+(nakgoFavorites.disabled(id)?'disabled':'')+'>Kaydı kaldır</button></article>').join('')+'</section>';
@@ -6160,6 +6178,19 @@ function favoriteCaption() {
     return saved?(saved.ready?saved.count+' kayıtlı ilan':saved.error?'Kayıtlar yüklenemedi':'Kayıtlar yükleniyor…'):favs.length+' kayıtlı ilan';
 }
 
+// İlanlarım açıkken kalan süre ve süresi dolan ilanlar dakikada bir güncellenir (pencere açıksa beklenir).
+let ownTimer=0;
+function scheduleOwnRefresh(){
+    if(typeof setTimeout!=='function')return;
+    clearTimeout(ownTimer);
+    ownTimer=setTimeout(()=>{
+        if(tab!=='own')return;
+        if((typeof document!=='undefined'&&document.hidden)||$('#sheet')?.classList?.contains('open'))return scheduleOwnRefresh();
+        render();
+    },60000);
+    ownTimer?.unref?.();
+}
+
 // İlanlarım sekmesi: kendi ilanları, rota alarmları ve kaydedilen ilanlar. Hesap ve destek Profil'de kalır.
 function renderMine(main) {
     if(nakgoMarket.guest()){
@@ -6184,6 +6215,7 @@ function renderMine(main) {
             <section class="profile-group">${alertsCard()}</section>
         </div>`;
     listBind();
+    scheduleOwnRefresh();
     $('#mine-favorites').onclick=()=>{F=F0();F.fav=true;q='';nearOn=false;tab='list';setNav();render();if(nakgoMarket.active())nakgoFavorites.refresh();};
 }
 
