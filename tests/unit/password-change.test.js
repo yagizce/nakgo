@@ -29,6 +29,7 @@ module.exports = ({test,fs,path,ROOT}) => {
         ok(short==='password_too_short'&&!patch&&ctx.auth.message({code:short})==='Şifre en az 10 karakter olmalı.','10 karakterden kısa yeni şifre reddedilir');
         await ctx.auth.changePassword('old-password-123','new-password-456');
         ok(checked.email==='a@example.test'&&patch.password==='new-password-456','mevcut şifre aynı hesapla doğrulanır, sonra güncellenir');
+        ok(patch.current_password==='old-password-123','mevcut şifre sunucu doğrulaması için de gönderilir');
         ok(ctx.auth.snapshot().user,'şifre değişince oturum açık kalır');
         return out;
     });
