@@ -21,6 +21,5 @@ function render() {
     if(m.insertAdjacentHTML)m.insertAdjacentHTML('afterbegin',nakgoFavorites.controls());
     nakgoFavorites.bind();nakgoFavorites.ensure();
  }
- if(nakgoMarket.active()&&tab==='me')nakgoMessages.ensure();
  if(storageNotice && m.insertAdjacentHTML) m.insertAdjacentHTML("afterbegin",`<p class="demo-note" role="status">${esc(storageNotice)}</p>`);
 }

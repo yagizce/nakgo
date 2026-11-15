@@ -54,7 +54,7 @@ function openLoad(id) {
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
     if ($("#mg")) $("#mg").onclick = () => {
-        if(l._remote)return nakgoMessages.openListing(l.remoteId);
+        if(l._remote)return;
         if (!contactAllowed(l)) return;
         openChat("o" + l.id + "_" + me, l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), () => true, () => contactAllowed(l));
     };
@@ -70,7 +70,7 @@ function openTruck(id) {
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openTruck(id));
     $("#close").onclick = closeSheet;
-    if ($("#mg")) $("#mg").onclick = () => { if(t._remote)return nakgoMessages.openListing(t.remoteId); if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
+    if ($("#mg")) $("#mg").onclick = () => { if(t._remote)return; if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
     $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
     $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid) });
     bindPhoneContact(t, true);
