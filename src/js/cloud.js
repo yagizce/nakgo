@@ -173,6 +173,7 @@ const nakgoAuth = (() => {
     const changed = () => { if (typeof nakgoMarket !== 'undefined') nakgoMarket.sync(snapshot()); if (tab === 'me' || tab === 'own' || (typeof ADMIN_HOST !== 'undefined' && ADMIN_HOST)) render(); };
     const message = error => ({
         invalid_credentials:'E-posta veya şifre doğru değil.',
+        wrong_current_password:'Mevcut şifren doğru değil.',
         email_not_confirmed:'Giriş yapmadan önce e-postandaki doğrulama bağlantısını aç.',
         over_email_send_rate_limit:'E-posta sınırına ulaşıldı. Bir süre sonra tekrar dene.',
         over_request_rate_limit:'Çok sık deneme yapıldı. Bir süre sonra tekrar dene.',
@@ -365,6 +366,16 @@ const nakgoAuth = (() => {
         // Keep the recovery gate until sign-out succeeds; do not leave a reset session active.
         await signOut();
     }
+    // Girişli kullanıcı şifre değiştirir: önce mevcut şifre aynı hesapla doğrulanır.
+    async function changePassword(current,next) {
+        const email=state.user?.email;
+        if(!email)throw Error('Session required');
+        const auth=requireClient().auth;
+        const check=await auth.signInWithPassword({email,password:current});
+        if(check.error)throw check.error.code==='invalid_credentials'?Object.assign(Error('wrong current'),{code:'wrong_current_password'}):check.error;
+        const {error}=await auth.updateUser({password:next});
+        if(error)throw error;
+    }
     async function signOut() {
         const {error} = await requireClient().auth.signOut({scope:'local'});
         if(error)throw error;
@@ -527,7 +538,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
+    return {adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
