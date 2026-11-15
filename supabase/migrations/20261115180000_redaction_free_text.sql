@@ -1,6 +1,6 @@
 -- Silinen hesaplarda ve 8 günlük temizlikte sahibin yazdığı serbest metin de silinir:
 -- loading_text ("yükleme zamanı" metni) yer tutucuya çevrilir (CHECK null'a izin vermez), ilçeler boşaltılır.
--- Hesap başına ilan sınırı: aynı anda en fazla 10 yayında ilan, 24 saatte en fazla 30 yeni ilan.
+-- Yasal saklama ve denetim kayıtları kuralları değişmez: yalnız bu üç alan listeye eklenir.
 begin;
 create or replace function private.erase_account(p_user uuid) returns void language plpgsql security definer set search_path='' as $$
 begin
@@ -80,18 +80,4 @@ alter table public.listings disable trigger listings_write_guard, disable trigge
 update public.listings set loading_text=case when loading_text is not null then 'Silindi' end,from_district=null,to_district=null
  where redacted_at is not null and (loading_text is distinct from case when loading_text is not null then 'Silindi' end or from_district is not null or to_district is not null);
 alter table public.listings enable trigger listings_write_guard, enable trigger moderation_listing;
-
-create function private.listing_quota() returns trigger language plpgsql security definer set search_path='' as $$
-begin
- if new.owner_id is null then return new; end if;
- -- Hesap başına tek kilit: eşzamanlı eklemeler sınırı aşamaz.
- perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(new.owner_id::text,7312));
- if (select count(*) from public.listings l where l.owner_id=new.owner_id and l.status='active' and l.expires_at>now())>=10 then
-  raise exception 'Listing limit' using errcode='54000'; end if;
- if (select count(*) from public.listings l where l.owner_id=new.owner_id and l.created_at>now()-interval '24 hours')>=30 then
-  raise exception 'Listing limit' using errcode='54000'; end if;
- return new;
-end $$;
-revoke all on function private.listing_quota() from public,anon,authenticated;
-create trigger listings_quota before insert on public.listings for each row execute function private.listing_quota();
 commit;

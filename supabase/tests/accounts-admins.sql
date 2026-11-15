@@ -15,13 +15,13 @@ begin
  end loop;
  perform set_config('request.jwt.claim.sub',u1::text,true);
  set local role authenticated;
- insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,loading_text,contact_phone,contact_consent,note)
-  values('load','Hakkari','Ardahan','Tır','Tenteli',1,'Paletli','Bir Kişi','bugün','+905551112233',true,'Not') returning id into l1;
+ insert into public.listings(kind,from_city,to_city,from_district,to_district,vehicle,body,amount,cargo,owner_label,loading_text,contact_phone,contact_consent,note)
+  values('load','Hakkari','Ardahan','Yüksekova','Göle','Tır','Tenteli',1,'Paletli','Bir Kişi','ara 0555 111 22 33','+905551112233',true,'Not') returning id into l1;
  reset role;
  insert into public.route_alerts(user_id,kind,from_city,to_city) values(u1,'load','Hakkari','Ardahan');
  perform set_config('request.jwt.claim.sub',u2::text,true);
  set local role authenticated;
- insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,loading_text) values('load','Hakkari','Kilis','Kamyon','Tenteli',1,'Yük','İki','bugün') returning id into l2;
+ insert into public.listings(kind,from_city,to_city,from_district,to_district,vehicle,body,amount,cargo,owner_label,loading_text) values('load','Hakkari','Kilis','Şemdinli','Elbeyli','Kamyon','Tenteli',1,'Yük','İki','yarın sabah') returning id into l2;
  reset role;
 
  perform set_config('request.jwt.claim.sub',admin::text,true);
@@ -70,6 +70,7 @@ begin
  perform public.nakgo_admin_moderate('user',u1::text,'delete','Kullanıcı talebi',0);
  if exists(select 1 from public.profiles where id=u1 and (display_name<>'Silinmiş hesap' or phone<>'' or city<>'' or about<>'')) then raise exception 'FAIL profile not erased'; end if;
  if exists(select 1 from public.listings where id=l1 and (contact_phone is not null or owner_label<>'NakGo kullanıcısı' or note<>'' or redacted_at is null or status='active')) then raise exception 'FAIL listing not erased'; end if;
+ if exists(select 1 from public.listings where id=l1 and (loading_text<>'Silindi' or from_district is not null or to_district is not null)) then raise exception 'FAIL listing free text not erased'; end if;
  if exists(select 1 from public.route_alerts where user_id=u1) then raise exception 'FAIL alerts kept'; end if;
  if exists(select 1 from auth.users where id=u1 and (email not like 'silindi-%@nakgo.invalid' or raw_user_meta_data<>'{}' or banned_until is null)) then raise exception 'FAIL auth not erased'; end if;
  if to_regclass('auth.identities') is not null then execute 'select count(*) from auth.identities where user_id=$1' into c using u1; if c::int<>0 then raise exception 'FAIL identity kept'; end if; end if;
@@ -89,6 +90,7 @@ begin
  reset role;
  if not exists(select 1 from private.account_moderation where user_id=u2 and deleted_by_self and deleted_at is not null) or exists(select 1 from public.profiles where id=u2 and display_name<>'Silinmiş hesap')
   or (select redacted_at from public.listings where id=l2) is null or not exists(select 1 from private.admin_audit where actor_id=u2 and action='self_delete') then raise exception 'FAIL self delete'; end if;
+ if exists(select 1 from public.listings where id=l2 and (loading_text<>'Silindi' or from_district is not null or to_district is not null)) then raise exception 'FAIL self delete free text kept'; end if;
  -- With a second administrator present, only the owner rule can block the owner.
  insert into auth.users(id,email_confirmed_at,email) values(u3,t0,'u4@example.test') on conflict(id) do nothing;
  insert into private.admin_members(user_id,active) values(u3,true) on conflict(user_id) do update set active=true;
