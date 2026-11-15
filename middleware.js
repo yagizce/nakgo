@@ -5,15 +5,18 @@ const ADMIN_HOST = 'admin.nakgolojistik.com';
 const TEAM = 'https://old-fog-1f24.cloudflareaccess.com';
 const AUD = 'fe6fcb2367a28ab23a3a7e8d0eadf365432ac808ffcb15620a1c1f1f68399778';
 // Vercel sertifikası yenilenirken bu yol Access'ten muaftır (Bypass uygulaması).
-const OPEN_PREFIX = '/.well-known/acme-challenge/';
+const OPEN_PATH = /^\/\.well-known\/acme-challenge\/[A-Za-z0-9_-]+$/;
 
 let cache = { keys: null, at: 0 };
+// Bilinmeyen kid ile zorla yenileme en fazla dakikada bir: sahte belgeler her istekte anahtar indirtemez.
+let forcedAt = 0;
 
 const b64url = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=')), c => c.charCodeAt(0));
 const json = s => JSON.parse(new TextDecoder().decode(b64url(s)));
 
 async function teamKeys(fetcher, force) {
-    if (!force && cache.keys && Date.now() - cache.at < 3600e3) return cache.keys;
+    if (cache.keys && (force ? Date.now() - forcedAt < 60e3 : Date.now() - cache.at < 3600e3)) return cache.keys;
+    if (force) forcedAt = Date.now();
     const res = await fetcher(TEAM + '/cdn-cgi/access/certs');
     if (!res.ok) throw new Error('certs ' + res.status);
     const keys = (await res.json()).keys;
@@ -56,7 +59,7 @@ export default async function middleware(request, _context, opts) {
     const url = new URL(request.url);
     const host = (request.headers.get('host') || url.host).toLowerCase().replace(/:\d+$/, '').replace(/\.$/, '');
     if (host !== ADMIN_HOST) return pass();
-    if (url.pathname.startsWith(OPEN_PREFIX)) return pass();
+    if (OPEN_PATH.test(url.pathname)) return pass();
     try {
         return (await verifyAccessToken(accessToken(request), opts)) ? pass() : deny();
     } catch {
@@ -64,4 +67,4 @@ export default async function middleware(request, _context, opts) {
     }
 }
 
-export function _resetKeyCache() { cache = { keys: null, at: 0 }; }
+export function _resetKeyCache() { cache = { keys: null, at: 0 }; forcedAt = 0; }

@@ -14,7 +14,8 @@ function build() {
   const logo = '<img class="tk" src="icons/brand-logo.png" width="576" height="538" alt="NakGo" fetchpriority="high">';
   const css = list(".css").map(f => read(f).trim()).join("\n\n");
   const js = list(".js").map(f => read(f).trim()).join("\n\n");
-  if (/<\/script/i.test(js)) throw new Error("JS içinde </script> geçemez");
+  if (/<\/script|<!--|<script/i.test(js)) throw new Error("JS içinde </script>, <script veya <!-- geçemez");
+  if (/<\/style/i.test(css)) throw new Error("CSS içinde </style> geçemez");
   return tpl.replaceAll("/*@BRAND@*/", () => brand).replaceAll("/*@LOGO@*/", () => logo).replaceAll("/*@SLOGAN@*/", () => slogan).replace("/*@CSS@*/", () => css).replace("/*@JS@*/", () => js);
 }
 
