@@ -9,8 +9,8 @@
   --mute:#5b6b69;
   --line:#e4ebea;
   --brand:#5ee0cf;
-  --brand-start:#5ee0cf;
-  --brand-end:#5ee0cf;
+  --brand-start:#45b8aa;
+  --brand-end:#8ee6da;
   --brand-strong:#3dd6c4;
   --brand-highlight:#7ee8da;
   --brand-soft:#e8f8f5;
@@ -18,8 +18,8 @@
   --on-brand:#062b27;
   --on-gradient-brand:#062b27;
   --accent:#5ee0cf;
-  --accent-start:#5ee0cf;
-  --accent-end:#5ee0cf;
+  --accent-start:#45b8aa;
+  --accent-end:#8ee6da;
   --accent-dark:#3dd6c4;
   --accent-highlight:#7ee8da;
   --on-accent:#062b27;
@@ -28,11 +28,11 @@
   --bad:#c0392b;
   --tag-bg:#eef3f2;
   --tag-ink:#0a6a60;
-  /* Açık turkuaz yüzeylerde metin koyudur. Geçişler tek renktir (görünüşte düz); kontrast testleri her durağa karşı ölçer. */
+  /* Turkuaz yüzeylerde metin koyudur. Tıklanan yüzeyler yumuşak geçişlidir, üst çubuk düzdür; kontrast testleri her durağa karşı ölçer. */
   --brand-fill:var(--brand);
-  --gradient-brand:linear-gradient(var(--brand),var(--brand));
+  --gradient-brand:linear-gradient(120deg,var(--brand-start),var(--brand-end));
   --gradient-brand-soft:linear-gradient(var(--brand-soft),var(--brand-soft));
-  --gradient-accent:linear-gradient(var(--accent),var(--accent));
+  --gradient-accent:linear-gradient(120deg,var(--accent-start),var(--accent-end));
   --app-gradient:var(--gradient-brand);
   /* Yükleri keşfet kartı: açık modda üst çubuktan bir ton açık turkuaz. */
   --hero-bg:color-mix(in srgb,var(--brand) 38%,#fff);
@@ -53,8 +53,8 @@
     --mute:#a7b6b7;
     --line:#304044;
     --brand:#5ee0cf;
-    --brand-start:#5ee0cf;
-    --brand-end:#5ee0cf;
+    --brand-start:#2fae9f;
+    --brand-end:#6fcfc3;
     --brand-strong:#3dd6c4;
     --brand-highlight:#7ee8da;
     --brand-soft:#2d4646;
@@ -63,8 +63,8 @@
     --on-brand-bad:#4b1812;
     --brand-fill:var(--brand);
     --accent:#5ee0cf;
-    --accent-start:#5ee0cf;
-    --accent-end:#5ee0cf;
+    --accent-start:#2fae9f;
+    --accent-end:#6fcfc3;
     --accent-dark:#3dd6c4;
     --accent-highlight:#7ee8da;
     --accent-ink:#7ee8da;
@@ -85,8 +85,8 @@
   --mute:#a7b6b7;
   --line:#304044;
   --brand:#5ee0cf;
-  --brand-start:#5ee0cf;
-  --brand-end:#5ee0cf;
+  --brand-start:#2fae9f;
+  --brand-end:#6fcfc3;
   --brand-strong:#3dd6c4;
   --brand-highlight:#7ee8da;
   --brand-soft:#2d4646;
@@ -95,8 +95,8 @@
   --on-brand-bad:#4b1812;
   --brand-fill:var(--brand);
   --accent:#5ee0cf;
-  --accent-start:#5ee0cf;
-  --accent-end:#5ee0cf;
+  --accent-start:#2fae9f;
+  --accent-end:#6fcfc3;
   --accent-dark:#3dd6c4;
   --accent-highlight:#7ee8da;
   --accent-ink:#7ee8da;
