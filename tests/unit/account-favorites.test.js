@@ -54,7 +54,7 @@ module.exports=({run})=>{
   r(setup+'window.reads=0;nakgoAuth.listFavorites=async()=>{window.reads++;throw Error("offline");};');await r('return nakgoFavorites.refresh()');
   r('nakgoFavorites.ensure();nakgoFavorites.ensure();');
   ok(r('return window.reads===1&&!nakgoFavorites.state().ready&&!!nakgoFavorites.state().error'),'error does not automatically loop or become a ready empty state');
-  ok(r('return profileToolsHTML().includes("Kayıtlar yüklenemedi")'),'profile does not claim zero before a successful read');
+  ok(r('return favoriteCaption()==="Kayıtlar yüklenemedi"'),'saved count does not claim zero before a successful read');
   r('nakgoAuth.listFavorites=async()=>[];');await r('return nakgoFavorites.refresh()');
   ok(r('return nakgoFavorites.state().ready&&nakgoFavorites.state().count===0&&!nakgoFavorites.state().error'),'explicit retry can confirm a real empty account');
  },{win:{}});

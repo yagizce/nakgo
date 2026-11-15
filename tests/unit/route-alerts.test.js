@@ -40,6 +40,6 @@ module.exports=({test,run,fs,path,ROOT})=>{
  });
  run('Misafir alarm kurmak isteyince hesap ister; demo alarmı değişmez',(r,ok)=>{
   ok(r("let asked=0;const g=nakgoMarket.guest,q=nakgoMarket.requireAccount;nakgoMarket.guest=()=>true;nakgoMarket.requireAccount=()=>{asked++;return false;};addAlert();openAlertForm();nakgoMarket.guest=g;nakgoMarket.requireAccount=q;return asked")===2,'misafir hesap açmaya yönlendirilir');
-  ok(r("tab='me';render();return main()").includes('Rota alarmlarım'),'profil kartı duruyor');
+  ok(r("tab='own';render();return main()").includes('Rota alarmlarım'),'İlanlarım sekmesinde alarm kartı duruyor');
  });
 };

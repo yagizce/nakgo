@@ -93,7 +93,7 @@ with sync_playwright() as p:
     # 7) İlan verme ve istatistik
     nav("post"); pg.click('[data-pm="load"]'); pg.click("#post-next"); pg.fill("#c", "Test yükü"); pg.fill("#w", "5"); pg.fill("#d", typed_day()); nav("list"); nav("post"); check("ilan taslağı sekmeler arasında korunur", pg.input_value("#c")=="Test yükü"); pg.reload(); pg.wait_for_timeout(300); nav("post"); check("ilan taslağı yenilemede korunur", pg.input_value("#c")=="Test yükü"); pg.click("#post-next"); pg.click("#go"); pg.wait_for_timeout(300)
     check("ilan yayınlanır", "İlan yayınlandı" in toast())
-    nav("me"); pg.wait_for_timeout(300)
+    nav("own"); pg.wait_for_timeout(300)
     check("İlanlarım'da yeni ilan ve istatistik satırı var", "görüntülenme" in pg.inner_text("#main") and pg.locator("[data-st2]").count() >= 1)
     pg.locator("[data-st2]").first.click(); pg.wait_for_selector("#sheet.open")
     check("istatistik penceresi açılır", "İlan performansı" in pg.inner_text("#sheetBody"))
@@ -104,10 +104,10 @@ with sync_playwright() as p:
     check("süre değişince fiyat değişir (" + p0 + " → " + p1 + ")", p0 != p1 and "99" in p1)
     pg.click('[data-fd="6"]'); pg.click("#fbuy"); pg.wait_for_timeout(300)
     check("öne çıkarma satın alınır", "öne çıkarıldı" in toast())
-    nav("me"); pg.wait_for_timeout(300); pg.locator("[data-st2]").first.click(); pg.wait_for_selector("#sheet.open")
+    nav("own"); pg.wait_for_timeout(300); pg.locator("[data-st2]").first.click(); pg.wait_for_selector("#sheet.open")
     check("istatistikte öne çıkarmanın etkisi görünür", "Öne çıkarmanın etkisi" in pg.inner_text("#sheetBody"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
-    check("profilde ilan yönetimi var", "İlanlarım" in pg.inner_text("#main"))
+    check("İlanlarım sekmesinde ilan yönetimi var", "İlanlarım" in pg.inner_text("#main"))
     nav("list"); pg.wait_for_timeout(300)
     check("öne çıkan ilan listenin başında ve etiketli", pg.locator(".load.feat").count() >= 1 and "Test yükü" in pg.locator(".load[data-id]").first.inner_text())
     pg.click('.seg [data-md="truck"]'); pg.wait_for_timeout(300)
@@ -145,7 +145,7 @@ with sync_playwright() as p:
     # 10) Dar ekranda taşma olmaması (320 px)
     pg.set_viewport_size({"width": 320, "height": 640}); pg.wait_for_timeout(200)
     over = []
-    for t in [t for t in ("list", "post", "mine", "me") if pg.locator(f"nav [data-t={t}]").count()]:
+    for t in [t for t in ("list", "post", "own", "me") if pg.locator(f"nav [data-t={t}]").count()]:
         nav(t); pg.wait_for_timeout(250)
         if pg.evaluate("document.documentElement.scrollWidth>window.innerWidth||document.querySelector('#main').scrollWidth>document.querySelector('#main').clientWidth+1||document.querySelector('header').scrollWidth>document.querySelector('header').clientWidth+1"): over.append(t)
     check("320 px genişlikte yatay taşma yok" + (f" (taşan: {over})" if over else ""), not over)
@@ -228,7 +228,7 @@ with sync_playwright() as p:
             check(prefix+"büyütülen haritada ilana dön erişilir",page.is_visible('#map-back') and page.evaluate("document.querySelector('#sheetBody').contains(document.activeElement)"))
             page.click('#map-back');check(prefix+"aynı araç ilanına iletişim işlemleriyle dönülür",page.inner_text('.detail-summary .route')==route and page.is_visible('#call') and page.is_visible('#mg') and page.locator('#map-back').count()==0)
             page.click('#close')
-            for screen in [t for t in ('list','post','mine','me') if page.locator(f'nav [data-t={t}]').count()]:
+            for screen in [t for t in ('list','post','own','me') if page.locator(f'nav [data-t={t}]').count()]:
                 page.click(f'nav [data-t={screen}]')
                 check(prefix+screen+" seçili menü belirtilir",page.get_attribute(f'nav [data-t={screen}]','aria-current')=='page')
                 check(prefix+screen+" yatay taşmaz",page.evaluate("document.documentElement.scrollWidth<=innerWidth&&document.querySelector('#main').scrollWidth<=document.querySelector('#main').clientWidth+1"))
