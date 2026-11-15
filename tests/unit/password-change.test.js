@@ -24,6 +24,7 @@ module.exports = ({test,fs,path,ROOT}) => {
         let code='';try{await ctx.auth.changePassword('wrong-password','new-password-456');}catch(e){code=e.code;}
         ok(code==='wrong_current_password'&&!patch,'yanlış mevcut şifrede yeni şifre yazılmaz');
         ok(ctx.auth.message({code})==='Mevcut şifren doğru değil.','anlaşılır hata mesajı');
+        ok(ctx.auth.message({code:'54000'}).includes('en fazla 10 yayında ilan'),'ilan sınırı hatası Türkçe gösterilir');
         let short='';try{await ctx.auth.changePassword('old-password-123','kisa123');}catch(e){short=e.code;}
         ok(short==='password_too_short'&&!patch&&ctx.auth.message({code:short})==='Şifre en az 10 karakter olmalı.','10 karakterden kısa yeni şifre reddedilir');
         await ctx.auth.changePassword('old-password-123','new-password-456');
