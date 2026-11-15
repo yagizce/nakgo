@@ -380,8 +380,9 @@ const nakgoAuth = (() => {
         const auth=requireClient().auth;
         const check=await auth.signInWithPassword({email,password:current});
         if(check.error)throw check.error.code==='invalid_credentials'?Object.assign(Error('wrong current'),{code:'wrong_current_password'}):check.error;
-        const {error}=await auth.updateUser({password:next});
-        if(error)throw error;
+        // current_password: Supabase "Require current password" açıkken sunucu da doğrular.
+        const {error}=await auth.updateUser({password:next,current_password:current});
+        if(error)throw /current password/i.test(error.message||'')?Object.assign(Error('wrong current'),{code:'wrong_current_password'}):error;
     }
     async function signOut() {
         const {error} = await requireClient().auth.signOut({scope:'local'});
