@@ -1373,10 +1373,6 @@ body.admin-host #main { padding:0; }
 .adm-live-dot i { width:10px; height:10px; border-radius:50%; background:#16a34a; box-shadow:0 0 0 0 rgba(22,163,74,.5); animation:adm-pulse 2s infinite; }
 @keyframes adm-pulse { 70% { box-shadow:0 0 0 9px rgba(22,163,74,0); } 100% { box-shadow:0 0 0 0 rgba(22,163,74,0); } }
 .adm-card-head .adm-seg { grid-template-columns:repeat(2,1fr); }
-.adm-map { width:100%; height:auto; display:block; }
-.adm-map .adm-dot { fill:color-mix(in srgb,var(--mute) 35%,transparent); }
-.adm-map .on circle { fill:color-mix(in srgb,var(--load) 55%,transparent); stroke:var(--load); stroke-width:2; }
-.adm-map text { fill:var(--ink); font:700 26px/1 inherit; paint-order:stroke; stroke:var(--card); stroke-width:5px; }
 .adm-feed { list-style:none; margin:0; padding:0; display:grid; }
 .adm-feed li { display:grid; grid-template-columns:72px auto minmax(0,1fr) auto; align-items:center; gap:4px 10px; padding:10px 0; border-top:1px solid var(--line); }
 .adm-feed li:first-child { border-top:0; }
@@ -1385,9 +1381,20 @@ body.admin-host #main { padding:0; }
 .adm-feed small { grid-column:3; color:var(--mute); }
 .adm-feed .adm-link { grid-column:4; grid-row:1; }
 @container adm (min-width:720px) { .adm .adm-live-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } }
-@container adm (min-width:1080px) { .adm .adm-live-kpis { grid-template-columns:repeat(6,minmax(0,1fr)); } .adm-live-map { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); } }
+@container adm (min-width:1080px) { .adm .adm-live-kpis { grid-template-columns:repeat(6,minmax(0,1fr)); } .adm-live-bottom { grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); align-items:start; } }
 /* Koyu görünüm yalnız Canlı sayfada ve kullanıcı seçerse; varsayılan açık temadır. */
 .adm.adm-dark { --bg:#0e0f11; --card:#17181b; --ink:#f4f4f5; --mute:#a1a1aa; --line:#2b2c31; --soft:#202125; --tag-bg:#25262a;
   --black:#f4f4f5; --on-black:#17181b; --brand:#f4f4f5; --brand-ink:#f4f4f5; --load:#22c55e; --truck:#60a5fa; color-scheme:dark; }
-.adm-live-map>.adm-card:first-child { display:flex; flex-direction:column; }
-.adm-live-map .adm-map { margin:auto 0; }
+.adm-map { width:100%; height:auto; display:block; --hue:var(--load); }
+.adm-map.is-to { --hue:var(--truck); }
+.adm-map path { fill:color-mix(in srgb,var(--mute) 16%,var(--card)); stroke:var(--card); stroke-width:1.4; stroke-linejoin:round; transition:fill .2s; }
+.adm-map path.on { fill:color-mix(in srgb,var(--hue) var(--lv),var(--card)); }
+.adm-map path:hover { stroke:var(--ink); stroke-width:2; }
+.adm-map text { fill:var(--ink); font:700 19px/1 inherit; paint-order:stroke; stroke:var(--card); stroke-width:4px; pointer-events:none; }
+.adm-map tspan { font-weight:800; }
+.adm-map-scale { display:flex; align-items:center; gap:10px; margin-top:6px; justify-content:flex-end; color:var(--mute); }
+.adm-map-scale i { width:110px; height:8px; border-radius:4px; background:linear-gradient(90deg,color-mix(in srgb,var(--load) 22%,var(--card)),var(--load)); }
+.adm-map.is-to + .adm-map-scale i { background:linear-gradient(90deg,color-mix(in srgb,var(--truck) 22%,var(--card)),var(--truck)); }
+.adm-live-ranks { display:grid; gap:inherit; align-content:start; }
+.adm-live-map .adm-map { max-width:1100px; margin:4px auto 0; }
+@container adm (max-width:600px) { .adm-map text { font-size:40px; stroke-width:7px; } }

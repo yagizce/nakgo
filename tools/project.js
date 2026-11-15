@@ -12,6 +12,7 @@ module.exports={root:path.resolve(__dirname,".."),js:[
   "src/js/features/account.js",
   "src/js/features/monetization.js",
   "src/js/features/road-map-data.js",
+  "src/js/features/tr-map-data.js",
   "src/js/ui/helpers.js",
   "src/js/ui/icons.js",
   "src/js/ui/map-controller.js",

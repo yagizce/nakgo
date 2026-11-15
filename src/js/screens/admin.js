@@ -393,15 +393,19 @@ async function openAdminPanel() {
                 const tick=labels[i]?'<text x="'+(i===n-1?x+bwid:i===0?x:x+bwid/2).toFixed(1)+'" y="'+(h-4)+'" text-anchor="'+(i===n-1?'end':i===0?'start':'middle')+'">'+esc(labels[i])+'</text>':'';
                 return '<g>'+rects+tick+(stack?'<title>'+esc(String(i).padStart(2,'0')+':00 · '+v[0]+' yük, '+v[1]+' boş araç, '+v[2]+' tıklama')+'</title>':'')+'</g>';}).join('')+'</svg>';
     }
-    // İl haritası: 81 il merkezi nokta; ilan çıkan/varılan iller sayıyla büyür. Kaba eşdikdörtgen izdüşüm (yalnız gösterim).
+    // İl haritası: 81 il sınırı (TR_MAP); il rengi o ildeki ilan sayısıyla koyulaşır, en yoğun 5 il yazılır.
+    // Çıkış yeşil (yük rengi), varış mavi (boş araç rengi). Harita verisi yoksa yalnız sıralama listeleri kalır.
     function liveMap(counts){
-        const ll=typeof LL==='object'&&LL?LL:{},pts=Object.entries(ll),w=1000,h=440,max=Math.max(1,...Object.values(counts).map(Number));
-        const xy=([lon,lat])=>[(lon-25.6)/19.3*960+20,(42.2-lat)/6.5*400+20];
-        const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(x=>x[0]);
-        const dots=pts.map(([name,ll])=>{const [x,y]=xy(ll),c=Number(counts[name])||0;
-            return c?'<g class="on"><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(7+Math.sqrt(c/max)*24).toFixed(1)+'"/><title>'+esc(name)+': '+c+' ilan</title></g>':'<circle class="adm-dot" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4"><title>'+esc(name)+'</title></circle>';}).join('');
-        const names=top.map(name=>ll[name]?(([x,y])=>'<text x="'+x.toFixed(1)+'" y="'+(y-12-Math.sqrt(counts[name]/max)*24).toFixed(1)+'" text-anchor="middle">'+esc(name)+' '+counts[name]+'</text>')(xy(ll[name])):'').join('');
-        return '<svg class="adm-map" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Bugün il bazında '+(liveSide==='from'?'çıkış':'varış')+' sayıları">'+dots+names+'</svg>';
+        const map=typeof TR_MAP==='object'&&TR_MAP?TR_MAP:null,ll=typeof LL==='object'&&LL?LL:{};
+        if(!map)return '<p class="adm-empty">Harita yüklenemedi.</p>';
+        const max=Math.max(1,...Object.values(counts).map(Number)),side=liveSide==='from'?'çıkış':'varış';
+        const xy=([lon,lat])=>[(lon-map.x0)*map.k*map.s+10,(map.y1-lat)*map.s+10];
+        const shapes=Object.entries(map.il).map(([name,d])=>{const c=Number(counts[name])||0,level=c?Math.round(22+Math.sqrt(c/max)*78):0;
+            return '<path d="'+d+'"'+(c?' class="on" style="--lv:'+level+'%"':'')+'><title>'+esc(name)+': '+(c?c+' ilan':'ilan yok')+'</title></path>';}).join('');
+        const names=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5).filter(([name])=>ll[name]).map(([name,c])=>{const [x,y]=xy(ll[name]);
+            return '<text x="'+x.toFixed(1)+'" y="'+(y+8).toFixed(1)+'" text-anchor="middle">'+esc(name)+' <tspan>'+num(c)+'</tspan></text>';}).join('');
+        return '<svg class="adm-map '+(liveSide==='from'?'is-from':'is-to')+'" viewBox="0 0 '+map.w+' '+map.h+'" role="img" aria-label="Bugün il bazında '+side+' sayıları">'+shapes+names+'</svg>'+
+            '<p class="adm-legend adm-map-scale"><span>Az</span><i aria-hidden="true"></i><span>Çok '+side+'</span></p>';
     }
     function liveHTML(){
         const L=live||{},hours=Array.isArray(L.hours)?L.hours:[],minutes=Array.isArray(L.minutes)?L.minutes:[];
@@ -418,13 +422,13 @@ async function openAdminPanel() {
         const charts='<div class="adm-duo"><section class="adm-card"><div class="adm-card-head"><h2>Son 60 dakika</h2><small>Dakikalık yeni '+what+'</small></div>'+liveBars(minutes.map(Number),{labels:minuteLabels,title:'Son 60 dakikada dakikalık yeni ilan'})+'</section>'+
             '<section class="adm-card"><div class="adm-card-head"><h2>Bugün saat saat</h2><small>'+num(clicks)+' tıklama</small></div>'+liveBars(hours.map(x=>[Number(x.loads)||0,Number(x.trucks)||0,Number(x.clicks)||0]),{labels:hours.map(x=>x.h%6===0||x.h===23?String(x.h).padStart(2,'0'):''),title:'Bugün saatlik ilan',stack:true})+'<p class="adm-legend"><i class="b-load"></i>Yük <i class="b-truck"></i>Boş araç</p></section></div>';
         const counts=(liveSide==='from'?L.from_cities:L.to_cities)||{},top=c=>Object.entries(c||{}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,count])=>({name,count}));
-        const map='<section class="adm-card"><div class="adm-card-head"><h2>Bugün il haritası</h2>'+seg('data-admin-live-side',liveSide,[['from','Çıkış'],['to','Varış']])+'</div>'+liveMap(counts)+'</section>';
-        const ranks='<div class="adm-duo"><section class="adm-card"><div class="adm-card-head"><h2>En çok ilan çıkan iller</h2><small>Bugün</small></div>'+rank(top(L.from_cities),'ilan')+'</section>'+
-            '<section class="adm-card"><div class="adm-card-head"><h2>En çok gidilen iller</h2><small>Bugün</small></div>'+rank(top(L.to_cities),'ilan')+'</section></div>';
+        const map='<section class="adm-card adm-live-map"><div class="adm-card-head"><h2>Bugün il haritası</h2>'+seg('data-admin-live-side',liveSide,[['from','Çıkış'],['to','Varış']])+'</div>'+liveMap(counts)+'</section>';
+        const ranks='<section class="adm-card"><div class="adm-card-head"><h2>En çok ilan çıkan iller</h2><small>Bugün</small></div>'+rank(top(L.from_cities),'ilan')+'</section>'+
+            '<section class="adm-card"><div class="adm-card-head"><h2>En çok gidilen iller</h2><small>Bugün</small></div>'+rank(top(L.to_cities),'ilan')+'</section>';
         const recent=Array.isArray(L.recent)?L.recent:[];
         const feed='<section class="adm-card"><div class="adm-card-head"><h2>Son ilanlar</h2><small>Son 24 saat · en yeni üstte</small></div>'+(recent.length?'<ol class="adm-feed">'+recent.map(r=>
             '<li><span class="t">'+esc(ago(r.created_at))+'</span>'+pill(kindText(r.kind),r.kind==='load'?'ok':'brand')+'<b>'+esc(r.from_city||'?')+' → '+esc(r.to_city||'?')+'</b><small>'+esc(r.vehicle||'')+'</small><button class="adm-link" type="button" data-admin-live-open="'+esc(String(r.id))+'">#'+esc(String(r.id))+'</button></li>').join('')+'</ol>':'<p class="adm-empty">Son 24 saatte ilan yok.</p>')+'</section>';
-        return head+kpis+charts+'<div class="adm-duo adm-live-map">'+map+feed+'</div>'+ranks;
+        return head+kpis+charts+map+'<div class="adm-duo adm-live-bottom">'+feed+'<div class="adm-live-ranks">'+ranks+'</div></div>';
     }
     function scheduleLive(){
         if(typeof setTimeout!=='function')return;

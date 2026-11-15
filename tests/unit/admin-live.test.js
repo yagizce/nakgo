@@ -10,7 +10,7 @@ module.exports=({test,fs,path,ROOT})=>{
   const store=new Map(),overview={users:3,listings:2,listing_states:{all:2}};
   const ctx={nakgoMarket:{active:()=>true,token:()=>'admin'},console,esc:s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]),
    nakgoAuth:{adminPage:async section=>section==='overview'?overview:[],adminLive},
-   cities:['İzmir','Manisa'],vehicles:['Tır'],bodies:['Tenteli'],LL:{'İzmir':[27.14,38.42],'Manisa':[27.43,38.61],'Hakkari':[43.74,37.58]},
+   cities:['İzmir','Manisa'],vehicles:['Tır'],bodies:['Tenteli'],TR_MAP:{w:100,h:50,x0:25,y1:42,k:.78,s:10,il:{'İzmir':'M0 0l1 1z','Manisa':'M1 1l1 1z','Hakkari':'M2 2l1 1z'}},LL:{'İzmir':[27.14,38.42],'Manisa':[27.43,38.61],'Hakkari':[43.74,37.58]},
    localStorage:{getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v)},
    setTimeout:(fn,ms)=>{timers.push([fn,ms]);return timers.length;},clearTimeout(){},
    closeSheet(){body.dataset.k='';},
@@ -34,7 +34,7 @@ module.exports=({test,fs,path,ROOT})=>{
   ok(calls[0]===''&&html.includes('Ara tıklaması')&&html.includes('WhatsApp tıklaması'),'tüm ilanlar için özet ve tıklama kartları');
   ok(html.includes('>5<')&&html.includes('>9<')&&html.includes('Dün bu saate göre +50%'),'sayılar ve düne göre değişim gösterilir');
   ok(html.includes('İzmir → Manisa')&&html.includes('data-admin-live-open="41"'),'son ilanlar akışı');
-  ok(html.includes('class="adm-map"')&&html.includes('İzmir: 3 ilan')&&html.includes('Hakkari: 1 ilan'),'il haritası çıkış sayılarını çizer');
+  ok(html.includes('class="adm-map is-from"')&&html.includes('İzmir: 3 ilan')&&html.includes('Hakkari: 1 ilan')&&html.includes('Manisa: ilan yok'),'il haritası her ili çizer, çıkış sayılarını renklendirir');
   ok(!html.includes('adm-dark'),'varsayılan açık görünüm');
   ok(h.timers.length===1&&h.timers[0][1]===30000,'30 saniyede bir yenilenir');
   await h.click('data-admin-live-side','to');
@@ -58,6 +58,15 @@ module.exports=({test,fs,path,ROOT})=>{
   await h.ctx.openAdminPanel();await h.click('data-admin-section','live');
   ok(h.body.innerHTML.includes('Canlı veriler alınamadı')&&!h.body.innerHTML.includes('Ara tıklaması'),'hata ekranı, sayı yok');
   ok(h.timers.length===0,'hatada yenileme kurulmaz');
+  return out;
+ });
+ test('Canlı harita verisi 81 ilin tamamını uygulamadaki il adlarıyla içerir',()=>{
+  const read=f=>fs.readFileSync(path.join(ROOT,f),'utf8');
+  const LL=JSON.parse(read('src/js/config.js').match(/const LL = (\{[^;]*\});/)[1]),map={il:JSON.parse(read('src/js/features/tr-map-data.js').match(/il:(\{.*\})\};/)[1])};
+  const names=Object.keys(map.il),out=[];
+  out.push([names.length===81&&names.every(n=>LL[n])&&Object.keys(LL).every(n=>map.il[n]),'81 il, adlar birebir']);
+  out.push([names.every(n=>/^M[-\d lz M]+$/.test(map.il[n])),'yollar yalnız sayı ve çizim komutu içerir']);
+  out.push([/Natural Earth/.test(read('src/js/features/tr-map-data.js')),'veri kaynağı yazılı']);
   return out;
  });
  test('Ara ve WhatsApp tıklaması kanal bilgisiyle sunucuya gider',()=>{
