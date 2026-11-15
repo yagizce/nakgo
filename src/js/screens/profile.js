@@ -29,18 +29,16 @@ function profileIdentityHTML(own,name) {
 
 function profileToolsHTML() {
     // Uygulama içi mesajlaşma kapalı: iletişim ilan detayındaki Ara ve WhatsApp ile yapılır.
-    // Mazot kartı son hesaplanan toplam gideri gösterir; değerler yalnız bu cihazda tutulur.
-    const last=fuelEstimate(calc);
+    // Yol haritası ve mazot kartları aynı yapıda: ikon, tek satır başlık, kısa açıklama, ok.
     return `<div class="profile-shortcuts">
         <button class="profile-tool road-tool" id="profile-map">
             <span class="profile-tool-icon">${uiIcon('map')}</span>
             <span class="profile-tool-copy"><b>Yol haritası</b><small>Türkiye'nin yollarını keşfet</small></span>
             ${uiIcon('arrow')}
         </button>
-        <button class="profile-tool wide-tool fuel-tool" id="profile-fuel">
+        <button class="profile-tool road-tool fuel-tool" id="profile-fuel">
             <span class="profile-tool-icon">${uiIcon('fuel')}</span>
-            <span class="profile-tool-copy"><b>Mazot ve gider hesaplama</b><small>Mesafe, tüketim ve mazot fiyatıyla sefer giderini çıkar</small></span>
-            ${last?`<span class="tool-figure"><small>Son hesap</small><b>${fmt(Math.round(last.total))}</b><small>${last.distance.toLocaleString('tr-TR')} km</small></span>`:''}
+            <span class="profile-tool-copy"><b>Mazot ve gider hesaplama</b><small>Sefer giderini önceden hesapla</small></span>
             ${uiIcon('arrow')}
         </button>
     </div>`;

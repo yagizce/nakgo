@@ -2537,11 +2537,13 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .wide-tool b { display:block; font-size:15px; }
 .wide-tool small { display:block; margin-top:3px; font-size:11.5px; line-height:1.35; }
 .wide-tool>svg:last-child { flex:none; color:var(--mute); }
-.fuel-tool { border-color:color-mix(in srgb,var(--accent) 45%,var(--line)); background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 14%,var(--card)),var(--card) 70%); }
-.fuel-tool .profile-tool-icon { background:var(--gradient-accent); color:var(--on-accent); }
-.tool-figure { display:flex; flex-direction:column; align-items:flex-end; flex:none; text-align:right; }
-.tool-figure b { font-size:16px; white-space:nowrap; }
-.tool-figure small { margin:0; font-size:10.5px; }
+.profile-tool.road-tool { min-height:76px; box-sizing:border-box; border:0; background-origin:border-box; }
+.road-tool b { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.road-tool>svg:last-child { flex:none; }
+.profile-tool.fuel-tool { background:var(--gradient-accent); color:var(--on-accent); }
+.fuel-tool .profile-tool-icon { background:color-mix(in srgb,var(--on-accent) 12%,transparent); color:var(--on-accent); }
+.fuel-tool small { color:var(--on-accent); opacity:.82; }
+.profile-cover+.profile-shortcuts { margin-top:12px; }
 .profile-group h2 { font-size:16px; margin:22px 2px 12px; }
 .profile-info { cursor:default; padding:16px; }
 .profile-info label:first-child { margin-top:0; }
@@ -6107,18 +6109,16 @@ function profileIdentityHTML(own,name) {
 
 function profileToolsHTML() {
     // Uygulama içi mesajlaşma kapalı: iletişim ilan detayındaki Ara ve WhatsApp ile yapılır.
-    // Mazot kartı son hesaplanan toplam gideri gösterir; değerler yalnız bu cihazda tutulur.
-    const last=fuelEstimate(calc);
+    // Yol haritası ve mazot kartları aynı yapıda: ikon, tek satır başlık, kısa açıklama, ok.
     return `<div class="profile-shortcuts">
         <button class="profile-tool road-tool" id="profile-map">
             <span class="profile-tool-icon">${uiIcon('map')}</span>
             <span class="profile-tool-copy"><b>Yol haritası</b><small>Türkiye'nin yollarını keşfet</small></span>
             ${uiIcon('arrow')}
         </button>
-        <button class="profile-tool wide-tool fuel-tool" id="profile-fuel">
+        <button class="profile-tool road-tool fuel-tool" id="profile-fuel">
             <span class="profile-tool-icon">${uiIcon('fuel')}</span>
-            <span class="profile-tool-copy"><b>Mazot ve gider hesaplama</b><small>Mesafe, tüketim ve mazot fiyatıyla sefer giderini çıkar</small></span>
-            ${last?`<span class="tool-figure"><small>Son hesap</small><b>${fmt(Math.round(last.total))}</b><small>${last.distance.toLocaleString('tr-TR')} km</small></span>`:''}
+            <span class="profile-tool-copy"><b>Mazot ve gider hesaplama</b><small>Sefer giderini önceden hesapla</small></span>
             ${uiIcon('arrow')}
         </button>
     </div>`;
