@@ -28,6 +28,19 @@ Faaliyet yazmaları ve hesap askıya alma advisory transaction lock ile sıralan
 İlan moderasyonu ilan satırını kilitler; durum ve audit aynı transaction içindedir.
 Var olan işler/görüşmeler silinmez. İstemci audit tablosuna doğrudan yazamaz.
 
+## Canlı sayfa
+
+- `nakgo_admin_live(p_kind)` yalnız yöneticiye bugünün (Türkiye saati) sayılarını,
+  son 60 dakika ve saatlik dağılımı, il bazında çıkış/varış sayılarını ve son 24
+  saatin isimsiz ilan özetini (no, tür, güzergâh, araç, saat) verir. Sahip adı ve
+  telefon gelmez. Sayfa 30 saniyede bir yenilenir; sekme gizliyken istek atılmaz.
+- Ara/WhatsApp tıklaması, `nakgo_listing_contact(p_id,p_channel)` numarayı başka
+  doğrulanmış hesaba gerçekten verdiğinde `private.contact_clicks` tablosunda saatlik
+  sayılır. Tabloda hesap, ilan, telefon veya IP yoktur. Kendi ilanı ve reddedilen
+  istekler sayılmaz. Aynı kişinin tekrar tıklaması da sayılır (tekil kişi sayımı yok).
+- Migration (`20261115075953_admin_live.sql`) istemciden önce uygulanmalıdır;
+  yeni istemci `p_channel` gönderir.
+
 ## DEV kurulumu
 
 Sırayla 20261026010000_admin_panel.sql ve 20261026020000_admin_moderation.sql

@@ -87,7 +87,7 @@ function bindPhoneContact(item, isTruck) {
         if (!availableListing(item, isTruck)) return toast("İlanın süresi doldu");
         const account = nakgoMarket.token();
         try {
-            const n = normalizeListingPhone(await nakgoAuth.listingContact(item.remoteId));
+            const n = normalizeListingPhone(await nakgoAuth.listingContact(item.remoteId, channel));
             if (account !== nakgoMarket.token()) return;
             if (!n) return toast("Bu ilanda paylaşılan bir telefon numarası yok.");
             if (!isTruck) track("c", item.id);

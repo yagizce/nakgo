@@ -432,7 +432,8 @@ const nakgoAuth = (() => {
         if(!Object.keys(values).length)throw Error('No editable fields');
         return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
     }
-    async function listingContact(id){const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');return listingResult(await requireClient().rpc('nakgo_listing_contact',{p_id:id}),account);}
+    // channel: 'call' veya 'whatsapp'; yalnız sayım içindir, sunucu kişi bilgisi tutmaz.
+    async function listingContact(id,channel){const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');const counted=channel==='call'||channel==='whatsapp';return listingResult(await (counted?requireClient().rpc('nakgo_listing_contact',{p_id:id,p_channel:channel}):requireClient().rpc('nakgo_listing_contact',{p_id:id})),account);}
     async function listFavorites({before=null,details=false}={}) {
         const account=listingAccount();
         let q=requireClient().from('listing_favorites').select(details?'listing_id,listing:listings('+listingColumns+')':'listing_id')
@@ -508,6 +509,7 @@ const nakgoAuth = (() => {
     }
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
     async function adminPage(section,offset=0,search='',filter='',query=null){const account=listingAccount(),args={p_section:section,p_offset:offset,p_search:search};if(filter)args.p_filter=filter;if(query&&typeof query==='object'&&Object.keys(query).length)args.p_query=query;return messageResult(requireClient().rpc('nakgo_admin_page',args),account);}
+    async function adminLive(kind=''){const account=listingAccount();if(!['','load','truck'].includes(kind))throw Error('Invalid kind');return messageResult(requireClient().rpc('nakgo_admin_live',{p_kind:kind}),account);}
     // Hesap silme: sunucu kişisel bilgileri hemen siler; ardından bu cihazdaki oturum kapatılır.
     async function deleteMyAccount(){
         if(!state.user||state.recovery)throw Error('Sign in required');
@@ -520,7 +522,7 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,deleteMyAccount,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
+    return {adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,init,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,listConversations,listMessages,openConversation,sendMessage,readConversation,unreadMessages};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.

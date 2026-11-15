@@ -1232,7 +1232,7 @@ html.admin-host,html.admin-host body,body.admin-host .sheet { background:#eceff0
 /* Yönetici sitesinde uygulama açılışı ve başlığı ilk karede bile çizilmez (sınıf sayfa başındaki küçük betikle eklenir). */
 html.admin-host .splash,html.admin-host header { display:none !important; }
 /* Menü: beyaz yüzey, seçili bölüm siyah. */
-.adm .adm-nav { background:var(--card); border-bottom:1px solid var(--line); grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; padding:8px; position:static; }
+.adm .adm-nav { background:var(--card); border-bottom:1px solid var(--line); grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; padding:8px; position:static; }
 .adm .adm-nav-btn { color:var(--mute); border-radius:10px; font-weight:600; min-height:60px; padding:8px 4px; gap:5px; font-size:12.5px; line-height:1.2; }
 .adm .adm-nav-btn:hover { color:var(--ink); background:var(--soft); }
 .adm .adm-nav-btn[aria-pressed="true"] { background:var(--black); color:var(--on-black); box-shadow:none; }
@@ -1365,3 +1365,36 @@ body.admin-host #main { padding:0; }
 /* Tablo işlem sütunu kırılmaz. */
 .adm .adm-row .c-act > * { white-space:nowrap; }
 @container adm (min-width:720px) { .adm .adm-row .c-act { gap:10px; } }
+/* Canlı sayfa: üst şerit, 6 özet kartı, dakikalık/saatlik grafik, il haritası ve son ilanlar akışı. */
+.adm-live-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; }
+.adm-live-head>div:first-child { flex:1 1 220px; min-width:0; }
+.adm-live-head small { color:var(--mute); font-size:12.5px; }
+.adm-live-dot { margin:0; display:flex; align-items:center; gap:8px; font-weight:800; font-size:17px; }
+.adm-live-dot i { width:10px; height:10px; border-radius:50%; background:#16a34a; box-shadow:0 0 0 0 rgba(22,163,74,.5); animation:adm-pulse 2s infinite; }
+@keyframes adm-pulse { 70% { box-shadow:0 0 0 9px rgba(22,163,74,0); } 100% { box-shadow:0 0 0 0 rgba(22,163,74,0); } }
+.adm-card-head .adm-seg { grid-template-columns:repeat(2,1fr); }
+.adm-feed { list-style:none; margin:0; padding:0; display:grid; }
+.adm-feed li { display:grid; grid-template-columns:72px auto minmax(0,1fr) auto; align-items:center; gap:4px 10px; padding:10px 0; border-top:1px solid var(--line); }
+.adm-feed li:first-child { border-top:0; }
+.adm-feed .t { color:var(--mute); font-size:12.5px; }
+.adm-feed b { overflow-wrap:anywhere; }
+.adm-feed small { grid-column:3; color:var(--mute); }
+.adm-feed .adm-link { grid-column:4; grid-row:1; }
+@container adm (min-width:720px) { .adm .adm-live-kpis { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@container adm (min-width:1080px) { .adm .adm-live-kpis { grid-template-columns:repeat(6,minmax(0,1fr)); } .adm-live-bottom { grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); align-items:start; } }
+/* Koyu görünüm yalnız Canlı sayfada ve kullanıcı seçerse; varsayılan açık temadır. */
+.adm.adm-dark { --bg:#0e0f11; --card:#17181b; --ink:#f4f4f5; --mute:#a1a1aa; --line:#2b2c31; --soft:#202125; --tag-bg:#25262a;
+  --black:#f4f4f5; --on-black:#17181b; --brand:#f4f4f5; --brand-ink:#f4f4f5; --load:#22c55e; --truck:#60a5fa; color-scheme:dark; }
+.adm-map { width:100%; height:auto; display:block; --hue:var(--load); }
+.adm-map.is-to { --hue:var(--truck); }
+.adm-map path { fill:color-mix(in srgb,var(--mute) 16%,var(--card)); stroke:var(--card); stroke-width:1.4; stroke-linejoin:round; transition:fill .2s; }
+.adm-map path.on { fill:color-mix(in srgb,var(--hue) var(--lv),var(--card)); }
+.adm-map path:hover { stroke:var(--ink); stroke-width:2; }
+.adm-map text { fill:var(--ink); font:600 14px/1 inherit; paint-order:stroke; stroke:var(--card); stroke-width:3px; stroke-linejoin:round; pointer-events:none; }
+.adm-map tspan { font-weight:800; }
+.adm-map-scale { display:flex; align-items:center; gap:10px; margin-top:6px; justify-content:flex-end; color:var(--mute); }
+.adm-map-scale i { width:110px; height:8px; border-radius:4px; background:linear-gradient(90deg,color-mix(in srgb,var(--load) 22%,var(--card)),var(--load)); }
+.adm-map.is-to + .adm-map-scale i { background:linear-gradient(90deg,color-mix(in srgb,var(--truck) 22%,var(--card)),var(--truck)); }
+.adm-live-ranks { display:grid; gap:inherit; align-content:start; }
+.adm-live-map .adm-map { max-width:1100px; margin:4px auto 0; }
+@container adm (max-width:600px) { .adm-map text { font-size:24px; stroke-width:5px; } }
