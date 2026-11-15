@@ -22,9 +22,9 @@ function profileIdentityHTML(own,name) {
             <div class="profile-caption">${(profile ? profile.account_type : role)==='owner'?'Yük sahibi':(profile && !profile.account_type ? 'Hesabım' : 'Taşıyıcı')}${(profile ? profile.city : myCar.city)?' · '+esc(profile ? profile.city : myCar.city):''}</div>
         </div>
     </div>
-    <div class="stat profile-stats">
-        <div><b>${own}</b><span>Aktif ilanım</span></div>
-    </div>`;
+    <button class="stat profile-stats profile-own-link" id="profile-own" type="button" aria-label="${own} aktif ilan, İlanlarım sekmesini aç">
+        <div><b>${own}</b><span>Aktif ilanım · İlanlarım'da yönet</span></div>
+    </button>`;
 }
 
 function profileToolsHTML() {
@@ -90,6 +90,7 @@ function renderProfile(main) {
         }
     };
     $('#profile-fuel').onclick=()=>openCalc();
+    if($('#profile-own'))$('#profile-own').onclick=()=>{tab='own';setNav();render();$('#main').scrollTop=0;};
     $('#profile-map').onclick=()=>openRoadMap();
 }
 

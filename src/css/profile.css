@@ -107,3 +107,5 @@
 }
 
 .admin-tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+.profile-own-link { width:100%; font:inherit; text-align:inherit; cursor:pointer; }
+.profile-own-link:focus-visible { outline:2px solid var(--brand-ink); outline-offset:2px; }
