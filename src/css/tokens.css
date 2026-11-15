@@ -3,37 +3,40 @@
 /* ----- Renk ve tema değişkenleri (açık/koyu tema) ----- */
 
 :root {
-  --bg:#f3f7f6;
+  --bg:#f8fafa;
   --card:#fff;
-  --ink:#183034;
-  --mute:#627477;
-  --line:#d9e3e1;
-  --brand:#29aaa0;
-  --brand-start:#188d86;
-  --brand-end:#74d8cc;
-  --brand-strong:#259e95;
-  --brand-highlight:#65c9bb;
-  --brand-soft:#e2f1ec;
-  --brand-ink:#176a64;
-  --on-brand:#102527;
-  --on-gradient-brand:#031513;
-  --accent:#e4b646;
-  --accent-start:#be811d;
-  --accent-end:#f4d77a;
-  --accent-dark:#c99434;
-  --accent-highlight:#f1d68b;
-  --on-accent:#2b240b;
-  --accent-ink:#806716;
+  --ink:#0b1f1d;
+  --mute:#5b6b69;
+  --line:#e4ebea;
+  --brand:#5ee0cf;
+  --brand-start:#5ee0cf;
+  --brand-end:#5ee0cf;
+  --brand-strong:#3dd6c4;
+  --brand-highlight:#7ee8da;
+  --brand-soft:#e8f8f5;
+  --brand-ink:#0a6a60;
+  --on-brand:#062b27;
+  --on-gradient-brand:#062b27;
+  --accent:#5ee0cf;
+  --accent-start:#5ee0cf;
+  --accent-end:#5ee0cf;
+  --accent-dark:#3dd6c4;
+  --accent-highlight:#7ee8da;
+  --on-accent:#062b27;
+  --accent-ink:#0a6a60;
   --ok:#1f7a4d;
   --bad:#c0392b;
-  --tag-bg:#f1f7f5;
-  --tag-ink:#176a64;
-  /* Aydınlık, mat marka yüzeylerinde koyu metin kontrastı korunur. */
+  --tag-bg:#eef3f2;
+  --tag-ink:#0a6a60;
+  /* Açık turkuaz yüzeylerde metin koyudur. Geçişler tek renktir (görünüşte düz); kontrast testleri her durağa karşı ölçer. */
   --brand-fill:var(--brand);
-  --gradient-brand:linear-gradient(120deg,var(--brand-start) 0%,var(--brand) 55%,var(--brand-end) 100%);
-  --gradient-brand-soft:linear-gradient(100deg,var(--tag-bg) 0%,var(--brand-soft) 45%,color-mix(in srgb,var(--brand) 20%,var(--card)) 100%);
-  --gradient-accent:linear-gradient(120deg,var(--accent-start) 10%,var(--accent) 60%,var(--accent-end) 100%);
+  --gradient-brand:linear-gradient(var(--brand),var(--brand));
+  --gradient-brand-soft:linear-gradient(var(--brand-soft),var(--brand-soft));
+  --gradient-accent:linear-gradient(var(--accent),var(--accent));
   --app-gradient:var(--gradient-brand);
+  /* Yükleri keşfet kartı: açık modda üst çubuktan bir ton açık turkuaz. */
+  --hero-bg:color-mix(in srgb,var(--brand) 38%,#fff);
+  --hero-field:var(--card);
   --accent-soft:var(--accent-highlight);
   --brand-overlay:color-mix(in srgb,var(--card) 8%,transparent);
   --brand-edge:color-mix(in srgb,var(--on-brand) 24%,transparent);
@@ -49,26 +52,28 @@
     --ink:#edf4f3;
     --mute:#a7b6b7;
     --line:#304044;
-    --brand:#43bfb4;
-    --brand-start:#218e86;
-    --brand-end:#8ad9cd;
-    --brand-strong:#3bb2a8;
-    --brand-highlight:#78d2c4;
+    --brand:#5ee0cf;
+    --brand-start:#5ee0cf;
+    --brand-end:#5ee0cf;
+    --brand-strong:#3dd6c4;
+    --brand-highlight:#7ee8da;
     --brand-soft:#2d4646;
-    --brand-ink:#79cbc4;
-    --on-brand:#102527;
+    --brand-ink:#7ee8da;
+    --on-brand:#062b27;
     --on-brand-bad:#4b1812;
     --brand-fill:var(--brand);
-    --accent:#d1b05a;
-    --accent-start:#b48733;
-    --accent-end:#edd28b;
-    --accent-dark:#b18b42;
-    --accent-highlight:#e4c982;
-    --accent-ink:#d0b76f;
+    --accent:#5ee0cf;
+    --accent-start:#5ee0cf;
+    --accent-end:#5ee0cf;
+    --accent-dark:#3dd6c4;
+    --accent-highlight:#7ee8da;
+    --accent-ink:#7ee8da;
     --ok:#71b791;
     --bad:#e8998d;
     --tag-bg:#253638;
     --tag-ink:#a1cbc6;
+    --hero-bg:color-mix(in srgb,var(--brand) 85%,#152123);
+    --hero-field:#1b2a2d;
     --shadow:0 6px 20px rgba(0,0,0,.14);
   }
 }
@@ -79,26 +84,28 @@
   --ink:#edf4f3;
   --mute:#a7b6b7;
   --line:#304044;
-  --brand:#43bfb4;
-  --brand-start:#218e86;
-  --brand-end:#8ad9cd;
-  --brand-strong:#3bb2a8;
-  --brand-highlight:#78d2c4;
+  --brand:#5ee0cf;
+  --brand-start:#5ee0cf;
+  --brand-end:#5ee0cf;
+  --brand-strong:#3dd6c4;
+  --brand-highlight:#7ee8da;
   --brand-soft:#2d4646;
-  --brand-ink:#79cbc4;
-  --on-brand:#102527;
+  --brand-ink:#7ee8da;
+  --on-brand:#062b27;
   --on-brand-bad:#4b1812;
   --brand-fill:var(--brand);
-  --accent:#d1b05a;
-  --accent-start:#b48733;
-  --accent-end:#edd28b;
-  --accent-dark:#b18b42;
-  --accent-highlight:#e4c982;
-  --accent-ink:#d0b76f;
+  --accent:#5ee0cf;
+  --accent-start:#5ee0cf;
+  --accent-end:#5ee0cf;
+  --accent-dark:#3dd6c4;
+  --accent-highlight:#7ee8da;
+  --accent-ink:#7ee8da;
   --ok:#71b791;
   --bad:#e8998d;
   --tag-bg:#253638;
   --tag-ink:#a1cbc6;
+  --hero-bg:color-mix(in srgb,var(--brand) 85%,#152123);
+  --hero-field:#1b2a2d;
   --shadow:0 6px 20px rgba(0,0,0,.14);
 }
 
@@ -119,7 +126,7 @@ body {
   height:100%;
   background:var(--bg);
   color:var(--ink);
-  font-family:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-family:'Geist',system-ui,-apple-system,'Segoe UI',sans-serif;
   display:flex;
   justify-content:center;
   font-variant-numeric:tabular-nums;
@@ -148,7 +155,7 @@ select {
   border-radius:12px;
   background:var(--card);
   color:var(--ink);
-  font:500 16px 'Archivo',sans-serif;
+  font:500 16px 'Geist',sans-serif;
   outline:none;
 }
 
