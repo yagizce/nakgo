@@ -77,7 +77,7 @@ revoke all on function private.storage_activity_guard() from public,anon,authent
 create function public.nakgo_storage_cleanup_pending(p_limit integer default 100) returns table(bucket_id text,object_path text)
 language sql stable security definer set search_path='' as $$
  select c.bucket_id,c.object_path from private.storage_cleanup c where c.done_at is null
- order by c.queued_at limit least(greatest(coalesce(p_limit,100),1),1000)
+ order by c.attempts,c.queued_at limit least(greatest(coalesce(p_limit,100),1),1000)
 $$;
 create function public.nakgo_storage_cleanup_result(p_bucket text,p_path text,p_ok boolean,p_error text default null) returns void
 language plpgsql security definer set search_path='' as $$

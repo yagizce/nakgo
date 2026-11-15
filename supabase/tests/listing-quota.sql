@@ -53,6 +53,25 @@ begin
  reset role;
  if (select expires_at from public.listings where id=first_id)<=t0 then raise exception 'FAIL republished listing has no new window'; end if;
 
+ -- Any edit revives an expired listing (write guard), so edits are counted too: with 10 live,
+ -- editing an expired listing is refused instead of silently pushing the account to 11.
+ alter table public.listings disable trigger user;
+ update public.listings set status='active',expires_at=t0-interval '1 minute' where owner_id=a and status<>'active';
+ alter table public.listings enable trigger user;
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ set local role authenticated;
+ for i in 1..(10-(select count(*) from public.listings where owner_id=a and status='active' and expires_at>now())) loop
+  insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,loading_text) values('load','İzmir','Manisa','Tır','Tenteli',1,'Yük','A','bugün');
+ end loop;
+ begin
+  update public.listings set cargo='Canlandır' where id=(select min(id) from public.listings where owner_id=a and expires_at<=now());
+  raise exception 'FAIL edit revived expired listing over quota';
+ exception when program_limit_exceeded then null; end;
+ reset role;
+ if (select count(*) from public.listings where owner_id=a and status='active' and expires_at>now())<>10 then raise exception 'FAIL live count drifted'; end if;
+ -- System jobs are not limited: nightly retention runs fine for an account at the limit.
+ perform private.retention_run();
+
  -- The check runs under a per-account advisory lock (serialises concurrent inserts).
  if not exists(select 1 from pg_proc where proname='listing_quota' and prosrc like '%pg_advisory_xact_lock%') then
   raise exception 'FAIL quota not serialised'; end if;

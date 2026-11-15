@@ -16,7 +16,7 @@ module.exports=(async()=>{
  alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated,service_role;`);
  const root=path.resolve(__dirname,'..');
  for(const f of fs.readdirSync(path.join(root,'supabase/migrations')).sort()){
-  if(process.argv.includes('--legacy')&&f==='20261027010000_storage_service_activity.sql')continue;
+  if(process.argv.includes('--legacy')&&(f==='20261027010000_storage_service_activity.sql'||f==='20261115210000_document_storage_cleanup.sql'))continue;
   await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',f),'utf8'));
  }
  for(const id of [owner,other]){await q('insert into auth.users(id,email_confirmed_at) values($1,now())',[id]);await as('authenticated',id,"insert into public.profiles(id,display_name,account_type) values($1,'Synthetic','carrier')",[id]);}
