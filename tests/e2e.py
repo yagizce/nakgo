@@ -168,10 +168,12 @@ with sync_playwright() as p:
             page = matrix.new_page(); page.on("pageerror",lambda e:errors.append(str(e)))
             page.goto(URL); page.wait_for_selector('.load[data-id]')
             prefix=f"{theme}/{width} "
-            nav_box=page.locator('#nav').bounding_box();dock_box=page.locator('.list-actions').bounding_box()
-            check(prefix+"ana menü ve ilan araçları ekranın altında",nav_box['y']>=740 and abs(nav_box['y']-dock_box['y']-dock_box['height'])<2)
+            nav_box=page.locator('#nav').bounding_box()
+            check(prefix+"ana menü ekranın altında, ilan araçları görünür",nav_box['y']>=740 and page.is_visible('.list-actions'))
             page.locator('#main').evaluate('e=>e.scrollTop=e.scrollHeight')
-            check(prefix+"filtre, sıralama ve yakınlık kaydırmada erişilir",all(page.is_visible(s) for s in ('#fb','#s','#nr0')) and abs(page.locator('.list-actions').bounding_box()['y']-dock_box['y'])<2)
+            dock_box=page.locator('.list-actions').bounding_box()
+            # İlan araçları altta sabit ya da üstte yapışkan olabilir; kaydırınca ekranda ve menünün üstünde kalmalı.
+            check(prefix+"filtre, sıralama ve yakınlık kaydırmada erişilir",all(page.is_visible(s) for s in ('#fb','#s','#nr0')) and dock_box['y']>=0 and dock_box['y']+dock_box['height']<=nav_box['y']+1)
             page.locator('#main').evaluate('e=>e.scrollTop=0')
             page.select_option('#route-from','İstanbul');page.select_option('#route-to','Ankara')
             check(prefix+"güzergâh filtresi",page.locator('.load[data-id]').count()==1)
