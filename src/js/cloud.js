@@ -523,7 +523,7 @@ const nakgoMarket = (() => {
     const guest=()=>guestMode;
     const locked=()=>!!account||guestMode;
     const token=()=>(account||(guestMode?'guest':''))+':'+generation;
-    const requireAccount=()=>{toast('Aramak, mesaj göndermek ve ilan vermek için ücretsiz kayıt ol veya giriş yap.');if(typeof openAuth==='function')openAuth('signin');return false;};
+    const requireAccount=()=>{toast('Aramak, WhatsApp\'tan iletişim kurmak ve ilan vermek için ücretsiz kayıt ol veya giriş yap.');if(typeof openAuth==='function')openAuth('signin');return false;};
     const pending=()=>{if(guestMode)return requireAccount();toast('Bu özellik gerçek hesaplar için henüz hazır değil.');return false;};
     function empty() {
         loads=[]; trucks=[]; offers=[]; incoming=[]; chats={}; favs=[]; alerts=[]; blocked=[]; reports=[]; rates=[]; cdocs={};
@@ -608,7 +608,7 @@ const nakgoMarket = (() => {
         if(owner!==token())throw Error('Account changed'); writes++; put([row]); nakgoFavorites.updateListing(row); render(); return true;
     }
     function controls() {
-        if(guestMode)return '<p class="demo-note" role="status">'+(error?esc(error):'İlanları herkes görebilir. Aramak, mesaj göndermek ve ilan vermek için ücretsiz kayıt ol.')+'</p>'+
+        if(guestMode)return '<p class="demo-note" role="status">'+(error?esc(error):'İlanları herkes görebilir. Aramak, WhatsApp\'tan iletişim kurmak ve ilan vermek için ücretsiz kayıt ol.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-signin">Kayıt ol / Giriş yap</button><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+(feedMore?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
         if(!active())return '';
         return '<p class="demo-note" role="status">'+(error?esc(error):'İlanların, fotoğrafların, kayıtlı ilanların, rota alarmların ve mesajların hesabında saklanır.')+'</p>'+
