@@ -8,7 +8,8 @@ module.exports = ({run,fs,path,ROOT}) => {
         r(`loads.unshift({id:903,from:'İzmir',to:'Bursa',cargo:'Koli',ton:3,veh:'Kamyon',body:'Tenteli',date:'Cuma',ts:Date.now()-3600e3,items:[{n:'Palet',q:2,u:'adet'}]});mode='load';tab='list';F=F0();render()`);
         const h=r('return main()');
         ok(h.includes('· +1 kalem')&&!h.includes('· 1 kalem'),'kalem sayısı +1 kalem olarak');
-        ok(/bugün eklendi · \d{1,2} \S+ \d{2}:\d{2}/.test(h),'kartta yayın saati');
+        // Kart, yayın zamanını ya düz yazıyla ya da göreli süreyle (tam saat title içinde) gösterir.
+        ok(/bugün eklendi · \d{1,2} \S+ \d{2}:\d{2}|<time title="\d{1,2} \S+ \d{2}:\d{2}">\d+ sa önce<\/time>/.test(h),'kartta yayın saati');
         r("mode='truck';render()");
         const t=r('return main()');
         ok(t.includes('boş araç')&&t.includes('bugün müsait')&&!t.includes('ton kapasite'),'pazar özetinde ton kapasitesi yok');
