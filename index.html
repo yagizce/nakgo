@@ -7,7 +7,7 @@
 <title>NakGo – Yük ve Araç Eşleştirme</title>
 <meta name="description" content="NakGo – Yük sahipleri ve taşıyıcıları buluşturan yük pazarı">
 <link rel="canonical" href="https://nakgo.vercel.app/">
-<meta name="theme-color" content="#5ee0cf">
+<meta name="theme-color" content="#66ccbe">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <script id="admin-boot">/* Yönetici sitesi: uygulama açılışı hiç görünmesin diye sınıf ilk çizimden önce eklenir. */if(/^admin\./.test(location.hostname)){document.documentElement.classList.add("admin-host");var t=document.querySelector('meta[name="theme-color"]');if(t)t.content="#eceff0";}</script>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
 /* Renk değişkenleri, açık/koyu tema ve temel stiller */
 
@@ -29,20 +29,21 @@
   --ink:#0b1f1d;
   --mute:#5b6b69;
   --line:#e4ebea;
-  --brand:#5ee0cf;
-  --brand-start:#45b8aa;
-  --brand-end:#8ee6da;
-  --brand-strong:#3dd6c4;
-  --brand-highlight:#7ee8da;
+  /* Göz yormaması için turkuaz doygunluğu azaltıldı (Kasım 2026); geçiş korunur. */
+  --brand:#66ccbe;
+  --brand-start:#49aba0;
+  --brand-end:#97d8ce;
+  --brand-strong:#4fbfb0;
+  --brand-highlight:#85d6cb;
   --brand-soft:#e8f8f5;
   --brand-ink:#0a6a60;
   --on-brand:#062b27;
   --on-gradient-brand:#062b27;
-  --accent:#5ee0cf;
-  --accent-start:#45b8aa;
-  --accent-end:#8ee6da;
-  --accent-dark:#3dd6c4;
-  --accent-highlight:#7ee8da;
+  --accent:#66ccbe;
+  --accent-start:#49aba0;
+  --accent-end:#97d8ce;
+  --accent-dark:#4fbfb0;
+  --accent-highlight:#85d6cb;
   --on-accent:#062b27;
   --accent-ink:#0a6a60;
   --ok:#1f7a4d;
@@ -73,21 +74,21 @@
     --ink:#edf4f3;
     --mute:#a7b6b7;
     --line:#304044;
-    --brand:#5ee0cf;
+    --brand:#66ccbe;
     --brand-start:#2fae9f;
     --brand-end:#6fcfc3;
-    --brand-strong:#3dd6c4;
-    --brand-highlight:#7ee8da;
+    --brand-strong:#4fbfb0;
+    --brand-highlight:#85d6cb;
     --brand-soft:#2d4646;
     --brand-ink:#7ee8da;
     --on-brand:#062b27;
     --on-brand-bad:#4b1812;
     --brand-fill:var(--brand);
-    --accent:#5ee0cf;
+    --accent:#66ccbe;
     --accent-start:#2fae9f;
     --accent-end:#6fcfc3;
-    --accent-dark:#3dd6c4;
-    --accent-highlight:#7ee8da;
+    --accent-dark:#4fbfb0;
+    --accent-highlight:#85d6cb;
     --accent-ink:#7ee8da;
     --ok:#71b791;
     --bad:#e8998d;
@@ -105,21 +106,21 @@
   --ink:#edf4f3;
   --mute:#a7b6b7;
   --line:#304044;
-  --brand:#5ee0cf;
+  --brand:#66ccbe;
   --brand-start:#2fae9f;
   --brand-end:#6fcfc3;
-  --brand-strong:#3dd6c4;
-  --brand-highlight:#7ee8da;
+  --brand-strong:#4fbfb0;
+  --brand-highlight:#85d6cb;
   --brand-soft:#2d4646;
   --brand-ink:#7ee8da;
   --on-brand:#062b27;
   --on-brand-bad:#4b1812;
   --brand-fill:var(--brand);
-  --accent:#5ee0cf;
+  --accent:#66ccbe;
   --accent-start:#2fae9f;
   --accent-end:#6fcfc3;
-  --accent-dark:#3dd6c4;
-  --accent-highlight:#7ee8da;
+  --accent-dark:#4fbfb0;
+  --accent-highlight:#85d6cb;
   --accent-ink:#7ee8da;
   --ok:#71b791;
   --bad:#e8998d;
@@ -2375,6 +2376,25 @@ header p { opacity:1; }
 .listing-grid .card-main .capacity-summary { background:none; text-align:right; }
 .listing-grid .card-main .capacity-value { color:var(--ink); font-size:22px; }
 
+/* İlan kartı (taslak): yazı stili ve yerleşim. */
+.listing-grid .load { display:flex; flex-direction:column; gap:10px; padding:14px 14px 4px 16px; }
+.listing-grid .card-top { display:flex; align-items:center; gap:8px; color:var(--mute); font:500 12.5px/1.2 'Geist',system-ui,sans-serif; }
+.listing-grid .card-top .tag.ft { border-radius:999px; padding:5px 9px; font:600 11.5px/1 'Geist',system-ui,sans-serif; }
+.listing-grid .card-km { margin-left:auto; font:500 12.5px/1 'Geist Mono',ui-monospace,monospace; white-space:nowrap; }
+.listing-grid .card-main { margin:0; }
+.listing-grid .card-route b { font-size:20px; font-weight:650; line-height:1.15; }
+.listing-grid .cargo-line { gap:12px; font:500 14px/1.3 'Geist',system-ui,sans-serif; }
+.listing-grid .cargo-line b { font-weight:500; }
+.listing-grid .cargo-ton { color:var(--mute); font:500 12px/1 'Geist',system-ui,sans-serif; }
+.listing-grid .cargo-ton b { color:var(--ink); font:600 17px/1 'Geist Mono',ui-monospace,monospace; letter-spacing:-.3px; margin-right:3px; }
+.listing-grid .listing-spec { display:flex; flex-wrap:nowrap; align-items:center; gap:14px; margin:0; padding-top:4px; border-top:1px solid var(--line); color:var(--mute); font:500 13px/1.2 'Geist',system-ui,sans-serif; }
+.listing-grid .listing-spec>span { display:flex; align-items:center; gap:6px; min-width:0; padding:0; background:none; border-radius:0; }
+.listing-grid .listing-spec>span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.listing-grid .listing-spec svg { width:16px; height:16px; flex:none; }
+.listing-grid .load-date { color:var(--mute); white-space:nowrap; }
+.listing-grid .load .fav { margin-left:auto; flex:none; border:0; border-radius:12px; background:transparent; color:var(--mute); font-size:19px; }
+.listing-grid .load .fav.on { background:transparent; color:var(--brand-ink); }
+
 /* Ortak tasarım sistemi ve telefon düzeni */
 
 :root { --space:16px; --radius:16px; }
@@ -2439,21 +2459,25 @@ header p { font-family:inherit; font-size:12px; font-weight:500; letter-spacing:
 .bell:focus-visible { outline:2px solid var(--on-brand); outline-offset:3px; }
 #thh+.bell { margin-left:0; }
 main { background:var(--bg); }
-#main[data-screen=list],#main[data-screen=post] { padding-bottom:160px; scroll-padding-bottom:160px; }
+#main[data-screen=post] { padding-bottom:160px; scroll-padding-bottom:160px; }
 nav { flex:none; height:var(--nav-height); padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px)); gap:6px; border-radius:24px 24px 0 0; box-shadow:0 -6px 24px #003e4510; z-index:3; }
 nav button { justify-content:center; border-radius:16px; padding:7px 2px; gap:5px; font-size:10px; }
 nav button svg { width:23px; height:23px; }
 nav button.on { background:var(--gradient-brand-soft); color:var(--brand-ink); }
 nav button.on::before { display:none; }
 nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-accent); font-weight:700; }
-.list-actions { position:absolute; left:0; right:0; bottom:var(--nav-height); z-index:2; padding:10px 16px; background:var(--card); border-top:1px solid var(--line); box-shadow:0 -8px 24px #003e4508; }
-.list-controls { display:flex; gap:10px; align-items:center; margin:auto; }
-.list-controls>* { flex:1; min-width:0; }
-.list-controls .chip { display:flex; align-items:center; justify-content:center; gap:8px; border-radius:14px; background:var(--tag-bg); color:var(--brand-ink); border-color:transparent; }
-.list-controls .chip.on { background:var(--gradient-brand); color:var(--on-brand); }
-.list-controls select { font-size:12px; min-height:44px; padding:10px 26px 10px 10px; background-position:right 9px center; border-radius:14px; }
-.list-controls .chip { font-size:12px; padding:10px 8px; gap:5px; }
-.list-controls .chip svg { width:16px; height:16px; }
+/* İlan araçları (taslak): sekmelerin altında, kaydırırken üstte kalan hap düğmeler. */
+.list-actions { position:sticky; top:-16px; z-index:2; margin:0 0 4px; padding:8px 0; background:var(--bg); box-shadow:-16px 0 0 var(--bg),16px 0 0 var(--bg); }
+.list-controls { display:flex; gap:8px; align-items:center; overflow-x:auto; scrollbar-width:none; }
+.list-controls::-webkit-scrollbar { display:none; }
+.list-controls>* { flex:0 1 auto; min-width:0; }
+.list-controls>.chip { flex:none; }
+.list-controls .chip, .list-controls .sort-pill { display:flex; align-items:center; gap:7px; min-height:40px; padding:0 13px; border:1px solid var(--line); border-radius:999px; background:var(--card); color:var(--ink); font:550 13.5px/1 'Geist',system-ui,sans-serif; white-space:nowrap; }
+.list-controls .chip.on { background:var(--gradient-brand); color:var(--on-brand); border-color:transparent; }
+.list-controls .sort-pill { position:relative; padding:0 0 0 13px; }
+.list-controls .sort-pill select { width:100%; min-width:0; text-overflow:ellipsis; min-height:38px; margin:0; padding:0 30px 0 0; border:0; background-color:transparent; background-position:right 12px center; color:inherit; font:inherit; }
+.list-controls svg { width:16px; height:16px; flex:none; }
+.list-controls .dock-hint { display:none; }
 .dock-hint { font-size:12px; color:var(--mute); }
 .list-actions .cmpbar { position:static; box-shadow:none; margin:0 auto 10px; padding:0; border:0; max-width:720px; background:transparent; color:var(--ink); gap:8px; font-size:12px; }
 .list-actions .cmpbar .chip { padding:8px 12px; }
@@ -2472,6 +2496,11 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 .seg { padding:4px; border-radius:16px; background:var(--card); border:1px solid var(--line); }
 .seg button { border-radius:12px; }
 .seg button.on { background:var(--brand); color:var(--on-brand); }
+/* İlan türü sekmeleri (taslak): seçili sekme sade kart, yanında ilan sayısı. */
+#main[data-screen=list] .seg { padding:4px; gap:4px; margin-bottom:4px; border:0; border-radius:14px; background:var(--tag-bg); }
+#main[data-screen=list] .seg button { min-height:40px; border:1px solid transparent; border-radius:10px; color:var(--mute); font:550 14px/1 'Geist',system-ui,sans-serif; }
+#main[data-screen=list] .seg button.on { background:var(--card); border-color:var(--line); color:var(--ink); font-weight:650; box-shadow:none; }
+.seg-count { font:500 13px/1 'Geist Mono',ui-monospace,monospace; color:var(--mute); }
 .demo-note { font-size:10px; padding:8px 10px; background:var(--card); border-style:dashed; border-radius:12px; margin-bottom:12px; }
 .listing-search input { border-radius:16px; }
 .listing-count { font-size:12px; }
@@ -2537,6 +2566,14 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
 #app[data-keyboard=true] { --nav-height:0px; }
 #app[data-keyboard=true] nav { display:none; }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; } }
+/* Dar ekranda ilan araçları tek satıra sığar. */
+@media (max-width:380px) {
+  .list-controls { gap:6px; }
+  .list-controls .chip, .list-controls .sort-pill { padding:0 10px; gap:6px; font-size:13px; }
+  .list-controls .sort-pill { padding-right:0; }
+  .list-controls .sort-pill>svg { display:none; }
+  .list-controls .sort-pill select { padding-right:28px; background-position:right 10px center; }
+}
 
 /* Profil kimliği, günlük araçlar ve iletişim */
 .profile-cover { display:flex; gap:14px; align-items:center; padding:20px 18px; border-radius:22px; background:var(--app-gradient); color:var(--on-brand); }
@@ -2760,6 +2797,11 @@ const bodies = ["Tenteli", "Kapalı kasa", "Açık kasa", "Frigorifik", "Damperl
 
 
 const FI = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>';
+// İlan listesi simgeleri (taslak tasarım)
+const SORT_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M4 17l3 3 3-3M17 20V4M14 7l3-3 3 3"/></svg>';
+const PIN_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>';
+const TRUCK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>';
+const CAL_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>';
 
 const D = [[450, 480, 155, 700, 660, 940, 1130, 790, 740, 1100, 950], [580, 380, 540, 260, 490, 680, 320, 410, 780, 480], [330, 470, 580, 920, 1100, 830, 980, 1350, 850], [620, 520, 850, 1050, 700, 700, 1050, 800], [320, 550, 850, 640, 850, 1250, 480], [340, 640, 330, 700, 1050, 330], [330, 350, 760, 1100, 70], [460, 850, 1000, 340], [500, 720, 420], [340, 810], [1130]];
 
@@ -4150,14 +4192,17 @@ const routeTitle = x => `<div class="route route-title"><span>${place(x.from, x.
 const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${place(x.from, x.fromD)}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${place(x.to, x.toD)}</b></div></div>`;
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
+// Liste kartı (taslak): üstte rozet, süre ve mesafe; ortada güzergâh, yük ve ton; altta araç, tarih ve kaydet.
+const favBtn = x => `<button type="button" aria-label="${isFavorite(x) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(x)}" class="fav ${isFavorite(x) ? "on" : ""}" data-fav="${esc(x.id)}"${favoriteDisabled(x)}>${isFavorite(x) ? "♥" : "♡"}</button>`;
+const cardTop = (x, label, km) => `<div class="card-top">${label ? `<span class="tag ft">${label}</span>` : ""}<span>${nearTxt(x)}${ago(x)}</span>${km ? `<span class="card-km">${km}</span>` : ""}</div>`;
+
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
-    ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
-    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
-    <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
-    <div class="listing-footer"><span class="listing-trust"><span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
+    ${cardTop(l, isF(l) ? "Öne çıkan" + (isDemoFeature(l) ? " · Örnek" : "") : "", l.km ? esc(l.km) + " km" : "")}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
+    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : ""}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
+    <div class="listing-spec"><span>${TRUCK_ICON}${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">${CAL_ICON}<span class="sr-only">Yükleme: </span>${esc(dateLabel(l))}</span>${favBtn(l)}</div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b></span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust"><span>${nearTxt(t)}${ago(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${cardTop(t, isF(t) ? "Öne çıkan" : "", "")}<div class="card-main contact-card">${cardRoute(t)}</div><div class="cargo-line"><span><b>${esc(t.who || nm(t.uid))}</b></span><span class="cargo-ton"><b>${esc(t.cap)}</b> ton boş</span></div><div class="listing-spec"><span>${TRUCK_ICON}${esc(t.veh)} · ${esc(t.body)}</span><span class="load-date">${CAL_ICON}<span class="sr-only">Müsait: </span>${esc(dateLabel(t))}</span>${favBtn(t)}</div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
@@ -5313,7 +5358,7 @@ function updTheme() {
     try {
         const m = document.querySelector('meta[name="theme-color"]');
         if (m)
-            m.content = "#5ee0cf"; // Üst çubuk iki temada da aynı açık turkuaz.
+            m.content = "#66ccbe"; // Üst çubuk iki temada da aynı açık turkuaz.
     }
     catch (e) { }
 }
@@ -5765,7 +5810,9 @@ function initDialogAccessibility() {
  */
 
 function renderListings(m) {
-    const SEG = `<div class="seg"><button data-md="load" aria-pressed="${mode === "load"}" class="${mode === "load" ? "on" : ""}">Yükler</button><button data-md="truck" aria-pressed="${mode === "truck"}" class="${mode === "truck" ? "on" : ""}">Boş araçlar</button></div>`;
+    // Sekmelerde, mevcut filtrelere uyan yayındaki ilan sayısı görünür.
+    const segCount = t => nakgoAuth.booting() ? "" : ` <span class="seg-count">${listingSource(t).filter(x => visibleListing(x, t)).length}</span>`;
+    const SEG = `<div class="seg"><button data-md="load" aria-pressed="${mode === "load"}" class="${mode === "load" ? "on" : ""}">Yükler${segCount(false)}</button><button data-md="truck" aria-pressed="${mode === "truck"}" class="${mode === "truck" ? "on" : ""}">Boş araçlar${segCount(true)}</button></div>`;
     const segBind = () => m.querySelectorAll("[data-md]").forEach(b => b.onclick = () => {
         mode = b.dataset.md;
         render();
@@ -5789,10 +5836,10 @@ function renderListings(m) {
         }
         const st = isT ? [[trucks.filter(x=>availableListing(x,true)).length, "boş araç"], [trucks.filter(x => availableListing(x,true)&&dateBucket(x)==="Bugün").length, "bugün müsait"]] : [[loads.filter(x => availableListing(x)).length, "açık ilan"], [loads.filter(x => availableListing(x)&&dateBucket(x)==="Bugün").length, "bugün yükleme"], [new Set(loads.filter(x=>availableListing(x)).map(x=>x.from)).size, "çıkış şehri"]];
         const hero = `<div class="hero">${st.map(([a, b]) => `<div><b>${a}</b><span>${b}</span></div>`).join("")}</div>`;
-        m.innerHTML = routeSearch() + SEG + (!cloud && !nakgoMarket.locked() && !booting ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${esc(q)}" style="margin:0"></div>
+        m.innerHTML = routeSearch() + SEG + `<div class="list-actions" aria-label="İlan araçları"><div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<label class="sort-pill">${SORT_ICON}<select id="s" aria-label="İlanları sırala"><option value="new">En yeni</option><option value="fresh" ${sort === "fresh" ? "selected" : ""}>Son yayınlanan</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option></select></label>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">${PIN_ICON}Yakınımda</button></div></div>` + (!cloud && !nakgoMarket.locked() && !booting ? '<p class="demo-note"><b>Demo modu</b> · Örnek ilanlar ve talepler deneme amaçlıdır; gerçek taşıma talebi değildir.</p>' : "") + `<div class="row listing-search" style="margin-bottom:12px"><input class="search" id="q" aria-label="İlanlarda ara" placeholder="${isT ? "Şehir veya taşıyıcı ara" : "Şehir veya yük ara"}" value="${esc(q)}" style="margin:0"></div>
     ${nearRow()}${ac.length ? `<div class="chips active-filters wrap">${ac.map(c => `<button class="chip on" data-x="${c[0]}" data-v="${esc(c[1])}">${esc(c[2])} ×</button>`).join("")}</div>` : ""}
     <div class="meta listing-count" style="margin:0 2px 10px"><span>${booting ? "İlanlar yükleniyor…" : items.length + " " + (isT ? "boş araç" : "ilan")}${(nakgoMarket.locked() || !isT) && (F.from || F.to) ? ` <button class="chip" id="al" style="margin-left:6px;padding:4px 10px;font-size:12px">Alarm kur</button>` : ""}</span><span>Yola çıkmaya hazır</span></div>
-    <div class="listing-grid">${!listingReady && !(saved?.error||saved?.pageError) ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : saved && (saved.error||saved.pageError) ? '<div class="empty">Kayıtlı ilanlarını görmek için yeniden dene.</div>' : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div>${booting ? "" : `<section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section>`}<div class="list-actions" aria-label="İlan araçları"><div class="list-controls"><button class="chip ${n ? "on" : ""}" id="fb">${FI} Filtrele${n ? `<b class="bdg">${n}</b>` : ""}</button>${isT ? '<span class="dock-hint">Güzergâhına uygun araçlar</span>' : `<select id="s" aria-label="İlanları sırala"><option value="new">En yeni eklenen</option><option value="fresh" ${sort === "fresh" ? "selected" : ""}>Son yayınlanan</option><option value="km" ${sort === "km" ? "selected" : ""}>Mesafe ↑</option></select>`}<button class="chip ${nearOn ? "on" : ""}" id="nr0" aria-pressed="${nearOn}" aria-label="Yakınımdaki ilanlar${nearOn && myCity ? ": " + myCity : ""}">Yakınımda</button></div></div>`;
+    <div class="listing-grid">${!listingReady && !(saved?.error||saved?.pageError) ? SKEL : items.length ? items.slice(0, shown).map(isT ? tCard : lCard).join("") + (items.length > shown ? `<button class="chip" id="more" style="display:block;margin:4px auto 12px">Daha fazla göster (${items.length - shown})</button>` : "") : saved && (saved.error||saved.pageError) ? '<div class="empty">Kayıtlı ilanlarını görmek için yeniden dene.</div>' : `<div class="empty">Bu filtrelere uyan ${isT ? "boş araç" : "ilan"} yok.<br><button class="chip" id="rs" style="margin-top:12px">Filtreleri sıfırla</button></div>`}</div>${booting ? "" : `<section class="market-stats" aria-label="Pazar özeti"><h2>Pazar özeti</h2>${hero}</section>`}`;
         if(saved) {
             const hidden=nakgoFavorites.unavailable();
             if(hidden.length)m.innerHTML+='<section aria-label="Yayında olmayan kayıtlar"><h2>Yayında olmayan kayıtlar</h2>'+hidden.map(id=>'<article class="load"><p>Bu ilan artık yayında değil.</p><button class="chip" data-unsave="'+id+'" '+(nakgoFavorites.disabled(id)?'disabled':'')+'>Kaydı kaldır</button></article>').join('')+'</section>';
