@@ -19,7 +19,7 @@ function openPaywall(why) {
     let pl = "y";
     const pr = id => PLANS.find(x => x.id === id), save12 = Math.round((1 - pr("y").price / (pr("m").price * 12)) * 100);
     const draw = () => {
-        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>İlan sahipleriyle uygulama içinden mesajlaş</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${esc(x.id)}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p style="font-size:12px">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
+        B.innerHTML = `<div class="pw"><div class="pw-ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 16.9 5.9 20.4l1.5-6.8L2.2 9l6.9-.7z"/></svg></div><h2>NakGo Premium</h2><p>${why ? esc(why) + " özelliği Premium üyelere açık." : "Daha hızlı anlaşmak için doğrudan iletişim."}</p><ul><li>Yük sahiplerini ve taşıyıcıları doğrudan telefonla ara</li><li>İlan sahipleriyle uygulama içinden mesajlaş</li><li>Üyeliği istediğin zaman iptal et</li></ul><div class="plans">${PLANS.map(x => `<button class="plan ${x.id === pl ? "on" : ""}" data-pl="${esc(x.id)}"><b>${fmt(x.price)}</b><span>${x.name}${x.id === "y" && save12 > 0 ? " · %" + save12 + " tasarruf" : ""}</span></button>`).join("")}</div><button class="btn" id="buy">Premium'a geç</button><p class="u-fs12">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Şimdi değil</button></div>`;
         B.querySelectorAll("[data-pl]").forEach(b => b.onclick = () => {
             pl = b.dataset.pl;
             draw();
@@ -51,7 +51,7 @@ function callTo(phone) {
         $("#close").onclick=closeSheet; $("#sheet").classList.add("open"); return;
     }
     const num = String(phone).replace(/[^\d+]/g, "");
-    B.innerHTML = `<b style="font-size:19px">Ara</b><p class="callnum">${esc(phone)}</p><a class="btn" href="tel:${num}" style="display:block;text-align:center;text-decoration:none">Şimdi ara</a><button class="btn alt" id="cp">Numarayı kopyala</button><button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<b class="u-fs19">Ara</b><p class="callnum">${esc(phone)}</p><a class="btn u-block-tac-tdn" href="tel:${num}">Şimdi ara</a><button class="btn alt" id="cp">Numarayı kopyala</button><button class="btn alt" id="close">Kapat</button>`;
     $("#cp").onclick = () => {
         if (navigator.clipboard)
             navigator.clipboard.writeText(String(phone)).then(() => toast("Numara kopyalandı")).catch(() => toast("Kopyalanamadı"));
@@ -62,7 +62,7 @@ function callTo(phone) {
     $("#sheet").classList.add("open");
 }
 
-const premCard = () => `<div class="load" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center"><b>Premium üyelik</b>${isPrem() ? '<span class="vb" style="margin:0">Aktif</span>' : '<span class="tag">Üye değil</span>'}</div><p style="font-size:13px;color:var(--mute);margin:8px 0">${isPrem() ? "Bitiş: " + new Date(prem.until).toLocaleDateString("tr-TR") : "Arama ve mesajlaşma Premium üyelere açık."}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="chip on" id="pm1">${isPrem() ? "Planı uzat" : "Premium'a geç"}</button>${isPrem() ? '<button class="chip" id="pm2">Üyeliği sıfırla (test)</button>' : ""}</div></div>`;
+const premCard = () => `<div class="load u-cdef"><div class="u-flex-jsb-aic"><b>Premium üyelik</b>${isPrem() ? '<span class="vb u-m0">Aktif</span>' : '<span class="tag">Üye değil</span>'}</div><p class="u-fs13-mute-m8_0">${isPrem() ? "Bitiş: " + new Date(prem.until).toLocaleDateString("tr-TR") : "Arama ve mesajlaşma Premium üyelere açık."}</p><div class="u-flex-g8-wrap"><button class="chip on" id="pm1">${isPrem() ? "Planı uzat" : "Premium'a geç"}</button>${isPrem() ? '<button class="chip" id="pm2">Üyeliği sıfırla (test)</button>' : ""}</div></div>`;
 
 // ===== Öne çıkan ilan =====
 // Öne çıkarma fiyatı, satın alma ekranı, etkinin ölçülmesi ve özeti.
@@ -83,14 +83,14 @@ function openFeature(kind, id) {
     let dur = 6;
     const draw = () => {
         const price = featPrice(kind, dur);
-        B.innerHTML = `<b style="font-size:19px">${L ? "İlanını" : "Boş araç ilanını"} öne çıkar</b><div class="route" style="margin-top:10px">${routeHTML(it)}</div>
-  <p style="font-size:13px;color:var(--mute);margin:8px 0 12px">Öne çıkan ${L ? "ilanlar" : "boş araç ilanları"} listenin en üstünde "Öne çıkan" etiketiyle gösterilir.${active ? ` Şu an ${left} saat daha öne çıkıyor, yeni süre bitince başlar.` : ""}</p>
+        B.innerHTML = `<b class="u-fs19">${L ? "İlanını" : "Boş araç ilanını"} öne çıkar</b><div class="route u-mt10">${routeHTML(it)}</div>
+  <p class="u-fs13-mute-m8_0_12">Öne çıkan ${L ? "ilanlar" : "boş araç ilanları"} listenin en üstünde "Öne çıkan" etiketiyle gösterilir.${active ? ` Şu an ${left} saat daha öne çıkıyor, yeni süre bitince başlar.` : ""}</p>
   <div class="fopts">${FDUR.map(([h, t]) => {
             const p = featPrice(kind, h);
             return `<button class="fopt ${h === dur ? "on" : ""}" data-fd="${h}"><b>${t}</b><span>${fmt(p)}${h >= 72 ? " · günlük " + fmt(Math.round(p / 3)) : ""}</span></button>`;
         }).join("")}</div>
   <div class="fprice"><b>${fmt(price)}</b><span>${dur >= 72 ? "3 gün" : dur + " saat"} boyunca listenin başında</span></div>
-  <button class="btn" id="fbuy">Öne çıkar · ${fmt(price)}</button><p style="font-size:12px;color:var(--mute);text-align:center">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Vazgeç</button>`;
+  <button class="btn" id="fbuy">Öne çıkar · ${fmt(price)}</button><p class="u-fs12-mute-tac">Test modu: gerçek ödeme alınmaz.</p><button class="btn alt" id="close">Vazgeç</button>`;
         B.querySelectorAll("[data-fd]").forEach(b => b.onclick = () => {
             dur = +b.dataset.fd;
             draw();
@@ -188,10 +188,11 @@ function openStats(id) {
     const mx = Math.max(1, ...s.daily), conv = s.views ? Math.round(s.offers / s.views * 100) : 0, now = new Date();
     const bars = s.daily.map((v, i) => {
         const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
-        return `<div title="${v}"><i style="height:${v ? Math.max(6, Math.round(v / mx * 60)) : 3}px;${v ? "" : "background:var(--line)"}"></i><span>${d.toLocaleDateString("tr-TR", { weekday: "short" })}</span></div>`;
+        return `<div title="${v}"><i data-h="${v ? Math.max(6, Math.round(v / mx * 60)) : 3}"${v ? "" : ' class="is-empty"'}></i><span>${d.toLocaleDateString("tr-TR", { weekday: "short" })}</span></div>`;
     }).join("");
     const tile = (n, t) => `<div><b>${n}</b><span>${t}</span></div>`;
-    B.innerHTML = `<b style="font-size:19px">İlan performansı</b><div class="route" style="margin-top:10px">${routeHTML(l)}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b style="font-size:15px;display:block;margin-top:14px">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p style="font-size:12px;color:var(--mute)">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
+    B.innerHTML = `<b class="u-fs19">İlan performansı</b><div class="route u-mt10">${routeHTML(l)}</div><div class="sg">${tile(s.views, "Görüntülenme")}${tile(s.offers, "Talep")}${tile(s.saves, "Kaydeden")}${tile(s.shares, "Paylaşım")}${tile(s.calls, "Arama isteği")}${tile("%" + conv, "Talep oranı")}</div>${fxBox(s.fx)}<b class="u-fs15-block-mt14">Son 7 gün görüntülenme</b><div class="wk">${bars}</div><ul class="tips">${statTips(l, s).map(x => `<li>${x}</li>`).join("")}</ul>${s.demo ? '<p class="u-fs12-mute">Örnek veri: yerel modda gerçek ziyaretçi olmadığı için sayılar temsilidir.</p>' : ""}<button class="btn alt" id="close">Kapat</button>`;
+    applyDims(B);
     $("#close").onclick = closeSheet;
     $("#sheet").classList.add("open");
 }

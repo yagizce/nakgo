@@ -66,8 +66,9 @@ function createRoadMapController(el,onViewChange=()=>{}) {
         pins.innerHTML=connection+markers.map(marker=>{
             const point=roadProject(marker.coordinates,zoomLevel),x=point[0]-left,y=point[1]-top;
             if(x<0||y<0||x>width||y>height)return '';
-            return `<div class="road-pin ${marker.className}" style="left:${x}px;top:${y}px"><i aria-hidden="true">${marker.className==='start'?'A':marker.className==='finish'?'B':''}</i><span><small class="sr-only">${esc(marker.label)}: </small>${esc(marker.name)}</span></div>`;
+            return `<div class="road-pin ${marker.className}" data-x="${x}" data-y="${y}"><i aria-hidden="true">${marker.className==='start'?'A':marker.className==='finish'?'B':''}</i><span><small class="sr-only">${esc(marker.label)}: </small>${esc(marker.name)}</span></div>`;
         }).join('');
+        applyDims(pins);
     }
     function draw() {
         if(!active||disposed||width<1)return;

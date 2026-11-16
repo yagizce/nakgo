@@ -112,12 +112,12 @@ function openFilter() {
     const cnt = () => listingSource(isT).filter(x => visibleListing(x, isT)).length;
     const grp = (k, t, o) => `<label>${t}</label><div class="chips wrap">${o.map(v => `<button class="chip ${F[k].includes(v) ? "on" : ""}" data-g="${k}" data-v="${v}">${v}</button>`).join("")}</div>`;
     const sel = (k, t, o) => `<div><label>${t}</label><select data-s="${k}"><option value="">Hepsi</option>${o.map(c => `<option ${F[k] === c ? "selected" : ""}>${c}</option>`).join("")}</select></div>`;
-    B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Filtrele</b><button class="chip" id="fr">Sıfırla</button></div>`
+    B.innerHTML = `<div class="u-flex-jsb-aic"><b class="u-fs19">Filtrele</b><button class="chip" id="fr">Sıfırla</button></div>`
         + grp("veh", "Araç tipi", vehicles) + grp("body", "Kasa tipi", bodies)
         + `<div class="row">${sel("from", "Nereden", cities)}${sel("to", "Nereye", cities)}</div>`
         + `<div class="row"><div><label>${isT ? "Boş kapasite" : "Yük"}: en az (ton)</label><input data-n="tonMin" type="number" inputmode="decimal" value="${F.tonMin}"></div><div><label>En çok (ton)</label><input data-n="tonMax" type="number" inputmode="decimal" value="${F.tonMax}"></div></div>`
         + grp("date", "Yükleme günü", ["Bugün", "Yarın", "İleri tarih"])
-        + `<label>Kayıtlılar</label><div class="chips"><button class="chip ${F.fav ? "on" : ""}" id="ff">♥ Sadece kayıtlı olanlar</button></div><button class="btn" id="fs" style="position:sticky;bottom:0"></button>`;
+        + `<label>Kayıtlılar</label><div class="chips"><button class="chip ${F.fav ? "on" : ""}" id="ff">♥ Sadece kayıtlı olanlar</button></div><button class="btn u-sticky-b0" id="fs"></button>`;
     const upd = () => {
         $("#fs").textContent = cnt() + (isT ? " boş aracı göster" : " ilanı göster");
     };
@@ -236,7 +236,7 @@ function openEdit(k, id, reopen=false) {
         return;
     const B = $("#sheetBody"), L = k === "l";
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlanı düzenle</b><div class="route" style="margin-top:10px">${routeHTML(it)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label>${L && 'dateText' in it ? `<input id="ed" type="text" maxlength="32" required value="${esc(it.dateText)}">` : `<select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>`}${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b class="u-fs19">İlanı düzenle</b><div class="route u-mt10">${routeHTML(it)}</div>${L ? "" : `<label>Boş kapasite (ton)</label><input id="ep" type="number" inputmode="decimal" value="${esc(it.cap)}">`}<label>${L ? "Yükleme günü" : "Müsait olduğun gün"}</label>${L && 'dateText' in it ? `<input id="ed" type="text" maxlength="32" required value="${esc(it.dateText)}">` : `<select id="ed">${[...new Set(["Bugün", "Yarın", "Bu hafta", it.date])].map(d => `<option ${it.date === d ? "selected" : ""}>${esc(d)}</option>`).join("")}</select>`}${L ? `<label>Not</label><textarea id="en" maxlength="1000" rows="3">${esc(it.note || "")}</textarea>` : ""}<button class="btn" id="es">Kaydet</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#es").onclick = async () => {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))
@@ -269,7 +269,7 @@ function askDel(k, id) {
         return;
     const B = $("#sheetBody");
     B.dataset.k = "";
-    B.innerHTML = `<b style="font-size:19px">İlan silinsin mi?</b><div class="route" style="margin-top:10px">${routeHTML(it)}</div><p style="margin-top:10px;font-size:14px;color:var(--mute)">${nakgoMarket.active()?"İlan yayından kaldırılır ve arşivlenir.":"Bu işlem geri alınamaz."}</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
+    B.innerHTML = `<b class="u-fs19">İlan silinsin mi?</b><div class="route u-mt10">${routeHTML(it)}</div><p class="u-mt10-fs14-mute">${nakgoMarket.active()?"İlan yayından kaldırılır ve arşivlenir.":"Bu işlem geri alınamaz."}</p><button class="btn" id="yes">Evet, sil</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#yes").onclick = async () => {
         if(nakgoMarket.active()) {
             const button=$("#yes"); if(button.disabled)return; button.disabled=true;
@@ -305,7 +305,7 @@ const ownState = (it, kind) => {
 const myListHTML = () => {
     const a = [...mineL().map(l => ({ k: "l", id: l.id, r: routeText(l), v: l.ton + " ton", st: ownState(l, "load"), s: statLine(l), ff: isF(l) ? Math.max(1, Math.ceil((l.featUntil - Date.now()) / 36e5)) : 0 })), ...mineT().map(t => ({ k: "t", id: t.id, r: routeText(t), v: t.cap + " ton", st: ownState(t, "truck"), ff: isF(t) ? Math.max(1, Math.ceil((t.featUntil - Date.now()) / 36e5)) : 0 }))]
         .sort((x, y) => x.st.off - y.st.off);
-    return `<div class="load" style="cursor:default"><b>İlanlarım</b>${a.length ? a.map(x => { const c = x.st.off; return `<div class="kv own-item${c ? " is-off" : ""}" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14px">${esc(x.r)}</b><span>${esc(x.v)}</span></div><div class="own-state">${esc(x.st.text)}</div>${x.s ? `<div style="font-size:12.5px;color:var(--mute);margin-top:4px">${x.s}</div>` : ""}<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span>${c ? `<button class="chip on" data-mc="${x.k}|${esc(x.id)}">${nakgoMarket.active() ? "Yeniden yayınla · 6 saat" : "Yeniden yayınla"}</button>` : ""}<button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" && !nakgoMarket.active() ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}${!c ? `<button class="chip" data-mc="${x.k}|${esc(x.id)}">Kapat</button>` : ""}<button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`; }).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
+    return `<div class="load u-cdef"><b>İlanlarım</b>${a.length ? a.map(x => { const c = x.st.off; return `<div class="kv own-item u-block${c ? " is-off" : ""}"><div class="u-flex-jsb-g8"><b class="u-fs14">${esc(x.r)}</b><span>${esc(x.v)}</span></div><div class="own-state">${esc(x.st.text)}</div>${x.s ? `<div class="u-fs125-mute-mt4">${x.s}</div>` : ""}<div class="u-flex-g6-wrap-mt8-aic"><span class="tag">${x.k === "l" ? "Yük" : "Boş araç"}${x.ff ? ` · öne çıkan (${x.ff} sa)` : ""}</span>${c ? `<button class="chip on" data-mc="${x.k}|${esc(x.id)}">${nakgoMarket.active() ? "Yeniden yayınla · 6 saat" : "Yeniden yayınla"}</button>` : ""}<button class="chip" data-me="${x.k}|${esc(x.id)}">Düzenle</button>${x.k === "l" && !nakgoMarket.active() ? `<button class="chip" data-st2="${esc(x.id)}">İstatistik</button>` : ""}${!c ? `<button class="chip" data-ft="${x.k}|${esc(x.id)}">${x.ff ? "Uzat" : "Öne çıkar"}</button>` : ""}${!c ? `<button class="chip" data-mc="${x.k}|${esc(x.id)}">Kapat</button>` : ""}<button class="chip" data-md2="${x.k}|${esc(x.id)}">Sil</button></div></div>`; }).join("") : `<p class="u-mt8-fs13-mute">Henüz ilan vermedin. İlan ver sekmesinden ekleyebilirsin.</p>`}</div>`;
 };
 
 const itemsTxt = l => (Array.isArray(l.items) ? l.items : []).slice(0, 6).map(i => esc(i.n) + " " + (+i.q || 0) + " " + esc(i.u)).join(", ");

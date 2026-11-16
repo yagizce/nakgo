@@ -27,7 +27,7 @@ function openBell() {
     const a = notifs(), B = $("#sheetBody"), market = nakgoMarket.active();
     const isNew = x => market ? x.fresh : !seen.has(x.k);
     B.dataset.k = "";
-    B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Bildirimler</b><button class="chip" id="close">Kapat</button></div>` + (a.length ? a.map(x => `<button class="nt ${isNew(x) ? "new" : ""}" data-nt="${x.tab || "list"}" data-nm="${x.mode === "truck" ? "truck" : "load"}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></button>`).join("") : `<div class="empty">Henüz bildirim yok.<br>Rota alarmına uyan yeni ilanlar burada görünür.</div>`);
+    B.innerHTML = `<div class="u-flex-jsb-aic"><b class="u-fs19">Bildirimler</b><button class="chip" id="close">Kapat</button></div>` + (a.length ? a.map(x => `<button class="nt ${isNew(x) ? "new" : ""}" data-nt="${x.tab || "list"}" data-nm="${x.mode === "truck" ? "truck" : "load"}"><b>${esc(x.t)}</b><span>${esc(x.s)}</span></button>`).join("") : `<div class="empty">Henüz bildirim yok.<br>Rota alarmına uyan yeni ilanlar burada görünür.</div>`);
     if (market)
         nakgoAlerts.markSeen();
     else {
@@ -77,12 +77,12 @@ function openAlertForm(pre = {}) {
     const B = $("#sheetBody"), opt = (list, v) => `<option value="">Fark etmez</option>` + list.map(c => `<option ${c === v ? "selected" : ""}>${esc(c)}</option>`).join("");
     let kind = pre.kind === "truck" ? "truck" : "load";
     B.dataset.k = "route-alert";
-    B.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Yeni rota alarmı</b><button class="chip" id="close">Kapat</button></div>
-        <p style="color:var(--mute);font-size:14px;margin:6px 0 12px">Bu rotada yeni ilan yayınlanınca zil simgesinde görürsün.</p>
+    B.innerHTML = `<div class="u-flex-jsb-aic"><b class="u-fs19">Yeni rota alarmı</b><button class="chip" id="close">Kapat</button></div>
+        <p class="u-mute-fs14-m6_0_12">Bu rotada yeni ilan yayınlanınca zil simgesinde görürsün.</p>
         <div class="seg" role="group" aria-label="Alarm türü"><button data-ak="load" aria-pressed="${kind === "load"}" class="${kind === "load" ? "on" : ""}">Yük ilanları</button><button data-ak="truck" aria-pressed="${kind === "truck"}" class="${kind === "truck" ? "on" : ""}">Boş araçlar</button></div>
         <div class="row"><div><label for="ra-from">Nereden</label><select id="ra-from">${opt(cities, pre.from)}</select></div><div><label for="ra-to">Nereye</label><select id="ra-to">${opt(cities, pre.to)}</select></div></div>
         <div class="row"><div><label for="ra-veh">Araç tipi</label><select id="ra-veh">${opt(vehicles, pre.veh)}</select></div><div><label for="ra-body">Kasa tipi</label><select id="ra-body">${opt(bodies, pre.body)}</select></div></div>
-        <p id="ra-msg" role="alert" style="color:var(--bad);font-size:13px;min-height:18px"></p>
+        <p class="u-bad-fs13-mh18" id="ra-msg" role="alert"></p>
         <button class="btn" id="ra-save">Alarmı kur</button>`;
     B.querySelectorAll("[data-ak]").forEach(b => b.onclick = () => {
         kind = b.dataset.ak;
@@ -102,15 +102,15 @@ function openAlertForm(pre = {}) {
 const accountAlertsCard = () => {
     const st = nakgoAlerts.state(), rows = nakgoAlerts.list(), off = st.working || st.busy ? "disabled" : "";
     const label = a => `${esc(alertRoute(a))} · ${a.kind === "truck" ? "Boş araç" : "Yük"}${a.vehicle ? " · " + esc(a.vehicle) : ""}${a.body ? " · " + esc(a.body) : ""}`;
-    return `<div class="load route-alerts" style="cursor:default"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Rota alarmlarım</b><button class="chip" id="ra-new" ${off}>+ Alarm ekle</button></div>`
-        + (st.error ? `<p role="alert" style="font-size:13px">${esc(st.error)} <button class="chip" id="ra-retry">Yeniden dene</button></p>` : "")
-        + (!st.ready && !st.error ? '<p role="status" style="font-size:13px;color:var(--mute)">Alarmlar yükleniyor…</p>' : "")
-        + rows.map(a => `<div class="kv"><span style="color:var(--ink);font-weight:700;${a.active ? "" : "opacity:.55"}">${label(a)}${a.active ? "" : " · Durduruldu"}</span><span style="display:flex;gap:6px"><button class="chip" data-ra-toggle="${a.id}" data-ra-on="${a.active ? 0 : 1}" ${off}>${a.active ? "Durdur" : "Aç"}</button><button class="chip" data-ra-del="${a.id}" ${off}>Kaldır</button></span></div>`).join("")
-        + (st.ready && !rows.length ? '<p style="margin-top:8px;font-size:13px;color:var(--mute)">Henüz alarm yok. Takip ettiğin rotayı ekle; yeni ilan gelince zil simgesinde görürsün.</p>' : "")
+    return `<div class="load route-alerts u-cdef"><div class="u-flex-jsb-aic-g8"><b>Rota alarmlarım</b><button class="chip" id="ra-new" ${off}>+ Alarm ekle</button></div>`
+        + (st.error ? `<p class="u-fs13" role="alert">${esc(st.error)} <button class="chip" id="ra-retry">Yeniden dene</button></p>` : "")
+        + (!st.ready && !st.error ? '<p class="u-fs13-mute" role="status">Alarmlar yükleniyor…</p>' : "")
+        + rows.map(a => `<div class="kv"><span class="u-ink-b7${a.active ? "" : " u-o55"}">${label(a)}${a.active ? "" : " · Durduruldu"}</span><span class="u-flex-g6"><button class="chip" data-ra-toggle="${a.id}" data-ra-on="${a.active ? 0 : 1}" ${off}>${a.active ? "Durdur" : "Aç"}</button><button class="chip" data-ra-del="${a.id}" ${off}>Kaldır</button></span></div>`).join("")
+        + (st.ready && !rows.length ? '<p class="u-mt8-fs13-mute">Henüz alarm yok. Takip ettiğin rotayı ekle; yeni ilan gelince zil simgesinde görürsün.</p>' : "")
         + "</div>";
 };
 
-const alertsCard = () => nakgoMarket.active() ? accountAlertsCard() : `<div class="load" style="cursor:default"><b>Rota alarmlarım</b>${alerts.length ? alerts.map(x => `<div class="kv"><span style="color:var(--ink);font-weight:700">${esc(x.from || "Her yer")} → ${esc(x.to || "Her yer")}${x.veh ? " · " + esc(x.veh) : ""}</span><button class="chip" data-ad="${esc(x.id)}">Kaldır</button></div>`).join("") : `<p style="margin-top:8px;font-size:13px;color:var(--mute)">Filtre ekranında nereden ve nereye seçip listedeki "Alarm kur"a dokun. Uygun yük çıkınca bildirim gelir.</p>`}</div>`;
+const alertsCard = () => nakgoMarket.active() ? accountAlertsCard() : `<div class="load u-cdef"><b>Rota alarmlarım</b>${alerts.length ? alerts.map(x => `<div class="kv"><span class="u-ink-b7">${esc(x.from || "Her yer")} → ${esc(x.to || "Her yer")}${x.veh ? " · " + esc(x.veh) : ""}</span><button class="chip" data-ad="${esc(x.id)}">Kaldır</button></div>`).join("") : `<p class="u-mt8-fs13-mute">Filtre ekranında nereden ve nereye seçip listedeki "Alarm kur"a dokun. Uygun yük çıkınca bildirim gelir.</p>`}</div>`;
 
 // ===== Mesajlaşma =====
 // Teklif sohbeti (gerçek kullanıcılar arasında canlı, örnek ilanlarda hazır cevaplı).

@@ -112,6 +112,7 @@ async function openAdminPanel() {
             '<button class="adm-btn" id="admin-refresh" type="button">'+adminIcon('refresh')+'Yenile</button><button class="adm-btn" id="admin-close" type="button">'+(host?'Çıkış yap':'Kapat ×')+'</button></div></div>'+content+'</div></div></div>';
         $('#admin-close').onclick=host?()=>{closeSheet();adminHostOpened=false;nakgoAuth.signOut();}:closeSheet;
         $('#admin-refresh').onclick=load;
+        if(typeof applyDims==='function')applyDims(body);
         const on=(selector,fn)=>body.querySelectorAll(selector).forEach(fn);
         on('[data-admin-section],[data-admin-go]',button=>button.onclick=()=>{section=button.dataset.adminSection||button.dataset.adminGo;search='';filter='';query={};reset();load();});
         on('[data-admin-period]',button=>button.onclick=()=>{period=button.dataset.adminPeriod;render();});
@@ -342,7 +343,7 @@ async function openAdminPanel() {
             '<h4>Zaman çizelgesi</h4>'+timeline(steps)+'<h4>İşlem geçmişi</h4>'+historyHTML(id)+'<div class="adm-d-act">'+act+ownerLink+holdBtn+'</div>';
     }
     // Sıralama listesi: ad, sayı ve en yükseğe göre oranlı çubuk.
-    function rank(items,unit){return Array.isArray(items)&&items.length?'<ol class="adm-rank">'+items.map(x=>{const top=Math.max(1,...items.map(y=>Number(y.count)||0));return '<li><span>'+esc(x.name||'—')+'</span><b>'+num(x.count)+' '+unit+'</b><i aria-hidden="true"><em style="width:'+Math.round((Number(x.count)||0)/top*100)+'%"></em></i></li>';}).join('')+'</ol>':'<p class="adm-empty">Bu aralıkta kayıt yok.</p>';}
+    function rank(items,unit){return Array.isArray(items)&&items.length?'<ol class="adm-rank">'+items.map(x=>{const top=Math.max(1,...items.map(y=>Number(y.count)||0));return '<li><span>'+esc(x.name||'—')+'</span><b>'+num(x.count)+' '+unit+'</b><i aria-hidden="true"><em data-w="'+Math.round((Number(x.count)||0)/top*100)+'"></em></i></li>';}).join('')+'</ol>':'<p class="adm-empty">Bu aralıkta kayıt yok.</p>';}
     // İstatistikler: seçilen aralığın her günü (boş günler sıfır), yük turkuaz, boş araç sarı.
     function rangeLabel(){return range.days?'Son '+range.days+' gün':day(range.from+'T12:00:00Z')+' – '+day((range.to||isoToday())+'T12:00:00Z');}
     function showTip(){
@@ -412,7 +413,7 @@ async function openAdminPanel() {
         const max=Math.max(1,...Object.values(counts).map(Number)),side=liveSide==='from'?'çıkış':'varış';
         const xy=([lon,lat])=>[(lon-map.x0)*map.k*map.s+10,(map.y1-lat)*map.s+10];
         const shapes=Object.entries(map.il).map(([name,d])=>{const c=Number(counts[name])||0,level=c?Math.round(22+Math.sqrt(c/max)*78):0;
-            return '<path d="'+d+'"'+(c?' class="on" style="--lv:'+level+'%"':'')+'><title>'+esc(name)+': '+(c?c+' ilan':'ilan yok')+'</title></path>';}).join('');
+            return '<path d="'+d+'"'+(c?' class="on" data-lv="'+level+'"':'')+'><title>'+esc(name)+': '+(c?c+' ilan':'ilan yok')+'</title></path>';}).join('');
         // Renklenen her il yazılır; etiket ilin en büyük parçasının ağırlık merkezine konur (il merkezi kıyıda kalabilir).
         const names=Object.entries(counts).filter(([name,c])=>map.il[name]&&Number(c)>0).sort((a,b)=>a[1]-b[1]).map(([name,c])=>{const [x,y]=mapCenter(map,name)||xy(ll[name]||[0,0]);
             return '<text x="'+x.toFixed(1)+'" y="'+(y+5).toFixed(1)+'" text-anchor="middle">'+esc(name)+' <tspan>'+num(c)+'</tspan></text>';}).join('');
