@@ -7,6 +7,25 @@ vermez. Bir sonraki ürün/entegrasyon işini kullanıcı ayrıca belirleyecekti
 
 ## 1. Güncel durum ve tamamlanan kabul
 
+### 16 Kasım 2026 güncellemesi (ilan ekranı tasarımı)
+
+| Konu | 16 Kasım 2026 durumu |
+| --- | --- |
+| Canlı uygulama | Production yayını `dpl_3c2aEahQxForcF63fAKpVUZKe9Ww` ([PR #119](https://github.com/yagizce/nakgo/pull/119)), uygulama kabuğu `nakgo-v81-sort-align` |
+| Renk | Turkuaz yumuşatıldı: `--brand #66ccbe`, geçiş `#49aba0 → #97d8ce` (karanlık modda `#2fae9f → #6fcfc3`). theme-color ve manifest aynı tonda. UI UX Pro Max'in teal paletleri denendi, kullanıcı bugünkü tonu seçti |
+| İlan ekranı | Tasarım taslağına göre ([PR #118](https://github.com/yagizce/nakgo/pull/118)): Yükler / Boş araçlar sekmelerinde filtreye göre ilan sayısı; Filtrele, sıralama ve Yakınımda arama kutusunun altında, kaydırınca üstte kalan hap düğmeler; kart düzeni üstte rozet + "X dk önce" + km, ortada güzergâh, yük ve ton, altta araç, tarih ve kaydet; yazı tipi Geist, sayılar Geist Mono. İlan ekranındaki Demo modu notu kaldırıldı |
+| Bugün yükleniyor | Sarı rozet: tarihi bugün olan, yükleme metninde "bugün" geçen ve bugün yayınlanmış (WhatsApp metni dahil) ya da metninde bugünün tarihi yazan yük ilanlarında (`loadsToday`). İlan verirken yükleme tarihi alanının yanında "Bugün" düğmesi var |
+| Misafir metni | "Aramak, WhatsApp'tan iletişim kurmak ve ilan vermek için…" ([PR #116](https://github.com/yagizce/nakgo/pull/116)) |
+| CSP | `script-src` içinde `'unsafe-inline'` yok; satır içi betik özetlerini `npm run bundle` `vercel.json`'a yazar, `--check` ve `tests/csp_browser.py` CI'da denetler ([PR #115](https://github.com/yagizce/nakgo/pull/115)) |
+| Şifre | "Require current password when updating" açık; "Şifremi unuttum" akışı telefonda denendi, sorun yok |
+| Korumalı testler | İlan araçlarının yeri, demo notu ve kart yayın zamanı kontrolleri eski ve yeni düzende geçecek şekilde güncellendi ([PR #117](https://github.com/yagizce/nakgo/pull/117)) |
+| Tasarım kararı | Yalnız istenen tasarım değişiklikleri yapılır; kendiliğinden ek değişiklik yapılmaz |
+
+Açık işler (16 Kasım): WhatsApp grup ilanları [PR #76](https://github.com/yagizce/nakgo/pull/76)
+(ayrı hat, Meta anahtarları ve grup izni gerekir), KVKK aydınlatma metni, Öne Çıkar
+ödemeleri, Cloudflare Workers geçişi [PR #39](https://github.com/yagizce/nakgo/pull/39)
+için karar, mobil uygulama ve bildirimler, `style-src` içindeki `'unsafe-inline'`.
+
 ### 15 Kasım 2026 güncellemesi (güvenlik denetimi ve sağlamlaştırma)
 
 Bu bölüm aşağıdaki 13 Kasım ve daha eski kayıtlarla çelişen satırların yerine geçer.
@@ -23,10 +42,10 @@ Bu bölüm aşağıdaki 13 Kasım ve daha eski kayıtlarla çelişen satırları
 | Şifre | Tüm şifreler en az 10 karakter (Supabase ayarı da 10). Şifre değiştirme mevcut şifreyi ister; Supabase "Require current password when updating" açık, uygulama `current_password` gönderir |
 | Test bakımı | Korumalı test değişikliği gerektiğinde önce eski ve yeni kodla uyumlu ayrı test PR'ı açılır ([#109](https://github.com/yagizce/nakgo/pull/109), [#111](https://github.com/yagizce/nakgo/pull/111)). Branch koruması gevşetilmez |
 
-Açık işler (15 Kasım): Storage temizlik aracının gerçek Supabase'te service role ile
-ilk çalıştırılması; "Şifremi unuttum" akışının yeni şifre ayarıyla telefonda denenmesi;
-CSP'de `'unsafe-inline'` yerine hash; çok hesapla ilan seli için ek önlem. 13 Kasım
-listesindeki WhatsApp, KVKK metni ve ödeme işleri sürüyor.
+Açık işler (15 Kasım, 16 Kasım'da güncellendi): Storage temizlik aracı yalnız Storage'a
+kişisel dosya yükleyen yeni bir özellik gelirse otomatikleştirilir (bugün depo boş);
+"Şifremi unuttum" denendi; betik CSP'si özetle kapandı; çok hesapla ilan seli için ek
+önlem alınmaması kararlaştırıldı (WhatsApp'tan aynı kişiden 10 ilan gelebilir).
 
 ### 13 Kasım 2026 güncellemesi
 
