@@ -34,6 +34,12 @@ function migrations(){
   return fs.readdirSync(dir).filter(f=>f.endsWith('.sql')).sort().map(f=>({name:f,sql:fs.readFileSync(path.join(dir,f),'utf8')}));
 }
 
+// Testler production gibi UTC'de koşar; makinenin ya da sunucunun saat dilimine güvenilmez.
+async function requireUtc(query){
+  const tz=Object.values((await query('show timezone')).rows[0])[0];
+  if(tz!=='UTC')throw Error('Test oturumu UTC değil: '+tz);
+}
+
 async function openDb(){
   const host=process.env.NAKGO_PG_HOST;
   if(host){
@@ -42,19 +48,54 @@ async function openDb(){
     const base={host,port:Number(process.env.NAKGO_PG_PORT||5432),user:process.env.NAKGO_PG_USER||'postgres',password:process.env.NAKGO_PG_PASSWORD};
     const name='nakgo_check_'+process.pid+'_'+Date.now();
     const admin=new Client({...base,database:'postgres'});await admin.connect();
-    await admin.query('create database '+name);
-    const c=new Client({...base,database:name});await c.connect();
-    return {engine:'postgresql '+(await c.query('show server_version')).rows[0].server_version,
-      query:(s,a=[])=>c.query(s,a),exec:s=>c.query(s),
-      close:async()=>{await c.end();await admin.query('drop database if exists '+name+' with (force)');await admin.end();}};
+    let c=null,closed=false;
+    // Her koşulda: önce test bağlantısı, sonra geçici veritabanı, en son yönetim bağlantısı. Bir adımın hatası
+    // sonrakileri engellemez; hatalar toplanıp birlikte bildirilir.
+    const close=async()=>{
+      if(closed)return;closed=true;const errors=[];
+      if(c)try{await c.end();}catch(e){errors.push(e);}
+      try{await admin.query('drop database if exists '+name+' with (force)');}catch(e){errors.push(e);}
+      try{await admin.end();}catch(e){errors.push(e);}
+      if(errors.length)throw new AggregateError(errors,'Geçici veritabanı temizliği başarısız ('+name+'): '+errors.map(e=>e.message).join('; '));
+    };
+    try{
+      await admin.query('create database '+name);
+      await admin.query('alter database '+name+" set timezone to 'UTC'");
+      c=new Client({...base,database:name,options:'-c TimeZone=UTC'});await c.connect();
+      await requireUtc((s,a)=>c.query(s,a));
+      return {engine:'postgresql '+(await c.query('show server_version')).rows[0].server_version,name,
+        query:(s,a=[])=>c.query(s,a),exec:s=>c.query(s),close};
+    }catch(e){await close().catch(()=>{});throw e;}
   }
   const {PGlite}=require('@electric-sql/pglite');
   const db=new PGlite();
+  try{await db.exec("set timezone to 'UTC'");await requireUtc((s,a)=>db.query(s,a));}catch(e){await db.close().catch(()=>{});throw e;}
   return {engine:'pglite',query:(s,a=[])=>db.query(s,a),exec:s=>db.exec(s),close:()=>db.close()};
+}
+
+/** Veritabanını kapatır. Asıl bir hata varsa temizlik hatası onu gizlemez: stderr'e yazılır ve çıkış kodu 1 olur;
+ * asıl hata yoksa temizlik hatası fırlatılır. */
+async function finish(db,primary){
+  try{await db.close();}
+  catch(e){if(!primary)throw e;console.error('Temizlik hatası (asıl hata ayrıca bildirildi): '+e.message);process.exitCode=1;}
+}
+
+/** Test rolleri doğru yetkide mi? Yerel sunucuda önceden kalmış bir rol yanlış yetkideyse testler sessizce
+ * yanlış koşmasın diye açık hata verir; rollere dokunmaz. */
+async function assertTestRoles(db,{serviceRole=false}={}){
+  const want=[['anon',false],['authenticated',false],...(serviceRole?[['service_role',true]]:[])];
+  const rows=(await db.query("select rolname,rolsuper,rolbypassrls from pg_roles where rolname = any($1)",[want.map(w=>w[0])])).rows;
+  for(const [role,bypass] of want){
+    const r=rows.find(x=>x.rolname===role);
+    if(!r)throw Error('Test rolü yok: '+role);
+    if(r.rolsuper)throw Error('Test rolü '+role+' süper kullanıcı olmamalı; testler RLS ve yetkileri ölçemez. Yerel test sunucusunda rolü düzeltin.');
+    if(r.rolbypassrls!==bypass)throw Error('Test rolü '+role+' için BYPASSRLS '+(bypass?'gerekli ama yok':'olmamalı ama var')+'. Testler yanlış yetkiyle koşmasın diye durduruldu; yerel test sunucusunda rolü düzeltin.');
+  }
 }
 
 async function build(db,{list=migrations()}={}){
   await db.exec(STUB);
+  await assertTestRoles(db);
   for(const m of list){
     try{await db.exec(m.sql);}catch(e){throw Error(m.name+': '+e.message,{cause:e});}
   }
@@ -111,4 +152,4 @@ function diff(expected,actual){
   return {missing:expected.filter(x=>!a.has(x)),extra:actual.filter(x=>!e.has(x))};
 }
 
-module.exports={root,STUB,migrations,openDb,build,SNAPSHOT_SQL,snapshot,diff};
+module.exports={root,STUB,migrations,openDb,finish,assertTestRoles,build,SNAPSHOT_SQL,snapshot,diff};

@@ -9,7 +9,7 @@
  *   node tools/schema-check.cjs --fingerprint       aynı özeti yerelde hesapla (iki çıktı satır satır aynı olmalı) */
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const {root,openDb,build,snapshot,diff,SNAPSHOT_SQL}=require('./db-lib.cjs');
+const {root,openDb,finish,build,snapshot,diff,SNAPSHOT_SQL}=require('./db-lib.cjs');
 const file=path.join(root,'supabase/schema/snapshot.txt');
 const known=path.join(root,'supabase/schema/known-drift.txt');
 const readLines=f=>fs.readFileSync(f,'utf8').split('\n').map(x=>x.replace(/\r$/,'')).filter(x=>x&&!x.startsWith('#'));
@@ -26,7 +26,7 @@ function report(title,d){
       +(extra.length?" where line not in("+extra.join(',')+")":"")+" group by 1 order by 1;");
     return;
   }
-  const db=await openDb();
+  const db=await openDb();let primary=null;
   try{
     await build(db);
     const lines=await snapshot(db);
@@ -55,5 +55,5 @@ function report(title,d){
     const d=diff(readLines(file),lines);
     report('Şema kayma kontrolü ('+db.engine+', '+lines.length+' satır)',d);
     if(d.missing.length||d.extra.length){console.log('Migration bilerek değiştiyse: node tools/schema-check.cjs --update');process.exitCode=1;}
-  }finally{await db.close();}
+  }catch(e){primary=e;throw e;}finally{await finish(db,primary);}
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

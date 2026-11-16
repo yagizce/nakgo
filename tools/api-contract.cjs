@@ -7,7 +7,7 @@
  * Motor db-lib.cjs ile seçilir (PGlite veya NAKGO_PG_HOST ile yerel PostgreSQL). Uzak veritabanına bağlanmaz. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
-const {root,openDb,build}=require('./db-lib.cjs');
+const {root,openDb,finish,build}=require('./db-lib.cjs');
 const contract=JSON.parse(fs.readFileSync(path.join(root,'supabase/contract/v0.json'),'utf8'));
 let source='',fails=[],checks=0;
 const ok=(cond,msg)=>{checks++;if(!cond)fails.push(msg);};
@@ -103,8 +103,8 @@ async function check({client=true,db=null,clientSource=null}={}){
 module.exports={check,contract};
 
 if(require.main===module)(async()=>{
-  const db=await openDb();let r;
-  try{await build(db);r=await check({db});}finally{await db.close();}
+  const db=await openDb();let r,primary=null;
+  try{await build(db);r=await check({db});}catch(e){primary=e;throw e;}finally{await finish(db,primary);}
   for(const f of r.fails)console.log('  ✗ '+f);
   console.log('API sözleşmesi '+contract.version+' ('+db.engine+'): '+(r.checks-r.fails.length)+'/'+r.checks+' kontrol geçti');
   if(r.fails.length)process.exitCode=1;

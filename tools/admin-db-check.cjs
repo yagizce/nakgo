@@ -1,11 +1,12 @@
 /** Local PostgreSQL regression harness. Engine: PGlite via NODE_PATH by default, or a local real PostgreSQL
  * when NAKGO_PG_HOST is set (a throwaway database per run, see db-lib.cjs).
  * Uses synthetic auth/storage schemas; never connects to Supabase or a network database. */
-const {openDb}=require('./db-lib.cjs');
+const {openDb,finish,assertTestRoles}=require('./db-lib.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 (async()=>{
- const db=await openDb();let checks=0;
+ const db=await openDb();let checks=0,primary=null;
+ try{
  const check=(condition,label)=>{assert.ok(condition,label);checks++;};
  const query=async(sql,args=[])=> (await db.query(sql,args)).rows;
  const as=async(id,sql,args=[],role='authenticated')=>{await db.exec('reset role');await query("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);await db.exec('set role '+role);try{return await query(sql,args);}finally{await db.exec('reset role');}};
@@ -21,6 +22,7 @@ const root=path.resolve(__dirname,'..');
  create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
  create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner_id text,metadata jsonb);
  alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;`);
+ await assertTestRoles(db);
  for(const f of fs.readdirSync(path.join(root,'supabase/migrations')).sort())await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',f),'utf8'));
  for(const id of ids){await query('insert into auth.users values($1,$2)',[id,id===unverified?null:new Date().toISOString()]);await as(id,"insert into public.profiles(id,display_name,account_type) values($1,$2,'carrier')",[id,id===owner?'Test Owner':'Test User']);}
  await query('insert into private.admin_members(user_id,active) values($1,true),($2,false),($3,false)',[admin,partner,unverified]);
@@ -84,9 +86,12 @@ const root=path.resolve(__dirname,'..');
   await db.exec('reset role');await query("select set_config('request.jwt.claim.sub','',false)");
   const before=await inventory();
   try{await db.exec(fs.readFileSync(path.join(root,'supabase/tests',fixture),'utf8'));}
-  catch(error){await db.exec('rollback;reset role');throw Error(fixture+': '+error.message,{cause:error});}
+  catch(error){await db.exec('rollback;reset role').catch(()=>{});throw Error(fixture+': '+error.message,{cause:error});}
   assert.equal(await inventory(),before,fixture+' must roll back its fixtures');
   console.log('SQL fixture PASS: '+fixture+'; rows unchanged after rollback');
  }
- console.log(checks+' PostgreSQL moderation checks passed ('+db.engine+'; synthetic auth/storage; not live Supabase).');await db.close();await require('./storage-service-check.cjs');
+ console.log(checks+' PostgreSQL moderation checks passed ('+db.engine+'; synthetic auth/storage; not live Supabase).');
+ }catch(error){primary=error;throw error;}
+ finally{await finish(db,primary);}
+ await require('./storage-service-check.cjs');
 })().catch(error=>{console.error(error);process.exitCode=1;});

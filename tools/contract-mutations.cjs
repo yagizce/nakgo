@@ -4,7 +4,7 @@
  * Her bozmanın beklenen denetimlerce yakalanmaması hatadır. Motor db-lib.cjs ile seçilir; uzak veritabanına bağlanmaz. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
-const {root,openDb,build,snapshot,diff}=require('./db-lib.cjs');
+const {root,openDb,finish,build,snapshot,diff}=require('./db-lib.cjs');
 const {check}=require('./api-contract.cjs');
 const expectedLines=fs.readFileSync(path.join(root,'supabase/schema/snapshot.txt'),'utf8').split('\n').filter(x=>x&&!x.startsWith('#'));
 const fixture=fs.readFileSync(path.join(root,'supabase/tests/api-contract.sql'),'utf8');
@@ -63,7 +63,7 @@ async function detectors(db){
 }
 
 (async()=>{
-  const db=await openDb();let bad=0;const rows=[];
+  const db=await openDb();let bad=0,primary=null;const rows=[];
   try{
     await build(db);
     await db.exec('begin');
@@ -85,7 +85,7 @@ async function detectors(db){
       if(!r.fails.length)bad++;
       rows.push([name,r.fails.length?'yakalayan: contract':'KAÇIRAN: contract',r.fails.length?'✓':'✗']);
     }
-  }finally{await db.close();}
+  }catch(e){primary=e;throw e;}finally{await finish(db,primary);}
   for(const [n,r,m] of rows)console.log(' '+m+' '+n+' → '+r);
   console.log('Kasıtlı bozma testi ('+db.engine+'): '+(db_mutations.length+client_mutations.length)+' bozma, '+(bad?bad+' sorun':'hepsi yakalandı'));
   if(bad)process.exitCode=1;
