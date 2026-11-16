@@ -1,13 +1,13 @@
-const {PGlite}=require('@electric-sql/pglite');
+const {openDb}=require('./db-lib.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 module.exports=(async()=>{
- const db=new PGlite();let checks=0;
+ const db=await openDb();let checks=0;
  const owner='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
  const q=async(sql,args=[])=>(await db.query(sql,args)).rows;
  const check=(v,msg)=>{assert.ok(v,msg);checks++;};
  const denied=async(fn,msg)=>{try{await fn();assert.fail(msg+' unexpectedly allowed');}catch(e){assert.equal(e.code,'42501',msg+': '+e.message);checks++;}};
  const as=async(role,id,sql,args=[])=>{await db.exec('reset role');await q("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);await db.exec('set role '+role);try{return await q(sql,args);}finally{await db.exec('reset role');}};
- await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
+ await db.exec(`do $$ begin if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if; if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if; if not exists(select 1 from pg_roles where rolname='service_role') then create role service_role bypassrls; end if; end $$;
  create schema auth;create schema storage;create table auth.users(id uuid primary key,email_confirmed_at timestamptz,email text,phone text,banned_until timestamptz,raw_user_meta_data jsonb not null default '{}');
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  grant usage on schema auth,storage to authenticated,anon,service_role;grant execute on function auth.uid() to authenticated,anon,service_role;

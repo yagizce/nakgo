@@ -1,17 +1,18 @@
-/** Local PostgreSQL regression harness. Requires optional @electric-sql/pglite via NODE_PATH.
+/** Local PostgreSQL regression harness. Engine: PGlite via NODE_PATH by default, or a local real PostgreSQL
+ * when NAKGO_PG_SOCKET is set (a throwaway database per run, see db-lib.cjs).
  * Uses synthetic auth/storage schemas; never connects to Supabase or a network database. */
-const {PGlite}=require('@electric-sql/pglite');
+const {openDb}=require('./db-lib.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 (async()=>{
- const db=new PGlite();let checks=0;
+ const db=await openDb();let checks=0;
  const check=(condition,label)=>{assert.ok(condition,label);checks++;};
  const query=async(sql,args=[])=> (await db.query(sql,args)).rows;
  const as=async(id,sql,args=[],role='authenticated')=>{await db.exec('reset role');await query("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);await db.exec('set role '+role);try{return await query(sql,args);}finally{await db.exec('reset role');}};
  const denied=async(fn,code,label)=>{try{await fn();assert.fail(label+' unexpectedly succeeded');}catch(error){assert.equal(error.code,code,label+': '+error.message);checks++;}};
  const ids=Array.from({length:5},(_,i)=>'00000000-0000-4000-8000-'+String(i+1).padStart(12,'0'));
  const [admin,partner,owner,carrier,unverified]=ids;
- await db.exec(`create role anon;create role authenticated;create schema auth;create schema storage;
+ await db.exec(`do $$ begin if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if; if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if; end $$;create schema auth;create schema storage;
  create table auth.users(id uuid primary key,email_confirmed_at timestamptz,email text unique,phone text unique,banned_until timestamptz,raw_user_meta_data jsonb not null default '{}');
  create table auth.identities(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users(id) on delete cascade,provider text);
  create table auth.refresh_tokens(id bigserial primary key,user_id varchar(255),token text);
@@ -87,5 +88,5 @@ const root=path.resolve(__dirname,'..');
   assert.equal(await inventory(),before,fixture+' must roll back its fixtures');
   console.log('SQL fixture PASS: '+fixture+'; rows unchanged after rollback');
  }
- console.log(checks+' PostgreSQL moderation checks passed (synthetic auth/storage; not live Supabase).');await db.close();await require('./storage-service-check.cjs');
+ console.log(checks+' PostgreSQL moderation checks passed ('+db.engine+'; synthetic auth/storage; not live Supabase).');await db.close();await require('./storage-service-check.cjs');
 })().catch(error=>{console.error(error);process.exitCode=1;});
