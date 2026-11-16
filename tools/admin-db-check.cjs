@@ -1,6 +1,9 @@
 /** Local PostgreSQL regression harness. Requires optional @electric-sql/pglite via NODE_PATH.
- * Uses synthetic auth/storage schemas; never connects to Supabase or a network database. */
-const {PGlite}=require('@electric-sql/pglite');
+ * Uses synthetic auth/storage schemas; never connects to Supabase or a network database.
+ * NAKGO_PG_SOCKET (a local Unix socket directory of an empty, throwaway PostgreSQL server; requires `pg` via NODE_PATH)
+ * runs the same checks on a real server instead of PGlite. */
+const {PGlite}=process.env.NAKGO_PG_SOCKET?{PGlite:class{constructor(){const {Client}=require('pg');this.c=new Client({host:process.env.NAKGO_PG_SOCKET,port:Number(process.env.NAKGO_PG_PORT||5432),user:'postgres',database:'postgres'});this.ready=this.c.connect();}
+ async query(sql,args=[]){await this.ready;return this.c.query(sql,args);} async exec(sql){await this.ready;return this.c.query(sql);} async close(){await this.c.end();}}}:require('@electric-sql/pglite');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 (async()=>{
