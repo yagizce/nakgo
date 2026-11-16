@@ -177,3 +177,51 @@ nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-acce
   .list-controls .sort-pill>svg { display:none; }
   .list-controls .sort-pill select { padding-right:28px; background-position:right 10px center; }
 }
+
+/* Satır içi stil yerine sınıflar (CSP style-src özetle sınırlı). !important, eski satır içi stilin önceliğini korur;
+   display değiştirenler [hidden] öğeleri göstermesin diye :not([hidden]) ile sınırlıdır. */
+.u-bad-fs13-mh18 { color:var(--bad) !important; font-size:13px !important; min-height:18px !important; }
+.u-block:not([hidden]) { display:block !important; }
+.u-block-m4a_12:not([hidden]) { display:block !important; margin:4px auto 12px !important; }
+.u-block-tac-tdn:not([hidden]) { display:block !important; text-align:center !important; text-decoration:none !important; }
+.u-cdef { cursor:default !important; }
+.u-flex-aic-g10:not([hidden]) { display:flex !important; align-items:center !important; gap:10px !important; }
+.u-flex-g14-aic:not([hidden]) { display:flex !important; gap:14px !important; align-items:center !important; }
+.u-flex-g6:not([hidden]) { display:flex !important; gap:6px !important; }
+.u-flex-g6-wrap-mt8-aic:not([hidden]) { display:flex !important; gap:6px !important; flex-wrap:wrap !important; margin-top:8px !important; align-items:center !important; }
+.u-flex-g8-wrap:not([hidden]) { display:flex !important; gap:8px !important; flex-wrap:wrap !important; }
+.u-flex-jsb-aic:not([hidden]) { display:flex !important; justify-content:space-between !important; align-items:center !important; }
+.u-flex-jsb-aic-g8:not([hidden]) { display:flex !important; justify-content:space-between !important; align-items:center !important; gap:8px !important; }
+.u-flex-jsb-g8:not([hidden]) { display:flex !important; justify-content:space-between !important; gap:8px !important; }
+.u-fs12 { font-size:12px !important; }
+.u-fs12-mute { font-size:12px !important; color:var(--mute) !important; }
+.u-fs12-mute-tac { font-size:12px !important; color:var(--mute) !important; text-align:center !important; }
+.u-fs125-mute-m6_0_10 { font-size:12.5px !important; color:var(--mute) !important; margin:6px 0 10px !important; }
+.u-fs125-mute-mt4 { font-size:12.5px !important; color:var(--mute) !important; margin-top:4px !important; }
+.u-fs13 { font-size:13px !important; }
+.u-fs13-mute { font-size:13px !important; color:var(--mute) !important; }
+.u-fs13-mute-m6_0_10 { font-size:13px !important; color:var(--mute) !important; margin:6px 0 10px !important; }
+.u-fs13-mute-m8_0 { font-size:13px !important; color:var(--mute) !important; margin:8px 0 !important; }
+.u-fs13-mute-m8_0_12 { font-size:13px !important; color:var(--mute) !important; margin:8px 0 12px !important; }
+.u-fs13-mute-mt6 { font-size:13px !important; color:var(--mute) !important; margin-top:6px !important; }
+.u-fs14 { font-size:14px !important; }
+.u-fs15-block-mt14:not([hidden]) { font-size:15px !important; display:block !important; margin-top:14px !important; }
+.u-fs18 { font-size:18px !important; }
+.u-fs19 { font-size:19px !important; }
+.u-iblock-mt12-tdn:not([hidden]) { display:inline-block !important; margin-top:12px !important; text-decoration:none !important; }
+.u-ink-b7 { color:var(--ink) !important; font-weight:700 !important; }
+.u-m0 { margin:0 !important; }
+.u-m0_2_10 { margin:0 2px 10px !important; }
+.u-mb12 { margin-bottom:12px !important; }
+.u-ml6-p4_10-fs12 { margin-left:6px !important; padding:4px 10px !important; font-size:12px !important; }
+.u-mt10 { margin-top:10px !important; }
+.u-mt10-fs14-mute { margin-top:10px !important; font-size:14px !important; color:var(--mute) !important; }
+.u-mt12 { margin-top:12px !important; }
+.u-mt14 { margin-top:14px !important; }
+.u-mt8 { margin-top:8px !important; }
+.u-mt8-fs13-mute { margin-top:8px !important; font-size:13px !important; color:var(--mute) !important; }
+.u-mute-fs14 { color:var(--mute) !important; font-size:14px !important; }
+.u-mute-fs14-m6_0_12 { color:var(--mute) !important; font-size:14px !important; margin:6px 0 12px !important; }
+.u-sticky-b0 { position:sticky !important; bottom:0 !important; }
+.u-o55 { opacity:.55 !important; }
+i.is-empty[data-h] { background:var(--line) !important; }

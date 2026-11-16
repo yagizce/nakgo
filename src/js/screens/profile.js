@@ -62,7 +62,7 @@ function renderProfile(main) {
     const own=[...mineL(),...mineT()].filter(item=>!item.closed&&!expired(item,typeof item.id==='string'?'truck':'load'));
     const profile=privateProfile(), name=profile ? profile.display_name||'Profilim' : myCar.displayName||myName||'Profilim', guest=nakgoMarket.guest();
     const ownSections=guest
-        ? '<section class="profile-group"><h2>Profil</h2><div class="empty">Profil oluşturmak ve iletişim bilgilerini eklemek için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="profile-signin" style="margin-top:12px">Kayıt ol / Giriş yap</button></div></section>'
+        ? '<section class="profile-group"><h2>Profil</h2><div class="empty">Profil oluşturmak ve iletişim bilgilerini eklemek için ücretsiz kayıt ol veya giriş yap.<br><button class="chip u-mt12" id="profile-signin">Kayıt ol / Giriş yap</button></div></section>'
         : `<section class="profile-group"><h2>Profil ve iletişim</h2>${profileInfoHTML()}</section>
 `;
     main.innerHTML=`${profileIdentityHTML(own.length,name)}${profile && !nakgoMarket.active() ? '<p class="demo-note"><b>Test ortamı</b> · Profil ve iletişim hesabında saklanır. İlanlar ve diğer işlemler cihazdaki demodur.</p>' : guest ? '' : demoNotice()}${profileToolsHTML()}

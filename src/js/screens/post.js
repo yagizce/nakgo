@@ -32,7 +32,7 @@ function bindDistricts() {
 
 function renderPost(m) {
         if(nakgoMarket.guest()) {
-            m.innerHTML='<div class="empty">İlan vermek için ücretsiz kayıt ol veya giriş yap.<br><button class="chip" id="post-signin" style="margin-top:12px">Kayıt ol / Giriş yap</button></div>';
+            m.innerHTML='<div class="empty">İlan vermek için ücretsiz kayıt ol veya giriş yap.<br><button class="chip u-mt12" id="post-signin">Kayıt ol / Giriş yap</button></div>';
             $('#post-signin').onclick=()=>nakgoMarket.requireAccount();
             return;
         }
@@ -79,7 +79,7 @@ function renderPost(m) {
     </div>
     <label for="d">Yükleme tarihi</label><div class="load-date-field"><input id="d" type="text" maxlength="32" required><button class="chip" id="d-today" type="button">Bugün</button></div>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
-    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div>${listingContactFields()}<button class="btn" id="go">İlanı yayınla</button>`;
+    <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip u-mt8" id="addit" type="button">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div class="u-flex-aic-g10"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div>${listingContactFields()}<button class="btn" id="go">İlanı yayınla</button>`;
         pb();
         bindDistricts();
         itemsUI();

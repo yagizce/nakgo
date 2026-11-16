@@ -13,6 +13,19 @@ const tog = (a, v) => {
     i < 0 ? a.push(v) : a.splice(i, 1);
 };
 
+// CSP satır içi style'a izin vermez: sayısal boyutlar data- özniteliğinden CSSOM ile uygulanır.
+function applyDims(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll("[data-w],[data-h],[data-x],[data-y],[data-lv]").forEach(e => {
+        if (!e.style || !e.dataset) return;
+        const n = k => { const v = parseFloat(e.dataset[k]); return Number.isFinite(v) ? v : null; };
+        if (n("w") !== null) e.style.width = n("w") + "%";
+        if (n("h") !== null) e.style.height = n("h") + "px";
+        if (n("x") !== null) e.style.left = n("x") + "px";
+        if (n("y") !== null) e.style.top = n("y") + "px";
+        if (n("lv") !== null) e.style.setProperty("--lv", n("lv") + "%");
+    });
+}
 const esc = x => String(x ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const clean = o => isRecord(o) ? { ...o } : {};

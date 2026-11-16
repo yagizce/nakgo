@@ -9,7 +9,7 @@ with open(os.path.join(ROOT, "vercel.json"), encoding="utf-8") as f:
     CSP = next(h["value"] for rule in json.load(f)["headers"] for h in rule["headers"] if h["key"] == "Content-Security-Policy")
 with open(os.path.join(ROOT, "index.html"), encoding="utf-8") as f:
     PAGE = f.read()
-TAMPERED = PAGE.replace('<script id="admin-boot">', '<script id="admin-boot">window.tampered=1;', 1)
+TAMPERED = PAGE.replace('<script id="admin-boot">', '<script id="admin-boot">window.tampered=1;', 1).replace('<body', '<div id="evil-style" style="width:123px"></div><body', 1)
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
@@ -41,13 +41,17 @@ with sync_playwright() as p:
     pg.on("pageerror", lambda e: errors.append(str(e)))
     pg.goto(BASE + "/index.html"); pg.wait_for_timeout(2500)
     check(pg.evaluate("document.querySelectorAll('nav button').length") >= 4, "uygulama CSP altında açılır ve alt menü çizilir")
-    for js in ("tab='me';setNav();render()", "tab='post';setNav();render()", "tab='list';setNav();render();openLoad(1)", "closeSheet()"):
+    # Uygulamanın başlıca ekranları ve sayfaları: ne betik ne stil engellenmeli.
+    for js in ("tab='me';setNav();render()", "tab='own';setNav();render()", "tab='post';setNav();render()", "document.querySelector('#post-next')&&document.querySelector('#post-next').click()",
+               "tab='list';setNav();render();openLoad(1)", "closeSheet();mode='truck';render()", "mode='load';render();document.querySelector('#fb').click()", "closeSheet()",
+               "typeof openStats==='function'&&openStats(loads[0].id)", "closeSheet()"):
         pg.evaluate(js); pg.wait_for_timeout(300)
-    script_blocks = [v for v in pg.evaluate("window.__csp") if v.startswith("script-src")]
-    check(not script_blocks, "satır içi betikler engellenmez " + str(script_blocks))
+    blocks = [v for v in pg.evaluate("window.__csp") if v.startswith(("script-src", "style-src"))]
+    check(not blocks, "satır içi betik ve stiller engellenmez " + str(blocks[:3]))
     check(not errors, "JS hatası yok " + str(errors[:2]))
     pg.goto(BASE + "/tampered.html"); pg.wait_for_timeout(800)
     check(pg.evaluate("window.tampered") is None and any(v.startswith("script-src") for v in pg.evaluate("window.__csp")), "içeriği değiştirilmiş satır içi betik engellenir")
+    check(pg.evaluate("document.querySelector('#evil-style').getBoundingClientRect().width") != 123, "sayfaya sızan style özniteliği uygulanmaz")
     b.close()
 srv.shutdown()
 print(("CSP kabulü geçti" if not fails else f"{len(fails)} CSP kontrolü başarısız"))
