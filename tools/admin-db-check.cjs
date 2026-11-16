@@ -1,5 +1,5 @@
 /** Local PostgreSQL regression harness. Engine: PGlite via NODE_PATH by default, or a local real PostgreSQL
- * when NAKGO_PG_SOCKET is set (a throwaway database per run, see db-lib.cjs).
+ * when NAKGO_PG_HOST is set (a throwaway database per run, see db-lib.cjs).
  * Uses synthetic auth/storage schemas; never connects to Supabase or a network database. */
 const {openDb}=require('./db-lib.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');

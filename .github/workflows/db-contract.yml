@@ -1,0 +1,46 @@
+name: NakGo database contract
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: db-contract-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  db-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      # Production Supabase PostgreSQL 17 çalıştırır; testler aynı ana sürümde koşar. Dış ağ veya gizli anahtar yok.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-only-local
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install isolated database test engines
+        run: |
+          npm install --prefix "$RUNNER_TEMP/nakgo-admin-db" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite@0.3.14
+          npm install --prefix "$RUNNER_TEMP/nakgo-pg" --no-save --package-lock=false --ignore-scripts pg@8.23.1
+      - name: PGlite (PostgreSQL 17, in-process)
+        env:
+          NODE_PATH: ${{ runner.temp }}/nakgo-admin-db/node_modules
+        run: npm run -s test:db
+      - name: Real PostgreSQL 17 server
+        env:
+          NODE_PATH: ${{ runner.temp }}/nakgo-pg/node_modules
+          NAKGO_PG_HOST: localhost
+          NAKGO_PG_PORT: '5432'
+          NAKGO_PG_PASSWORD: ci-only-local
+        run: npm run -s test:db

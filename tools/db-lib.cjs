@@ -1,7 +1,8 @@
 /** Ortak veritabanı test yardımcıları: boş bir PostgreSQL açar, Supabase'in auth/storage taklitlerini kurar,
  * depodaki migration'ları sırayla uygular ve şemanın karşılaştırılabilir özetini çıkarır.
- * Motor: varsayılan PGlite (NODE_PATH ile @electric-sql/pglite). NAKGO_PG_SOCKET verilirse gerçek PostgreSQL:
- * o sunucuda her çalışma için geçici bir veritabanı açılır ve sonunda silinir. Hiçbir uzak veritabanına bağlanmaz. */
+ * Motor: varsayılan PGlite (NODE_PATH ile @electric-sql/pglite). NAKGO_PG_HOST verilirse (soket klasörü veya localhost)
+ * gerçek PostgreSQL: o sunucuda her çalışma için geçici bir veritabanı açılır ve sonunda silinir.
+ * Yalnız yerel adreslere bağlanır; uzak bir host verilirse çalışmayı reddeder. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
@@ -34,9 +35,11 @@ function migrations(){
 }
 
 async function openDb(){
-  if(process.env.NAKGO_PG_SOCKET){
+  const host=process.env.NAKGO_PG_HOST;
+  if(host){
+    if(!(host.startsWith('/')||['localhost','127.0.0.1','::1'].includes(host)))throw Error('NAKGO_PG_HOST yalnız yerel olabilir (soket klasörü veya localhost): '+host);
     const {Client}=require('pg');
-    const base={host:process.env.NAKGO_PG_SOCKET,port:Number(process.env.NAKGO_PG_PORT||5432),user:process.env.NAKGO_PG_USER||'postgres',password:process.env.NAKGO_PG_PASSWORD};
+    const base={host,port:Number(process.env.NAKGO_PG_PORT||5432),user:process.env.NAKGO_PG_USER||'postgres',password:process.env.NAKGO_PG_PASSWORD};
     const name='nakgo_check_'+process.pid+'_'+Date.now();
     const admin=new Client({...base,database:'postgres'});await admin.connect();
     await admin.query('create database '+name);
