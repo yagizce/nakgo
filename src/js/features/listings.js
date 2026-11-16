@@ -82,14 +82,30 @@ const routeTitle = x => `<div class="route route-title"><span>${place(x.from, x.
 const cardRoute = x => `<div class="card-route"><div><small>Nereden</small><b>${place(x.from, x.fromD)}</b></div><i aria-hidden="true"></i><div><small>Nereye</small><b>${place(x.to, x.toD)}</b></div></div>`;
 const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5v9l-9 5-9-5V8zM3 8l9 5 9-5M12 13v9M7.5 5.5l9 5"/></svg>`;
 
+// Liste kartı (taslak): üstte rozet, süre ve mesafe; ortada güzergâh, yük ve ton; altta araç, tarih ve kaydet.
+const favBtn = x => `<button type="button" aria-label="${isFavorite(x) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(x)}" class="fav ${isFavorite(x) ? "on" : ""}" data-fav="${esc(x.id)}"${favoriteDisabled(x)}>${isFavorite(x) ? "♥" : "♡"}</button>`;
+// Bugün yüklenecek yük: tarihi bugün seçilmiş ya da yükleme metni (WhatsApp'tan gelen gibi) bugünü yazan ilan.
+// Metinde "bugün" yazıyorsa ilan bugün yayınlanmış olmalı; "16.11.2026" gibi yazılan tarih doğrudan bugünle karşılaştırılır.
+const textDay = text => {
+    const m = /(\d{1,2})[./](\d{1,2})[./](\d{4})/.exec(text);
+    return m ? [m[3], m[2].padStart(2, "0"), m[1].padStart(2, "0")].join("-") : "";
+};
+const loadsToday = x => {
+    if (dateBucket(x) === "Bugün") return true;
+    if (typeof x.dateText !== "string") return false;
+    const text = x.dateText.toLocaleLowerCase("tr");
+    return textDay(text) === localDay() || (text.includes("bugün") && !!x.ts && localDay(x.ts) === localDay());
+};
+const TODAY_BADGE = `<span class="tag today">${CLOCK_ICON}Bugün yükleniyor</span>`;
+const cardTop = (x, label, km, today) => `<div class="card-top">${label ? `<span class="tag ft">${label}</span>` : ""}${today ? TODAY_BADGE : ""}<span>${nearTxt(x)}${x.ts ? `<time title="${postedAt(x)}">${ago(x)}</time>` : ""}</span>${km ? `<span class="card-km">${km}</span>` : ""}</div>`;
+
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
-    ${isF(l) ? `<div class="listing-label"><span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span></div>` : ""}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
-    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : `<span class="cargo-icon">${cargoIcon}</span>`}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
-    <div class="listing-spec"><span>${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">Yükleme: <b>${esc(dateLabel(l))}</b></span></div>
-    <div class="listing-footer"><span class="listing-trust"><span>${nearTxt(l)}${l.km ? "≈ " + l.km + " km" : ""}${ago(l) ? " · " + ago(l) : ""}</span></span><button type="button" aria-label="${isFavorite(l) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(l)}" class="fav ${isFavorite(l) ? "on" : ""}" data-fav="${esc(l.id)}"${favoriteDisabled(l)}>${isFavorite(l) ? "♥" : "♡"}</button></div>
+    ${cardTop(l, isF(l) ? "Öne çıkan" + (isDemoFeature(l) ? " · Örnek" : "") : "", l.km ? esc(l.km) + " km" : "", loadsToday(l))}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
+    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : ""}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
+    <div class="listing-spec"><span>${TRUCK_ICON}${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">${CAL_ICON}<span class="sr-only">Yükleme: </span>${esc(dateLabel(l))}</span>${favBtn(l)}</div>
     </article>`;
 
-const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${isF(t) ? '<div class="listing-label"><span class="tag ft">Öne çıkan</span></div>' : ""}<div class="card-main">${cardRoute(t)}<div class="capacity-summary"><span>Boş kapasite</span><strong class="capacity-value">${esc(t.cap)}<small> ton</small></strong></div></div><div class="cargo-line"><span class="cargo-icon">${cargoIcon}</span><span><b>${esc(t.who || nm(t.uid))}</b></span></div><div class="listing-spec"><span>${esc(t.veh)} · ${esc(t.body)}</span><span>Müsait: <b>${esc(dateLabel(t))}</b></span></div><div class="listing-footer"><span class="listing-trust"><span>${nearTxt(t)}${ago(t)}</span></span><button type="button" aria-label="${isFavorite(t) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(t)}" class="fav ${isFavorite(t) ? "on" : ""}" data-fav="${esc(t.id)}"${favoriteDisabled(t)}>${isFavorite(t) ? "♥" : "♡"}</button></div></article>`;
+const tCard = t => `<article class="load ${isF(t) ? "feat" : ""}" data-tid="${esc(t.id)}" role="button" tabindex="0" aria-label="${esc(t.from)} → ${esc(t.to)}, ${esc(t.cap)} ton boş araç, ilanı aç">${cardTop(t, isF(t) ? "Öne çıkan" : "", "")}<div class="card-main contact-card">${cardRoute(t)}</div><div class="cargo-line"><span><b>${esc(t.who || nm(t.uid))}</b></span><span class="cargo-ton"><b>${esc(t.cap)}</b> ton boş</span></div><div class="listing-spec"><span>${TRUCK_ICON}${esc(t.veh)} · ${esc(t.body)}</span><span class="load-date">${CAL_ICON}<span class="sr-only">Müsait: </span>${esc(dateLabel(t))}</span>${favBtn(t)}</div></article>`;
 
 function openFilter() {
     const isT = mode === "truck", B = $("#sheetBody");
@@ -338,9 +354,10 @@ const postedAt = (x, long=false) => {
     const d=new Date(x.ts), tz={timeZone:"Europe/Istanbul"};
     return d.toLocaleDateString("tr-TR",{...tz,day:"numeric",month:long?"long":"short",...(long?{year:"numeric"}:{})})+" "+d.toLocaleTimeString("tr-TR",{...tz,hour:"2-digit",minute:"2-digit"});
 };
+// Kartta ilanın ne kadar önce yayınlandığı: "12 dk önce", "3 sa önce", "2 gün önce".
 const ago = x => {
     if (!x.ts)
         return "";
-    const d = Math.floor((Date.now() - x.ts) / 864e5);
-    return (d < 1 ? "bugün eklendi" : d + " gün önce") + " · " + postedAt(x);
+    const m = Math.max(0, Math.floor((Date.now() - x.ts) / 6e4));
+    return m < 1 ? "az önce" : m < 60 ? m + " dk önce" : m < 1440 ? Math.floor(m / 60) + " sa önce" : Math.floor(m / 1440) + " gün önce";
 };
