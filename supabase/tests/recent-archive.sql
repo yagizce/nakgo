@@ -5,6 +5,9 @@ declare admin uuid:=(select user_id from private.admin_members where active limi
  l_new bigint; l_old bigint; l_gone bigint; l_8a bigint; l_8b bigint; l_y1 bigint; l_y2 bigint; l_hold bigint; l_hold2 bigint; r jsonb; c jsonb; c2 jsonb; red timestamptz; d date:=current_date-400;
 begin
  if admin is null then raise exception 'One administrator required'; end if;
+ -- Yasal saklama ana yönetici ve iki adımlı doğrulama (AAL2) ister; eski kodda bu iki ayar etkisizdir.
+ update private.admin_members set owner=true where user_id=admin;
+ perform set_config('request.jwt.claims','{"aal":"aal2"}',true);
  insert into auth.users(id,email_confirmed_at) values(owner,t0);
  perform set_config('request.jwt.claim.sub',owner::text,true);
  insert into public.profiles(id,display_name,account_type) values(owner,'Arşiv Deneme','carrier');

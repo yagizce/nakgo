@@ -6,6 +6,9 @@ declare admin uuid:=(select user_id from private.admin_members where active limi
  u1 uuid:=gen_random_uuid(); u2 uuid:=gen_random_uuid(); u3 uuid:=gen_random_uuid(); held bigint; free bigint; t0 timestamptz:=statement_timestamp(); x record; r jsonb;
 begin
  if admin is null then raise exception 'One administrator required'; end if;
+ -- Yasal saklama ana yönetici ve iki adımlı doğrulama (AAL2) ister; eski kodda bu iki ayar etkisizdir.
+ update private.admin_members set owner=true where user_id=admin;
+ perform set_config('request.jwt.claims','{"aal":"aal2"}',true);
  insert into auth.users(id,email_confirmed_at,email) values(u1,t0,'h1@example.test'),(u2,t0,'h2@example.test'),(u3,t0,'h3@example.test');
  foreach r in array array[to_jsonb(u1),to_jsonb(u2),to_jsonb(u3)] loop
   perform set_config('request.jwt.claim.sub',r#>>'{}',true);
