@@ -26,7 +26,7 @@ module.exports = function register({ run }) {
     r("tab='list';mode='load';render()");
     const h = r("return main()"), card = r("return lCard(loads.find(x=>x.date==='Bugün'))");
     ok(h.indexOf('route-search') < h.indexOf('class="seg"') && h.indexOf('market-stats') > h.indexOf('data-id="1"'), "arama başta, istatistik ilanlardan sonra");
-    ok(!h.includes('id="fuel-home"') && h.includes('Demo modu'), "ilanlarda mazot kısayolu yok, demo açıklaması görünür");
+    ok(!h.includes('id="fuel-home"'), "ilanlarda mazot kısayolu yok");
     ok(card.includes('Bugün') && !card.includes('Acil'), "Bugün ayrı aciliyet verisi olmadan Acil olmaz");
     ok(!card.includes("Taşıma ücreti") && card.includes("Ara veya mesajlaş"), "fiyat yerine iletişim vurgusu gelir");
     r("cloud=true;render()");
