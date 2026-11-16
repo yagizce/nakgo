@@ -77,12 +77,14 @@ function renderPost(m) {
     <div><label>Araç tipi</label><select id="v">${opt(vehicles)}</select></div></div>
     <div class="row"><div><label>Kasa tipi</label><select id="b">${opt(bodies)}</select></div>
     </div>
-    <label>Yükleme tarihi</label><input id="d" type="text" maxlength="32" required>
+    <label for="d">Yükleme tarihi</label><div class="load-date-field"><input id="d" type="text" maxlength="32" required><button class="chip" id="d-today" type="button">Bugün</button></div>
     <label>Not (isteğe bağlı)</label><textarea id="n" maxlength="1000" rows="3" placeholder="Yükleme saati, özel koşullar"></textarea>
     <label>Yük kalemleri (isteğe bağlı)</label><div id="its"></div><button class="chip" id="addit" type="button" style="margin-top:8px">+ Kalem ekle</button><label>Fotoğraf (isteğe bağlı)</label><div style="display:flex;align-items:center;gap:10px"><button class="chip" id="ph" type="button">Fotoğraf ekle</button><span id="phs"></span></div>${listingContactFields()}<button class="btn" id="go">İlanı yayınla</button>`;
         pb();
         bindDistricts();
         itemsUI();
+        // "Bugün" seçilince yükleme metni Bugün olur; ilan listede "Bugün yükleniyor" rozetiyle görünür.
+        $("#d-today").onclick = () => { const d = $("#d"); d.value = "Bugün"; capturePostDraft(); d.focus(); };
         const publishButton = $("#go");
         publishButton.onclick = async () => {
             if (tab !== "post" || $("#go") !== publishButton) return;

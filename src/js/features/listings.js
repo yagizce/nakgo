@@ -84,11 +84,23 @@ const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 // Liste kartı (taslak): üstte rozet, süre ve mesafe; ortada güzergâh, yük ve ton; altta araç, tarih ve kaydet.
 const favBtn = x => `<button type="button" aria-label="${isFavorite(x) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(x)}" class="fav ${isFavorite(x) ? "on" : ""}" data-fav="${esc(x.id)}"${favoriteDisabled(x)}>${isFavorite(x) ? "♥" : "♡"}</button>`;
+// Bugün yüklenecek yük: tarihi bugün seçilmiş ya da yükleme metni (WhatsApp'tan gelen gibi) bugünü yazan ilan.
+// Metinde "bugün" yazıyorsa ilan bugün yayınlanmış olmalı; "16.11.2026" gibi yazılan tarih doğrudan bugünle karşılaştırılır.
+const textDay = text => {
+    const m = /(\d{1,2})[./](\d{1,2})[./](\d{4})/.exec(text);
+    return m ? [m[3], m[2].padStart(2, "0"), m[1].padStart(2, "0")].join("-") : "";
+};
+const loadsToday = x => {
+    if (dateBucket(x) === "Bugün") return true;
+    if (typeof x.dateText !== "string") return false;
+    const text = x.dateText.toLocaleLowerCase("tr");
+    return textDay(text) === localDay() || (text.includes("bugün") && !!x.ts && localDay(x.ts) === localDay());
+};
 const TODAY_BADGE = `<span class="tag today">${CLOCK_ICON}Bugün yükleniyor</span>`;
 const cardTop = (x, label, km, today) => `<div class="card-top">${label ? `<span class="tag ft">${label}</span>` : ""}${today ? TODAY_BADGE : ""}<span>${nearTxt(x)}${x.ts ? `<time title="${postedAt(x)}">${ago(x)}</time>` : ""}</span>${km ? `<span class="card-km">${km}</span>` : ""}</div>`;
 
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
-    ${cardTop(l, isF(l) ? "Öne çıkan" + (isDemoFeature(l) ? " · Örnek" : "") : "", l.km ? esc(l.km) + " km" : "", dateBucket(l) === "Bugün")}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
+    ${cardTop(l, isF(l) ? "Öne çıkan" + (isDemoFeature(l) ? " · Örnek" : "") : "", l.km ? esc(l.km) + " km" : "", loadsToday(l))}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
     <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : ""}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
     <div class="listing-spec"><span>${TRUCK_ICON}${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">${CAL_ICON}<span class="sr-only">Yükleme: </span>${esc(dateLabel(l))}</span>${favBtn(l)}</div>
     </article>`;

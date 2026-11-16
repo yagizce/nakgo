@@ -70,7 +70,7 @@ nav button.on { background:var(--gradient-brand-soft); color:var(--brand-ink); }
 nav button.on::before { display:none; }
 nav button[data-t=post] { background:var(--gradient-accent); color:var(--on-accent); font-weight:700; }
 /* İlan araçları (taslak): sekmelerin altında, kaydırırken üstte kalan hap düğmeler. */
-.list-actions { position:sticky; top:-16px; z-index:2; margin:0 0 4px; padding:8px 0; background:var(--bg); box-shadow:-16px 0 0 var(--bg),16px 0 0 var(--bg); }
+.list-actions { position:sticky; top:-16px; z-index:2; margin:-8px 0 4px; padding:8px 0; background:var(--bg); box-shadow:-16px 0 0 var(--bg),16px 0 0 var(--bg); }
 .list-controls { display:flex; gap:8px; align-items:center; overflow-x:auto; scrollbar-width:none; }
 .list-controls::-webkit-scrollbar { display:none; }
 .list-controls>* { flex:0 1 auto; min-width:0; }

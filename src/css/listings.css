@@ -172,3 +172,6 @@ header p { opacity:1; }
 .listing-grid .card-top .tag.today { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:5px 9px; background:#ffe7a3; color:#4a3500; font:650 11.5px/1 'Geist',system-ui,sans-serif; }
 :root[data-theme="dark"] .listing-grid .card-top .tag.today { background:#5a4610; color:#ffe7a3; }
 @media (prefers-color-scheme:dark) { :root:not([data-theme="light"]) .listing-grid .card-top .tag.today { background:#5a4610; color:#ffe7a3; } }
+.load-date-field { display:flex; gap:8px; align-items:center; }
+.load-date-field input { flex:1; min-width:0; margin:0; }
+.load-date-field .chip { flex:none; min-height:44px; }
