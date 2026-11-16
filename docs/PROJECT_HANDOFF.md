@@ -25,7 +25,15 @@ Workers kararı (16 Kasım): Cloudflare Workers geçişi yapılmadı; site Verce
 [PR #39](https://github.com/yagizce/nakgo/pull/39) gerekçesiyle kapatıldı (dal inceleme için
 duruyor). DEV deneme sunucusu `nakgo-app-dev` kullanıcı tarafından Cloudflare panelinden
 kaldırılacak; `nakgo-website` ve yönetici paneli için Cloudflare Access olduğu gibi kalır.
-Geçiş gerekirse güncel koddan küçük adımlarla yeniden planlanır. CSP `style-src` de özetle
+Altyapı kararı (16 Kasım): Cloudflare Workers'a geçiş lansmandan ve Öne Çıkar ödemelerinden
+önce, WhatsApp ilan alma işiyle birlikte yapılacak (Vercel Hobby planı ticari kullanıma izin
+vermez; zamanlanmış işler Cloudflare'de daha uygun). Eski dalın üstüne değil, güncel main'den
+baştan kurulur; eski `codex/nakgo-cloudflare-dev` dalı ve `docs/cloudflare-dev-acceptance.md`
+yalnız başvuru içindir. Sıra, her adım ayrı PR ve onayla: (1) güncel main'i değiştirmeden
+Cloudflare test adresinde çalıştırmak, (2) CSP, yönetici paneli Access kontrolü ve testleri
+Cloudflare'de geçirmek, (3) WhatsApp zamanlanmış işlerini bu altyapıda kurmak, (4) doğrulama
+sonrası onayla alan adını çevirmek; sorun olursa DNS ile Vercel'e dönülür. Kullanılmayan
+önizleme ortam değişkenleri (22 adet, silinmiş `codex/` dalları) Vercel'den kaldırıldı. CSP `style-src` de özetle
 sınırlandı ([PR #121](https://github.com/yagizce/nakgo/pull/121)); `'unsafe-inline'` kalmadı.
 
 Açık işler (16 Kasım): WhatsApp grup ilanları [PR #76](https://github.com/yagizce/nakgo/pull/76)
