@@ -84,10 +84,11 @@ const cargoIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 // Liste kartı (taslak): üstte rozet, süre ve mesafe; ortada güzergâh, yük ve ton; altta araç, tarih ve kaydet.
 const favBtn = x => `<button type="button" aria-label="${isFavorite(x) ? "Kaydı kaldır" : "Kaydet"}" aria-pressed="${isFavorite(x)}" class="fav ${isFavorite(x) ? "on" : ""}" data-fav="${esc(x.id)}"${favoriteDisabled(x)}>${isFavorite(x) ? "♥" : "♡"}</button>`;
-const cardTop = (x, label, km) => `<div class="card-top">${label ? `<span class="tag ft">${label}</span>` : ""}<span>${nearTxt(x)}${ago(x)}</span>${km ? `<span class="card-km">${km}</span>` : ""}</div>`;
+const TODAY_BADGE = `<span class="tag today">${CLOCK_ICON}Bugün yükleniyor</span>`;
+const cardTop = (x, label, km, today) => `<div class="card-top">${label ? `<span class="tag ft">${label}</span>` : ""}${today ? TODAY_BADGE : ""}<span>${nearTxt(x)}${x.ts ? `<time title="${postedAt(x)}">${ago(x)}</time>` : ""}</span>${km ? `<span class="card-km">${km}</span>` : ""}</div>`;
 
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
-    ${cardTop(l, isF(l) ? "Öne çıkan" + (isDemoFeature(l) ? " · Örnek" : "") : "", l.km ? esc(l.km) + " km" : "")}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
+    ${cardTop(l, isF(l) ? "Öne çıkan" + (isDemoFeature(l) ? " · Örnek" : "") : "", l.km ? esc(l.km) + " km" : "", dateBucket(l) === "Bugün")}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
     <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : ""}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
     <div class="listing-spec"><span>${TRUCK_ICON}${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">${CAL_ICON}<span class="sr-only">Yükleme: </span>${esc(dateLabel(l))}</span>${favBtn(l)}</div>
     </article>`;
@@ -341,9 +342,10 @@ const postedAt = (x, long=false) => {
     const d=new Date(x.ts), tz={timeZone:"Europe/Istanbul"};
     return d.toLocaleDateString("tr-TR",{...tz,day:"numeric",month:long?"long":"short",...(long?{year:"numeric"}:{})})+" "+d.toLocaleTimeString("tr-TR",{...tz,hour:"2-digit",minute:"2-digit"});
 };
+// Kartta ilanın ne kadar önce yayınlandığı: "12 dk önce", "3 sa önce", "2 gün önce".
 const ago = x => {
     if (!x.ts)
         return "";
-    const d = Math.floor((Date.now() - x.ts) / 864e5);
-    return (d < 1 ? "bugün eklendi" : d + " gün önce") + " · " + postedAt(x);
+    const m = Math.max(0, Math.floor((Date.now() - x.ts) / 6e4));
+    return m < 1 ? "az önce" : m < 60 ? m + " dk önce" : m < 1440 ? Math.floor(m / 60) + " sa önce" : Math.floor(m / 1440) + " gün önce";
 };

@@ -24,6 +24,7 @@ const SORT_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" s
 const PIN_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>';
 const TRUCK_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>';
 const CAL_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>';
+const CLOCK_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>';
 
 const D = [[450, 480, 155, 700, 660, 940, 1130, 790, 740, 1100, 950], [580, 380, 540, 260, 490, 680, 320, 410, 780, 480], [330, 470, 580, 920, 1100, 830, 980, 1350, 850], [620, 520, 850, 1050, 700, 700, 1050, 800], [320, 550, 850, 640, 850, 1250, 480], [340, 640, 330, 700, 1050, 330], [330, 350, 760, 1100, 70], [460, 850, 1000, 340], [500, 720, 420], [340, 810], [1130]];
 

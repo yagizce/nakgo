@@ -168,3 +168,7 @@ header p { opacity:1; }
 .listing-grid .load-date { color:var(--mute); white-space:nowrap; }
 .listing-grid .load .fav { margin-left:auto; flex:none; border:0; border-radius:12px; background:transparent; color:var(--mute); font-size:19px; }
 .listing-grid .load .fav.on { background:transparent; color:var(--brand-ink); }
+.listing-grid .card-top { flex-wrap:wrap; }
+.listing-grid .card-top .tag.today { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:5px 9px; background:#ffe7a3; color:#4a3500; font:650 11.5px/1 'Geist',system-ui,sans-serif; }
+:root[data-theme="dark"] .listing-grid .card-top .tag.today { background:#5a4610; color:#ffe7a3; }
+@media (prefers-color-scheme:dark) { :root:not([data-theme="light"]) .listing-grid .card-top .tag.today { background:#5a4610; color:#ffe7a3; } }
