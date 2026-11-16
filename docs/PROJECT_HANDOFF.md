@@ -21,10 +21,16 @@ vermez. Bir sonraki ürün/entegrasyon işini kullanıcı ayrıca belirleyecekti
 | Korumalı testler | İlan araçlarının yeri, demo notu ve kart yayın zamanı kontrolleri eski ve yeni düzende geçecek şekilde güncellendi ([PR #117](https://github.com/yagizce/nakgo/pull/117)) |
 | Tasarım kararı | Yalnız istenen tasarım değişiklikleri yapılır; kendiliğinden ek değişiklik yapılmaz |
 
+Workers kararı (16 Kasım): Cloudflare Workers geçişi yapılmadı; site Vercel'de kalıyor.
+[PR #39](https://github.com/yagizce/nakgo/pull/39) gerekçesiyle kapatıldı (dal inceleme için
+duruyor). DEV deneme sunucusu `nakgo-app-dev` kullanıcı tarafından Cloudflare panelinden
+kaldırılacak; `nakgo-website` ve yönetici paneli için Cloudflare Access olduğu gibi kalır.
+Geçiş gerekirse güncel koddan küçük adımlarla yeniden planlanır. CSP `style-src` de özetle
+sınırlandı ([PR #121](https://github.com/yagizce/nakgo/pull/121)); `'unsafe-inline'` kalmadı.
+
 Açık işler (16 Kasım): WhatsApp grup ilanları [PR #76](https://github.com/yagizce/nakgo/pull/76)
 (ayrı hat, Meta anahtarları ve grup izni gerekir), KVKK aydınlatma metni, Öne Çıkar
-ödemeleri, Cloudflare Workers geçişi [PR #39](https://github.com/yagizce/nakgo/pull/39)
-için karar, mobil uygulama ve bildirimler, `style-src` içindeki `'unsafe-inline'`.
+ödemeleri, mobil uygulama ve bildirimler (geliştirici hesapları önce kullanıcının adına açılacak).
 
 ### 15 Kasım 2026 güncellemesi (güvenlik denetimi ve sağlamlaştırma)
 
