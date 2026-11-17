@@ -19,6 +19,9 @@ R2 yaşam döngüsüyle silme → uygulama kapısıyla silme (D1); yasal kayıtl
 | Bağlantı | Yalnız `nakgo_backup` rolü; Supavisor oturum modu 5432; `sslmode=verify-full`. 6543 reddedilir. |
 | Doğrulama | Her çalışmada S1 (düz PG17'ye geri yükleme ve denetim). S2a/S2b ayrı ve elle. |
 | Production'a geri yükleme | Otomatik değil; yalıtılmış projeye, ayrı onayla. |
+| K5 (şifreli e-posta eki) | Uygulanmadı; kapalı. Açılması ayrı tasarım ve onay ister. |
+| K6 (muafiyet) | Production'da kodda kalıcı olarak kapalı; test ortamında da `config.json` varsayılanı kapalı. |
+| Tek kullanımlılık (K2) | R2 koşullu yazma ve tutarlı okuma (V1, V2) kanıtlanana kadar iddia edilmez (`single_use_guaranteed=false`). |
 
 ## Bölümler
 
