@@ -185,7 +185,12 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
     if(unreadable.length)return {status:'failed',stage:'permissions',reasons:unreadable.map(t=>'yedek rolünün okuma yetkisi yok: '+t)};
     const stat=async q=>{const [s,n]=q.split('.');const r=(await c.query(`select n_live_tup from pg_stat_all_tables where schemaname=$1 and relname=$2`,[s,n])).rows;return r.length?Number(r[0].n_live_tup):null;};
     const guards=[];
-    for(const q of scope.excluded.guard_stop_if_rows){const n=await stat(q);if(n)guards.push(`kapsam dışı ama veri içeren tablo: ${q} (~${n} satır)`);}
+    // Okunabiliyorsa kesin sayım (pg_read_all_data), okunamıyorsa yaklaşık istatistik.
+    const exact=async q=>{const [ns,rel]=q.split('.');
+      const r=(await c.query(`select c.oid from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace
+        where n.nspname=$1 and c.relname=$2 and has_schema_privilege(current_user,n.oid,'USAGE') and has_table_privilege(current_user,c.oid,'SELECT')`,[ns,rel])).rows;
+      return r.length?Number((await c.query(`select count(*) n from ${qi(ns)}.${qi(rel)}`)).rows[0].n):null;};
+    for(const q of scope.excluded.guard_stop_if_rows){const e=await exact(q);const n=e===null?await stat(q):e;if(n)guards.push(`kapsam dışı ama veri içeren tablo: ${q} (${e===null?'~':''}${n} satır)`);}
     for(const q of scope.guard_exact_zero){
       if(!included.includes(q))continue;
       const n=Number((await c.query(`select count(*) n from ${q.split('.').map(qi).join('.')}`)).rows[0].n);

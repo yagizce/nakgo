@@ -220,6 +220,10 @@ test('uçtan uca boru hattı (gerçek PostgreSQL)',async t=>{
       `create table auth.webauthn_credentials(id int); insert into auth.webauthn_credentials values (1); analyze auth.webauthn_credentials; select pg_stat_force_next_flush();`,
       r=>{assert.equal(r.stages.dump.code,'guards');assert.ok(r.stages.dump.reason.includes('webauthn'));},
       `drop table auth.webauthn_credentials`);
+    await failCase('koruma kesin sayımla: istatistik güncellenmeden eklenen satır da yakalanır',
+      `create table auth.webauthn_credentials(id int); insert into auth.webauthn_credentials values (1);`,
+      r=>{assert.equal(r.stages.dump.code,'guards');assert.match(r.stages.dump.reason,/webauthn_credentials \(1 satır\)/);},
+      `drop table auth.webauthn_credentials`);
     // pg_read_all_data ile yeni tablo otomatik okunur ve tam şema dökümüne girer (önceki "bilinçli kırılma" bu yöntemde yok).
     await t.test('yeni tablo otomatik dökülür ve geri yüklemede sayısı tutar',async()=>{
       await db.exec(`create table public.zz_new(id int); insert into public.zz_new select generate_series(1,7)`);
