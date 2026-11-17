@@ -109,3 +109,26 @@ test('Worker: R2 okur, GitHub durumunu alır, bildirir ve kalp atışı gönderi
   const r5=await W.run(env,NOW,fetchImpl);
   assert.equal(r5.result.level,'critical');assert.ok(r5.result.alerts.some(a=>a.code==='manifest_signature'));
 });
+
+test('silme günlüğü: 1 saattir sonucu olmayan niyet kritik alarm; sonucu olan ya da yeni niyet alarm değil',async()=>{
+  const W=await load('worker.mjs');const {assess}=await load('core.mjs');
+  const k1=testKeyPair();
+  assert.ok(assess({now:NOW,manifests:[{doc:{verified:true,created_at:ago(1)},sigOk:true}],headers:[{doc:header(k1,1,1),sigOk:true}],workflow:{status:'completed',conclusion:'success',created_at:ago(1)},journal:{unresolved:1}})
+    .alerts.some(a=>a.code==='deletion_result_missing'&&a.level==='critical'));
+  const objs=new Map();
+  const put=(k,v,uploaded)=>objs.set(k,{body:JSON.stringify(v),uploaded});
+  put('manifests/2026/11/23/a.json',signManifest(buildManifest({runId:'a',createdAt:ago(1),stages:ok,objectKey:'db/a'}),k1),new Date(ago(1)));
+  put('audit/checkpoints/000000000001.json',header(k1,1,1),new Date(ago(1)));
+  put('audit/deletions/intents/000000000005.json',{},new Date(ago(3)));
+  put('audit/deletions/results/000000000005.json',{},new Date(ago(3)));
+  put('audit/deletions/intents/000000000007.json',{},new Date(ago(0.2)));
+  const bucket={async list({prefix,limit=1000}){const keys=[...objs.keys()].filter(k=>k.startsWith(prefix)).sort().slice(0,limit);return {objects:keys.map(key=>({key,uploaded:objs.get(key).uploaded})),truncated:false};},
+    async get(key){const o=objs.get(key);return o?{text:async()=>o.body}:null;}};
+  const fetchImpl=async url=>String(url).includes('api.github.com')?{ok:true,json:async()=>({workflow_runs:[{status:'completed',conclusion:'success',created_at:ago(1)}]})}:{ok:true};
+  const env={BACKUP_BUCKET:bucket,TRUSTED_K1:JSON.stringify({[k1.keyId]:k1.publicKey}),GITHUB_REPO:'o/r',GITHUB_TOKEN:'t',DELETION_ENABLED:'true'};
+  let r=await W.run(env,NOW,fetchImpl);
+  assert.ok(!r.result.alerts.some(a=>a.code==='deletion_result_missing'),'sonuçlu ve yeni niyet alarm değil');
+  put('audit/deletions/intents/000000000006.json',{},new Date(ago(2)));
+  r=await W.run(env,NOW,fetchImpl);
+  assert.ok(r.result.alerts.some(a=>a.code==='deletion_result_missing'&&a.level==='critical'));
+});

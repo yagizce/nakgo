@@ -41,6 +41,7 @@ export async function verifySigned(namespace, doc, trusted) {
  *   workflow:  {status, conclusion, created_at, updated_at} | null    son yedek iş akışı çalışması
  *   oldestDb:  ISO tarih | null         en eski döküm nesnesi
  *   deletionEnabled: boolean
+ *   journal:   {unresolved} | null       sonucu 1 saattir yazılmamış silme niyeti sayısı
  * }
  */
 export function assess(input) {
@@ -91,6 +92,10 @@ export function assess(input) {
     if (input.deletionEnabled && days >= THRESHOLDS.deletionLagDays) add('warning', 'deletion_lag', `en eski döküm ${days.toFixed(1)} gün; silme çalışmıyor olabilir`);
     else if (!input.deletionEnabled) add('info', 'deletion_disabled', `silme kapalı (D1); en eski döküm ${days.toFixed(1)} gün`);
   }
+
+  // Silme niyeti yazılmış ama 1 saattir sonucu yok: silme gerçekleşmiş olabilir ve kanıtı eksik. Kritik.
+  if (input.journal && input.journal.unresolved > 0) add('critical', 'deletion_result_missing', `${input.journal.unresolved} silme niyetinin sonuç kaydı yok; otomatik silme durdu, insan incelemesi gerekir`);
+  if (input.journal === null) add('warning', 'journal_unknown', 'silme günlüğü okunamadı');
 
   const level = alerts.some(a => a.level === 'critical') ? 'critical' : alerts.some(a => a.level === 'warning') ? 'warning' : 'ok';
   return { level, alerts, last_verified: last || null };

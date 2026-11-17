@@ -80,6 +80,7 @@ jobs:
           NAKGO_ANCHOR_SECRET_ACCESS_KEY: ${{ secrets.NAKGO_ANCHOR_SECRET_ACCESS_KEY }}
           NAKGO_K1_PRIVATE_KEY: ${{ secrets.NAKGO_K1_PRIVATE_KEY }}
           NAKGO_K7: ${{ secrets.NAKGO_K7 }}
+          NAKGO_K7_PREVIOUS: ${{ secrets.NAKGO_K7_PREVIOUS }}
         run: node tools/backup/run.cjs
       - name: Remove certificate
         if: always()

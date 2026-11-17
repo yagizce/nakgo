@@ -38,11 +38,16 @@ function newEvent(type,{seq,prevSha,now,uuid=randomUUID},findingsSha,keys){
   return e;
 }
 
-/** Engelleyici bulgulardan olay açar. Açık bir olayın zaten kapsadığı bulgu yeni olay açmaz. */
+/** Engelleyici bulgulardan olay açar. Açık bir olayın zaten kapsadığı bulgu yeni olay açmaz. K2 serbest bırakmasıyla
+ * kapatılmış bir olayın bulgusu (insan tarafından kabul edilmiş) yeniden görülürse de yeni olay açmaz; bulgu listede
+ * görünmeye devam eder. Kalıcı kanıt kayıtları (ör. silinemeyen hatalı bir günlük nesnesi) böylece her çalışmada yeniden
+ * olay açmaz. */
+const acceptedKeys=sm=>new Set(sm.events.filter(e=>e.status==='closed'&&e.closed_by_release).flatMap(e=>e.finding_keys));
 function openEvents(sm0,findings,ctx){
   const sm=clone(sm0);
+  const accepted=acceptedKeys(sm);
   for(const type of RELEASE_TYPES){
-    const covered=new Set(sm.events.filter(e=>e.status==='open'&&e.type===type).flatMap(e=>e.finding_keys));
+    const covered=new Set([...sm.events.filter(e=>e.status==='open'&&e.type===type).flatMap(e=>e.finding_keys),...accepted]);
     const fresh=findings.filter(f=>f.severity===type).map(findingKey).filter(k=>!covered.has(k));
     const keys=[...new Set(fresh)].sort();
     if(keys.length)sm.events.push(newEvent(type,ctx,sha256Json(keys),keys));
@@ -162,4 +167,4 @@ function selfCheck(sm){
 
 const openCount=sm=>sm.events.filter(e=>e.status==='open').length;
 
-module.exports={RELEASE_NS,MAX_RELEASE_WINDOW_MS,WAIVER_STREAK_MS,empty,openEvents,preflight,consumeWaiver,validateRelease,processReleases,completePending,selfCheck,openCount,bindingOf,findingKey};
+module.exports={acceptedKeys,RELEASE_NS,MAX_RELEASE_WINDOW_MS,WAIVER_STREAK_MS,empty,openEvents,preflight,consumeWaiver,validateRelease,processReleases,completePending,selfCheck,openCount,bindingOf,findingKey};

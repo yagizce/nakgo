@@ -80,6 +80,7 @@ listenin birlikte değerlendirilmesidir.
 | İlk kontrol noktası | Mevcut durum ancak K2 serbest bırakmasıyla başlangıç kabul edilir (`genesis_baseline`). |
 | Yasal tablolar yok (#125 öncesi) | `legal_absent`, yasal aşama n/a. Sonradan gelirse başlangıç onayı; vardıktan sonra kaybolursa `integrity`. |
 | Bulgu mevcut bir açık olayın kapsamındaysa | Yeni olay açılmaz; aynı durum yeniden bulgu üretmez. |
+| Bulgu K2 ile kapatılmış bir olayın kapsamındaysa | "Kabul edilmiş" sayılır: listede görünür, yeni olay açmaz (ör. kilit nedeniyle silinemeyen hatalı bir günlük nesnesi). Farklı her yeni bulgu yine olay açar. |
 
 ## 3. Kontrol noktası
 

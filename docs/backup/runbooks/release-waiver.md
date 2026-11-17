@@ -18,6 +18,14 @@ Sonraki çalışma: belge doğrulanır → N'ye `consumption_pending` → N+1'de
 geçerlilik, tekrar kullanım, aynı olay için birden çok geçerli belge (hepsi reddedilir). Reddedilen `release_id` bir daha
 kullanılamaz; yeni belge yeni kimlikle imzalanır.
 
+## Silme günlüğü olayı (`deletion_result_missing`, `deletion_intent_*`, `deletion_result_*`)
+1. `audit/deletions/intents/<sıra>.json` niyetini oku: hangi nesneler, hangi yedekler.
+2. Nesnelerin depoda olup olmadığını ve son doğrulanmış yedeklerin yerinde olduğunu kontrol et.
+3. Beklenmeyen bir silme yoksa olayı K2 ile serbest bırak. Sonraki çalışma "reconciled" sonuç yazar ve silme kapısı
+   yeniden değerlendirilir. Beklenmeyen silme varsa serbest BIRAKMA; kök neden incelenir.
+4. Sahte ya da bağsız bir niyet nesnesi kilit nedeniyle silinemez. Serbest bırakıldıktan sonra "kabul edilmiş bulgu"
+   olarak listede görünmeye devam eder ama yeni olay açmaz.
+
 ## K6 muafiyeti (yalnız test ortamı)
 - Production'da **her koşulda kapalı** (kodda sabit). Test ortamında `config.json → k6_waiver` ile ve PR onayıyla açılır.
 - Yalnız A1 `stop_waivable` için: izin listesinde olmayan ya da değişmiş SECURITY DEFINER fonksiyon farkı.

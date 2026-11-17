@@ -13,6 +13,8 @@
 | `workflow_failed`, `workflow_stuck`, `workflow_silent` | uyarı | İş akışı başarısız, takıldı ya da çalışmıyor | GitHub Actions kaydı |
 | `deletion_lag` | uyarı | Silme açıkken en eski döküm 16 günü aştı | Silme kaydındaki engelleri oku (`audit/deletions/`) |
 | `deletion_disabled`, `single_use_unverified` | bilgi | Beklenen durum (D1, K3 öncesi) | Haftalık özette görünür |
+| `deletion_result_missing` | kritik | Silme niyeti 1 saattir sonuçsuz: silme gerçekleşmiş olabilir, kanıtı eksik; otomatik silme durdu | `release-waiver.md` → "Silme günlüğü olayı" |
+| `journal_unknown` | uyarı | Silme günlüğü okunamadı | Kova erişimini kontrol et |
 | `monitor_error` | kritik | İzleme veriyi okuyamadı | Kalp atışı gönderilmez; harici ölü adam anahtarı da alarm verir |
 
 ## Bildirim

@@ -7,8 +7,19 @@
   `config.json → deletion.enabled` (PR onayı) + K3 kanıtı (`store_capabilities`) + açık olay 0 + dış çapa doğrulanmış +
   en az 4 doğrulanmış yedek kalması ve en yenisinin 24 saatten yeni olması.
 - Kova kilidi bağımsız sınırdır: `db/` 14 gün, `audit/` 90 gün. Kilitli nesne koddan silinemez.
-- Her silme kararı (izin verilmese bile) K1 imzalı olarak `audit/deletions/` altına yazılır ve sonraki kontrol noktasına
-  bağlanır.
+- Silme günlüğü (`tools/backup/deletion-journal.cjs`):
+  1. Silmeden ÖNCE K1 imzalı **niyet** `audit/deletions/intents/<sıra>.json` "yoksa yaz" ile yazılır ve geri okunup baytı
+     baytına doğrulanır. Niyet; nesneleri, her birinin manifestini ve şifreli dosya hash'ini, dayandığı kontrol noktasının
+     sırasını ve başlık hash'ini içerir. Niyetten hemen önce zincirin başı yeniden okunur; araya başka çalışma girdiyse
+     niyet yazılmaz.
+  2. Yalnız niyetteki nesneler silinir.
+  3. Silmeden SONRA ayrı K1 imzalı **sonuç** `audit/deletions/results/<sıra>.json` yazılır (niyetin hash'i + nesne başına
+     durum).
+  4. Her çalışma bütün niyet ve sonuçları denetler ve sonraki kontrol noktası hepsini anahtar + SHA-256 ile bağlar.
+  5. Sonucu olmayan niyet (çökme, yazma hatası) bulgu olur, olay açar ve **otomatik silme durur**. Sahip inceler, K2 ile
+     serbest bırakır; sonraki çalışma nesnelerin gerçek durumunu okuyup "reconciled" sonuç yazar. Eski niyet yeniden
+     yürütülmez.
+  Ayrıca her çalışmanın kararı (izin verilmese bile) `audit/deletions/decisions/` altına yazılır.
 
 ## Yasal kayıt kanıtı
 - Her çalışma #125 tablolarının tam listesini kontrol noktasına yazar; kanıtlanamayan her silme olay açar ve silmeyi

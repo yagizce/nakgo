@@ -25,7 +25,7 @@ R2 yaşam döngüsüyle silme → uygulama kapısıyla silme (D1); yasal kayıtl
 - A1 — yedek rolü ve yetki denetimi: [backup/privilege-audit.md](backup/privilege-audit.md)
 - A2 — tutarlı anlık görüntü, S1, şifreleme, depo, manifest, silme kapısı: [backup/core.md](backup/core.md)
 - A3 — yasal kayıt kanıtı, kontrol noktası zinciri, olaylar, K2/K6: [backup/legal-evidence.md](backup/legal-evidence.md)
-- A4 — orkestratör (`tools/backup/run.cjs`), iş akışı (`.github/workflows/backup.yml`, etkisiz), izleme Worker'ı
+- A4 — orkestratör (`tools/backup/run.cjs`), silme günlüğü (`tools/backup/deletion-journal.cjs`: önce imzalı niyet, sonra imzalı sonuç), iş akışı (`.github/workflows/backup.yml`, etkisiz), izleme Worker'ı
   (`ops/backup/monitor/`, dağıtılmadı), yapılandırma (`ops/backup/config.json`, bilinçli olarak eksik)
 
 ## Runbook'lar
@@ -42,6 +42,18 @@ R2 yaşam döngüsüyle silme → uygulama kapısıyla silme (D1); yasal kayıtl
 Otomatik çözme gizli anahtarın CI'da durmasını gerektirir; CI'ı ele geçiren herkes bütün yedekleri okuyabilir. Bunun
 yerine her çalışmada şifrelemeden önce S1 ile geri yüklenebilirlik, ayda bir çevrim dışı tatbikatla anahtarın çalıştığı
 kanıtlanır.
+
+## B7-B'ye geçiş ENGELLERİ
+1. **Auth/Storage okuma yetkisi (A1):** Supabase'te `postgres`, `auth` şemasında grant option'a sahip değil. Şablonun
+   auth/storage yetkileri etkisiz kalır. Bu yerelde taklit edildi ve `verifyRole` ile yakalanıyor. Seçenekler (A:
+   `pg_read_all_data`, B: Auth'u Supabase yedeklerine bırakmak, C: dar SECURITY DEFINER dışa aktarma, D: Supabase
+   desteği) sahibin kararını bekliyor: [backup/privilege-audit.md](backup/privilege-audit.md).
+2. BYPASSRLS'li rolün Supabase'te `postgres` ile oluşturulabildiği (V4) geçici bir projede doğrulanmalı.
+3. R2 V1–V3 (aşağıda).
+4. **#125 ile B1 sözleşmesi:** #125, B1'den önce açıldığı için `supabase/contract` dosyalarında
+   `public.nakgo_legal_action` ve `public.nakgo_legal_page` için `authenticated` çalıştırma yetkisi yok. #125 bu haliyle
+   birleşirse her yedeğin S1 doğrulaması `contract` hatasıyla başarısız olur (gerçek migration'la uçtan uca testte
+   gösterildi). #125 birleşirken sözleşme güncellenmeli; bu PR #125'e dokunmaz.
 
 ## Gerçek altyapıda doğrulanması gerekenler (B7-B)
 - V1: R2 koşullu PUT (`If-None-Match: *`) gerçekten 412 döndürüyor mu.

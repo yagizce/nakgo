@@ -14,6 +14,7 @@
  *   Gözlem yapılmayan aralıktaki değişiklikler bir sonraki gözlemde bütün olarak doğrulanır.
  * attachmentPrefix: bu önek altındaki ve önceki gövdede bulunmayan nesneler (ör. imzalı silme kayıtları) anahtar ve
  *   SHA-256'larıyla gövdeye bağlanır.
+ * extraFindings: zincir dışı denetimlerin bulguları (silme günlüğü); geçiş bulgularıyla aynı kurallarla olay açar.
  * hooks.afterWrite(seq): yalnız testler için çökme enjeksiyonu. */
 'use strict';
 const C=require('./checkpoint.cjs');
@@ -42,7 +43,7 @@ async function checkAnchors(anchors,headers){
   return res;
 }
 
-async function advance({store,trustedK1,k1,k7,trustedK2,anchors=[],environment,now=new Date(),runId,state,releaseDocs=[],evaluation,waiver,backup=null,ageRecipientsFile,attachmentPrefix,hooks={}}){
+async function advance({store,trustedK1,k1,k7,trustedK2,anchors=[],environment,now=new Date(),runId,state,releaseDocs=[],evaluation,waiver,backup=null,ageRecipientsFile,attachmentPrefix,extraFindings=[],hooks={}}){
   const fail=(stage,reason,extra)=>({ok:false,stage,reason,openEvents:null,anchorsOk:false,...extra});
   const chain=await C.readChain(store,{trustedK1});
   if(!chain.ok)return fail('chain',chain.reason);
@@ -78,6 +79,8 @@ async function advance({store,trustedK1,k1,k7,trustedK2,anchors=[],environment,n
       }
     }catch(e){return fail('attachments',e.message);}
   }
+  // Zincir dışındaki denetimlerin bulguları (ör. silme günlüğü) da olay açar ve kayda geçer.
+  findings=findings.concat(extraFindings);
   const allAttachments=[...((prevBody&&prevBody.all_attachments)||[]),...attachments];
 
   const seq=(head?head.seq:0)+1;

@@ -46,7 +46,13 @@ export async function collect(env, now, fetchImpl = fetch) {
       { headers: { authorization: 'Bearer ' + env.GITHUB_TOKEN, accept: 'application/vnd.github+json', 'user-agent': 'nakgo-backup-monitor' } });
     if (r.ok) { const j = await r.json(); const w = j.workflow_runs && j.workflow_runs[0]; if (w) workflow = { status: w.status, conclusion: w.conclusion, created_at: w.created_at, updated_at: w.updated_at }; }
   } catch { workflow = null; }
-  return { now, manifests, headers, workflow, oldestDb, deletionEnabled: env.DELETION_ENABLED === 'true' };
+  let journal = null;
+  try {
+    const results = new Set((await listAll(env.BACKUP_BUCKET, 'audit/deletions/results/', 100000)).map(o => o.key.split('/').pop()));
+    const intents = await listAll(env.BACKUP_BUCKET, 'audit/deletions/intents/', 100000);
+    journal = { unresolved: intents.filter(o => !results.has(o.key.split('/').pop()) && now.getTime() - new Date(o.uploaded).getTime() > 3600000).length };
+  } catch { journal = null; }
+  return { now, manifests, headers, workflow, oldestDb, deletionEnabled: env.DELETION_ENABLED === 'true', journal };
 }
 
 export async function run(env, now, fetchImpl = fetch) {
