@@ -76,9 +76,9 @@ Ortak kurallar:
 ### V7: yan yollar
 | | |
 |---|---|
-| Adım | Yedek rolüyle: (a) varsayılan oturumda `select lo_create(0)`; (b) `create temp table`; (c) `set default_transaction_read_only=off` sonrası `lo_create` (ardından `lo_unlink`); (d) `net` şemasında USAGE ve `net.http_post` çağrısı; (e) `pg_logical_emit_message`; (f) `pg_replication_slots` ve yayınlar listelenir. A1 `accepted_residual` listesi kaydedilir. |
-| Geçer | (a), (b) salt okunur işlem hatasıyla reddedilir; (c) başarılıdır ve sonraki yedekte A2 koruması "büyük nesne var" ile **durur**; (d) reddedilir (USAGE/EXECUTE yok); (e) sonucu ve mesajları tüketen bir yuva (eklenti `messages` seçeneğiyle) olup olmadığı kaydedilir; `accepted_residual` listesi [side-channels.md](side-channels.md) bölüm 2 ile aynı. |
-| Kalır | (d) başarılı; (c) sonrasında yedek durmaz; belgede olmayan bir yazma yolu bulunur. |
+| Adım | Yedek rolüyle: (a) varsayılan oturumda `select lo_create(0)`; (b) `create temp table`; (c) `set default_transaction_read_only=off` sonrası `lo_create`, yedek korumasının okuduğu `pg_largeobject_metadata` sayısı, ardından `lo_unlink`; (d) `net.*`, `http*`, `dblink*` fonksiyonlarında yetki (çağrı yapılmaz); (e) `pg_logical_emit_message`, `pg_replication_slots` ve yayınlar; (f) A1 `accepted_residual` listesi; (g) danışma kilidi: yedek oturumu `pg_advisory_lock(7291)` (yönetici hesap işlemlerinin anahtarı) tutar, `postgres` oturumu aynı anahtarı `lock_timeout=2s` ile `pg_advisory_xact_lock` ile ister (uygulama RPC'sinin yaptığının aynısı), sonra `pg_terminate_backend` ile yedek oturumunu kapatır ve tekrar ister. |
+| Geçer | (a), (b) salt okunur işlem hatasıyla (25006) reddedilir; (c) başarılı, sayı > 0 (yedek bu durumda **durur**; A2 testi) ve temizlenir; (d) çağrılabilir fonksiyon yok; (e) çağrı başarılı ve yuvalar/yayınlar kaydedilir (yuva varsa sonuç "review": mesaj işleyip işlemediğine insan bakar); (f) liste [side-channels.md](side-channels.md) bölüm 2 ile aynı; (g) ilk istek 55P03 ile zaman aşımına uğrar, sonlandırma başarılı, ikinci istek hemen alınır. |
+| Kalır | (d) çağrılabilir fonksiyon var (dur); (c) sonrasında koruma sayıyı görmüyor; belgede olmayan bir yan yol; (g) istek beklemiyor ya da `postgres` yedek oturumunu sonlandıramıyor. |
 | Dur | Kullanıcı verisini değiştiren ya da dışarı veri taşıyan herhangi bir yol. |
 | Kanıt | Komut çıktıları; (c) sonrasındaki yedek çalışmasının `guards` sonucu. |
 
@@ -90,6 +90,38 @@ Ortak kurallar:
 | Kalır | Herhangi bir aşama `failed`; geri yükleme sayıları S1'den farklı. |
 | Dur | `--snapshot` içe alınamıyor (Supavisor oturum modu dışa aktarılan görüntüyü desteklemiyor) ya da sertifika doğrulanamıyor. |
 | Kanıt | İmzalı manifest, `restore_checks`, süre ölçümleri (şifreli paket saklanmaz; test sonunda silinir). |
+
+## Çalıştırma (K-5) ve #125 senaryosu (K-6)
+
+- İş akışı: `.github/workflows/b7b-test.yml`. Yalnız `workflow_dispatch`, yalnız `nakgo/b7b-test` dalı, yalnız `backup-test`
+  ortamı, izin yalnız `contents: read`. Çalıştırıcı (`tools/backup/b7b/run.cjs`) aynı kuralları bağlantıdan önce yeniden
+  denetler ve production/DEV proje kimliklerini (AGENTS.md) adıyla reddeder.
+- Takımlar sırayla: `r2` (V1–V3) → `supabase-base` (V4–V8, #125 yok) → `supabase-legal125` (V4, V5, V6, V8; #125 ile).
+- **#125 yalıtımı:** #125 PR'ının kendisi hiçbir yerde kullanılmaz. Yalnız depodaki sabitlenmiş kopyası
+  `tests/backup/fixtures/legal_archive.b25013e.sql` (sha256 `a32d8e90…d099`) ve yalnız `supabase-legal125` takımında,
+  bütün depo migration'larından sonra uygulanır. Uygulanan her dosya test projesinde `b7b_test.applied` tablosunda adı ve
+  sha256'sıyla tutulur; değişmiş dosya durdurur. Geri dönüş yoktur: proje #125'e geçtikten sonra `supabase-base` o projede
+  "dur" verir; temel senaryo yeniden gerekiyorsa yeni geçici proje açılır.
+- Anahtarlar her çalışmada bellekte ya da geçici klasörde üretilir (K1, K2, K7, iki age alıcısı) ve iş bitince silinir;
+  gizli değişken olarak saklanmaz. Yedek rolünün parolası her çalışmada rastgele, rol bir günlük `valid until` ile.
+
+### Test gizlileri (yalnız `backup-test` ortamında)
+
+| Gizli | İçerik | Erişim sınırı |
+|---|---|---|
+| `NAKGO_TEST_R2_ENDPOINT`, `NAKGO_TEST_R2_BUCKET` | Test hesabı uç noktası, test kovası adı (adında "test" zorunlu) | — |
+| `NAKGO_TEST_R2_ACCESS_KEY_ID`, `NAKGO_TEST_R2_SECRET_ACCESS_KEY` | R2 nesne okuma/yazma belirteci | Yalnız test kovası; kilit kuralı yönetimi YOK (o belirteç CI'a verilmez) |
+| `NAKGO_TEST_DB_PROJECT_REF`, `NAKGO_TEST_DB_HOST`, `NAKGO_TEST_DB_ADMIN_USER` | Geçici projenin kimliği, Supavisor adresi, `postgres.<kimlik>` | Production/DEV kimliği reddedilir; adres ve kullanıcı kimlikle tutarlı olmalı |
+| `NAKGO_TEST_DB_ADMIN_PASSWORD` | Geçici projenin `postgres` parolası | Yalnız geçici proje; proje silinince geçersiz |
+| `NAKGO_TEST_DB_ROOT_CERT` | Supabase kök sertifikası (gizli değil, tutarlılık için ortamda) | — |
+
+Ortam ayarı (ayrı onay): zorunlu onaylayıcı = proje sahibi; dağıtım dalı yalnız `nakgo/b7b-test`; production
+gizlileri bu ortamda bulunmaz. Test bitince ortamın gizlileri silinir.
+
+**Bilinen sınır:** GitHub belgeleri `workflow_dispatch`'in iş akışı dosyası varsayılan dalda (`main`) bulunmadıkça
+tetiklenmeyeceğini söyler. Dosya bilerek `main`'e konmadı. `gh workflow run b7b-test.yml --ref nakgo/b7b-test` ile API
+üzerinden tetikleme denenecek; reddedilirse seçenekler (ayrı onay): `main`'e yalnız tetikleyici iskeleti eklemek ya da
+tetikleyiciyi `nakgo/b7b-test` dalına push + zorunlu ortam onayı yapmak.
 
 ## B7-B'den önce gereken kararlar
 Bkz. [../backup-design.md](../backup-design.md) "B7-B'ye geçiş ENGELLERİ". Özet: geçici Supabase projesi ve R2 test kovası

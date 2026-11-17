@@ -82,14 +82,27 @@ const MUTATIONS=[
   ["tools/backup/privilege-audit.cjs", "for(const m of a.members||[])nw('role_has_members',m);", ""],
   ["tools/backup/privilege-audit.cjs", "for(const v of a.outside_views||[])nw('view_reads_outside_scope',v);", ""],
   ["tools/backup/privilege-audit.cjs", "if(fact.other_callers&&fact.other_callers.length)d.push", "if(false)d.push"],
-  ["tools/backup/scope-export.cjs", "if(sha256(want.join('\\n'))!==sha256(got.join('\\n'))){", "if(false){"]
+  ["tools/backup/scope-export.cjs", "if(sha256(want.join('\\n'))!==sha256(got.join('\\n'))){", "if(false){"],
+  // B7-B hazırlığı: test çalıştırıcısının kapıları ve ölçümleri
+  ["tools/backup/b7b/guards.cjs", "if(FORBIDDEN_PROJECT_REFS.includes(ref))p.push", "if(false)p.push"],
+  ["tools/backup/b7b/guards.cjs", "for(const r of FORBIDDEN_PROJECT_REFS)if(", "for(const r of [])if("],
+  ["tools/backup/b7b/guards.cjs", "if(env.GITHUB_REF!==BRANCH)p.push", "if(false)p.push"],
+  ["tools/backup/b7b/guards.cjs", "if(env.GITHUB_EVENT_NAME!=='workflow_dispatch')p.push", "if(false)p.push"],
+  ["tools/backup/b7b/verify.cjs", "if(scenario==='base'&&before==='legal125')return", "if(false)return"],
+  ["tools/backup/b7b/verify.cjs", "if(sha!==LEGAL125.sha256)return", "if(false)return"],
+  ["tools/backup/b7b/verify.cjs", "if(g.blocked_code!=='55P03')return", "if(false)return"],
+  ["tools/backup/b7b/verify.cjs", "if(g.terminate!==true)return", "if(false)return"],
+  ["tools/backup/b7b/verify.cjs", "if(net.length)status='stop';", ""],
+  ["tools/backup/b7b/verify.cjs", "const readOk=Object.values(reads).every(v=>v==='42501'||v==='yok');", "const readOk=true;"],
+  ["tools/backup/b7b/verify.cjs", "if(done.get(m.name)!==sha)throw", "if(false)throw"]
 ];
 // Her mutasyon yalnız o dosyayı sınayan test dosyalarıyla denenir (gerçek migration'lı testler uzun sürer).
-const T={a1:'tests/backup/a1-privilege.test.cjs',a2:'tests/backup/a2-core.test.cjs',a3:'tests/backup/a3-legal.test.cjs',a4:'tests/backup/a4-orchestrator.test.cjs',mon:'tests/backup/a4-monitor.test.cjs'};
+const T={b7b:'tests/backup/b7b.test.cjs',a1:'tests/backup/a1-privilege.test.cjs',a2:'tests/backup/a2-core.test.cjs',a3:'tests/backup/a3-legal.test.cjs',a4:'tests/backup/a4-orchestrator.test.cjs',mon:'tests/backup/a4-monitor.test.cjs'};
 function testsFor(file){
   if(file.includes('/monitor/'))return [T.mon];
   if(/privilege-audit\.cjs$|backup-role\.cjs$/.test(file))return [T.a1,T.a4];
   if(/scope-export\.cjs$|dump\.cjs$/.test(file))return [T.a2];
+  if(file.includes('/b7b/'))return [T.b7b];
   if(/(^|\/)run\.cjs$|deletion-journal\.cjs$/.test(file))return [T.a4];
   if(/deletion\.cjs$/.test(file))return [T.a2,T.a3,T.a4];
   if(/legal-run\.cjs$|state-machine\.cjs$|checkpoint\.cjs$/.test(file))return [T.a3,T.a4];
