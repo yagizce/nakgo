@@ -531,20 +531,16 @@ test('uçtan uca: gerçek döküm, geri yükleme, yasal kanıt ve zincir (gerçe
     const {Client}=require('pg');
     const args=r=>({config:E.config,store:E.store,anchors:E.anchors,k1:E.k1,k7:E.k7,environment:'test',runId:r,now:new Date(),conn,scope:BR.loadScope(),
       recipientsFile,allowLocal:true,pgBin:process.env.NAKGO_PG_BIN,allowlist:PA.loadAllowlist(),Client,workRoot:dir});
-    // ENTEGRASYON BULGUSU: #125, B1'den önce açıldığı için B1 API sözleşmesinde (supabase/contract) iki yeni fonksiyonu
-    // yok. Geri yükleme testi (S1) bunu yakalar ve yedek doğrulanmış SAYILMAZ. #125 birleşirken sözleşme güncellenmelidir.
-    let s=await R.runAll(args('e0'));
-    assert.equal(s.preflight.decision,'ok',JSON.stringify(s.preflight));
-    assert.equal(s.backup.verified,false);assert.equal(s.backup.stages.restore_test,'failed');
-    assert.deepEqual(s.legal.blocking,['genesis_baseline'],'yasal durum yine de gözlendi ve başlangıç olayı açıldı');
-    const m0=JSON.parse(String(E.store.objects.get(s.backup.manifest).body));
-    assert.equal(m0.stages.restore_test.code,'contract');
-    assert.match(m0.stages.restore_test.reason,/nakgo_legal_action/);assert.match(m0.stages.restore_test.reason,/nakgo_legal_page/);
-    // Yalnız bu test kaynağında, sözleşme güncellenmiş gibi davranmak için bu iki yetki geri alınır (#125'e dokunulmaz).
-    await db.exec(`revoke execute on function public.nakgo_legal_action(text,jsonb),public.nakgo_legal_page(text,integer,jsonb) from authenticated`);
+    // #125 B1 API sözleşmesinde migration'a bağlı yetki olarak tanımlı (supabase/contract/v0.json → migration_execute):
+    // gerçek #125 uygulanmış kaynağın S1 geri yükleme doğrulaması sözleşme dahil temiz geçmeli; yetki geri alma YOK.
+    let s;
     s=await R.runAll(args('e1'));
+    assert.equal(s.preflight.decision,'ok',JSON.stringify(s.preflight));
     assert.equal(s.backup.verified,true,JSON.stringify(s.backup));
-    assert.equal(s.legal.ok,true);assert.deepEqual(s.legal.blocking,[]);assert.equal(s.legal.open_events,1);
+    assert.equal(s.backup.stages.restore_test,'ok');
+    const m1=JSON.parse(String(E.store.objects.get(s.backup.manifest).body));
+    assert.equal(m1.stages.restore_test.status,'ok','S1 (sözleşme denetimi dahil) geçti');
+    assert.equal(s.legal.ok,true);assert.deepEqual(s.legal.blocking,['genesis_baseline']);assert.equal(s.legal.open_events,1);
     const {chain}=await headBody(E);
     assert.equal(chain.head.counts.log,3);assert.equal(chain.head.counts.records,1);assert.equal(chain.head.observed,true);
     await releaseOpen(E,(Date.now()-T0)/DAY);

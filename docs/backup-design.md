@@ -16,7 +16,7 @@ R2 yaşam döngüsüyle silme → uygulama kapısıyla silme (D1); yasal kayıtl
 | Şifreleme | `age`, iki çevrim dışı alıcı (A, B). Alıcı listesi hash'i repo'da sabit. |
 | İmza | K1 (CI): manifest, kontrol noktası, silme kaydı. K2 (çevrim dışı sahip): serbest bırakma ve K6 muafiyeti. |
 | Gizlilik | K7 (CI): kontrol noktası gövdelerinin şifrelenmesi. |
-| Bağlantı | Yalnız `nakgo_backup` rolü; Supavisor oturum modu 5432; `sslmode=verify-full`. 6543 reddedilir. |
+| Bağlantı | Yalnız `nakgo_backup` rolü (BYPASSRLS + `pg_read_all_data`, Supabase resmi yöntemi); Supavisor oturum modu 5432; `sslmode=verify-full`. 6543 reddedilir. |
 | Doğrulama | Her çalışmada S1 (düz PG17'ye geri yükleme ve denetim). S2a/S2b ayrı ve elle. |
 | Production'a geri yükleme | Otomatik değil; yalıtılmış projeye, ayrı onayla. |
 | K5 (şifreli e-posta eki) | Uygulanmadı; kapalı. Açılması ayrı tasarım ve onay ister. |
@@ -47,16 +47,22 @@ yerine her çalışmada şifrelemeden önce S1 ile geri yüklenebilirlik, ayda b
 kanıtlanır.
 
 ## B7-B'ye geçiş ENGELLERİ
-1. **Auth/Storage okuma yetkisi (A1):** Supabase'te `postgres`, `auth` şemasında grant option'a sahip değil. Şablonun
-   auth/storage yetkileri etkisiz kalır. Bu yerelde taklit edildi ve `verifyRole` ile yakalanıyor. Seçenekler (A:
-   `pg_read_all_data`, B: Auth'u Supabase yedeklerine bırakmak, C: dar SECURITY DEFINER dışa aktarma, D: Supabase
-   desteği) sahibin kararını bekliyor: [backup/privilege-audit.md](backup/privilege-audit.md).
-2. BYPASSRLS'li rolün Supabase'te `postgres` ile oluşturulabildiği (V4) geçici bir projede doğrulanmalı.
-3. R2 V1–V3 (aşağıda).
-4. **#125 ile B1 sözleşmesi:** #125, B1'den önce açıldığı için `supabase/contract` dosyalarında
-   `public.nakgo_legal_action` ve `public.nakgo_legal_page` için `authenticated` çalıştırma yetkisi yok. #125 bu haliyle
-   birleşirse her yedeğin S1 doğrulaması `contract` hatasıyla başarısız olur (gerçek migration'la uçtan uca testte
-   gösterildi). #125 birleşirken sözleşme güncellenmeli; bu PR #125'e dokunmaz.
+1. **Yedek rolü (A1):** Supabase'in resmi yöntemi (BYPASSRLS + `pg_read_all_data`) uygulandı. Gerçek projede
+   doğrulanacaklar: V4 (şablon `postgres` ile çalışıyor mu, `with inherit true, set false` dahil), V5 (`verifyRole`
+   temiz mi), V6 (Supabase şemalarındaki PUBLIC'e açık SECURITY DEFINER fonksiyonları incelenip izin listesine girmeli;
+   pg_net etkin mi), V7 (PUBLIC'ten gelen yazma yolları). Ayrıntı: [backup/privilege-audit.md](backup/privilege-audit.md).
+2. **Kabul edilmesi gereken risk:** yedek rolü oturum ve yenileme belirteci tablolarını okuyabilir (döküme girmez).
+   Sahibin açık kabulü ve önlemlerin (kısa ömürlü parola, onaylı ortam, ağ kısıtı) uygulanması gerekir.
+3. **Storage dosyaları:** pg_dump yalnız meta veriyi alır. Uygulama dosya saklamaya başlamadan önce ayrı dosya yedeği
+   kurulmalıdır; o zamana kadar `storage.objects` dolu ise yedek durur.
+4. R2 V1–V3 (aşağıda).
+
+## #125 ve B1 API sözleşmesi
+`supabase/contract/v0.json → migration_execute`: `nakgo_legal_page` ve `nakgo_legal_action` yalnız `authenticated`.
+#125'in migration dosyası depoda yokken isteğe bağlıdır (veritabanında varsa imza ve roller birebir doğrulanır). Dosya
+depoya girdiği anda zorunlu olur. #125'in migration'ı değişmedi. Birleştirme sırası: bu sözleşme değişikliği (#129)
+#125'ten önce ya da onunla birlikte birleşmelidir; aksi hâlde #125 tek başına birleşirse `nakgo/altyapi`'de sözleşme
+denetimi "sözleşme dışı çalıştırma yetkisi" verir.
 
 ## Gerçek altyapıda doğrulanması gerekenler (B7-B)
 - V1: R2 koşullu PUT (`If-None-Match: *`) gerçekten 412 döndürüyor mu.
