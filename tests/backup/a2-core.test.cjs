@@ -161,6 +161,13 @@ test('uçtan uca boru hattı (gerçek PostgreSQL)',async t=>{
       const ct=await store.get(r.keys.data);const f=path.join(dir,'c.age');fs.writeFileSync(f,ct);
       const tarList=execFileSync('sh',['-c',`age -d -i ${ids[1]} ${f} | tar -tf -`]).toString().split('\n').filter(Boolean).sort();
       assert.deepEqual(tarList,['A.dump','B.dump','bootstrap.sql','source.json']);
+      // Rol oturum/belirteç tablolarını OKUYABİLİR (pg_read_all_data) ama döküm onları İÇERMEZ.
+      execFileSync('sh',['-c',`age -d -i ${ids[1]} ${f} | tar -xf - -C ${dir} B.dump`]);
+      const toc=execFileSync(path.join(process.env.NAKGO_PG_BIN||'/usr/lib/postgresql/16/bin','pg_restore'),['-l',path.join(dir,'B.dump')]).toString();
+      fs.rmSync(path.join(dir,'B.dump'));
+      assert.match(toc,/TABLE DATA auth users/);assert.match(toc,/TABLE DATA auth identities/);
+      for(const t of ['sessions','refresh_tokens','mfa_challenges','one_time_tokens','flow_state'])assert.ok(!new RegExp('auth '+t+'\\b').test(toc),'dökümde yok: auth.'+t);
+      assert.ok(Number((await db.query('select count(*) n from auth.sessions')).rows[0].n)>0,'kaynakta oturum vardı');
       assert.deepEqual(r.restore_checks.filter(c=>!c.ok),[]);
     });
 
@@ -213,10 +220,24 @@ test('uçtan uca boru hattı (gerçek PostgreSQL)',async t=>{
       `create table auth.webauthn_credentials(id int); insert into auth.webauthn_credentials values (1); analyze auth.webauthn_credentials; select pg_stat_force_next_flush();`,
       r=>{assert.equal(r.stages.dump.code,'guards');assert.ok(r.stages.dump.reason.includes('webauthn'));},
       `drop table auth.webauthn_credentials`);
-    await failCase('bilinçli kırılma: yetkisi verilmemiş yeni tablo → pg_dump durur',
-      `create table public.zz_new(id int)`,
-      r=>{assert.equal(r.stages.dump.status,'failed');assert.equal(r.stages.dump.code,'permissions');assert.ok(r.stages.dump.reason.includes('public.zz_new'),r.stages.dump.reason);},
-      `drop table public.zz_new`);
+    // pg_read_all_data ile yeni tablo otomatik okunur ve tam şema dökümüne girer (önceki "bilinçli kırılma" bu yöntemde yok).
+    await t.test('yeni tablo otomatik dökülür ve geri yüklemede sayısı tutar',async()=>{
+      await db.exec(`create table public.zz_new(id int); insert into public.zz_new select generate_series(1,7)`);
+      try{
+        const out=path.join(dir,'newtab');
+        const d=await snapshotDump({conn,scope,outDir:out,allowLocal:true,pgBin:process.env.NAKGO_PG_BIN});
+        assert.equal(d.status,'ok',JSON.stringify(d));assert.equal(d.source.counts['public.zz_new'],7);
+        assert.equal((await restoreAndVerify({bundleDir:out,pgBin:process.env.NAKGO_PG_BIN})).status,'ok');
+      }finally{await db.exec(`drop table public.zz_new`);}
+    });
+    await failCase('okuma üyeliği yoksa (pg_read_all_data geri alınmış) → yetki aşamasında durur',
+      `revoke pg_read_all_data from ${role}`,
+      r=>{assert.equal(r.stages.dump.status,'failed');assert.equal(r.stages.dump.code,'permissions',r.stages.dump.reason);assert.ok(r.stages.dump.reason.includes('auth.users'),r.stages.dump.reason);},
+      `grant pg_read_all_data to ${role} with inherit true, set false`);
+    await failCase('büyük nesne varsa (yedeğe girmez) → koruma aşamasında durur',
+      `select lo_create(0)`,
+      r=>{assert.equal(r.stages.dump.status,'failed');assert.equal(r.stages.dump.code,'guards');assert.match(r.stages.dump.reason,/büyük nesne/);},
+      `select lo_unlink(oid) from pg_largeobject_metadata`);
 
     await t.test('ön kontrol başarısızsa hiçbir şey dökülmez',async()=>{
       const store=new MemoryStore();

@@ -170,10 +170,19 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
     // Kapsam ve korumalar
     const included=[],missing=[];
     for(const t of scope.tables){
-      const ok=(await c.query(`select to_regclass($1) is not null e`,[t.name])).rows[0].e;
+      // Katalogdan bakılır: metin adı çözmek (to_regclass) şema USAGE'ı yoksa hata verir; yetki ayrıca denetlenir.
+      const [ns,rel]=t.name.split('.');
+      const ok=(await c.query(`select exists(select 1 from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname=$1 and c.relname=$2) e`,[ns,rel])).rows[0].e;
       if(ok)included.push(t.name);else if(t.required)missing.push(t.name);
     }
     if(missing.length)return {status:'failed',stage:'scope',reasons:missing.map(m=>'zorunlu tablo yok: '+m)};
+    // Yetki: korumalar ve sayımlar bu tabloları okur; okuma yetkisi yoksa önce ve açıkça "yetki" aşamasında durur.
+    const tables=(await c.query(`select n.nspname||'.'||c.relname q from pg_class c join pg_namespace n on n.oid=c.relnamespace
+      where c.relkind in ('r','p') and n.nspname = any($1::text[]) order by 1`,[scope.full_schemas])).rows.map(r=>r.q).concat(included).sort();
+    const unreadable=(await c.query(`select x from unnest($1::text[]) x where not coalesce((select has_table_privilege(current_user,c.oid,'SELECT')
+      from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname=split_part(x,'.',1) and c.relname=split_part(x,'.',2)),false)
+      or not has_schema_privilege(current_user,split_part(x,'.',1),'USAGE')`,[tables])).rows.map(r=>r.x);
+    if(unreadable.length)return {status:'failed',stage:'permissions',reasons:unreadable.map(t=>'yedek rolünün okuma yetkisi yok: '+t)};
     const stat=async q=>{const [s,n]=q.split('.');const r=(await c.query(`select n_live_tup from pg_stat_all_tables where schemaname=$1 and relname=$2`,[s,n])).rows;return r.length?Number(r[0].n_live_tup):null;};
     const guards=[];
     for(const q of scope.excluded.guard_stop_if_rows){const n=await stat(q);if(n)guards.push(`kapsam dışı ama veri içeren tablo: ${q} (~${n} satır)`);}
@@ -182,15 +191,15 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
       const n=Number((await c.query(`select count(*) n from ${q.split('.').map(qi).join('.')}`)).rows[0].n);
       if(n)guards.push(`${q} boş olmalı: ${n} satır (dosya yedeği tasarlanmadı)`);
     }
+    // Büyük nesneler pg_read_all_data kapsamında değildir ve şema/tablo seçimli dökümler onları içermez:
+    // varsa yedek "eksik ama başarılı" görünmesin diye durur.
+    const lo=Number((await c.query(`select count(*) n from pg_catalog.pg_largeobject_metadata`)).rows[0].n);
+    if(lo)guards.push(`büyük nesne (large object) var: ${lo}; yedek kapsamında değil`);
     if(guards.length)return {status:'failed',stage:'guards',reasons:guards};
     const knownLoss={};
     for(const q of scope.excluded.known_loss){const n=await stat(q);if(n!==null)knownLoss[q]=n;}
     // Sayılar (S1 görüntüsü)
-    const tables=(await c.query(`select n.nspname||'.'||c.relname q from pg_class c join pg_namespace n on n.oid=c.relnamespace
-      where c.relkind in ('r','p') and n.nspname = any($1::text[]) order by 1`,[scope.full_schemas])).rows.map(r=>r.q).concat(included).sort();
     const counts={};
-    const unreadable=(await c.query(`select x from unnest($1::text[]) x where not has_table_privilege(current_user,x,'SELECT')`,[tables])).rows.map(r=>r.x);
-    if(unreadable.length)return {status:'failed',stage:'permissions',reasons:unreadable.map(t=>'yedek rolünün okuma yetkisi yok (yeni tablo mu?): '+t)};
     for(const t of tables)counts[t]=Number((await c.query(`select count(*) n from ${t.split('.').map(qi).join('.')}`)).rows[0].n);
     const authVersion=included.includes('auth.schema_migrations')?(await c.query(`select max(version)::text v from auth.schema_migrations`)).rows[0].v:null;
     const fingerprint=await catalogFingerprint((q,a)=>c.query(q,a),{fullSchemas:scope.full_schemas,includedTables:included,excludeRoles:[snap.role,'postgres']});

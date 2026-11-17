@@ -40,7 +40,13 @@ Aşamalar sırayla ve ayrı ayrı raporlanır. Biri bile "ok" değilse yedek **d
 - `storage.objects` boş değilse döküm başlamaz: dosya yedeği tasarlanmadı.
 - Kapsam dışı ama kalıcı veri içeren Auth özellikleri ve Vault: satır görünürse döküm başlamaz. Yedek rolü bu tabloları okuyamadığı için sayım `pg_stat_all_tables.n_live_tup` ile yapılır; bu yaklaşık bir değerdir (V).
 - Bilerek kaybedilenler (`known_loss`: MFA kurtarma kodları, Auth denetim günlüğü): sayıları şifreli pakete yazılır.
-- **Bilinçli kırılma:** Yedek rolünün okuyamadığı yeni bir tablo ya da dizi varsa döküm `permissions` aşamasında tablo adıyla durur.
+- **Yetki:** Yedek rolü `pg_read_all_data` ile okur; yeni bir public/private tablosu otomatik okunur ve tam şema
+  dökümüne girer (geri yükleme sayımı onu da doğrular). Kapsamdaki herhangi bir tablo okunamıyorsa (ör. üyelik geri
+  alınmış) döküm, korumalardan ve sayımlardan ÖNCE `permissions` aşamasında tablo adıyla durur.
+- **Büyük nesneler:** `pg_read_all_data` kapsamında değildir ve seçimli döküme girmez; `pg_largeobject_metadata` boş
+  değilse döküm `guards` aşamasında durur.
+- **Döküm oturum/belirteç tablolarını içermez:** rol onları okuyabilse de B dökümü yalnız `scope.json` tablolarını alır;
+  test, şifreli paketin içindeki döküm listesinde `auth.sessions` ve `auth.refresh_tokens` olmadığını doğrular.
 
 ## S1 geri yükleme ve doğrulama
 
