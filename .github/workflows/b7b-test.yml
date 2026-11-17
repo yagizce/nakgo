@@ -45,7 +45,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: '24'
+          node-version: '24.22.3'
           package-manager-cache: false
       - name: Install locked dependencies (integrity-checked)
         run: npm ci --prefix ops/backup/ci --ignore-scripts --no-audit --no-fund
@@ -69,8 +69,10 @@ jobs:
     environment: backup-test
     services:
       # V8 geri yükleme testi için yalıtılmış, geçici PostgreSQL 17. İş bitince yok olur.
+      # Resmi imaj postgres:17.12, çok mimarili dizin özeti (docker-library/repo-info 2390c80, repos/postgres/remote/17.12.md).
+      # Özetle çekilen içerik Docker tarafından doğrulanır; özet değişirse çekme başarısız olur (sessiz değişim yok).
       postgres:
-        image: postgres:17
+        image: postgres@sha256:0d938e975177bef9f1f61f3f9dbcf2e0aa0a139568f66d3415ed8892eb97f6ac
         env:
           POSTGRES_PASSWORD: restore-test-only
         ports: ['5432:5432']
@@ -82,7 +84,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: '24'
+          node-version: '24.22.3'
           package-manager-cache: false
       - name: Install locked dependencies (integrity-checked)
         run: npm ci --prefix ops/backup/ci --ignore-scripts --no-audit --no-fund
@@ -96,10 +98,15 @@ jobs:
           test "$(gpg --show-keys --with-colons "$RUNNER_TEMP/pgdg.asc" | awk -F: '$1=="fpr"{print $10; exit}')" = "B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8"
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo cp "$RUNNER_TEMP/pgdg.asc" /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          # Sabit sürüm noble (24.04) derlemesidir. "17" bileşeni eski 17.x sürümlerini de tutar: sürüm yenilense de aynı
+          # paket kurulabilir. Depo imzası signed-by ile doğrulanır; imzasız paket kurulmaz.
+          test "$(. /etc/os-release && echo "$VERSION_CODENAME")" = noble
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main 17" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-17
-          /usr/lib/postgresql/17/bin/pg_dump --version
+          sudo apt-get install -y -qq --no-install-recommends postgresql-client-17=17.12-1.pgdg24.04+1
+          test "$(dpkg-query -W -f='${Version}' postgresql-client-17)" = 17.12-1.pgdg24.04+1
+          dpkg-query -W libpq5 postgresql-client-common
+          /usr/lib/postgresql/17/bin/pg_dump --version | grep -F ' 17.12'
       - name: Write test database root certificate
         env:
           ROOT_CERT: ${{ secrets.NAKGO_TEST_DB_ROOT_CERT }}

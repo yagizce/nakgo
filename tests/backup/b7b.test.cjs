@@ -37,6 +37,20 @@ test('test iş akışı: yalnız test dalına push, onaylı test ortamı, takım
   assert.ok(!/secrets:\s*inherit|toJSON\(secrets\)|secrets\[/.test(y),'gizlilerin toplu aktarımı yok');
   assert.ok(!/NAKGO_(DB|R2|ANCHOR|K1|K7)_/.test(y.replace(/NAKGO_TEST_/g,'')),'production gizli adı yok');
   for(const u of y.matchAll(/uses: (\S+)/g))assert.match(u[1],/@[0-9a-f]{40}$/,'eylem SHA ile sabit: '+u[1]);
+  // Tedarik zinciri: servis imajı özetle, PostgreSQL istemcisi tam sürümle (imzalı depodan), Node tam sürümle, age sha256 ile.
+  const images=[...y.matchAll(/^\s+image: (\S+)$/gm)].map(m=>m[1]);
+  assert.deepEqual(images,['postgres@sha256:0d938e975177bef9f1f61f3f9dbcf2e0aa0a139568f66d3415ed8892eb97f6ac']);
+  assert.ok(!/(container|image):\s*[a-z0-9./-]+:[^@\s]+\s*$/m.test(y),'etiketle imaj yok');
+  assert.match(y,/apt-get install -y -qq --no-install-recommends postgresql-client-17=17\.12-1\.pgdg24\.04\+1\n/);
+  assert.match(y,/test "\$\(dpkg-query -W -f='\$\{Version\}' postgresql-client-17\)" = 17\.12-1\.pgdg24\.04\+1/);
+  assert.match(y,/deb \[signed-by=\/usr\/share\/postgresql-common\/pgdg\/apt\.postgresql\.org\.asc\] https:\/\/apt\.postgresql\.org\/pub\/repos\/apt noble-pgdg main 17"/);
+  assert.match(y,/= "B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8"/,'PGDG anahtar parmak izi');
+  assert.ok(!/trusted=yes|allow-unauthenticated|AllowUnauthenticated/i.test(y),'imza doğrulaması kapatılmamış');
+  assert.ok(!/apt-get install[^\n]*postgresql-client-17(\s|$)/.test(y),'sürümsüz istemci kurulumu yok');
+  const nodes=[...y.matchAll(/node-version: '([^']+)'/g)].map(m=>m[1]);
+  assert.ok(nodes.length===2&&nodes.every(v=>/^\d+\.\d+\.\d+$/.test(v)),'Node tam sürüm: '+nodes);
+  assert.match(y,/7df45a6cc87d4da11cc03a539a7470c15b1041ab2b396af088fe9990f7c79d50  \$RUNNER_TEMP\/age\.tgz" \| sha256sum --check/);
+  for(const c of y.matchAll(/curl [^\n]*(https?:\/\/\S+)/g))assert.match(c[1],/^https:\/\//,'yalnız https: '+c[1]);
   // run: blokları (devam satırları dahil) ifade içermez: girdiler yalnız env ile geçer (komut enjeksiyonu yok).
   const lines=y.split('\n');
   for(let i=0;i<lines.length;i++){
