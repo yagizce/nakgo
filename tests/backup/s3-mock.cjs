@@ -1,11 +1,20 @@
 /** Yalnız testler için yerel S3 taklidi (127.0.0.1). SigV4 imzasını aynı gizli anahtarla yeniden hesaplayıp doğrular;
  * PUT (If-None-Match), GET, HEAD, DELETE ve ListObjectsV2 destekler. Davranış MemoryStore üzerinden simüle edilir
- * (kilit ve koşullu yazma dahil). Gerçek R2'nin davranışını KANITLAMAZ. */
+ * (kilit ve koşullu yazma dahil). Gerçek R2'nin davranışını KANITLAMAZ.
+ *
+ * Hata enjeksiyonu (faults): [{method, prefix, kind, status, times}] — eşleşen ilk kayıt `times` kez uygulanır.
+ *   status       işlemi yapmadan verilen durum koduyla yanıt (ör. 503)
+ *   reset        yanıt vermeden bağlantıyı kopar
+ *   hang         hiç yanıt verme (istemci zaman aşımı)
+ *   after_write  işlemi yap, sonra yanıt vermeden bağlantıyı kopar (yanıtı kaybolmuş başarılı yazma)
+ *   truncate     GET: tam boyu bildir, yarısını gönder, bağlantıyı kopar
+ *   corrupt      GET: 200 ile ilk baytı değiştirilmiş gövde */
 'use strict';
 const http=require('node:http');
 const {MemoryStore,signV4}=require('../../tools/backup/store.cjs');
 
-function start({accessKeyId,secretAccessKey,bucket,store=new MemoryStore(),allowListBuckets=false}){
+function start({accessKeyId,secretAccessKey,bucket,store=new MemoryStore(),allowListBuckets=false,faults=[]}){
+  const takeFault=(method,key)=>{const f=faults.find(f=>(f.times??1)>0&&(!f.method||f.method===method)&&key.startsWith(f.prefix||''));if(f)f.times=(f.times??1)-1;return f;};
   const server=http.createServer(async(req,res)=>{
     const chunks=[];for await(const c of req)chunks.push(c);
     const body=Buffer.concat(chunks);
@@ -24,6 +33,18 @@ function start({accessKeyId,secretAccessKey,bucket,store=new MemoryStore(),allow
     if(req.method==='GET'&&url.pathname==='/'){res.writeHead(allowListBuckets?200:403);return res.end(allowListBuckets?'<ListAllMyBucketsResult/>':'AccessDenied');}
     if(decodeURIComponent(parts[0])!==bucket){res.writeHead(404);return res.end();}
     const key=parts.slice(1).map(decodeURIComponent).join('/');
+    const fault=takeFault(req.method,key);
+    if(fault){
+      if(fault.kind==='status'){res.writeHead(fault.status);return res.end();}
+      if(fault.kind==='reset')return req.socket.destroy();
+      if(fault.kind==='hang')return;
+      if(fault.kind==='after_write'&&req.method==='PUT'){await store.put(key,body,{ifNoneMatch:req.headers['if-none-match']==='*'});return req.socket.destroy();}
+      if(req.method==='GET'&&key&&(fault.kind==='truncate'||fault.kind==='corrupt')){
+        const b=await store.get(key);if(!b){res.writeHead(404);return res.end();}
+        if(fault.kind==='corrupt'){const c=Buffer.from(b);c[0]^=0xff;res.writeHead(200,{'content-length':c.length});return res.end(c);}
+        res.writeHead(200,{'content-length':b.length});res.write(b.subarray(0,Math.floor(b.length/2)));return setImmediate(()=>req.socket.destroy());
+      }
+    }
     if(req.method==='GET'&&!key){
       const list=await store.list(url.searchParams.get('prefix')||'');
       const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -36,7 +57,7 @@ function start({accessKeyId,secretAccessKey,bucket,store=new MemoryStore(),allow
     if(req.method==='DELETE'){const r=await store.delete(key);res.writeHead(r.status===404?404:r.ok?204:403);return res.end();}
     res.writeHead(405);res.end();
   });
-  return new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve({server,store,endpoint:'http://127.0.0.1:'+server.address().port,close:()=>new Promise(r=>server.close(r))})));
+  return new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve({server,store,endpoint:'http://127.0.0.1:'+server.address().port,close:()=>new Promise(r=>{server.close(r);server.closeAllConnections();})})));
 }
 
 module.exports={start};

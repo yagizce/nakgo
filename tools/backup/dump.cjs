@@ -160,6 +160,9 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
   fs.mkdirSync(outDir,{recursive:true,mode:0o700});
   const started=Date.now();
   const c=new Client(clientConfig(conn));
+  // Bağlantı boştayken koparsa (bakım, sonlandırma) 'error' olayı dinleyicisiz kalırsa süreci çökertir; sorgu zaten
+  // hata döndürür ve aşama başarısız raporlanır.
+  c.on('error',()=>{});
   await c.connect();
   let s1Open=false;
   try{
