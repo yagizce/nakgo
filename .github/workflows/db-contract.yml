@@ -11,7 +11,7 @@ concurrency:
 jobs:
   db-contract:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     services:
       # Production Supabase PostgreSQL 17 çalıştırır; testler aynı ana sürümde koşar. Dış ağ veya gizli anahtar yok.
       postgres:
@@ -33,9 +33,24 @@ jobs:
         run: |
           npm install --prefix "$RUNNER_TEMP/nakgo-admin-db" --no-save --package-lock=false --ignore-scripts @electric-sql/pglite@0.3.14
           npm install --prefix "$RUNNER_TEMP/nakgo-pg" --no-save --package-lock=false --ignore-scripts pg@8.23.1
+      - name: Install pinned backup tools (age, PostgreSQL 17 client)
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/age.tgz" https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz
+          echo "7df45a6cc87d4da11cc03a539a7470c15b1041ab2b396af088fe9990f7c79d50  $RUNNER_TEMP/age.tgz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/age.tgz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/age" >> "$GITHUB_PATH"
+          curl -fsSL -o "$RUNNER_TEMP/pgdg.asc" https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          test "$(gpg --show-keys --with-colons "$RUNNER_TEMP/pgdg.asc" | awk -F: '$1=="fpr"{print $10; exit}')" = "B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo cp "$RUNNER_TEMP/pgdg.asc" /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
       - name: PGlite (PostgreSQL 17, in-process)
         env:
           NODE_PATH: ${{ runner.temp }}/nakgo-admin-db/node_modules
+          NAKGO_REQUIRE_AGE: '1'
         run: npm run -s test:db
       - name: Real PostgreSQL 17 server
         env:
@@ -43,4 +58,7 @@ jobs:
           NAKGO_PG_HOST: localhost
           NAKGO_PG_PORT: '5432'
           NAKGO_PG_PASSWORD: ci-only-local
+          NAKGO_PG_BIN: /usr/lib/postgresql/17/bin
+          NAKGO_REQUIRE_DUMP: '1'
+          NAKGO_REQUIRE_AGE: '1'
         run: npm run -s test:db
