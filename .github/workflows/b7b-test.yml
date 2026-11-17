@@ -1,0 +1,137 @@
+name: NakGo B7-B test
+# B7-B kabul testleri (docs/backup/b7b-acceptance.md). YALNIZ GEÇİCİ TEST KAYNAKLARI: geçici Supabase test projesi ve
+# ayrı R2 test kovası. Production, DEV ve production gizlileri bu iş akışında YOKTUR.
+# Tetikleme: yalnız nakgo/b7b-test dalına push. Çalışacak takım o dalda commitlenen ops/backup/b7b-suite.json'dan okunur
+# ("none" = hiçbir test işi başlamaz). Test işleri "backup-test" ortamını kullanır: ortamın zorunlu onaylayıcısı onay
+# vermeden iş başlamaz ve ortam gizlilerine erişemez. Onaylayan kişi, onaydan önce o push'un farkını inceler.
+# (workflow_dispatch kullanılmaz: GitHub, onu yalnız varsayılan dalda bulunan iş akışları için garanti eder.)
+# Ortam, gizliler, test projesi ve kova OLUŞTURULMADI; her biri ayrı onaydır.
+on:
+  push:
+    branches: [nakgo/b7b-test]
+permissions:
+  contents: read
+concurrency:
+  group: nakgo-b7b-test
+  cancel-in-progress: false
+jobs:
+  select:
+    # Gizli ve ortam YOK: yalnız takım seçimini okur ve doğrular.
+    if: github.ref == 'refs/heads/nakgo/b7b-test' && github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      suite: ${{ steps.read.outputs.suite }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - id: read
+        run: |
+          suite="$(node -e 'const s=JSON.parse(require("fs").readFileSync("ops/backup/b7b-suite.json","utf8")).suite;if(!["none","r2","supabase-base","supabase-legal125"].includes(s))process.exit(1);process.stdout.write(s)')"
+          echo "suite=$suite" >> "$GITHUB_OUTPUT"
+          echo "Seçilen takım: $suite"
+
+  r2:
+    # Yalnız R2 gizlileri; veritabanı gizlisi bu işte YOK.
+    needs: select
+    if: needs.select.outputs.suite == 'r2'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: backup-test
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24.22.3'
+          package-manager-cache: false
+      - name: Install locked dependencies (integrity-checked)
+        run: npm ci --prefix ops/backup/ci --ignore-scripts --no-audit --no-fund
+      - name: R2 acceptance tests (V1–V3, token scope)
+        env:
+          NODE_PATH: ${{ github.workspace }}/ops/backup/ci/node_modules
+          NAKGO_TEST_SUITE: r2
+          NAKGO_TEST_ENVIRONMENT: backup-test
+          NAKGO_TEST_R2_ENDPOINT: ${{ secrets.NAKGO_TEST_R2_ENDPOINT }}
+          NAKGO_TEST_R2_BUCKET: ${{ secrets.NAKGO_TEST_R2_BUCKET }}
+          NAKGO_TEST_R2_ACCESS_KEY_ID: ${{ secrets.NAKGO_TEST_R2_ACCESS_KEY_ID }}
+          NAKGO_TEST_R2_SECRET_ACCESS_KEY: ${{ secrets.NAKGO_TEST_R2_SECRET_ACCESS_KEY }}
+        run: node tools/backup/b7b/run.cjs
+
+  supabase:
+    # Veritabanı gizlileri + V8'in şifreli yedeği yazdığı test kovası için R2 gizlileri.
+    needs: select
+    if: needs.select.outputs.suite == 'supabase-base' || needs.select.outputs.suite == 'supabase-legal125'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: backup-test
+    services:
+      # V8 geri yükleme testi için yalıtılmış, geçici PostgreSQL 17. İş bitince yok olur.
+      # Resmi imaj postgres:17.12, çok mimarili dizin özeti (docker-library/repo-info 2390c80, repos/postgres/remote/17.12.md).
+      # Özetle çekilen içerik Docker tarafından doğrulanır; özet değişirse çekme başarısız olur (sessiz değişim yok).
+      postgres:
+        image: postgres@sha256:0d938e975177bef9f1f61f3f9dbcf2e0aa0a139568f66d3415ed8892eb97f6ac
+        env:
+          POSTGRES_PASSWORD: restore-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24.22.3'
+          package-manager-cache: false
+      - name: Install locked dependencies (integrity-checked)
+        run: npm ci --prefix ops/backup/ci --ignore-scripts --no-audit --no-fund
+      - name: Install pinned backup tools (age, PostgreSQL 17 client)
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/age.tgz" https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz
+          echo "7df45a6cc87d4da11cc03a539a7470c15b1041ab2b396af088fe9990f7c79d50  $RUNNER_TEMP/age.tgz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/age.tgz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/age" >> "$GITHUB_PATH"
+          curl -fsSL -o "$RUNNER_TEMP/pgdg.asc" https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          test "$(gpg --show-keys --with-colons "$RUNNER_TEMP/pgdg.asc" | awk -F: '$1=="fpr"{print $10; exit}')" = "B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo cp "$RUNNER_TEMP/pgdg.asc" /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          # Sabit sürüm noble (24.04) derlemesidir. "17" bileşeni eski 17.x sürümlerini de tutar: sürüm yenilense de aynı
+          # paket kurulabilir. Depo imzası signed-by ile doğrulanır; imzasız paket kurulmaz.
+          test "$(. /etc/os-release && echo "$VERSION_CODENAME")" = noble
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main 17" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends postgresql-client-17=17.12-1.pgdg24.04+1
+          test "$(dpkg-query -W -f='${Version}' postgresql-client-17)" = 17.12-1.pgdg24.04+1
+          dpkg-query -W libpq5 postgresql-client-common
+          /usr/lib/postgresql/17/bin/pg_dump --version | grep -F ' 17.12'
+      - name: Write test database root certificate
+        env:
+          ROOT_CERT: ${{ secrets.NAKGO_TEST_DB_ROOT_CERT }}
+        run: |
+          umask 077
+          printf '%s\n' "$ROOT_CERT" > "$RUNNER_TEMP/test-db-root.crt"
+      - name: Supabase acceptance tests (V4–V8)
+        env:
+          NODE_PATH: ${{ github.workspace }}/ops/backup/ci/node_modules
+          NAKGO_TEST_SUITE: ${{ needs.select.outputs.suite }}
+          NAKGO_TEST_ENVIRONMENT: backup-test
+          NAKGO_PG_BIN: /usr/lib/postgresql/17/bin
+          NAKGO_PG_HOST: localhost
+          NAKGO_PG_PORT: '5432'
+          NAKGO_PG_PASSWORD: restore-test-only
+          NAKGO_TEST_R2_ENDPOINT: ${{ secrets.NAKGO_TEST_R2_ENDPOINT }}
+          NAKGO_TEST_R2_BUCKET: ${{ secrets.NAKGO_TEST_R2_BUCKET }}
+          NAKGO_TEST_R2_ACCESS_KEY_ID: ${{ secrets.NAKGO_TEST_R2_ACCESS_KEY_ID }}
+          NAKGO_TEST_R2_SECRET_ACCESS_KEY: ${{ secrets.NAKGO_TEST_R2_SECRET_ACCESS_KEY }}
+          NAKGO_TEST_DB_PROJECT_REF: ${{ secrets.NAKGO_TEST_DB_PROJECT_REF }}
+          NAKGO_TEST_DB_HOST: ${{ secrets.NAKGO_TEST_DB_HOST }}
+          NAKGO_TEST_DB_ADMIN_USER: ${{ secrets.NAKGO_TEST_DB_ADMIN_USER }}
+          NAKGO_TEST_DB_ADMIN_PASSWORD: ${{ secrets.NAKGO_TEST_DB_ADMIN_PASSWORD }}
+          NAKGO_TEST_DB_ROOT_CERT_FILE: ${{ runner.temp }}/test-db-root.crt
+        run: node tools/backup/b7b/run.cjs
+      - name: Remove temporary files
+        if: always()
+        run: rm -f "$RUNNER_TEMP/test-db-root.crt"

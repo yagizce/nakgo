@@ -1,0 +1,8 @@
+{
+  "name": "nakgo-backup-ci",
+  "private": true,
+  "description": "B7 yedek ve B7-B test iş akışlarının çalışma anı bağımlılıkları. Sürümler ve bütünlük özetleri package-lock.json ile sabittir; kurulum yalnız npm ci --ignore-scripts ile yapılır.",
+  "dependencies": {
+    "pg": "8.23.1"
+  }
+}

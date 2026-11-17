@@ -5,7 +5,7 @@
 const http=require('node:http');
 const {MemoryStore,signV4}=require('../../tools/backup/store.cjs');
 
-function start({accessKeyId,secretAccessKey,bucket,store=new MemoryStore()}){
+function start({accessKeyId,secretAccessKey,bucket,store=new MemoryStore(),allowListBuckets=false}){
   const server=http.createServer(async(req,res)=>{
     const chunks=[];for await(const c of req)chunks.push(c);
     const body=Buffer.concat(chunks);
@@ -20,6 +20,8 @@ function start({accessKeyId,secretAccessKey,bucket,store=new MemoryStore()}){
     const expect=signV4({method:req.method,url:url.toString(),headers:hdrs,body:['PUT','POST'].includes(req.method)?body:'',accessKeyId,secretAccessKey,date});
     if(expect.authorization!==auth){res.writeHead(403);return res.end('imza geçersiz');}
     const parts=url.pathname.split('/').slice(1);
+    // Hesap düzeyi ListBuckets: kovaya bağlı belirteç taklidinde 403, hesap düzeyi belirteçte 200.
+    if(req.method==='GET'&&url.pathname==='/'){res.writeHead(allowListBuckets?200:403);return res.end(allowListBuckets?'<ListAllMyBucketsResult/>':'AccessDenied');}
     if(decodeURIComponent(parts[0])!==bucket){res.writeHead(404);return res.end();}
     const key=parts.slice(1).map(decodeURIComponent).join('/');
     if(req.method==='GET'&&!key){

@@ -1,0 +1,4 @@
+{
+  "suite": "none",
+  "note": "B7-B test takımı seçimi. Yalnız nakgo/b7b-test dalında değiştirilir ve push edilir; her push backup-test ortamında onay bekler. Değerler: none, r2, supabase-base, supabase-legal125 (bu sırayla)."
+}

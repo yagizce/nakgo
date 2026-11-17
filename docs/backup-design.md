@@ -1,6 +1,6 @@
 # Yedekleme tasarımı (B7)
 
-Durum: B7-A kodu ve testleri tamam (PR #127–#130, birleştirilmedi). Hiçbir kova, gizli anahtar, ortam, Worker ya da
+Durum: B7-A kodu ve testleri tamam (PR #127–#131, `nakgo/altyapi`'ye birleşti; `main`'de değil). B7-B test iş akışı hazır, çalıştırılmadı. Hiçbir kova, gizli anahtar, ortam, Worker ya da
 zamanlama oluşturulmadı. Gerçek altyapı adımları B7-B/C'de ve her biri ayrı onayla yapılır.
 
 Bu belge önceki (16.11.2026) taslağın yerini alır. Değişen kararlar: günlük → 6 saatte bir; 14 gün → kural olarak 15 gün;
