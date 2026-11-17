@@ -7026,8 +7026,11 @@ function bindPhoneContact(item, isTruck) {
         if (!availableListing(item, isTruck)) return toast("İlanın süresi doldu");
         const account = nakgoMarket.token();
         try {
-            const n = normalizeListingPhone(await nakgoAuth.listingContact(item.remoteId, channel));
+            const raw = await nakgoAuth.listingContact(item.remoteId, channel);
             if (account !== nakgoMarket.token()) return;
+            // Sunucu, hesap başına telefon görüntüleme sınırı aşılınca numara yerine boş (null) döner.
+            if (raw === null) return toast("Telefon görüntüleme sınırına ulaştın. Biraz sonra tekrar dene.");
+            const n = normalizeListingPhone(raw);
             if (!n) return toast("Bu ilanda paylaşılan bir telefon numarası yok.");
             if (!isTruck) track("c", item.id);
             window.location.href = channel === "call" ? "tel:" + n : "https://wa.me/" + n.slice(1);
