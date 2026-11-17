@@ -71,13 +71,15 @@ const MUTATIONS=[
 const T={a2:'tests/backup/a2-core.test.cjs',a3:'tests/backup/a3-legal.test.cjs',a4:'tests/backup/a4-orchestrator.test.cjs',mon:'tests/backup/a4-monitor.test.cjs'};
 function testsFor(file){
   if(file.includes('/monitor/'))return [T.mon];
-  if(/run\.cjs$|deletion-journal\.cjs$/.test(file))return [T.a4];
+  if(/(^|\/)run\.cjs$|deletion-journal\.cjs$/.test(file))return [T.a4];
   if(/deletion\.cjs$/.test(file))return [T.a2,T.a3,T.a4];
   if(/legal-run\.cjs$|state-machine\.cjs$|checkpoint\.cjs$/.test(file))return [T.a3,T.a4];
   return [T.a3];
 }
 let escaped=0;
-for(const [file,from,to] of MUTATIONS){
+// İsteğe bağlı: NAKGO_MUTATION_ONLY=legal-run.cjs yalnız adı bu metni içeren dosyaların mutasyonlarını dener.
+const only=process.env.NAKGO_MUTATION_ONLY;
+for(const [file,from,to] of MUTATIONS.filter(m=>!only||m[0].includes(only))){
   const src=fs.readFileSync(file,'utf8');
   if(src.split(from).length!==2)throw Error('mutasyon noktası tekil değil: '+file+' '+from);
   fs.writeFileSync(file,src.replace(from,to));
@@ -87,5 +89,5 @@ for(const [file,from,to] of MUTATIONS){
   if(!caught)escaped++;
   console.log((caught?'YAKALANDI ':'KAÇTI     ')+file.split('/').pop()+': '+from.slice(0,70));
 }
-console.log(`kaçan: ${escaped} / ${MUTATIONS.length}`);
+console.log(`kaçan: ${escaped} / ${MUTATIONS.filter(m=>!only||m[0].includes(only)).length}`);
 process.exitCode=escaped?1:0;
