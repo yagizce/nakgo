@@ -9,11 +9,17 @@
  *  5. Kontrol noktası N yazılır. Bekleyen belge varsa N+1'de tüketilir (iki aşama: çökme sonrası kurtarılabilir).
  *  6. Dış çapalara yazılır. Herhangi bir adım başarısızsa ok:false ve silme kapısı kapalı kalır.
  *
+ * state === 'carry': bu çalışmada yasal durum gözlenemedi (ör. döküm alınamadı). Önceki gövdenin listeleri aynen taşınır,
+ *   geçiş doğrulaması yapılmaz, başlıkta observed=false yazılır; olay/muafiyet/belge durumu yine de zincire işlenir.
+ *   Gözlem yapılmayan aralıktaki değişiklikler bir sonraki gözlemde bütün olarak doğrulanır.
+ * attachmentPrefix: bu önek altındaki ve önceki gövdede bulunmayan nesneler (ör. imzalı silme kayıtları) anahtar ve
+ *   SHA-256'larıyla gövdeye bağlanır.
  * hooks.afterWrite(seq): yalnız testler için çökme enjeksiyonu. */
 'use strict';
 const C=require('./checkpoint.cjs');
 const E=require('./legal-evidence.cjs');
 const SM=require('./state-machine.cjs');
+const {sha256}=require('./crypto.cjs');
 
 const EMPTY_LEAVES=()=>Object.fromEntries(E.LISTS.map(k=>[k,[]]));
 
@@ -36,7 +42,7 @@ async function checkAnchors(anchors,headers){
   return res;
 }
 
-async function advance({store,trustedK1,k1,k7,trustedK2,anchors=[],environment,now=new Date(),runId,state,releaseDocs=[],evaluation,waiver,backup=null,ageRecipientsFile,hooks={}}){
+async function advance({store,trustedK1,k1,k7,trustedK2,anchors=[],environment,now=new Date(),runId,state,releaseDocs=[],evaluation,waiver,backup=null,ageRecipientsFile,attachmentPrefix,hooks={}}){
   const fail=(stage,reason,extra)=>({ok:false,stage,reason,openEvents:null,anchorsOk:false,...extra});
   const chain=await C.readChain(store,{trustedK1});
   if(!chain.ok)return fail('chain',chain.reason);
@@ -51,14 +57,28 @@ async function advance({store,trustedK1,k1,k7,trustedK2,anchors=[],environment,n
     if(p.length)return fail('state',p.join('; '));
   }
 
-  const absent=Boolean(state&&state.absent);
   if(!state)return fail('state','yasal durum okunmadı');
-  const leaves=absent?EMPTY_LEAVES():E.buildLeaves(state);
-  const policies=absent?[]:state.policies;
-  let findings=absent?[]:E.internalChecks(state);
-  if(prevBody&&!prevBody.legal_absent&&absent)findings.push({code:'legal_tables_missing',severity:'integrity',table:'*',id:'*'});
+  const carry=state==='carry';
+  const absent=carry?(prevBody?Boolean(prevBody.legal_absent):true):Boolean(state.absent);
+  const leaves=carry?(prevBody?prevBody.leaves:EMPTY_LEAVES()):absent?EMPTY_LEAVES():E.buildLeaves(state);
+  const policies=carry?(prevBody?prevBody.policies:[]):absent?[]:state.policies;
+  let findings=carry||absent?[]:E.internalChecks(state);
+  if(carry){/* gözlem yok: geçiş bir sonraki gözlemde doğrulanır */}
+  else if(prevBody&&!prevBody.legal_absent&&absent)findings.push({code:'legal_tables_missing',severity:'integrity',table:'*',id:'*'});
   else if(!absent&&(!prevBody||prevBody.legal_absent))findings=findings.concat(E.genesisFindings(leaves));
   else if(!absent)findings=findings.concat(E.verifyTransition(prevBody,{leaves,policies}));
+  const attachments=[];
+  if(attachmentPrefix){
+    try{
+      const seen=new Set(((prevBody&&prevBody.all_attachments)||[]).map(a=>a.key));
+      for(const o of await store.list(attachmentPrefix)){
+        if(seen.has(o.key))continue;
+        const b=await store.get(o.key);
+        if(b)attachments.push({key:o.key,sha256:sha256(b)});
+      }
+    }catch(e){return fail('attachments',e.message);}
+  }
+  const allAttachments=[...((prevBody&&prevBody.all_attachments)||[]),...attachments];
 
   const seq=(head?head.seq:0)+1;
   const prevSha=head?C.headerSha(head):null;
@@ -72,7 +92,8 @@ async function advance({store,trustedK1,k1,k7,trustedK2,anchors=[],environment,n
 
   const caps=store.capabilities||{};
   const flags={single_use_guaranteed:caps.conditionalPut==='verified'&&caps.consistentRead==='verified',anchors_confirmed:before.confirmed,backup};
-  const body={leaves,policies,findings,sm,legal_absent:absent,sequences:absent?null:state.sequences};
+  const body={leaves,policies,findings,sm,legal_absent:absent,observed:!carry,sequences:carry?(prevBody?prevBody.sequences:null):absent?null:state.sequences,
+    attachments,all_attachments:allAttachments};
   const w1=await C.writeCheckpoint(store,{seq,prevHeader:head,body,k1,k7,createdAt:now.toISOString(),runId,flags,ageRecipientsFile});
   if(!w1.ok)return fail('write',w1.error,{conflict:Boolean(w1.conflict)});
   let last=w1.header;
@@ -82,7 +103,7 @@ async function advance({store,trustedK1,k1,k7,trustedK2,anchors=[],environment,n
   if(sm.releases.some(r=>r.state==='consumption_pending')){
     const c=SM.completePending(sm,{seq:seq+1,now});
     sm=c.sm;consumed=c.done;
-    const w2=await C.writeCheckpoint(store,{seq:seq+1,prevHeader:last,body:{...body,findings:[],sm},k1,k7,createdAt:now.toISOString(),runId,
+    const w2=await C.writeCheckpoint(store,{seq:seq+1,prevHeader:last,body:{...body,findings:[],sm,attachments:[]},k1,k7,createdAt:now.toISOString(),runId,
       flags:{...flags,anchors_confirmed:{}},ageRecipientsFile});
     if(!w2.ok)return fail('write',w2.error,{conflict:Boolean(w2.conflict),pending:true});
     last=w2.header;

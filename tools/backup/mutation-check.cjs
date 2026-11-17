@@ -1,5 +1,5 @@
 /** B7-A3 kasıtlı bozma (mutasyon) denetimi: kanıt, zincir, durum makinesi ve silme kapısındaki her kritik kuralı tek
- * tek kapatır ve A2+A3 testlerinin bunu yakaladığını doğrular. Kaynak dosya her denemeden sonra geri yazılır.
+ * tek kapatır ve A2–A4 testlerinin bunu yakaladığını doğrular. Kaynak dosya her denemeden sonra geri yazılır.
  * Süre uzun olduğu için CI'da değil, elle çalıştırılır:  NODE_PATH=... node tools/backup/mutation-check.cjs
  * Çıkış kodu: kaçan mutasyon varsa 1. */
 'use strict';
@@ -40,6 +40,17 @@ const MUTATIONS=[
   ["tools/backup/legal-run.cjs", "flags={single_use_guaranteed:caps.conditionalPut==='verified'&&caps.consistentRead==='verified'", "flags={single_use_guaranteed:true"],
   ["tools/backup/deletion.cjs", "if(keep.length<minRemaining)blockers.push", "if(false)blockers.push"],
   ["tools/backup/deletion.cjs", "if(!(now.getTime()-newest<=maxAge))blockers.push", "if(false)blockers.push"]
+,
+  ["tools/backup/run.cjs", "environment!=='production'&&config.k6_waiver", "config.k6_waiver"],
+  ["tools/backup/run.cjs", "if(plan.allowed&&backup.verified===true)log=", "if(plan.allowed)log="],
+  ["tools/backup/run.cjs", "summary.legal.open_events===0&&summary.legal.anchors_ok&&", "summary.legal.open_events===0&&"],
+  ["tools/backup/run.cjs", "if(config.deletion&&config.deletion.enabled&&!(config.store_capabilities", "if(false&&!(config.store_capabilities"],
+  ["tools/backup/run.cjs", "if(!verifyManifest(m,trustedK1).ok){invalid.push(o.key);continue;}", ""],
+  ["tools/backup/run.cjs", "store.capabilities={verified:config.store_capabilities.verified===true,", "void {verified:config.store_capabilities.verified===true,"],
+  ["tools/backup/legal-run.cjs", "if(seen.has(o.key))continue;", ""],
+  ["ops/backup/monitor/core.mjs", "if (h >= THRESHOLDS.critHours) add('critical'", "if (h >= THRESHOLDS.critHours + 1) add('critical'"],
+  ["ops/backup/monitor/core.mjs", "const verified = (input.manifests || []).filter(m => m.sigOk && m.doc.verified === true)", "const verified = (input.manifests || []).filter(m => m.doc.verified === true)"],
+  ["ops/backup/monitor/worker.mjs", "if (env.HEARTBEAT_URL && !result.alerts.some(a => a.code === 'monitor_error'))", "if (env.HEARTBEAT_URL)"]
 ];
 let escaped=0;
 for(const [file,from,to] of MUTATIONS){
@@ -47,7 +58,7 @@ for(const [file,from,to] of MUTATIONS){
   if(src.split(from).length!==2)throw Error('mutasyon noktası tekil değil: '+file+' '+from);
   fs.writeFileSync(file,src.replace(from,to));
   let caught;
-  try{caught=!/# fail 0\b/.test(spawnSync(process.execPath,['--test','tests/backup/a3-legal.test.cjs','tests/backup/a2-core.test.cjs'],{encoding:'utf8',env:process.env}).stdout);}
+  try{caught=!/# fail 0\b/.test(spawnSync(process.execPath,['--test','tests/backup/a3-legal.test.cjs','tests/backup/a2-core.test.cjs','tests/backup/a4-orchestrator.test.cjs','tests/backup/a4-monitor.test.cjs'],{encoding:'utf8',env:process.env}).stdout);}
   finally{fs.writeFileSync(file,src);}
   if(!caught)escaped++;
   console.log((caught?'YAKALANDI ':'KAÇTI     ')+file.split('/').pop()+': '+from.slice(0,70));

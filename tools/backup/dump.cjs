@@ -242,4 +242,4 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
   }
 }
 
-module.exports={validateConn,snapshotDump,catalogFingerprint,ACL_SQL,run,binPath,toolMajor,pgEnv,isLocalHost};
+module.exports={validateConn,snapshotDump,catalogFingerprint,ACL_SQL,run,binPath,toolMajor,pgEnv,clientConfig,isLocalHost};

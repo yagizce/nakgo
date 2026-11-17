@@ -103,6 +103,13 @@ listenin birlikte değerlendirilmesidir.
 | Rotasyon | `k7 = [yeni, ...eski]`: yazma yeni anahtarla, okuma halkadaki herhangi biriyle. Halkada uygun anahtar yoksa çalışma `body` aşamasında durur; açık olay sayısı bilinmez, çapa doğrulanmaz, silme kapısı kapalı kalır. |
 | Görev ayrılığı | K1 (CI imzası), K2 (sahip; serbest bırakma/muafiyet), K7 (gövde şifrelemesi), A/B (yedek ve gövde kurtarma) ayrı anahtarlardır. K1 ile imzalanmış serbest bırakma belgesi reddedilir (testli); A4 yapılandırma denetimi K1 ile K2 listelerinin kesişmesini reddeder. |
 
+### Gözlemsiz kontrol noktası ve ekler (A4)
+- Döküm alınamadığı ya da yasal durum okunamadığı çalışmada `state='carry'`: önceki listeler aynen taşınır, geçiş
+  doğrulanmaz, başlıkta `observed=false` yazılır. Olay, muafiyet ve belge durumu yine işlenir. Gözlenmeyen aralıktaki her
+  değişiklik bir sonraki gözlemde bütün olarak doğrulanır (kurallar aralık uzunluğundan bağımsızdır).
+- `attachmentPrefix`: o önek altındaki ve daha önce bağlanmamış nesneler (imzalı silme kayıtları) anahtar ve SHA-256'larıyla
+  gövdeye eklenir; başlıkta `attachments_sha256` bulunur.
+
 ## 4. Olaylar ve K2 serbest bırakma
 
 Olay kimliği rastgele UUIDv4. Bağ: `sha256(canonical{event_id,type,opened_seq,opened_prev_sha256,findings_sha256})`;

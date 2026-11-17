@@ -1,0 +1,86 @@
+name: NakGo backup
+# B7-A4: ETKİSİZ. Yalnız elle tetiklenir; zamanlama YOK. Yalnız main dalından ve "backup-production" ortamından çalışır.
+# O ortam ve gizlileri henüz OLUŞTURULMADI (B7-B/C, ayrı onay). ops/backup/config.json eksik olduğu için çalıştırılsa
+# bile orkestratör ilk adımda durur. Zamanlamanın (her 6 saat) eklenmesi ayrı onaydır.
+# GitHub "concurrency" aynı anda iki çalışmayı azaltır ama atomik tek kullanım SAĞLAMAZ; tek kullanımlılık kontrol
+# noktası zincirinin koşullu yazmasına dayanır ve R2'de kanıtlanana kadar iddia edilmez.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nakgo-backup
+  cancel-in-progress: false
+jobs:
+  backup:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment: backup-production
+    services:
+      # Geri yükleme testi için yalıtılmış, geçici PostgreSQL 17. İş bitince yok olur.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: restore-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install pinned client library
+        run: npm install --prefix "$RUNNER_TEMP/nakgo-pg" --no-save --package-lock=false --ignore-scripts pg@8.23.1
+      - name: Install pinned backup tools (age, PostgreSQL 17 client)
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/age.tgz" https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz
+          echo "7df45a6cc87d4da11cc03a539a7470c15b1041ab2b396af088fe9990f7c79d50  $RUNNER_TEMP/age.tgz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/age.tgz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/age" >> "$GITHUB_PATH"
+          curl -fsSL -o "$RUNNER_TEMP/pgdg.asc" https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          test "$(gpg --show-keys --with-colons "$RUNNER_TEMP/pgdg.asc" | awk -F: '$1=="fpr"{print $10; exit}')" = "B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo cp "$RUNNER_TEMP/pgdg.asc" /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+      - name: Write database root certificate
+        env:
+          ROOT_CERT: ${{ secrets.NAKGO_DB_ROOT_CERT }}
+        run: |
+          umask 077
+          printf '%s\n' "$ROOT_CERT" > "$RUNNER_TEMP/db-root.crt"
+      - name: Backup, restore test, legal evidence, gated deletion
+        env:
+          NODE_PATH: ${{ runner.temp }}/nakgo-pg/node_modules
+          NAKGO_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+          NAKGO_BACKUP_ENVIRONMENT: production
+          NAKGO_PG_BIN: /usr/lib/postgresql/17/bin
+          NAKGO_PG_HOST: localhost
+          NAKGO_PG_PORT: '5432'
+          NAKGO_PG_PASSWORD: restore-test-only
+          NAKGO_DB_HOST: ${{ secrets.NAKGO_DB_HOST }}
+          NAKGO_DB_PORT: '5432'
+          NAKGO_DB_USER: ${{ secrets.NAKGO_DB_USER }}
+          NAKGO_DB_PASSWORD: ${{ secrets.NAKGO_DB_PASSWORD }}
+          NAKGO_DB_ROOT_CERT_FILE: ${{ runner.temp }}/db-root.crt
+          NAKGO_R2_ENDPOINT: ${{ secrets.NAKGO_R2_ENDPOINT }}
+          NAKGO_R2_BUCKET: ${{ secrets.NAKGO_R2_BUCKET }}
+          NAKGO_R2_ACCESS_KEY_ID: ${{ secrets.NAKGO_R2_ACCESS_KEY_ID }}
+          NAKGO_R2_SECRET_ACCESS_KEY: ${{ secrets.NAKGO_R2_SECRET_ACCESS_KEY }}
+          NAKGO_ANCHOR_ENDPOINT: ${{ secrets.NAKGO_ANCHOR_ENDPOINT }}
+          NAKGO_ANCHOR_BUCKET: ${{ secrets.NAKGO_ANCHOR_BUCKET }}
+          NAKGO_ANCHOR_ACCESS_KEY_ID: ${{ secrets.NAKGO_ANCHOR_ACCESS_KEY_ID }}
+          NAKGO_ANCHOR_SECRET_ACCESS_KEY: ${{ secrets.NAKGO_ANCHOR_SECRET_ACCESS_KEY }}
+          NAKGO_K1_PRIVATE_KEY: ${{ secrets.NAKGO_K1_PRIVATE_KEY }}
+          NAKGO_K7: ${{ secrets.NAKGO_K7 }}
+        run: node tools/backup/run.cjs
+      - name: Remove certificate
+        if: always()
+        run: rm -f "$RUNNER_TEMP/db-root.crt"
