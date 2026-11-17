@@ -158,6 +158,30 @@ test('gerçek fonksiyonlarla uyum: legal_log, legal_close, legal_chain_check ve 
   }finally{await finish(db);}
 });
 
+test('B1 API sözleşmesi: gerçek #125 ile uyumlu; migration depoya girince zorunlu; sapmalar yakalanır',async()=>{
+  const {check}=require('../../tools/api-contract.cjs');
+  const FILE='20261117000000_legal_archive.sql';
+  const db=await legalDb();
+  try{
+    let r=await check({client:false,db});
+    assert.deepEqual(r.fails,[],'gerçek #125 uygulanmış veritabanı sözleşmeyle uyumlu');
+    r=await check({client:false,db,migrationsPresent:[FILE]});
+    assert.deepEqual(r.fails,[],'#125 birleştiğinde de uyumlu');
+    await db.exec(`grant execute on function public.nakgo_legal_page(text,integer,jsonb) to anon`);
+    r=await check({client:false,db});
+    assert.ok(r.fails.some(f=>/sözleşme dışı çalıştırma yetkisi: public\.nakgo_legal_page anon/.test(f)),r.fails.join('\n'));
+    await db.exec(`revoke execute on function public.nakgo_legal_page(text,integer,jsonb) from anon; revoke execute on function public.nakgo_legal_action(text,jsonb) from authenticated`);
+    r=await check({client:false,db});
+    assert.ok(r.fails.some(f=>/sözleşmedeki yetki veritabanında yok: public\.nakgo_legal_action authenticated/.test(f)),r.fails.join('\n'));
+  }finally{await finish(db);}
+  const plain=await migratedDb();
+  try{
+    assert.deepEqual((await check({client:false,db:plain})).fails,[],'#125 yokken (bugünkü altyapı) isteğe bağlı');
+    const r=await check({client:false,db:plain,migrationsPresent:[FILE]});
+    assert.ok(r.fails.some(f=>/depoda var ama fonksiyon veritabanında yok/.test(f)),'#125 depodaysa fonksiyonlar zorunlu');
+  }finally{await finish(plain);}
+});
+
 // ---------- veritabanı senaryoları ----------
 test('başlangıç: ilk kontrol noktası K2 onayı olmadan kabul edilmez; GERÇEK retention_run silmesi bulgu üretmez',async()=>{
   const db=await legalDb(),E=env();
