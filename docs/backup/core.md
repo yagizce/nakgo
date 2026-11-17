@@ -87,7 +87,9 @@ Yalnız yerel ve geçici bir veritabanına (db-lib). Production'a ya da herhangi
   - açıkça etkinleştirilmiş olması;
   - K3'te kanıtlanmış depo davranışı;
   - zincirde açık olay olmaması (A3);
-  - dış çapanın yazılmış olması.
+  - dış çapanın yazılmış olması;
+  - silmeden sonra yeterli doğrulanmış yedek kalması: en az 4 doğrulanmış yedek ve en yenisi 24 saatten yeni (A3,
+    `coverage`). Kapsama bilinmiyorsa silme yok.
 - Kova kilidi koddan bağımsız ayrı bir sınırdır.
 
 ## Test edilemeyenler
