@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "description": "B7 yedek yapılandırması. Bu dosya PR incelemesinden geçerek değişir; ortam değişkeniyle ezilemez. null olan her alan doldurulana kadar yedek iş akışı çalışmayı reddeder.",
+  "recipients_sha256": null,
+  "trusted_k1": {},
+  "trusted_k2": {},
+  "deletion": {
+    "enabled": false,
+    "retention_days": 15,
+    "min_verified_remaining": 4,
+    "max_verified_age_hours": 24
+  },
+  "store_capabilities": {
+    "verified": false,
+    "conditional_put": "unverified",
+    "consistent_read": "unverified",
+    "evidence": null
+  },
+  "k6_waiver": {
+    "enabled": false,
+    "allowed_environments": []
+  },
+  "expect_legal_tables": false
+}

@@ -80,6 +80,7 @@ listenin birlikte değerlendirilmesidir.
 | İlk kontrol noktası | Mevcut durum ancak K2 serbest bırakmasıyla başlangıç kabul edilir (`genesis_baseline`). |
 | Yasal tablolar yok (#125 öncesi) | `legal_absent`, yasal aşama n/a. Sonradan gelirse başlangıç onayı; vardıktan sonra kaybolursa `integrity`. |
 | Bulgu mevcut bir açık olayın kapsamındaysa | Yeni olay açılmaz; aynı durum yeniden bulgu üretmez. |
+| Bulgu K2 ile kapatılmış bir olayın kapsamındaysa | "Kabul edilmiş" sayılır: listede görünür, yeni olay açmaz (ör. kilit nedeniyle silinemeyen hatalı bir günlük nesnesi). Farklı her yeni bulgu yine olay açar. |
 
 ## 3. Kontrol noktası
 
@@ -102,6 +103,13 @@ listenin birlikte değerlendirilmesidir.
 | Kurtarma | Her gövdenin veri anahtarı K7'ye ek olarak çevrim dışı age alıcılarına (A, B) sarılır (A4'te zorunlu). K7 kaybında gövde A ya da B ile açılır (`openBodyWithAge`); veri anahtarı yeni K7'ye sarılıp ayrı bir nesneye yazılır (`rewrapWithAge` → `<seq>.rewrap.<K7 kimliği>`); kilitli gövde değişmez. Sahte yeniden sarma yalnız çözmeyi başarısız kılar. |
 | Rotasyon | `k7 = [yeni, ...eski]`: yazma yeni anahtarla, okuma halkadaki herhangi biriyle. Halkada uygun anahtar yoksa çalışma `body` aşamasında durur; açık olay sayısı bilinmez, çapa doğrulanmaz, silme kapısı kapalı kalır. |
 | Görev ayrılığı | K1 (CI imzası), K2 (sahip; serbest bırakma/muafiyet), K7 (gövde şifrelemesi), A/B (yedek ve gövde kurtarma) ayrı anahtarlardır. K1 ile imzalanmış serbest bırakma belgesi reddedilir (testli); A4 yapılandırma denetimi K1 ile K2 listelerinin kesişmesini reddeder. |
+
+### Gözlemsiz kontrol noktası ve ekler (A4)
+- Döküm alınamadığı ya da yasal durum okunamadığı çalışmada `state='carry'`: önceki listeler aynen taşınır, geçiş
+  doğrulanmaz, başlıkta `observed=false` yazılır. Olay, muafiyet ve belge durumu yine işlenir. Gözlenmeyen aralıktaki her
+  değişiklik bir sonraki gözlemde bütün olarak doğrulanır (kurallar aralık uzunluğundan bağımsızdır).
+- `attachmentPrefix`: o önek altındaki ve daha önce bağlanmamış nesneler (imzalı silme kayıtları) anahtar ve SHA-256'larıyla
+  gövdeye eklenir; başlıkta `attachments_sha256` bulunur.
 
 ## 4. Olaylar ve K2 serbest bırakma
 

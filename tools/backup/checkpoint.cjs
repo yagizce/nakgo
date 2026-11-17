@@ -108,7 +108,8 @@ function makeHeader({seq,prevHeader,body,bodyBytes,createdAt,runId,flags}){
     findings_sha256:sha256Json(body.findings),
     events:{open:body.sm.events.filter(e=>e.status==='open').length,root:sha256Json(body.sm.events)},
     releases_sha256:sha256Json(body.sm.releases),waivers_sha256:sha256Json(body.sm.waivers),
-    legal_absent:Boolean(body.legal_absent),
+    legal_absent:Boolean(body.legal_absent),observed:body.observed!==false,
+    attachments_sha256:sha256Json(body.attachments||[]),
     single_use_guaranteed:flags.single_use_guaranteed===true,
     anchors_confirmed:flags.anchors_confirmed||{},
     backup:flags.backup||null,
@@ -166,7 +167,7 @@ async function loadBody(store,header,{k7,prevHeader}){
   const body=openBody(bytes,{k7,seq:header.seq,prevSha:prevHeader?headerSha(prevHeader):null,extraWraps});
   const again=makeHeader({seq:header.seq,prevHeader,body,bodyBytes:bytes,createdAt:header.created_at,runId:header.run_id,
     flags:{single_use_guaranteed:header.single_use_guaranteed,anchors_confirmed:header.anchors_confirmed,backup:header.backup}});
-  for(const k of ['roots','counts','policy_set_sha256','retention_runs_sha256','findings_sha256','events','releases_sha256','waivers_sha256','legal_absent'])
+  for(const k of ['roots','counts','policy_set_sha256','retention_runs_sha256','findings_sha256','events','releases_sha256','waivers_sha256','legal_absent','observed','attachments_sha256'])
     if(canonical(again[k])!==canonical(header[k]))throw Error('gövde başlıkla uyuşmuyor: '+k);
   return body;
 }
