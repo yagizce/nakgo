@@ -1,0 +1,7 @@
+{
+  "description": "public ve private şemalarında service_role'e AÇIKÇA verilmiş yetkilerin tam listesi. Uygulama service_role'ü genel sunucu erişimi için kullanmaz; bu iki yetki yalnız Storage temizleme kuyruğu (tools/storage-cleanup.cjs) içindir (migration 20261115181551). Yeni bir açık yetki ancak bu dosyanın incelemeli bir PR ile güncellenmesiyle kabul edilir; tools/backup/privilege-audit.cjs --invariants farkı reddeder.",
+  "explicit_grants": [
+    "function public.nakgo_storage_cleanup_pending(p_limit integer) EXECUTE",
+    "function public.nakgo_storage_cleanup_result(p_bucket text, p_path text, p_ok boolean, p_error text) EXECUTE"
+  ]
+}
