@@ -14,16 +14,26 @@ const s3mock=require('./s3-mock.cjs');
 const root=path.resolve(__dirname,'../..');
 const WF=path.join(root,'.github/workflows/b7b-test.yml');
 
-test('test iş akışı: yalnız elle, yalnız test dalı ve test ortamı, yalnız test gizlileri',()=>{
+test('test iş akışı: yalnız test dalına push, onaylı test ortamı, takıma göre gizliler, sabit bağımlılıklar',()=>{
   const y=fs.readFileSync(WF,'utf8');
   const on=/\non:\n([\s\S]*?)\npermissions:/.exec(y)[1];
-  assert.deepEqual([...on.matchAll(/^  ([a-z_]+):/gm)].map(m=>m[1]),['workflow_dispatch'],'tek tetikleyici');
-  assert.match(y,/\n    if: github\.ref == 'refs\/heads\/nakgo\/b7b-test' && github\.event_name == 'workflow_dispatch'\n/);
-  assert.match(y,/\n    environment: backup-test\n/);
+  assert.deepEqual([...on.matchAll(/^  ([a-z_]+):/gm)].map(m=>m[1]),['push'],'tek tetikleyici: push');
+  assert.match(on,/^    branches: \[nakgo\/b7b-test\]$/m,'yalnız test dalı');
+  assert.ok(!/workflow_dispatch|pull_request|schedule|workflow_run|repository_dispatch/.test(on));
   assert.match(y,/\npermissions:\n  contents: read\nconcurrency:/,'yalnız okuma izni');
-  const secrets=[...y.matchAll(/secrets\.([A-Za-z0-9_]+)/g)].map(m=>m[1]);
-  assert.ok(secrets.length>0);
-  for(const s of secrets)assert.match(s,/^NAKGO_TEST_/,'yalnız test gizlisi: '+s);
+  // İşleri ayır: "select" gizli ve ortam kullanmaz; test işleri yalnız backup-test ortamında ve takıma göre.
+  const jobs={};for(const m of y.split('\njobs:\n')[1].matchAll(/^  ([a-z0-9_-]+):\n([\s\S]*?)(?=^  [a-z0-9_-]+:\n|(?![\s\S]))/gm))jobs[m[1]]=m[2];
+  assert.deepEqual(Object.keys(jobs),['select','r2','supabase']);
+  assert.match(jobs.select,/if: github\.ref == 'refs\/heads\/nakgo\/b7b-test' && github\.event_name == 'push'/);
+  assert.ok(!/secrets\.|environment:/.test(jobs.select),'seçim işinde gizli ve ortam yok');
+  const sec=t=>[...new Set([...t.matchAll(/secrets\.([A-Za-z0-9_]+)/g)].map(m=>m[1]))].sort();
+  for(const j of ['r2','supabase']){
+    assert.match(jobs[j],/\n    needs: select\n/);assert.match(jobs[j],/\n    environment: backup-test\n/);
+    for(const k of sec(jobs[j]))assert.match(k,/^NAKGO_TEST_/,'yalnız test gizlisi: '+k);
+  }
+  assert.match(jobs.r2,/if: needs\.select\.outputs\.suite == 'r2'/);
+  assert.deepEqual(sec(jobs.r2),['NAKGO_TEST_R2_ACCESS_KEY_ID','NAKGO_TEST_R2_BUCKET','NAKGO_TEST_R2_ENDPOINT','NAKGO_TEST_R2_SECRET_ACCESS_KEY'],'R2 işinde yalnız R2 gizlileri');
+  assert.ok(sec(jobs.supabase).includes('NAKGO_TEST_DB_ADMIN_PASSWORD'));
   assert.ok(!/secrets:\s*inherit|toJSON\(secrets\)|secrets\[/.test(y),'gizlilerin toplu aktarımı yok');
   assert.ok(!/NAKGO_(DB|R2|ANCHOR|K1|K7)_/.test(y.replace(/NAKGO_TEST_/g,'')),'production gizli adı yok');
   for(const u of y.matchAll(/uses: (\S+)/g))assert.match(u[1],/@[0-9a-f]{40}$/,'eylem SHA ile sabit: '+u[1]);
@@ -31,20 +41,43 @@ test('test iş akışı: yalnız elle, yalnız test dalı ve test ortamı, yaln�
   const lines=y.split('\n');
   for(let i=0;i<lines.length;i++){
     const m=/^(\s+)(?:- )?run:(.*)$/.exec(lines[i]);if(!m)continue;
-    const block=[m[2]];for(let j=i+1;j<lines.length&&(lines[j].trim()===''||lines[j].search(/\S/)>m[1].length);j++)block.push(lines[j]);
+    const block=[m[2]];for(let k=i+1;k<lines.length&&(lines[k].trim()===''||lines[k].search(/\S/)>m[1].length);k++)block.push(lines[k]);
     assert.ok(!/\$\{\{/.test(block.join('\n')),'run bloğunda ifade yok: '+lines[i].trim());
   }
-  // Diğer iş akışları test gizlilerini ve test ortamını kullanmaz; bu iş akışı başka iş akışını tetiklemez.
+  // Bağımlılıklar yalnız kilit dosyasından (bütünlük özetiyle) npm ci ile kurulur.
+  assert.ok(!/npm install/.test(y),'npm install yok');
+  assert.equal((y.match(/npm ci --prefix ops\/backup\/ci --ignore-scripts/g)||[]).length,2);
+  const pkg=JSON.parse(fs.readFileSync(path.join(root,'ops/backup/ci/package.json'),'utf8'));
+  assert.deepEqual(pkg.dependencies,{pg:'8.23.1'},'tam sürüm');
+  const lock=JSON.parse(fs.readFileSync(path.join(root,'ops/backup/ci/package-lock.json'),'utf8'));
+  const pk=Object.entries(lock.packages).filter(([k])=>k);
+  assert.ok(pk.length>=10);
+  for(const [k,v] of pk){assert.match(v.integrity||'',/^sha512-/,'bütünlük özeti: '+k);assert.match(v.resolved||'',/^https:\/\/registry\.npmjs\.org\//,'kaynak: '+k);}
+  assert.equal(lock.packages['node_modules/pg'].version,'8.23.1');
+  // Takım seçimi: varsayılan "none" (bu dal birleşse de hiçbir test işi başlamaz).
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'ops/backup/b7b-suite.json'),'utf8')).suite,'none');
   for(const f of fs.readdirSync(path.join(root,'.github/workflows')).filter(f=>f!=='b7b-test.yml')){
     const o=fs.readFileSync(path.join(root,'.github/workflows',f),'utf8');
     assert.ok(!/NAKGO_TEST_|backup-test/.test(o),f+' test gizlisi/ortamı kullanmamalı');
   }
 });
 
+test('gizliler ortamdan alınır ve silinir; üretilen parola maskelenir',()=>{
+  const env={NAKGO_TEST_SUITE:'r2',NAKGO_TEST_ENVIRONMENT:'backup-test',NAKGO_TEST_R2_SECRET_ACCESS_KEY:'s3cr3t-value',NAKGO_TEST_DB_ADMIN_PASSWORD:'pw-value-123',PATH:'/bin'};
+  const got=RUN.takeSecrets(env);
+  assert.deepEqual(Object.keys(got).sort(),['NAKGO_TEST_DB_ADMIN_PASSWORD','NAKGO_TEST_R2_SECRET_ACCESS_KEY']);
+  assert.deepEqual(Object.keys(env).sort(),['NAKGO_TEST_ENVIRONMENT','NAKGO_TEST_SUITE','PATH'],'alt süreçlere geçmez');
+  let out='';RUN.mask('abcdef0123456789',s=>{out+=s;});
+  assert.equal(out,'::add-mask::abcdef0123456789\n');
+  assert.throws(()=>RUN.mask('',()=>{}));
+});
+
 test('güvenlik kapıları: bağlam, Supabase hedefi, R2 hedefi',()=>{
-  const ok={GITHUB_EVENT_NAME:'workflow_dispatch',GITHUB_REF:'refs/heads/nakgo/b7b-test',NAKGO_TEST_ENVIRONMENT:'backup-test',NAKGO_TEST_SUITE:'r2'};
+  const ok={GITHUB_EVENT_NAME:'push',GITHUB_REF:'refs/heads/nakgo/b7b-test',NAKGO_TEST_ENVIRONMENT:'backup-test',NAKGO_TEST_SUITE:'r2'};
   assert.deepEqual(G.checkRunContext(ok),[]);
-  for(const [k,v] of [['GITHUB_EVENT_NAME','push'],['GITHUB_EVENT_NAME','pull_request'],['GITHUB_REF','refs/heads/main'],['GITHUB_REF','refs/heads/nakgo/altyapi'],
+  assert.ok(G.checkRunContext({...ok,NAKGO_TEST_DB_ADMIN_PASSWORD:'x'}).some(p=>/veritabanı gizlisi/.test(p)),'R2 takımında DB gizlisi reddedilir');
+  assert.deepEqual(G.checkRunContext({...ok,NAKGO_TEST_SUITE:'supabase-base',NAKGO_TEST_DB_ADMIN_PASSWORD:'x'}),[]);
+  for(const [k,v] of [['GITHUB_EVENT_NAME','workflow_dispatch'],['GITHUB_EVENT_NAME','pull_request'],['GITHUB_REF','refs/heads/main'],['GITHUB_REF','refs/heads/nakgo/altyapi'],
     ['NAKGO_TEST_ENVIRONMENT','backup-production'],['NAKGO_TEST_SUITE','hepsi']])assert.ok(G.checkRunContext({...ok,[k]:v}).length,k+'='+v);
   const t={ref:'abcdefghijklmnopqrst',host:'aws-0-eu-central-1.pooler.supabase.com',port:5432,adminUser:'postgres.abcdefghijklmnopqrst',rootCertFile:'/x'};
   assert.deepEqual(G.checkSupabaseTarget(t),[]);
@@ -61,6 +94,9 @@ test('güvenlik kapıları: bağlam, Supabase hedefi, R2 hedefi',()=>{
   assert.ok(G.checkSupabaseTarget({...t,ref:''}).length);
   const e='https://'+'a'.repeat(32)+'.r2.cloudflarestorage.com';
   assert.deepEqual(G.checkR2Target({endpoint:e,bucket:'nakgo-backup-test'}),[]);
+  assert.deepEqual(G.checkR2Target({endpoint:'https://'+'b'.repeat(32)+'.eu.r2.cloudflarestorage.com',bucket:'nakgo-backup-test'}),[],'AB yargı bölgesi');
+  for(const bad of ['https://'+'b'.repeat(32)+'.fedramp.r2.cloudflarestorage.com','https://'+'b'.repeat(32)+'.r2.cloudflarestorage.com.evil.example','https://x.eu.r2.cloudflarestorage.com'])
+    assert.ok(G.checkR2Target({endpoint:bad,bucket:'nakgo-backup-test'}).length,bad);
   assert.ok(G.checkR2Target({endpoint:e,bucket:'nakgo-backup'}).length,'adında test yoksa reddedilir');
   assert.ok(G.checkR2Target({endpoint:'http://127.0.0.1:9000',bucket:'nakgo-backup-test'}).length);
 });
@@ -79,8 +115,14 @@ test('V1–V3 yerel S3 taklidinde (gerçek R2 kanıtı DEĞİL)',async()=>{
   try{
     const s=new S3Store({endpoint:mock.endpoint,bucket:'b',accessKeyId:'AKTEST',secretAccessKey:'secret-test-only'});
     const out=await RUN.suiteR2({store:s,prefix:'b7b-test/1-1/'});
-    assert.deepEqual(out.map(x=>[x.code,x.status]),[['V1','pass'],['V2','pass'],['V3','pass']],JSON.stringify(out));
+    assert.deepEqual(out.map(x=>[x.code,x.status]),[['R2-scope','pass'],['V1','pass'],['V2','pass'],['V3','pass']],JSON.stringify(out));
   }finally{await mock.close();}
+  // Bozma: hesap düzeyinde kova listeleyebilen belirteç kapsam denetiminde kalır ve V1'e geçilmez.
+  const wide=await s3mock.start({accessKeyId:'AKTEST',secretAccessKey:'secret-test-only',bucket:'b',allowListBuckets:true});
+  try{
+    const s=new S3Store({endpoint:wide.endpoint,bucket:'b',accessKeyId:'AKTEST',secretAccessKey:'secret-test-only'});
+    assert.deepEqual((await RUN.suiteR2({store:s,prefix:'p/'})).map(x=>[x.code,x.status]),[['R2-scope','fail']]);
+  }finally{await wide.close();}
   // Bozma: koşullu yazmayı yok sayan depo V1'de, kilitsiz depo V3'te kalır.
   const noCond=new MemoryStore();const put=noCond.put.bind(noCond);noCond.put=(k,b)=>put(k,b);
   assert.equal((await V.v1(noCond,{prefix:'x/',n:3})).status,'fail');
@@ -139,6 +181,27 @@ test('#125 senaryo yalıtımı ve V4–V8 (yerel PostgreSQL)',async t=>{
       try{const x=await V.v5(db,b,{role});assert.equal(x.status,'fail');assert.equal(x.detail.reads['auth.sessions'],'OKUNDU');assert.ok(x.detail.reasons.includes('direct_read'),JSON.stringify(x.detail.reasons));}
       finally{await b.end().catch(()=>{});await db.exec(`revoke select on auth.sessions from ${role}; revoke usage on schema auth from ${role}`);}
     });
+    await t.test('V7(c) büyük nesnesi ölçüm hata verse de silinir (yedek oturumu silemezse yönetici siler)',async()=>{
+      const b=await backupClient();
+      const flaky={on:()=>{},query:(sql,a)=>/pg_largeobject_metadata|lo_unlink/.test(sql)?Promise.reject(Object.assign(Error('ölçüm hatası'),{code:'XX000'})):b.query(sql,a)};
+      try{
+        await assert.rejects(V.v7(db,flaky,{role}),/ölçüm hatası/);
+        assert.equal(Number((await db.query(`select count(*) n from pg_largeobject_metadata`)).rows[0].n),0,'büyük nesne kalmadı');
+      }finally{await b.end().catch(()=>{});}
+    });
+    await t.test('rol temizliği: hata durumunda da rol ve sahip olduğu büyük nesne silinir',async()=>{
+      const r2=uniqueRole('nakgo_backup_c');
+      const out=await RUN.suiteSupabase({scenario:'base',admin:db,role:r2,maskImpl:()=>{},
+        connectBackup:async()=>{throw Error('bağlantı kurulamadı');},conn:{},store:new MemoryStore(),anchorStore:new MemoryStore(),runId:'c-1'});
+      assert.deepEqual(out.map(x=>[x.code,x.status]),[['scenario','pass'],['V4','pass'],['exception','fail'],['cleanup','pass']],JSON.stringify(out));
+      assert.equal((await db.query(`select count(*)::int n from pg_roles where rolname=$1`,[r2])).rows[0].n,0,'rol silindi');
+      // Rol, sahip olduğu bir büyük nesneyle kalmışsa da: DROP OWNED onu da kaldırır.
+      await db.exec(`create role ${r2} login; set role ${r2}; select lo_create(0); reset role;`);
+      const c=await V.cleanupRole(db,{role:r2});
+      assert.equal(c.status,'pass');assert.equal(c.detail.large_objects_owned_before,1);
+      assert.equal(Number((await db.query(`select count(*) n from pg_largeobject_metadata`)).rows[0].n),0);
+      assert.equal((await V.cleanupRole(db,{role:r2})).detail.role_present,false,'yoksa da sorunsuz');
+    });
     const ageMissing=()=>{try{execFileSync('which',['age-keygen'],{stdio:'ignore'});return false;}catch{return true;}};
     const conn={host:process.env.NAKGO_PG_HOST,port:Number(process.env.NAKGO_PG_PORT||5432),user:role,password:pw,database:db.name};
     const {toolMajor}=require('../../tools/backup/dump.cjs');
@@ -153,6 +216,23 @@ test('#125 senaryo yalıtımı ve V4–V8 (yerel PostgreSQL)',async t=>{
       assert.equal(fs.readdirSync(os.tmpdir()).filter(f=>f.startsWith('nakgo-b7b-keys-')).length,0,'geçici anahtar klasörü silindi');
       const r=RUN.v8ConnectionRules({host:'aws-0-eu-central-1.pooler.supabase.com',port:5432,sslmode:'verify-full',sslrootcert:'/yok'});
       assert.deepEqual(r,{port_6543_rejected:true,sslmode_require_rejected:true});
+    });
+    await t.test('temel takım uçtan uca (V4–V8) ve sonda rol silinir',async t2=>{
+      if(v8Skip){if(process.env.NAKGO_REQUIRE_DUMP==='1')throw Error(v8Skip);t2.skip(v8Skip);return;}
+      // Aynı veritabanında başka bir yedek rolü EXECUTE taşırsa V6 bunu (doğru olarak) yakalar: önce önceki test rolü kaldırılır.
+      assert.equal((await V.cleanupRole(db,{role})).status,'pass');
+      const r3=uniqueRole('nakgo_backup_s');let masked=null;
+      const {Client}=require('pg');
+      const out=await RUN.suiteSupabase({scenario:'base',admin:db,role:r3,maskImpl:v=>{masked=v;},allowLocal:true,runId:'s-1',
+        connectBackup:async pw=>{const c=new Client({host:process.env.NAKGO_PG_HOST,port:Number(process.env.NAKGO_PG_PORT||5432),user:r3,password:pw,database:db.name});await c.connect();c.on('error',()=>{});return c;},
+        conn:{host:process.env.NAKGO_PG_HOST,port:Number(process.env.NAKGO_PG_PORT||5432),user:r3,database:db.name},
+        store:new MemoryStore({lockDays:1,lockPrefixes:['db/']}),anchorStore:new MemoryStore(),pgBin:process.env.NAKGO_PG_BIN});
+      assert.deepEqual(out.map(x=>x.code),['scenario','V4','V5','V6','V7','V8','cleanup'],JSON.stringify(out));
+      assert.ok(out.every(x=>['pass','review'].includes(x.status)),JSON.stringify(out.filter(x=>!['pass','review'].includes(x.status))));
+      assert.match(masked,/^[0-9a-f]{48}$/,'üretilen parola maskelendi');
+      assert.ok(!JSON.stringify(out).includes(masked),'sonuçta parola yok');
+      assert.equal((await db.query(`select count(*)::int n from pg_roles where rolname=$1`,[r3])).rows[0].n,0,'rol silindi');
+      assert.equal((await V.v4(db,{role,password:pw})).status,'pass','sonraki testler için rol yeniden kuruldu');
     });
     await t.test('senaryo legal125: sabitlenmiş #125 kopyası ayrı uygulanır; geri dönüş yok',async()=>{
       const s=await V.prepareScenario(db,'legal125');

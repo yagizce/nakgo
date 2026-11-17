@@ -1,27 +1,69 @@
 name: NakGo B7-B test
 # B7-B kabul testleri (docs/backup/b7b-acceptance.md). YALNIZ GEÇİCİ TEST KAYNAKLARI: geçici Supabase test projesi ve
 # ayrı R2 test kovası. Production, DEV ve production gizlileri bu iş akışında YOKTUR.
-# - Yalnız elle tetiklenir (workflow_dispatch); push, pull_request ve zamanlama YOK.
-# - Yalnız nakgo/b7b-test dalında çalışır (iş koşulu + çalıştırıcıdaki ikinci kapı).
-# - Yalnız "backup-test" ortamının gizlilerini kullanır; ortamda zorunlu onaylayıcı ve dal kısıtı olmalıdır.
-# - Anahtarlar (K1, K2, K7, age alıcıları) her çalışmada üretilir ve iş bitince yok olur; gizli olarak saklanmaz.
+# Tetikleme: yalnız nakgo/b7b-test dalına push. Çalışacak takım o dalda commitlenen ops/backup/b7b-suite.json'dan okunur
+# ("none" = hiçbir test işi başlamaz). Test işleri "backup-test" ortamını kullanır: ortamın zorunlu onaylayıcısı onay
+# vermeden iş başlamaz ve ortam gizlilerine erişemez. Onaylayan kişi, onaydan önce o push'un farkını inceler.
+# (workflow_dispatch kullanılmaz: GitHub, onu yalnız varsayılan dalda bulunan iş akışları için garanti eder.)
 # Ortam, gizliler, test projesi ve kova OLUŞTURULMADI; her biri ayrı onaydır.
 on:
-  workflow_dispatch:
-    inputs:
-      suite:
-        description: Test takımı (r2 → supabase-base → supabase-legal125 sırasıyla)
-        required: true
-        type: choice
-        options: [r2, supabase-base, supabase-legal125]
+  push:
+    branches: [nakgo/b7b-test]
 permissions:
   contents: read
 concurrency:
   group: nakgo-b7b-test
   cancel-in-progress: false
 jobs:
-  b7b:
-    if: github.ref == 'refs/heads/nakgo/b7b-test' && github.event_name == 'workflow_dispatch'
+  select:
+    # Gizli ve ortam YOK: yalnız takım seçimini okur ve doğrular.
+    if: github.ref == 'refs/heads/nakgo/b7b-test' && github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      suite: ${{ steps.read.outputs.suite }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - id: read
+        run: |
+          suite="$(node -e 'const s=JSON.parse(require("fs").readFileSync("ops/backup/b7b-suite.json","utf8")).suite;if(!["none","r2","supabase-base","supabase-legal125"].includes(s))process.exit(1);process.stdout.write(s)')"
+          echo "suite=$suite" >> "$GITHUB_OUTPUT"
+          echo "Seçilen takım: $suite"
+
+  r2:
+    # Yalnız R2 gizlileri; veritabanı gizlisi bu işte YOK.
+    needs: select
+    if: needs.select.outputs.suite == 'r2'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: backup-test
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install locked dependencies (integrity-checked)
+        run: npm ci --prefix ops/backup/ci --ignore-scripts --no-audit --no-fund
+      - name: R2 acceptance tests (V1–V3, token scope)
+        env:
+          NODE_PATH: ${{ github.workspace }}/ops/backup/ci/node_modules
+          NAKGO_TEST_SUITE: r2
+          NAKGO_TEST_ENVIRONMENT: backup-test
+          NAKGO_TEST_R2_ENDPOINT: ${{ secrets.NAKGO_TEST_R2_ENDPOINT }}
+          NAKGO_TEST_R2_BUCKET: ${{ secrets.NAKGO_TEST_R2_BUCKET }}
+          NAKGO_TEST_R2_ACCESS_KEY_ID: ${{ secrets.NAKGO_TEST_R2_ACCESS_KEY_ID }}
+          NAKGO_TEST_R2_SECRET_ACCESS_KEY: ${{ secrets.NAKGO_TEST_R2_SECRET_ACCESS_KEY }}
+        run: node tools/backup/b7b/run.cjs
+
+  supabase:
+    # Veritabanı gizlileri + V8'in şifreli yedeği yazdığı test kovası için R2 gizlileri.
+    needs: select
+    if: needs.select.outputs.suite == 'supabase-base' || needs.select.outputs.suite == 'supabase-legal125'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment: backup-test
@@ -42,8 +84,8 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
-      - name: Install pinned client library
-        run: npm install --prefix "$RUNNER_TEMP/nakgo-pg" --no-save --package-lock=false --ignore-scripts pg@8.23.1
+      - name: Install locked dependencies (integrity-checked)
+        run: npm ci --prefix ops/backup/ci --ignore-scripts --no-audit --no-fund
       - name: Install pinned backup tools (age, PostgreSQL 17 client)
         run: |
           curl -fsSL -o "$RUNNER_TEMP/age.tgz" https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz
@@ -59,16 +101,15 @@ jobs:
           sudo apt-get install -y -qq postgresql-client-17
           /usr/lib/postgresql/17/bin/pg_dump --version
       - name: Write test database root certificate
-        if: inputs.suite != 'r2'
         env:
           ROOT_CERT: ${{ secrets.NAKGO_TEST_DB_ROOT_CERT }}
         run: |
           umask 077
           printf '%s\n' "$ROOT_CERT" > "$RUNNER_TEMP/test-db-root.crt"
-      - name: B7-B acceptance tests
+      - name: Supabase acceptance tests (V4–V8)
         env:
-          NODE_PATH: ${{ runner.temp }}/nakgo-pg/node_modules
-          NAKGO_TEST_SUITE: ${{ inputs.suite }}
+          NODE_PATH: ${{ github.workspace }}/ops/backup/ci/node_modules
+          NAKGO_TEST_SUITE: ${{ needs.select.outputs.suite }}
           NAKGO_TEST_ENVIRONMENT: backup-test
           NAKGO_PG_BIN: /usr/lib/postgresql/17/bin
           NAKGO_PG_HOST: localhost

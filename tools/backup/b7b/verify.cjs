@@ -65,6 +65,12 @@ async function prepareScenario(admin,scenario){
 
 /* ---------- R2: V1–V3 (store: S3Store; testte yerel taklit) ---------- */
 
+/** Belirteç kapsamı: hesap düzeyinde kova listeleme reddedilmeli (yalnız test kovasına bağlı "Object Read & Write"). */
+async function r2Scope(store){
+  const s=await store.listBucketsStatus();
+  return r('R2-scope',[401,403].includes(s)?'pass':s===200?'fail':'stop',{list_buckets_status:s});
+}
+
 async function v1(store,{prefix,n=20}){
   const bad=[];
   for(let i=0;i<n;i++){
@@ -181,13 +187,22 @@ async function v7(admin,backup,{role}){
   d.b_temp_default=await errCode(backup.query(`create temp table zz_b7b(x int)`));
   if(d.b_temp_default!=='25006')fail('b_temp_default',d.b_temp_default||'BAŞARILI');
   // (c) oturum ayarı kapatılınca büyük nesne oluşur (belgelenen kalan risk) ve yedek korumasının okuduğu sayı > 0 olur.
-  await backup.query(`set default_transaction_read_only = off`);
-  const lo=await backup.query(`select lo_create(0) oid`).then(x=>x.rows[0].oid,e=>({error:e.code}));
-  const seen=Number((await q(backup,`select count(*) n from pg_catalog.pg_largeobject_metadata`))[0].n);
-  if(lo&&!lo.error)await backup.query(`select lo_unlink($1)`,[lo]);
-  const after=Number((await q(backup,`select count(*) n from pg_catalog.pg_largeobject_metadata`))[0].n);
-  await backup.query(`set default_transaction_read_only = on`);
+  // Büyük nesne her durumda (ölçüm hata verse de) silinir: önce yedek oturumu, olmazsa yönetici oturumu.
+  let lo=null,seen=0,after=null;
+  try{
+    await backup.query(`set default_transaction_read_only = off`);
+    lo=await backup.query(`select lo_create(0) oid`).then(x=>x.rows[0].oid,e=>({error:e.code}));
+    seen=Number((await q(backup,`select count(*) n from pg_catalog.pg_largeobject_metadata`))[0].n);
+  }finally{
+    if(lo&&!lo.error){
+      const u=await errCode(backup.query(`select lo_unlink($1)`,[lo]));
+      if(u)await admin.query(`select lo_unlink($1)`,[lo]);
+    }
+    after=Number((await q(admin,`select count(*) n from pg_catalog.pg_largeobject_metadata where oid=$1`,[lo&&!lo.error?lo:0]))[0].n);
+    await errCode(backup.query(`set default_transaction_read_only = on`));
+  }
   d.c_lo_after_override={created:!!(lo&&!lo.error),guard_sees:seen>0,cleaned:after===0};
+  if(after!==0)fail('c_lo_not_cleaned',lo);
   if(lo&&!lo.error&&!(seen>0))fail('c_guard_blind',true);
   // (d) ağ: net.* / http* / dblink* çağrılabilir olmamalı (çağrı YAPILMAZ, yalnız yetki okunur).
   const net=(await q(backup,`select n.nspname||'.'||p.proname f from pg_proc p join pg_namespace n on n.oid=p.pronamespace
@@ -229,4 +244,16 @@ function advisoryVerdict(g){
   return null;
 }
 
-module.exports={advisoryVerdict,LEGAL125,ADVISORY_KEY,DOCUMENTED_RESIDUALS,applyMigrations,scenarioOf,prepareScenario,v1,v2,v3,v4,v5,v6,v7};
+/** Test rolünün temizliği (başarıda da hatada da çağrılır): oturumları kapatılır, sahip olduğu her şey (büyük nesneler
+ * dahil) DROP OWNED ile kaldırılır, rol silinir; sonra yokluğu doğrulanır. */
+async function cleanupRole(admin,{role}){
+  const exists=async()=>(await q(admin,`select 1 from pg_roles where rolname=$1`,[role])).length>0;
+  if(!await exists())return r('cleanup','pass',{role_present:false,large_objects_owned:0});
+  const owned=Number((await q(admin,`select count(*) n from pg_largeobject_metadata where lomowner=(select oid from pg_roles where rolname=$1)`,[role]))[0].n);
+  await errCode(admin.query(`select pg_terminate_backend(pid) from pg_stat_activity where usename=$1 and pid<>pg_backend_pid()`,[role]));
+  const e=await errCode(admin.query(require('../backup-role.cjs').dropLiteral(role)));
+  const still=await exists();
+  return r('cleanup',still?'fail':'pass',{role_present:still,large_objects_owned_before:owned,error:e});
+}
+
+module.exports={r2Scope,cleanupRole,advisoryVerdict,LEGAL125,ADVISORY_KEY,DOCUMENTED_RESIDUALS,applyMigrations,scenarioOf,prepareScenario,v1,v2,v3,v4,v5,v6,v7};

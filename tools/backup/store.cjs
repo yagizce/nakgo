@@ -44,6 +44,14 @@ class S3Store{
     delete signed.host;
     return this.fetchImpl(url,{method,headers:signed,body:body??undefined});
   }
+  /** Hesap düzeyinde kova listeleme (ListBuckets). Yalnız yetki ölçümü için: kovaya bağlı belirteçte reddedilmelidir. */
+  async listBucketsStatus(){
+    const url=new URL(this.endpoint+'/');
+    const signed=signV4({method:'GET',url:url.toString(),headers:{},body:'',accessKeyId:this.accessKeyId,secretAccessKey:this.secretAccessKey,region:this.region});
+    delete signed.host;
+    const r=await this.fetchImpl(url,{method:'GET',headers:signed});
+    return r.status;
+  }
   async put(key,body,{ifNoneMatch=false}={}){
     const r=await this.req('PUT',key,{body,headers:ifNoneMatch?{'if-none-match':'*'}:{}});
     return {ok:r.ok,status:r.status,etag:r.headers.get('etag')};
@@ -77,6 +85,14 @@ class MemoryStore{
     const o=this.objects.get(key);if(!o)return false;
     if(!this.lockPrefixes.some(p=>key.startsWith(p)))return false;
     return this.clock().getTime()-o.created.getTime()<this.lockDays*86400000;
+  }
+  /** Hesap düzeyinde kova listeleme (ListBuckets). Yalnız yetki ölçümü için: kovaya bağlı belirteçte reddedilmelidir. */
+  async listBucketsStatus(){
+    const url=new URL(this.endpoint+'/');
+    const signed=signV4({method:'GET',url:url.toString(),headers:{},body:'',accessKeyId:this.accessKeyId,secretAccessKey:this.secretAccessKey,region:this.region});
+    delete signed.host;
+    const r=await this.fetchImpl(url,{method:'GET',headers:signed});
+    return r.status;
   }
   async put(key,body,{ifNoneMatch=false}={}){
     if(this.failNext.put){this.failNext.put--;throw Error('simüle edilmiş yazma hatası');}

@@ -1,4 +1,5 @@
-/** B7-B canlı test çalıştırıcısı. YALNIZ .github/workflows/b7b-test.yml içinden, elle tetiklenen çalışmada kullanılır.
+/** B7-B canlı test çalıştırıcısı. YALNIZ .github/workflows/b7b-test.yml içinden, nakgo/b7b-test dalına push edilip
+ * backup-test ortamında onaylanan çalışmada kullanılır.
  *
  * Sıra: güvenlik kapıları (bağlantıdan ÖNCE) → seçilen takım → kanıt özeti (yalnız durumlar ve sayılar).
  *   r2                : V1 → V2 → V3 (test kovası)
@@ -16,6 +17,20 @@ const G=require('./guards.cjs');
 const V=require('./verify.cjs');
 
 const ROLE='nakgo_backup';
+
+/** Gizlileri ortamdan alır ve process.env'den SİLER: pg_dump, pg_restore, age, tar gibi alt süreçler bunları devralmaz.
+ * Değerler yalnız bu süreçte, ihtiyaç duyan istemciye verilir. */
+function takeSecrets(env=process.env){
+  const out={};
+  for(const k of Object.keys(env))if(k.startsWith('NAKGO_TEST_')&&k!=='NAKGO_TEST_SUITE'&&k!=='NAKGO_TEST_ENVIRONMENT'){out[k]=env[k];delete env[k];}
+  return out;
+}
+
+/** Çalışma anında üretilen parolayı GitHub günlüklerinde maskeler (depo herkese açık; günlükler de). */
+function mask(value,write=s=>process.stdout.write(s)){
+  if(typeof value!=='string'||value.length<8)throw Error('maskelenecek değer geçersiz');
+  write('::add-mask::'+value+'\n');
+}
 
 async function v8({conn,store,anchorStore,pgBin,expectLegal,allowLocal=false,Client=require('pg').Client,runId,workRoot=os.tmpdir()}){
   const {runAll}=require('../run.cjs');
@@ -56,56 +71,68 @@ function v8ConnectionRules(conn){
 
 async function suiteR2({store,prefix}){
   const out=[];
+  const sc=await V.r2Scope(store);out.push(sc);if(sc.status!=='pass')return out;
   for(const [fn,args] of [[V.v1,{prefix:'tmp/'+prefix}],[V.v2,{prefix:'tmp/'+prefix}],[V.v3,{lockedPrefix:'db/'+prefix,openPrefix:'tmp/'+prefix}]]){
     const x=await fn(store,args);out.push(x);if(x.status!=='pass')break;
   }
   return out;
 }
 
-async function suiteSupabase({scenario,admin,connectBackup,conn,store,anchorStore,pgBin,runId}){
+async function suiteSupabase({scenario,admin,connectBackup,conn,store,anchorStore,pgBin,runId,role=ROLE,maskImpl=mask,allowLocal=false}){
   const out=[];const push=x=>{out.push(x);return x.status==='pass'||x.status==='review';};
   if(!push(await V.prepareScenario(admin,scenario)))return out;
   const password=crypto.randomBytes(24).toString('hex');
-  if(!push(await V.v4(admin,{role:ROLE,password})))return out;
-  let backup=await connectBackup(password);
+  maskImpl(password);
+  // Rol V4'te oluşturulur; sonrasında ne olursa olsun (başarı, kalma, istisna) finally'de silinir.
   try{
-    if(!push(await V.v5(admin,backup,{role:ROLE})))return out;
-    if(!push(await V.v6(backup,{role:ROLE})))return out;
-    if(scenario==='base'&&!push(await V.v7(admin,backup,{role:ROLE})))return out;
-  }finally{await backup.end().catch(()=>{});}
-  const rules=v8ConnectionRules({...conn,password});
-  const x=await v8({conn:{...conn,password},store,anchorStore,pgBin,expectLegal:scenario==='legal125',runId});
-  x.detail.connection_rules=rules;
-  if(!rules.port_6543_rejected||!rules.sslmode_require_rejected)x.status='fail';
-  push(x);
-  return out;
+    if(!push(await V.v4(admin,{role,password})))return out;
+    const backup=await connectBackup(password);
+    try{
+      if(!push(await V.v5(admin,backup,{role})))return out;
+      if(!push(await V.v6(backup,{role})))return out;
+      if(scenario==='base'&&!push(await V.v7(admin,backup,{role})))return out;
+    }finally{await backup.end().catch(()=>{});}
+    const rules=v8ConnectionRules({...conn,password});
+    const x=await v8({conn:{...conn,password},store,anchorStore,pgBin,expectLegal:scenario==='legal125',runId,allowLocal});
+    x.detail.connection_rules=rules;
+    if(!rules.port_6543_rejected||!rules.sslmode_require_rejected)x.status='fail';
+    push(x);
+    return out;
+  }catch(e){
+    out.push({code:'exception',status:'fail',detail:{message:String(e&&e.message||e).slice(0,300)}});
+    return out;
+  }finally{
+    out.push(await V.cleanupRole(admin,{role}).catch(e=>({code:'cleanup',status:'fail',detail:{error:e.code||'error'}})));
+  }
 }
 
-module.exports={v8,v8ConnectionRules,suiteR2,suiteSupabase,ROLE};
+module.exports={v8,v8ConnectionRules,suiteR2,suiteSupabase,takeSecrets,mask,ROLE};
 
 if(require.main===module)(async()=>{
   const env=process.env;
   const ctx=G.checkRunContext(env);
   if(ctx.length)throw Error('çalışma bağlamı reddedildi: '+ctx.join('; '));
+  const S=takeSecrets(env);
   const runId=`${env.GITHUB_RUN_ID}-${env.GITHUB_RUN_ATTEMPT}`;
   if(!/^[0-9]+-[0-9]+$/.test(runId))throw Error('çalışma kimliği geçersiz');
   const {S3Store}=require('../store.cjs');
-  const r2={endpoint:env.NAKGO_TEST_R2_ENDPOINT,bucket:env.NAKGO_TEST_R2_BUCKET};
+  const r2={endpoint:S.NAKGO_TEST_R2_ENDPOINT,bucket:S.NAKGO_TEST_R2_BUCKET};
   const r2p=G.checkR2Target(r2);
   if(r2p.length)throw Error('R2 hedefi reddedildi: '+r2p.join('; '));
-  const store=new S3Store({...r2,accessKeyId:env.NAKGO_TEST_R2_ACCESS_KEY_ID,secretAccessKey:env.NAKGO_TEST_R2_SECRET_ACCESS_KEY});
+  const store=new S3Store({...r2,accessKeyId:S.NAKGO_TEST_R2_ACCESS_KEY_ID,secretAccessKey:S.NAKGO_TEST_R2_SECRET_ACCESS_KEY});
   let results;
   if(env.NAKGO_TEST_SUITE==='r2')results=await suiteR2({store,prefix:`b7b-test/${runId}/`});
   else{
-    const target={ref:env.NAKGO_TEST_DB_PROJECT_REF,host:env.NAKGO_TEST_DB_HOST,port:5432,adminUser:env.NAKGO_TEST_DB_ADMIN_USER,rootCertFile:env.NAKGO_TEST_DB_ROOT_CERT_FILE};
+    const target={ref:S.NAKGO_TEST_DB_PROJECT_REF,host:S.NAKGO_TEST_DB_HOST,port:5432,adminUser:S.NAKGO_TEST_DB_ADMIN_USER,rootCertFile:S.NAKGO_TEST_DB_ROOT_CERT_FILE};
     const sp=G.checkSupabaseTarget(target);
     if(sp.length)throw Error('Supabase hedefi reddedildi: '+sp.join('; '));
     const {Client}=require('pg');
     const ssl={rejectUnauthorized:true,ca:fs.readFileSync(target.rootCertFile,'utf8'),servername:target.host};
     const base={host:target.host,port:5432,database:'postgres',ssl,application_name:'nakgo-b7b-test'};
-    const admin=new Client({...base,user:target.adminUser,password:env.NAKGO_TEST_DB_ADMIN_PASSWORD});await admin.connect();
+    const admin=new Client({...base,user:target.adminUser,password:S.NAKGO_TEST_DB_ADMIN_PASSWORD});await admin.connect();
+    admin.on('error',()=>{});
     try{
-      const connectBackup=async pw=>{const c=new Client({...base,user:`${ROLE}.${target.ref}`,password:pw});await c.connect();return c;};
+      const connectBackup=async pw=>{const c=new Client({...base,user:`${ROLE}.${target.ref}`,password:pw});await c.connect();c.on('error',()=>{});return c;};
       const conn={host:target.host,port:5432,user:`${ROLE}.${target.ref}`,database:'postgres',sslmode:'verify-full',sslrootcert:target.rootCertFile};
       results=await suiteSupabase({scenario:env.NAKGO_TEST_SUITE==='supabase-base'?'base':'legal125',admin,connectBackup,conn,store,anchorStore:store,pgBin:env.NAKGO_PG_BIN,runId});
     }finally{await admin.end().catch(()=>{});}
@@ -113,5 +140,5 @@ if(require.main===module)(async()=>{
   const text=JSON.stringify({suite:env.NAKGO_TEST_SUITE,run:runId,results},null,1);
   console.log(text);
   if(env.GITHUB_STEP_SUMMARY)fs.appendFileSync(env.GITHUB_STEP_SUMMARY,'```json\n'+text+'\n```\n');
-  process.exitCode=results.every(x=>x.status==='pass'||x.status==='review')?0:1;
+  process.exitCode=results.length&&results.every(x=>x.status==='pass'||x.status==='review')?0:1;
 })().catch(e=>{console.error('B7-B testi durdu: '+e.message);process.exitCode=1;});

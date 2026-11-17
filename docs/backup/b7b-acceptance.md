@@ -93,35 +93,52 @@ Ortak kurallar:
 
 ## Çalıştırma (K-5) ve #125 senaryosu (K-6)
 
-- İş akışı: `.github/workflows/b7b-test.yml`. Yalnız `workflow_dispatch`, yalnız `nakgo/b7b-test` dalı, yalnız `backup-test`
-  ortamı, izin yalnız `contents: read`. Çalıştırıcı (`tools/backup/b7b/run.cjs`) aynı kuralları bağlantıdan önce yeniden
-  denetler ve production/DEV proje kimliklerini (AGENTS.md) adıyla reddeder.
-- Takımlar sırayla: `r2` (V1–V3) → `supabase-base` (V4–V8, #125 yok) → `supabase-legal125` (V4, V5, V6, V8; #125 ile).
-- **#125 yalıtımı:** #125 PR'ının kendisi hiçbir yerde kullanılmaz. Yalnız depodaki sabitlenmiş kopyası
-  `tests/backup/fixtures/legal_archive.b25013e.sql` (sha256 `a32d8e90…d099`) ve yalnız `supabase-legal125` takımında,
-  bütün depo migration'larından sonra uygulanır. Uygulanan her dosya test projesinde `b7b_test.applied` tablosunda adı ve
-  sha256'sıyla tutulur; değişmiş dosya durdurur. Geri dönüş yoktur: proje #125'e geçtikten sonra `supabase-base` o projede
-  "dur" verir; temel senaryo yeniden gerekiyorsa yeni geçici proje açılır.
-- Anahtarlar her çalışmada bellekte ya da geçici klasörde üretilir (K1, K2, K7, iki age alıcısı) ve iş bitince silinir;
-  gizli değişken olarak saklanmaz. Yedek rolünün parolası her çalışmada rastgele, rol bir günlük `valid until` ile.
+- **Tetikleme:** `.github/workflows/b7b-test.yml` yalnız `nakgo/b7b-test` dalına push ile çalışır. `workflow_dispatch`
+  kullanılmaz: GitHub onu yalnız varsayılan dalda (`main`) bulunan iş akışları için garanti eder.
+- **Takım seçimi:** o dalda commitlenen `ops/backup/b7b-suite.json` (`none`, `r2`, `supabase-base`,
+  `supabase-legal125`). Varsayılan `none`: hiçbir test işi başlamaz. Seçimi gizlisiz ve ortamsız bir `select` işi okur ve
+  doğrular.
+- **Onay:** test işleri `backup-test` ortamını kullanır. Ortamın zorunlu onaylayıcısı onay vermeden iş başlamaz ve ortam
+  gizlilerine erişemez. Onaylayan kişi onaydan önce o push'un `nakgo/altyapi`'ye göre farkını (iş akışı, `tools/backup/`,
+  `ops/backup/`) inceler: dala push yetkisi olan biri iş akışını değiştirebilir; koruma onaydır.
+- **Takıma göre gizliler:** `r2` işi yalnız R2 gizlilerini, `supabase` işi veritabanı gizlilerini ve V8'in şifreli yedeği
+  yazdığı test kovası için R2 gizlilerini alır. Çalıştırıcı R2 takımında veritabanı gizlisi görürse durur.
+- **Alt süreçler:** çalıştırıcı başlarken bütün `NAKGO_TEST_*` gizlilerini ortamdan alıp **siler**; `pg_dump`,
+  `pg_restore`, `age`, `tar` bunları devralmaz. `postgres` parolası yalnız yönetici istemcisine verilir.
+- **Maskeleme:** çalışma anında üretilen yedek rolü parolası kullanılmadan önce `::add-mask::` ile maskelenir (depo ve
+  Actions günlükleri herkese açıktır). Sonuç özeti yalnız durum kodları, sayılar ve adlar içerir.
+- **Bağımlılıklar:** `ops/backup/ci/package-lock.json` (her paket için `sha512` bütünlük özeti) ve
+  `npm ci --ignore-scripts`. `age` sha256, PostgreSQL deposu anahtar parmak iziyle doğrulanır.
+- **Temizlik:** `nakgo_backup` rolü V4'ten sonra ne olursa olsun (başarı, kalma, istisna) `finally` içinde silinir: oturumları
+  kapatılır, `DROP OWNED` sahip olduğu her şeyi (büyük nesneler dahil) kaldırır, sonra yokluğu doğrulanır; sonuç `cleanup`
+  satırı olarak raporlanır ve başarısızsa çalışma kalır. V7(c) büyük nesnesi ölçüm hata verse de silinir (yedek oturumu
+  silemezse yönetici oturumu). Geçici anahtar/age klasörü (şifresiz döküm dahil) `finally` ile silinir.
+- **R2 belirteç kapsamı (R2-scope):** V1'den önce hesap düzeyinde kova listeleme denenir; 401/403 beklenir. 200 dönerse
+  belirteç fazla yetkilidir ve R2 testlerine geçilmez. Uç nokta varsayılan ya da AB yargı bölgesi
+  (`<hesap>.eu.r2.cloudflarestorage.com`) olabilir.
+- Takımlar sırayla: `r2` (R2-scope, V1–V3) → `supabase-base` (V4–V8, #125 yok) → `supabase-legal125` (V4, V5, V6, V8).
+- **#125 yalıtımı:** #125 PR'ı hiçbir yerde kullanılmaz. Yalnız depodaki sabitlenmiş kopyası
+  `tests/backup/fixtures/legal_archive.b25013e.sql` (sha256 `a32d8e90…d099`; #125'in son commiti `b25013e`'deki dosyayla
+  aynı) ve yalnız `supabase-legal125` takımında, bütün depo migration'larından sonra uygulanır. Uygulanan her dosya test
+  projesinde `b7b_test.applied` tablosunda adı ve sha256'sıyla tutulur; değişmiş dosya durdurur. Geri dönüş yoktur: proje
+  #125'e geçtikten sonra `supabase-base` o projede "dur" verir.
+- Anahtarlar her çalışmada bellekte ya da geçici klasörde üretilir (K1, K2, K7, iki age alıcısı) ve iş bitince silinir.
 
 ### Test gizlileri (yalnız `backup-test` ortamında)
 
-| Gizli | İçerik | Erişim sınırı |
+| Gizli | İş | Erişim sınırı |
 |---|---|---|
-| `NAKGO_TEST_R2_ENDPOINT`, `NAKGO_TEST_R2_BUCKET` | Test hesabı uç noktası, test kovası adı (adında "test" zorunlu) | — |
-| `NAKGO_TEST_R2_ACCESS_KEY_ID`, `NAKGO_TEST_R2_SECRET_ACCESS_KEY` | R2 nesne okuma/yazma belirteci | Yalnız test kovası; kilit kuralı yönetimi YOK (o belirteç CI'a verilmez) |
-| `NAKGO_TEST_DB_PROJECT_REF`, `NAKGO_TEST_DB_HOST`, `NAKGO_TEST_DB_ADMIN_USER` | Geçici projenin kimliği, Supavisor adresi, `postgres.<kimlik>` | Production/DEV kimliği reddedilir; adres ve kullanıcı kimlikle tutarlı olmalı |
-| `NAKGO_TEST_DB_ADMIN_PASSWORD` | Geçici projenin `postgres` parolası | Yalnız geçici proje; proje silinince geçersiz |
-| `NAKGO_TEST_DB_ROOT_CERT` | Supabase kök sertifikası (gizli değil, tutarlılık için ortamda) | — |
+| `NAKGO_TEST_R2_ENDPOINT`, `NAKGO_TEST_R2_BUCKET` | r2, supabase | Kova adında "test" zorunlu |
+| `NAKGO_TEST_R2_ACCESS_KEY_ID`, `NAKGO_TEST_R2_SECRET_ACCESS_KEY` | r2, supabase | "Object Read & Write", yalnız test kovası; kova listeleme reddedilmeli (R2-scope); kilit yönetimi YOK |
+| `NAKGO_TEST_DB_PROJECT_REF`, `NAKGO_TEST_DB_HOST`, `NAKGO_TEST_DB_ADMIN_USER` | supabase | Production/DEV kimliği reddedilir; adres ve kullanıcı kimlikle tutarlı |
+| `NAKGO_TEST_DB_ADMIN_PASSWORD` | supabase | Yalnız geçici proje; yalnız yönetici istemcisi; alt süreçlere geçmez |
+| `NAKGO_TEST_DB_ROOT_CERT` | supabase | Supabase kök sertifikası |
 
-Ortam ayarı (ayrı onay): zorunlu onaylayıcı = proje sahibi; dağıtım dalı yalnız `nakgo/b7b-test`; production
-gizlileri bu ortamda bulunmaz. Test bitince ortamın gizlileri silinir.
+Ortam ayarı (ayrı onay; önce kurallar, sonra gizliler): zorunlu onaylayıcı = proje sahibi; dağıtım dalı yalnız
+`nakgo/b7b-test`; yöneticinin kuralları atlaması kapalı. Test bitince ortamın gizlileri silinir ve dal kaldırılır.
 
-**Bilinen sınır:** GitHub belgeleri `workflow_dispatch`'in iş akışı dosyası varsayılan dalda (`main`) bulunmadıkça
-tetiklenmeyeceğini söyler. Dosya bilerek `main`'e konmadı. `gh workflow run b7b-test.yml --ref nakgo/b7b-test` ile API
-üzerinden tetikleme denenecek; reddedilirse seçenekler (ayrı onay): `main`'e yalnız tetikleyici iskeleti eklemek ya da
-tetikleyiciyi `nakgo/b7b-test` dalına push + zorunlu ortam onayı yapmak.
+**Bilinen sınır:** Bu oturum depoda proje sahibinin GitHub kimliğiyle çalışır. Ortam onayı başka katkıcılara ve fork'lara
+karşı teknik bir sınırdır; bu oturuma karşı değil. Onay yalnız proje sahibi tarafından GitHub arayüzünden verilir.
 
 ## B7-B'den önce gereken kararlar
 Bkz. [../backup-design.md](../backup-design.md) "B7-B'ye geçiş ENGELLERİ". Özet: geçici Supabase projesi ve R2 test kovası
