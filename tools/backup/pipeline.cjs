@@ -15,6 +15,8 @@ const {buildManifest,signManifest}=require('./manifest.cjs');
 const {sha256}=require('./crypto.cjs');
 
 function objectKeys(runId,now){
+  // Çalışma kimliği nesne anahtarına girer: yalnız güvenli karakterler (yol ayırıcı, '..', boşluk yok).
+  if(typeof runId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(runId)||runId.includes('..'))throw Error('geçersiz çalışma kimliği');
   const iso=now.toISOString();const day=iso.slice(0,10).replace(/-/g,'/');const stamp=iso.replace(/[-:]|\.\d{3}/g,'');
   const base=`${day}/nakgo-${stamp}-${runId}`;
   return {data:`db/${base}.tar.age`,manifest:`manifests/${base}.json`};

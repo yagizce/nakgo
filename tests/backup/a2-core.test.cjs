@@ -262,3 +262,10 @@ test('uçtan uca boru hattı (gerçek PostgreSQL)',async t=>{
   }catch(e){primary=e;throw e;}
   finally{await finish(db,primary);await dropRoles([role]);fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('nesne anahtarı: çalışma kimliği biçimi denetlenir',()=>{
+  const {objectKeys}=require('../../tools/backup/pipeline.cjs');
+  const now=new Date('2026-11-17T06:00:00Z');
+  assert.equal(objectKeys('123-1',now).data,'db/2026/11/17/nakgo-20261117T060000Z-123-1.tar.age');
+  for(const bad of ['../x','a/b','','a b','x'.repeat(65),'..',null])assert.throws(()=>objectKeys(bad,now),/çalışma kimliği/,String(bad));
+});
