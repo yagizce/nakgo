@@ -188,7 +188,9 @@ test('kapsama: sahte imzalı manifest sayılmaz; doğrulanmış yedek azsa silin
     await go(E,db,0);await releaseOpen(E,0);await go(E,db,0.01);
     for(let d=1;d<=3;d++)await go(E,db,d);
     const other=testKeyPair();
-    const fake=signManifest(buildManifest({runId:'x',createdAt:at(16).toISOString(),stages:Object.fromEntries(['preflight','dump','restore_test','legal','encryption','upload'].map(k=>[k,{status:'ok'}])),objectKey:'db/fake'}),other);
+    // Sahte manifest boyut ve hash olarak nesneyle birebir uyumlu: yalnız imza denetimi onu eler.
+    const fake=signManifest(buildManifest({runId:'x',createdAt:at(16).toISOString(),stages:Object.fromEntries(['preflight','dump','restore_test','legal','encryption','upload'].map(k=>[k,{status:'ok'}])),objectKey:'db/fake',
+      encryption:{ciphertext_sha256:require('node:crypto').createHash('sha256').update('x').digest('hex'),size:1}}),other);
     await E.store.put('manifests/fake.json',Buffer.from(JSON.stringify(fake)));
     await E.store.put('db/fake',Buffer.from('x'));
     const s=await go(E,db,16.5);
@@ -373,6 +375,22 @@ test('sonuç kaydı yazılamazsa: güvenli duruş ve alarm; niyet yazılamaz ya 
     E.store.put=put;
     s=await go(E,db,16.5);
     assert.ok(s.legal.blocking.includes('deletion_result_missing'));assert.equal(s.deletion.allowed,false);assert.equal(s.exit,1);
+  }finally{await finish(db);}
+});
+
+test('silme günlüğü okunamazsa (denetim hatası) olay açılamasa bile silme yapılmaz',async t=>{if(needAge(t))return;
+  const db=await legalDb();
+  try{
+    const E=setup({deletion:true});
+    await prep(E,db);
+    const list=E.store.list.bind(E.store);
+    E.store.list=async p=>{if(p===J.INTENTS)throw Error('günlük listesi okunamadı');return list(p);};
+    const n0=dbKeys(E).length;
+    const s=await go(E,db,16);
+    assert.equal(s.deletion.allowed,false);assert.ok(s.deletion.blockers.some(b=>/silme günlüğünde/.test(b)),JSON.stringify(s.deletion.blockers));
+    assert.equal(s.deletion.deleted,0);assert.equal(dbKeys(E).length,n0+1);
+    E.store.list=list;
+    const s2=await go(E,db,16.1);assert.ok(s2.deletion.deleted>0,'günlük okununca silme sürer');
   }finally{await finish(db);}
 });
 
