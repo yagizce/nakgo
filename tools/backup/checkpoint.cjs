@@ -9,7 +9,8 @@
  * yazması gerçekten çalışıyorsa geçerlidir (V1). Doğrulanana kadar başlıkta single_use_guaranteed=false yazılır.
  *
  * Gövde gizliliği: AES-256-GCM, rastgele veri anahtarı. Veri anahtarı K7 (yalnız CI'da duran 32 baytlık gizli anahtar)
- * ile sarılır; istenirse ayrıca çevrim dışı age alıcılarına da sarılır (K7 kaybında kurtarma). Açık başlıkta kişisel veri,
+ * ile ve çevrim dışı age alıcılarına (A, B) sarılır. K7 kaybolursa gövde age ile açılır ve veri anahtarı yeni K7 ile
+ * ayrı bir "rewrap" nesnesine sarılır (rewrapWithAge); kilitli gövde değişmez. Rotasyon: k7 = [yeni, ...eski]. Açık başlıkta kişisel veri,
  * kimlik ya da gün yoktur; yalnız kökler ve sayılar vardır. Ek bilgi (AAD) = sıra + önceki başlık hash'i: gövde başka bir
  * kontrol noktasına taşınamaz. */
 'use strict';
@@ -38,7 +39,8 @@ function ungcm(key,{iv,tag,ct},aad){
 }
 
 /** Gövdeyi şifreler. k7: 32 baytlık Buffer. ageRecipientsFile verilirse veri anahtarı age ile de sarılır. */
-function sealBody(body,{k7,seq,prevSha,ageRecipientsFile,ageBin='age'}){
+function sealBody(body,{k7:k7in,seq,prevSha,ageRecipientsFile,ageBin='age'}){
+  const k7=Array.isArray(k7in)?k7in[0]:k7in;
   if(!Buffer.isBuffer(k7)||k7.length!==32)throw Error('K7 32 baytlık anahtar olmalı');
   const dek=crypto.randomBytes(32),aad=aadOf(seq,prevSha);
   const wraps=[{kind:'k7',key_id:k7Id(k7),...gcm(k7,dek,aad)}];
@@ -51,13 +53,46 @@ function sealBody(body,{k7,seq,prevSha,ageRecipientsFile,ageBin='age'}){
   dek.fill(0);
   return Buffer.from(canonical(obj));
 }
-function openBody(bytes,{k7,seq,prevSha}){
+/** K7 anahtar halkası: tek Buffer ya da [güncel, ...eski] dizisi. Yazma her zaman güncel (ilk) anahtarla yapılır;
+ * okuma halkadaki herhangi bir anahtarla. Rotasyonda eski anahtar, onunla sarılmış gövdeler okunabilsin diye halkada kalır. */
+const ring=k7=>(Array.isArray(k7)?k7:[k7]).filter(k=>Buffer.isBuffer(k)&&k.length===32);
+const decryptWith=(obj,dek,aad)=>{try{return JSON.parse(String(ungcm(dek,obj,aad)));}finally{dek.fill(0);}};
+
+/** extraWraps: gövde dışında saklanan yeniden sarma kayıtları (rewrap). Yanlış ya da sahte bir sarma yalnız çözmeyi
+ * başarısız kılar; içerik bütünlüğü GCM etiketi ve imzalı başlıktaki gövde hash'iyle korunur. */
+function openBody(bytes,{k7,seq,prevSha,extraWraps=[]}){
   const obj=JSON.parse(String(bytes));const aad=aadOf(seq,prevSha);
-  const w=obj.wraps.find(x=>x.kind==='k7'&&x.key_id===k7Id(k7));
-  if(!w)throw Error('gövde bu K7 ile sarılmamış');
-  const dek=ungcm(k7,w,aad);
-  try{return JSON.parse(String(ungcm(dek,obj,aad)));}finally{dek.fill(0);}
+  const keys=ring(k7);
+  for(const w of [...obj.wraps,...extraWraps].filter(x=>x.kind==='k7')){
+    const key=keys.find(k=>k7Id(k)===w.key_id);
+    if(key)return decryptWith(obj,ungcm(key,w,aad),aad);
+  }
+  throw Error('gövde bu K7 halkasıyla sarılmamış');
 }
+
+/** Kurtarma: K7 kaybolduğunda gövde, çevrim dışı age kimliğiyle (A ya da B) açılır. */
+function openBodyWithAge(bytes,{identityFile,seq,prevSha,ageBin='age'}){
+  const obj=JSON.parse(String(bytes));
+  const w=obj.wraps.find(x=>x.kind==='age');
+  if(!w)throw Error('gövdede age sarması yok');
+  const r=spawnSync(ageBin,['-d','-i',identityFile],{input:w.armored});
+  if(r.status!==0)throw Error('age ile açılamadı');
+  return decryptWith(obj,Buffer.from(r.stdout),aadOf(seq,prevSha));
+}
+
+/** Kurtarma/rotasyon: age kimliğiyle açılan veri anahtarını YENİ K7 ile sarar. Gövde (kilitli) değişmez; sonuç ayrı bir
+ * nesne olarak yazılır: audit/checkpoints/<seq>.rewrap.<yeni K7 kimliği>. Bu işlem çevrim dışı makinede yapılır. */
+function rewrapWithAge(bytes,{identityFile,newK7,seq,prevSha,ageBin='age'}){
+  const obj=JSON.parse(String(bytes));
+  const w=obj.wraps.find(x=>x.kind==='age');
+  if(!w)throw Error('gövdede age sarması yok');
+  const r=spawnSync(ageBin,['-d','-i',identityFile],{input:w.armored});
+  if(r.status!==0)throw Error('age ile açılamadı');
+  const dek=Buffer.from(r.stdout);
+  try{decryptWith(obj,Buffer.from(dek),aadOf(seq,prevSha));return {kind:'k7',key_id:k7Id(newK7),...gcm(newK7,dek,aadOf(seq,prevSha))};}
+  finally{dek.fill(0);}
+}
+const rewrapKey=(seq,k7)=>PREFIX+pad(seq)+'.rewrap.'+k7Id(k7);
 
 const headerSha=h=>sha256Json(h);
 
@@ -123,7 +158,12 @@ async function loadBody(store,header,{k7,prevHeader}){
   const bytes=await store.get(header.body_key);
   if(!bytes)throw Error('gövde yok: '+header.body_key);
   if(sha256(bytes)!==header.body_sha256)throw Error('gövde hash uyuşmuyor');
-  const body=openBody(bytes,{k7,seq:header.seq,prevSha:prevHeader?headerSha(prevHeader):null});
+  const extraWraps=[];
+  for(const key of ring(k7)){
+    const w=await store.get(rewrapKey(header.seq,key));
+    if(w){try{extraWraps.push(JSON.parse(String(w)));}catch{/* bozuk yeniden sarma yok sayılır; çözme başarısız olur */}}
+  }
+  const body=openBody(bytes,{k7,seq:header.seq,prevSha:prevHeader?headerSha(prevHeader):null,extraWraps});
   const again=makeHeader({seq:header.seq,prevHeader,body,bodyBytes:bytes,createdAt:header.created_at,runId:header.run_id,
     flags:{single_use_guaranteed:header.single_use_guaranteed,anchors_confirmed:header.anchors_confirmed,backup:header.backup}});
   for(const k of ['roots','counts','policy_set_sha256','retention_runs_sha256','findings_sha256','events','releases_sha256','waivers_sha256','legal_absent'])
@@ -131,4 +171,4 @@ async function loadBody(store,header,{k7,prevHeader}){
   return body;
 }
 
-module.exports={NAMESPACE,PREFIX,headerKey,bodyKey,k7Id,sealBody,openBody,makeHeader,writeCheckpoint,readChain,loadBody,headerSha};
+module.exports={NAMESPACE,PREFIX,headerKey,bodyKey,k7Id,sealBody,openBody,openBodyWithAge,rewrapWithAge,rewrapKey,makeHeader,writeCheckpoint,readChain,loadBody,headerSha};

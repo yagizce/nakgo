@@ -1,5 +1,7 @@
-/** B7-A3 testleri: Merkle, kontrol noktası zinciri, yasal geçiş doğrulayıcısı, K2 serbest bırakma ve K6 muafiyet durum
- * makinesi. Veritabanı senaryoları #125'in sentetik kopyasıyla (legal-fixture.sql) PGlite, PG16 ve PG17'de koşar.
+/** B7-A3 testleri: Merkle, kontrol noktası zinciri, yasal geçiş doğrulayıcısı, K2 serbest bırakma, K6 muafiyet durum
+ * makinesi ve K7 anahtar yaşam döngüsü. Veritabanı senaryoları GERÇEK #125 migration'ıyla (b25013e'nin birebir kopyası,
+ * SHA-256 sabitli) ve gerçek retention_run / legal_destroy / legal_close / legal_log fonksiyonlarıyla PGlite, PG16 ve
+ * PG17'de koşar. Yalnız zamanı geçmişe yazan test yardımcıları ayrıdır: legal-test-helpers.sql.
  * Depo bellek içi taklittir: R2'nin koşullu yazma ve tutarlı okuma davranışını KANITLAMAZ (B7-B, K3). */
 'use strict';
 const test=require('node:test');
@@ -7,7 +9,9 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
+const {execFileSync}=require('node:child_process');
 const {openDb,finish}=require('../../tools/db-lib.cjs');
+const {migratedDb}=require('./helpers.cjs');
 const M=require('../../tools/backup/merkle.cjs');
 const C=require('../../tools/backup/checkpoint.cjs');
 const LE=require('../../tools/backup/legal-evidence.cjs');
@@ -16,9 +20,13 @@ const {advance}=require('../../tools/backup/legal-run.cjs');
 const {MemoryStore}=require('../../tools/backup/store.cjs');
 const {testKeyPair,sign,randomUUID,canonical}=require('../../tools/backup/crypto.cjs');
 
-const FIX=fs.readFileSync(path.join(__dirname,'legal-fixture.sql'),'utf8');
+const REAL_FILE=path.join(__dirname,'fixtures/legal_archive.b25013e.sql');
+const REAL_SHA256='a32d8e90e9fadb1bcbb439c3473946df49c20a060b34804aad3d4f5b6cf3d099';
+const REAL=fs.readFileSync(REAL_FILE,'utf8');
+const HELP=fs.readFileSync(path.join(__dirname,'legal-test-helpers.sql'),'utf8');
 const DAY=86400000;
-const T0=Date.parse('2026-06-01T00:00:00Z');
+// Olay/belge zamanı (advance now) yapay bir zaman çizgisidir; veritabanı verisi gerçek now()'a göre geçmişe yazılır.
+const T0=Math.floor(Date.now()/DAY)*DAY;
 const at=days=>new Date(T0+days*DAY);
 const iso=days=>at(days).toISOString();
 
@@ -29,7 +37,8 @@ function env({conditionalPut=true,verified=true,anchors}={}){
   const store=new MemoryStore({conditionalPut,capabilities:verified?{verified:true,conditionalPut:'verified',consistentRead:'verified'}:{verified:false}});
   return {store,k1,k2,k7:crypto.randomBytes(32),anchors:anchors||[memAnchor('a1')],trustedK1:{[k1.keyId]:k1.publicKey},trustedK2:{[k2.keyId]:k2.publicKey},n:0};
 }
-async function legalDb(){const db=await openDb();try{await db.exec(FIX);}catch(e){await finish(db,e);throw e;}return db;}
+/** Migration'larla kurulmuş veritabanı + GERÇEK #125 migration'ı + test yardımcıları. */
+async function legalDb(){const db=await migratedDb();try{await db.exec(REAL);await db.exec(HELP);}catch(e){await finish(db,e);throw e;}return db;}
 const state=db=>LE.extractState((s,a)=>db.query(s,a));
 async function step(E,db,days,extra={}){
   return advance({store:E.store,trustedK1:E.trustedK1,k1:E.k1,k7:E.k7,trustedK2:E.trustedK2,anchors:E.anchors,environment:'test',
@@ -53,7 +62,13 @@ async function baseline(E,db,days){
 }
 async function exec(db,sql){await db.exec(sql);}
 const purge=sql=>`begin; select set_config('nakgo.legal_purge','on',true); ${sql}; commit;`;
-async function logs(db,days){for(const d of days)await db.query(`select private.legal_log('view_record',null,$1)`,[iso(d)]);}
+const AGO=`now()-($1::float8*interval '1 day')`;
+/** ages: kaç gün önce (gerçek veritabanı saatine göre). */
+async function logs(db,ages){for(const a of ages)await db.query(`select private.t_log(${AGO})`,[a]);}
+const approve=(db,code,days)=>db.query('select private.t_approve($1,$2)',[code,days]);
+const retention=db=>db.query('select private.retention_run()');
+const openRec=async(db,policy,age)=>Number(Object.values((await db.query(`select private.t_open($2,${AGO})`,[age,policy])).rows[0])[0]);
+const closeRec=(db,id,age)=>db.query(`select private.t_close($2,${AGO})`,[age,id]);
 
 // ---------- birim ----------
 test('Merkle: RFC 6962 test vektörleri ve kapsama kanıtı',()=>{
@@ -107,28 +122,63 @@ test('silme kapsaması: son doğrulanmış yedek ve kalan yedek sayısı',()=>{
   assert.equal(D.plan({objects:objs,now,gate,coverage:{}}).allowed,false,'kapsama bilinmiyor');
 });
 
+// ---------- gerçek #125 migration'ı ----------
+test('gerçek #125 migration kopyası b25013e ile birebir aynı; birleşirse depodakiyle de aynı olmalı',t=>{
+  const crypto2=require('node:crypto');
+  assert.equal(crypto2.createHash('sha256').update(fs.readFileSync(REAL_FILE)).digest('hex'),REAL_SHA256,'kopya değişmemiş');
+  const merged=path.join(__dirname,'../../supabase/migrations/20261117000000_legal_archive.sql');
+  if(fs.existsSync(merged))assert.equal(fs.readFileSync(merged,'utf8'),REAL,'#125 birleştiyse kopya onunla aynı olmalı');
+  let blob=null;
+  try{blob=execFileSync('git',['show','b25013e:supabase/migrations/20261117000000_legal_archive.sql'],{cwd:path.join(__dirname,'../..'),stdio:['ignore','pipe','ignore']});}catch{blob=null;}
+  if(blob)assert.equal(blob.toString('utf8'),REAL,'git nesnesiyle birebir');
+  else t.diagnostic('b25013e git nesnesi bu checkout\'ta yok (sığ klon); SHA-256 sabiti ile doğrulandı');
+});
+
+test('gerçek fonksiyonlarla uyum: legal_log, legal_close, legal_chain_check ve yeniden hesaplanan hash aynı',async()=>{
+  const db=await legalDb();
+  try{
+    const sub='11111111-2222-4333-8444-555555555555';
+    await db.query(`select set_config('request.jwt.claim.sub',$1,false)`,[sub]);
+    for(const a of ['list','search','view_record'])await db.query(`select private.legal_log($1,null,'{}')`,[a]);
+    const id=await openRec(db,'dispute',2);
+    await db.query(`select private.legal_close($1,'inceleme bitti')`,[id]);
+    const st=await state(db);
+    assert.deepEqual(LE.internalChecks(st),[],'gerçek fonksiyonların ürettiği satırlar iç denetimden geçer');
+    const chk=(await db.query(`select private.legal_chain_check() c`)).rows[0].c;
+    assert.equal(chk.legal_access_log.broken,0);assert.equal(chk.legal_access_log.rows,st.log.length);
+    assert.equal(chk.legal_access_log.head,st.log[st.log.length-1].row_hash,'zincir başı gerçek denetimle aynı');
+    assert.ok(st.log.some(r=>r.id)&&st.records[0].status==='closed');
+    // Gerçek koruma tetikleyicileri: değiştirme, silme ve TRUNCATE reddedilir.
+    await assert.rejects(db.exec(`update private.legal_access_log set action='export'`),e=>e.code==='42501');
+    await assert.rejects(db.exec(`delete from private.legal_access_log`),e=>e.code==='42501');
+    await assert.rejects(db.exec(`truncate private.legal_access_log`),e=>e.code==='42501');
+    await assert.rejects(db.exec(`delete from private.legal_records`),e=>e.code==='42501');
+    await assert.rejects(db.exec(`truncate private.legal_holds`),e=>e.code==='42501');
+    await assert.rejects(db.exec(`update private.legal_records set reason='değişti' where id=${id}`),e=>e.code==='42501');
+  }finally{await finish(db);}
+});
+
 // ---------- veritabanı senaryoları ----------
-test('başlangıç: ilk kontrol noktası K2 onayı olmadan kabul edilmez; meşru saklama silmesi bulgu üretmez',async()=>{
+test('başlangıç: ilk kontrol noktası K2 onayı olmadan kabul edilmez; GERÇEK retention_run silmesi bulgu üretmez',async()=>{
   const db=await legalDb(),E=env();
   try{
-    await logs(db,[0,1,2,3,40,41]);
-    const r1=await step(E,db,45);
+    await approve(db,'legal_access_log',30);
+    await logs(db,[45,44,43,42,5,4]);
+    const r1=await step(E,db,0);
     assert.equal(r1.openEvents,1);assert.equal(r1.anchorsOk,true);
     const h=r1.header;
     assert.equal(h.counts.log,6);assert.equal(h.single_use_guaranteed,true);
     assert.ok(!JSON.stringify(h).includes('view_record'),'açık başlıkta içerik yok');
-    // Olay kapanana kadar her çalışma açık olay bildirir.
-    const r1b=await step(E,db,45);
+    const r1b=await step(E,db,0);
     assert.equal(r1b.openEvents,1);assert.deepEqual(r1b.blocking,[],'aynı durum yeni bulgu üretmez');
-    const r2=await step(E,db,45,{releaseDocs:[releaseFor(E,open(r1)[0])]});
+    const r2=await step(E,db,0,{releaseDocs:[releaseFor(E,open(r1)[0])]});
     assert.equal(r2.openEvents,0);assert.deepEqual(r2.consumed.length,1);assert.equal(r2.seq,4,'N bekleyen, N+1 tüketilmiş');
-    // Saklama (30 gün): 0..3. günler silinir; 40, 41 kalır.
-    await db.query('select private.t_retention($1)',[iso(42)]);
-    await logs(db,[46]);
-    const r3=await step(E,db,46);
+    const c=(await retention(db)).rows[0];
+    assert.equal(Object.values(c)[0].legal_access_log_deleted,4,'gerçek retention 30 günden eski 4 satırı sildi');
+    await logs(db,[0]);
+    const r3=await step(E,db,1);
     assert.equal(r3.ok,true);assert.deepEqual(r3.blocking,[]);assert.equal(r3.openEvents,0);
     assert.equal(r3.header.counts.log,3);
-    // Zincir bütünüyle doğrulanır ve her gövde başlığıyla birebir eşleşir.
     const chain=await C.readChain(E.store,{trustedK1:E.trustedK1});
     assert.equal(chain.ok,true);assert.equal(chain.headers.length,5);
     for(const [i,hh] of chain.headers.entries())await C.loadBody(E.store,hh,{k7:E.k7,prevHeader:chain.headers[i-1]||null});
@@ -138,42 +188,36 @@ test('başlangıç: ilk kontrol noktası K2 onayı olmadan kabul edilmez; meşru
 test('kanıtlanamayan log silmeleri: saklama dışı, sayım dışı, görülmemiş satır, kuyruk, değiştirme, geriye ekleme',async()=>{
   const db=await legalDb(),E=env();
   try{
-    await logs(db,[0,10,20,30]);
-    await baseline(E,db,31);
-    // 1) Saklama süresi dolmamış satır, retention_run olmadan doğrudan silinir.
-    await exec(db,purge(`delete from private.legal_access_log where id=2`));
-    let r=await step(E,db,32);
+    await approve(db,'legal_access_log',30);
+    await logs(db,[40,30,20,10]);
+    await baseline(E,db,1);
+    await exec(db,purge(`delete from private.legal_access_log where id=(select min(id)+1 from private.legal_access_log)`));
+    let r=await step(E,db,2);
     assert.deepEqual(codes(r),['deleted_before_retention','deletion_not_counted']);
     assert.equal(r.events.filter(e=>e.status==='open'&&e.type==='legal_regression').length,1);
-    // 2) İki kontrol noktası arasında eklenip silinen satır: sonraki satır ona bağlıdır → açıklanamayan boşluk.
-    await logs(db,[33,33]);
+    await logs(db,[3,3]);
     await exec(db,purge(`delete from private.legal_access_log where id=(select max(id)-1 from private.legal_access_log)`));
-    r=await step(E,db,34);
+    r=await step(E,db,3);
     assert.deepEqual(codes(r),['chain_gap_unexplained']);
-    // 2b) Kuyrukta görülmeden ekle-sil, ardından yeni ekleme: tetikleyici yeni satırı mevcut son satıra bağladığından
-    // zincir bunu göremez (bilinen sınır). Yalnız kimlik boşluğu bilgi olarak kalır; tek başına olay açmaz.
-    await logs(db,[34]);
+    await logs(db,[2]);
     await exec(db,purge(`delete from private.legal_access_log where id=(select max(id) from private.legal_access_log)`));
-    await logs(db,[34]);
-    r=await step(E,db,34.5);
+    await logs(db,[2]);
+    r=await step(E,db,3.5);
     assert.deepEqual(codes(r),[]);
     assert.ok(r.findings.some(f=>f.code==='id_gap'&&f.severity==='info'));
-    // 3) Kuyruktan (görülmüş en yeni satır) silme.
     await exec(db,purge(`delete from private.legal_access_log where id=(select max(id) from private.legal_access_log)`));
-    r=await step(E,db,35);
+    r=await step(E,db,4);
     assert.deepEqual(codes(r),['deleted_before_retention','deletion_not_counted']);
-    // 4) Satır değiştirme (tetikleyici kapatılarak).
-    await exec(db,`alter table private.legal_access_log disable trigger legal_access_log_append; update private.legal_access_log set action='export' where id=1; alter table private.legal_access_log enable trigger legal_access_log_append;`);
-    r=await step(E,db,36);
+    const first=`(select min(id) from private.legal_access_log)`;
+    await exec(db,`alter table private.legal_access_log disable trigger legal_access_log_append; update private.legal_access_log set action='export' where id=${first}; alter table private.legal_access_log enable trigger legal_access_log_append;`);
+    r=await step(E,db,5);
     assert.deepEqual(codes(r),['row_hash_mismatch']);
-    // Hash yeniden hesaplanarak gizlenmeye çalışılırsa da yakalanır (önceki listeyle karşılaştırma).
-    await exec(db,`alter table private.legal_access_log disable trigger legal_access_log_append; update private.legal_access_log set row_hash=private.legal_hash(to_jsonb(legal_access_log)) where id=1; alter table private.legal_access_log enable trigger legal_access_log_append;`);
-    r=await step(E,db,37);
+    await exec(db,`alter table private.legal_access_log disable trigger legal_access_log_append; update private.legal_access_log x set row_hash=private.legal_hash(to_jsonb(x)) where id=${first}; alter table private.legal_access_log enable trigger legal_access_log_append;`);
+    r=await step(E,db,6);
     assert.deepEqual(codes(r),['row_modified']);
-    // 5) Geçmiş kimlikle satır ekleme.
     await exec(db,`alter table private.legal_access_log disable trigger legal_access_log_chain;
-      insert into private.legal_access_log(id,at,action,prev_hash,row_hash) values(2,'2026-06-11Z','view_record','',''); alter table private.legal_access_log enable trigger legal_access_log_chain;`);
-    r=await step(E,db,38);
+      insert into private.legal_access_log(id,at,action,prev_hash,row_hash) values((select min(id)+1 from private.legal_access_log),now()-interval '25 days','view_record','',''); alter table private.legal_access_log enable trigger legal_access_log_chain;`);
+    r=await step(E,db,7);
     assert.ok(codes(r).includes('row_backfilled'));
     assert.ok(r.openEvents>=4,'her yeni bulgu kümesi olay açar');
   }finally{await finish(db);}
@@ -182,119 +226,133 @@ test('kanıtlanamayan log silmeleri: saklama dışı, sayım dışı, görülmem
 test('retention sayısı gözlenenden fazla: görülmemiş satır silinmiş sayılır',async()=>{
   const db=await legalDb(),E=env();
   try{
-    await logs(db,[0,1,50]);
-    await baseline(E,db,51);
-    await db.query('select private.t_retention($1)',[iso(52)]);
-    await db.query(`insert into private.retention_runs(ran_at,counts) values($1,'{"legal_access_log_deleted":3}')`,[iso(52)]);
-    const r=await step(E,db,53);
+    await approve(db,'legal_access_log',30);
+    await logs(db,[40,39,1]);
+    await baseline(E,db,1);
+    await retention(db);
+    await db.exec(`insert into private.retention_runs(counts) values('{"legal_access_log_deleted":3}')`);
+    const r=await step(E,db,2);
     assert.deepEqual(codes(r),['unseen_rows_deleted']);
   }finally{await finish(db);}
 });
 
-test('retention_runs kurcalanması ve erken silinmesi',async()=>{
+test('retention_runs: gerçek 3 takvim yılı kuralı; aralıkta retention çalışması olmadan silme ve kurcalama yakalanır',async()=>{
   const db=await legalDb(),E=env();
   try{
-    await logs(db,[0,50]);
-    await db.query('select private.t_retention($1)',[iso(10)]);
-    await baseline(E,db,51);
-    await exec(db,`update private.retention_runs set counts='{"legal_access_log_deleted":0}'`);
-    let r=await step(E,db,52);
-    assert.deepEqual(codes(r),['run_modified']);
-    await exec(db,`delete from private.retention_runs`);
-    r=await step(E,db,53);
+    await db.exec(`insert into private.retention_runs(ran_at,counts) values
+      (now()-interval '3 years'-interval '2 days','{}'),(now()-interval '3 years'-interval '3 days','{}'),
+      (now()-interval '3 years'+interval '1 day','{}'),(now()-interval '1 day','{}')`);
+    await baseline(E,db,1);
+    // Yaşı yeterli olsa bile aralıkta retention çalışması yokken silinen kayıt kanıtlanamaz.
+    await exec(db,`delete from private.retention_runs where id=(select min(id) from private.retention_runs)`);
+    let r=await step(E,db,1.1);
     assert.deepEqual(codes(r),['run_deleted_early']);
+    // Gerçek retention_run 3 yıldan eski kaydı siler, 3 yıldan yeni olanı bırakır: meşru.
+    await retention(db);
+    r=await step(E,db,1.2);
+    assert.deepEqual(codes(r),[],'gerçek retention silmesi meşru');
+    assert.equal((await db.query(`select count(*)::int n from private.retention_runs where ran_at<now()-interval '3 years'`)).rows[0].n,0);
+    // 3 yıldan yeni kayıt elle silinirse erken sayılır.
+    await exec(db,`delete from private.retention_runs where id=(select min(id) from private.retention_runs)`);
+    r=await step(E,db,1.3);
+    assert.deepEqual(codes(r),['run_deleted_early']);
+    await exec(db,`update private.retention_runs set counts='{"legal_access_log_deleted":9}' where id=(select max(id) from private.retention_runs)`);
+    r=await step(E,db,1.4);
+    assert.ok(codes(r).includes('run_modified'));
+    for(const ts of ['2027-02-28T10:00:00Z','2028-02-29T10:00:00Z','2026-11-17T12:00:00.123Z','2027-03-31T23:59:59.999Z']){
+      const pg=(await db.query(`select ((extract(epoch from ($1::timestamptz-interval '3 years'))*1000000)::bigint)::text v`,[ts])).rows[0].v;
+      assert.equal(String(LE.minus3Years(BigInt(Date.parse(ts))*1000n)),pg,'PostgreSQL ile aynı: '+ts);
+    }
   }finally{await finish(db);}
 });
 
 test('politika değişikliği: kaydedilir; aynı aralıktaki silme kanıtlanamaz; sonraki aralıkta geçerli',async()=>{
   const db=await legalDb(),E=env();
   try{
-    await logs(db,[0,20,40]);
-    await baseline(E,db,41);
-    // Yalnız değişiklik: bilgi bulgusu, olay yok.
-    await exec(db,`update private.legal_policies set retain_days=15 where code='legal_access_log'`);
-    let r=await step(E,db,41);
+    await approve(db,'legal_access_log',60);
+    await logs(db,[50,25,2]);
+    await baseline(E,db,1);
+    await approve(db,'legal_access_log',40);
+    let r=await step(E,db,2);
     assert.deepEqual(r.blocking,[]);assert.ok(r.findings.some(f=>f.code==='policy_changed'));
     assert.equal(r.openEvents,0);
-    // Değişiklik ve silme aynı aralıkta.
-    await exec(db,`update private.legal_policies set retain_days=10 where code='legal_access_log'`);
-    await db.query('select private.t_retention($1)',[iso(42)]);
-    r=await step(E,db,42);
+    await approve(db,'legal_access_log',10);
+    await retention(db);
+    r=await step(E,db,3);
     assert.deepEqual(codes(r),['deleted_under_policy_change','deleted_under_policy_change']);
-    // Politika kararlı kaldıktan sonraki aralıkta meşru silme kabul edilir.
-    await db.query('select private.t_retention($1)',[iso(55)]);
-    r=await step(E,db,55);
-    assert.deepEqual(r.blocking,[]);
-    // Onayı geri çekilen politika: silmeye dayanak olamaz; silinen politika bütünlük bulgusudur.
+    await logs(db,[20]);
+    r=await step(E,db,4);
+    await retention(db);
+    r=await step(E,db,5);
+    assert.deepEqual(r.blocking,[],'politika kararlıyken meşru');
     await exec(db,`update private.legal_policies set approved_at=null,approved_by=null where code='legal_access_log'`);
-    r=await step(E,db,56);
+    r=await step(E,db,6);
     assert.deepEqual(r.blocking,[]);
-    await logs(db,[57]);
-    r=await step(E,db,57);
+    await logs(db,[15]);
+    r=await step(E,db,7);
     await exec(db,purge(`delete from private.legal_access_log where id=(select min(id) from private.legal_access_log)`));
-    r=await step(E,db,80);
+    r=await step(E,db,8);
     assert.ok(codes(r).includes('deleted_without_policy'));
-    await exec(db,`delete from private.legal_policies where code='pending_policy'`);
-    r=await step(E,db,81);
+    await exec(db,`delete from private.legal_policies where code='admin_audit'`);
+    r=await step(E,db,9);
     assert.deepEqual(codes(r),['policy_removed']);
   }finally{await finish(db);}
 });
 
-test('yasal kayıt imhası: meşru imha kabul; koruma, süre, tutanak, politika ve kurcalama ihlalleri yakalanır',async()=>{
+test('yasal kayıt imhası: GERÇEK legal_destroy kabul; koruma, süre, tutanak, politika ve kurcalama ihlalleri yakalanır',async()=>{
   const db=await legalDb(),E=env();
   try{
-    const rid=async(d,policy='court_order')=>Number(Object.values((await db.query('select private.t_open($1,$2)',[policy,iso(d)])).rows[0])[0]);
-    const close=(id,d)=>db.query('select private.t_close($1,$2)',[id,iso(d)]);
-    const fakeDest=(id,d,month,holds=0)=>`insert into private.legal_destructions(at,record_no,policy,retain_days,opened_month,closed_month,holds_removed,cause,prev_hash,row_hash)
-      values('${iso(d)}',${id},'court_order',10,'${month}','${month}',${holds},'retention_expired','','');`;
+    await approve(db,'dispute',10);
     const reasons=r=>r.blocking.map(f=>f.code+':'+(f.reasons||[]).join('+'));
-    const legit=await rid(0),noDest=await rid(0),held=await rid(0),keep=await rid(0),pend=await rid(0,'pending_policy');
-    await close(legit,1);
-    await db.query(`insert into private.legal_holds(record_id,scope,listing_id,reason,opened_by,opened_at) values($1,'listing',1,'inceleme',gen_random_uuid(),$2)`,[held,iso(1)]);
-    await baseline(E,db,2);
-    // Meşru: süre (10 gün) dolduktan sonra retention imha eder; tutanak tutarlıdır.
-    await db.query('select private.t_retention($1)',[iso(12)]);
-    let r=await step(E,db,12);
+    // Sahte tutanak: kaydın gerçek alanlarından, gerçek tetikleyiciden geçerek eklenir (yalnız ay sapması isteğe bağlı).
+    const fakeDest=(id,holds=0,month=null)=>`insert into private.legal_destructions(record_no,policy,retain_days,opened_month,closed_month,holds_removed,cause,prev_hash,row_hash)
+      select id,policy,10,${month?`'${month}'`:`date_trunc('month',opened_at at time zone 'UTC')::date`},${month?`'${month}'`:`date_trunc('month',closed_at at time zone 'UTC')::date`},${holds},'retention_expired','',''
+      from private.legal_records where id=${id};`;
+    const legit=await openRec(db,'dispute',30),noDest=await openRec(db,'dispute',30),held=await openRec(db,'dispute',30),keep=await openRec(db,'dispute',30);
+    const pend=await openRec(db,'unclassified',30);
+    await closeRec(db,legit,20);
+    await db.query(`insert into private.legal_holds(record_id,scope,listing_id,reason,opened_by,opened_at) values($1,'listing',1,'inceleme',gen_random_uuid(),now()-interval '20 days')`,[held]);
+    await baseline(E,db,1);
+    const c=Object.values((await retention(db)).rows[0])[0];
+    assert.equal(c.legal_destroyed,1,'gerçek retention_run / legal_destroy imha etti');
+    let r=await step(E,db,2);
     assert.deepEqual(r.blocking,[],'meşru imha');
-    // Tutanaksız silme (kapalı görülmüş kayıt).
-    await close(noDest,12);await close(keep,12);await close(pend,12);
-    r=await step(E,db,13);assert.deepEqual(r.blocking,[]);
+    await closeRec(db,noDest,1);await closeRec(db,keep,1);await closeRec(db,pend,1);
+    r=await step(E,db,3);assert.deepEqual(r.blocking,[]);
     await exec(db,purge(`delete from private.legal_records where id=${noDest}`));
-    r=await step(E,db,14);
+    r=await step(E,db,4);
     assert.deepEqual(reasons(r),['record_deleted_unproven:no_destruction_row']);
-    // Açık ve aktif korumalı kaydın silinmesi (sahte tutanakla).
-    await exec(db,purge(`delete from private.legal_holds where record_id=${held}; delete from private.legal_records where id=${held}`)+fakeDest(held,15,'2026-06-01',1));
-    r=await step(E,db,15);
+    await exec(db,`begin; ${fakeDest(held,1,'2026-01-01')} select set_config('nakgo.legal_purge','on',true); delete from private.legal_holds where record_id=${held}; delete from private.legal_records where id=${held}; commit;`);
+    r=await step(E,db,5);
     assert.deepEqual(reasons(r),['record_deleted_unproven:not_seen_closed+active_hold']);
-    // Onaysız politikalı kayıt.
     await exec(db,purge(`delete from private.legal_records where id=${pend}`));
-    r=await step(E,db,16);
+    r=await step(E,db,6);
     assert.deepEqual(reasons(r),['record_deleted_unproven:policy_not_approved+no_destruction_row']);
-    // Süre dolmadan imha (tutarlı görünen sahte tutanakla).
-    const early=await rid(40);await close(early,41);
-    r=await step(E,db,41);assert.deepEqual(r.blocking,[]);
-    await exec(db,purge(`delete from private.legal_records where id=${early}`)+fakeDest(early,42,'2026-07-01'));
-    r=await step(E,db,42);
+    // Süre dolmadan imha (alanları tutarlı sahte tutanakla).
+    const early=await openRec(db,'dispute',5);await closeRec(db,early,1);
+    r=await step(E,db,7);assert.deepEqual(r.blocking,[]);
+    await exec(db,`begin; ${fakeDest(early)} select set_config('nakgo.legal_purge','on',true); delete from private.legal_records where id=${early}; commit;`);
+    r=await step(E,db,8);
     assert.deepEqual(reasons(r),['record_deleted_unproven:retention_not_elapsed']);
-    // Tutanak alanları kayıtla uyuşmuyor (ay yanlış).
-    const wrong=await rid(43);await close(wrong,43);
-    r=await step(E,db,43);
-    await exec(db,purge(`delete from private.legal_records where id=${wrong}`)+fakeDest(wrong,60,'2026-06-01'));
-    r=await step(E,db,60);
+    // Tutanak alanı kayıtla uyuşmuyor (ay yanlış), süre dolmuş olsa bile.
+    const wrong=await openRec(db,'dispute',40);await closeRec(db,wrong,30);
+    r=await step(E,db,9);
+    await exec(db,`begin; ${fakeDest(wrong,0,'2000-01-01')} select set_config('nakgo.legal_purge','on',true); delete from private.legal_records where id=${wrong}; commit;`);
+    r=await step(E,db,10);
     assert.deepEqual(reasons(r),['record_deleted_unproven:destruction_row_mismatch']);
-    // Snapshot kurcalama ve kapalı kaydı yeniden açma.
+    // Snapshot kurcalama ve kapalı kaydı yeniden açma (gerçek korumalar kapatılarak).
     await exec(db,`alter table private.legal_records disable trigger legal_records_guard;
       update private.legal_records set snapshot='{"x":1}' where id=${keep}; alter table private.legal_records enable trigger legal_records_guard;`);
-    r=await step(E,db,61);
+    r=await step(E,db,11);
     assert.deepEqual(codes(r),['record_modified','snapshot_hash_mismatch']);
     await exec(db,`alter table private.legal_records disable trigger legal_records_guard;
       update private.legal_records set status='open',closed_at=null,closed_by=null,close_reason=null where id=${keep}; alter table private.legal_records enable trigger legal_records_guard;`);
-    r=await step(E,db,62);
+    r=await step(E,db,12);
     assert.ok(codes(r).includes('record_reopened_or_altered'));
-    // Görülmeden açılıp kapatılıp imha edilen kayıt.
-    const ghost=await rid(62);await close(ghost,62);
-    await db.query('select private.t_retention($1)',[iso(80)]);
-    r=await step(E,db,80);
+    // Görülmeden açılıp kapatılan ve gerçek retention ile imha edilen kayıt.
+    const ghost=await openRec(db,'dispute',30);await closeRec(db,ghost,20);
+    await retention(db);
+    r=await step(E,db,13);
     assert.ok(r.blocking.some(f=>f.code==='destruction_without_seen_record'));
   }finally{await finish(db);}
 });
@@ -302,10 +360,10 @@ test('yasal kayıt imhası: meşru imha kabul; koruma, süre, tutanak, politika 
 test('korumalar: serbest bırakma tek yönlü; kayıtsız koruma silinemez',async()=>{
   const db=await legalDb(),E=env();
   try{
-    const id=Number(Object.values((await db.query('select private.t_open($1,$2)',['court_order',iso(0)])).rows[0])[0]);
-    await db.query(`insert into private.legal_holds(record_id,scope,listing_id,reason,opened_by,opened_at) values($1,'listing',1,'inceleme',gen_random_uuid(),$2)`,[id,iso(0)]);
+    const id=await openRec(db,'dispute',5);
+    await db.query(`insert into private.legal_holds(record_id,scope,listing_id,reason,opened_by,opened_at) values($1,'listing',1,'inceleme',gen_random_uuid(),now()-interval '5 days')`,[id]);
     await baseline(E,db,1);
-    await exec(db,`update private.legal_holds set released_at='2026-06-02Z',released_by=gen_random_uuid(),release_reason='bitti'`);
+    await exec(db,`update private.legal_holds set released_at=now(),released_by=gen_random_uuid(),release_reason='bitti'`);
     let r=await step(E,db,2);
     assert.deepEqual(r.blocking,[],'meşru serbest bırakma');
     await exec(db,`alter table private.legal_holds disable trigger legal_holds_guard; update private.legal_holds set released_at=null,released_by=null,release_reason=null; alter table private.legal_holds enable trigger legal_holds_guard;`);
@@ -334,6 +392,7 @@ test('K2 serbest bırakma: sahte, süresi geçmiş, yanlış ortam, yanlış kap
       ['yanlış kapsam',releaseFor(E,ev,{scope:{type:'legal_regression',findings_sha256:ev.findings_sha256}})],
       ['kısa gerekçe',releaseFor(E,ev,{reason:'tamam'})],
       ['UUID olmayan kimlik',releaseFor(E,ev,{release_id:'1'})],
+      ['K1 (CI) anahtarıyla imzalı: görev ayrılığı',releaseFor(E,ev,{key:E.k1})],
     ];
     const tampered={...releaseFor(E,ev),reason:'Değiştirilmiş gerekçe metni burada'};
     bad.push(['imza sonrası değişiklik',tampered]);
@@ -571,4 +630,71 @@ test('yasal tablolar yokken n/a; sonradan gelirse başlangıç onayı gerekir; k
     }finally{await finish(db);}
   }finally{await finish(empty);}
   await assert.rejects(advance({store:E.store,trustedK1:E.trustedK1,k1:E.k1,k7:E.k7,anchors:E.anchors,environment:'test',now:at(3),runId:'z',state:null}).then(r=>{if(!r.ok)throw Error(r.reason);}),/okunmadı/);
+});
+
+// ---------- K7 yaşam döngüsü (yalnız test anahtarları) ----------
+function ageIds(dir){
+  const ids=['A','B'].map(n=>{const f=path.join(dir,n+'.key');execFileSync('age-keygen',['-o',f],{stdio:'pipe'});return f;});
+  const rec=path.join(dir,'recipients.txt');
+  fs.writeFileSync(rec,ids.map(f=>/# public key: (age1\S+)/.exec(fs.readFileSync(f,'utf8'))[1]).join('\n')+'\n');
+  return {ids,rec};
+}
+const ageMissing=()=>{try{execFileSync('age',['--version'],{stdio:'pipe'});return null;}catch{return 'age kurulu değil';}};
+
+test('K7 rotasyonu: yeni anahtarla yazılır, eski anahtar halkada kaldıkça eski gövdeler okunur; halka eksikse çalışma durur',async()=>{
+  const db=await legalDb(),E=env();
+  try{
+    await logs(db,[1]);
+    const k7a=E.k7,k7b=crypto.randomBytes(32);
+    await step(E,db,1);await step(E,db,1.1);
+    let r=await step({...E,k7:[k7b,k7a]},db,1.2);
+    assert.equal(r.ok,true,r.reason);
+    const chain=await C.readChain(E.store,{trustedK1:E.trustedK1});
+    const [h1,h2,h3]=chain.headers;
+    await C.loadBody(E.store,h3,{k7:[k7b],prevHeader:h2});
+    await assert.rejects(C.loadBody(E.store,h3,{k7:[k7a],prevHeader:h2}),/halka/,'yeni gövde eski anahtarla açılmaz');
+    await C.loadBody(E.store,h2,{k7:[k7b,k7a],prevHeader:h1});
+    r=await step({...E,k7:[k7b,k7a]},db,1.3);assert.equal(r.ok,true);
+    // Halkada yalnız yeni anahtar: baş gövde yeni anahtarla yazıldığı için çalışma sürer...
+    r=await step({...E,k7:[k7b]},db,1.4);assert.equal(r.ok,true);
+    // ...ama anahtar tamamen kaybolursa (yanlış anahtar) gövde açılmaz ve çalışma durur (silme kapısı kapalı kalır).
+    r=await step({...E,k7:[crypto.randomBytes(32)]},db,1.5);
+    assert.equal(r.ok,false);assert.equal(r.stage,'body');assert.equal(r.openEvents,null);assert.equal(r.anchorsOk,false);
+  }finally{await finish(db);}
+});
+
+test('K7 kaybı: gövde çevrim dışı age kimliğiyle (A ya da B) açılır, veri anahtarı yeni K7 ile yeniden sarılır; sahte sarma reddedilir',async t=>{
+  const miss=ageMissing();if(miss){if(process.env.NAKGO_REQUIRE_AGE==='1')throw Error(miss);t.skip(miss);return;}
+  const dir=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'nakgo-t-k7-'));
+  const db=await legalDb(),E=env();
+  try{
+    const {ids,rec}=ageIds(dir);
+    await logs(db,[1]);
+    let r=await step(E,db,1,{ageRecipientsFile:rec});assert.equal(r.ok,true);
+    r=await step(E,db,1.1,{ageRecipientsFile:rec});assert.equal(r.ok,true);
+    let chain=await C.readChain(E.store,{trustedK1:E.trustedK1});
+    const head=chain.head,prev=chain.headers[chain.headers.length-2];
+    const bytes=E.store.objects.get(head.body_key).body;
+    const viaK7=C.openBody(bytes,{k7:E.k7,seq:head.seq,prevSha:C.headerSha(prev)});
+    for(const id of ids)assert.deepEqual(C.openBodyWithAge(bytes,{identityFile:id,seq:head.seq,prevSha:C.headerSha(prev)}),viaK7,'A ve B ayrı ayrı açar');
+    const stranger=path.join(dir,'X.key');execFileSync('age-keygen',['-o',stranger],{stdio:'pipe'});
+    assert.throws(()=>C.openBodyWithAge(bytes,{identityFile:stranger,seq:head.seq,prevSha:C.headerSha(prev)}),/age ile açılamadı/);
+    // K7 kayboldu: yeni K7 ile çalışma durur...
+    const k7new=crypto.randomBytes(32);
+    r=await step({...E,k7:k7new},db,1.2);assert.equal(r.ok,false);assert.equal(r.stage,'body');
+    // Sahte yeniden sarma (rastgele veri anahtarı) gövdeyi açmaz.
+    const fake={kind:'k7',key_id:C.k7Id(k7new),...(()=>{const iv=crypto.randomBytes(12);const c=crypto.createCipheriv('aes-256-gcm',k7new,iv);c.setAAD(Buffer.from(`nakgo-checkpoint-body/v1\n${head.seq}\n${C.headerSha(prev)}`));const ct=Buffer.concat([c.update(crypto.randomBytes(32)),c.final()]);return {iv:iv.toString('base64'),tag:c.getAuthTag().toString('base64'),ct:ct.toString('base64')};})()};
+    await E.store.put(C.rewrapKey(head.seq,k7new),Buffer.from(JSON.stringify(fake)));
+    r=await step({...E,k7:k7new},db,1.25);assert.equal(r.ok,false);assert.equal(r.stage,'body');
+    E.store.objects.delete(C.rewrapKey(head.seq,k7new));
+    // ...çevrim dışı kurtarma: B anahtarıyla veri anahtarı yeni K7'ye sarılır; kilitli gövde değişmez.
+    const w=C.rewrapWithAge(bytes,{identityFile:ids[1],newK7:k7new,seq:head.seq,prevSha:C.headerSha(prev)});
+    await E.store.put(C.rewrapKey(head.seq,k7new),Buffer.from(JSON.stringify(w)));
+    assert.ok(E.store.objects.get(head.body_key).body.equals(bytes),'gövde değişmedi');
+    r=await step({...E,k7:k7new},db,1.3,{ageRecipientsFile:rec});assert.equal(r.ok,true,r.reason);
+    chain=await C.readChain(E.store,{trustedK1:E.trustedK1});assert.equal(chain.ok,true);
+    // age sarması olmayan gövde age ile açılamaz (bu yüzden A4'te age sarması zorunludur).
+    const noAge=C.sealBody({x:1},{k7:k7new,seq:9,prevSha:'p'});
+    assert.throws(()=>C.openBodyWithAge(noAge,{identityFile:ids[0],seq:9,prevSha:'p'}),/age sarması yok/);
+  }finally{await finish(db);fs.rmSync(dir,{recursive:true,force:true});}
 });

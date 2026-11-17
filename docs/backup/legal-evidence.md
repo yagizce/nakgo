@@ -1,8 +1,18 @@
 # B7-A3 — Yasal kayıt kanıtı, kontrol noktası zinciri, K2 serbest bırakma ve K6 muafiyet durum makinesi
 
 Bu belge `tools/backup/merkle.cjs`, `legal-evidence.cjs`, `checkpoint.cjs`, `state-machine.cjs`, `legal-run.cjs` ve
-`deletion.cjs` içindeki kapsama kuralını anlatır. Testler: `tests/backup/a3-legal.test.cjs` (sentetik #125 şeması
-`tests/backup/legal-fixture.sql`).
+`deletion.cjs` içindeki kapsama kuralını anlatır. Testler: `tests/backup/a3-legal.test.cjs`.
+
+Testler **gerçek #125 migration'ını** kullanır: `tests/backup/fixtures/legal_archive.b25013e.sql`, b25013e'deki dosyanın
+birebir kopyasıdır (SHA-256 `a32d8e90…d099`, testte sabit; git nesnesi varsa onunla, #125 birleşince depodakiyle de
+karşılaştırılır). İmha ve saklama testleri gerçek `retention_run()` ve `legal_destroy()` ile koşar; zincir hash'i gerçek
+`legal_chain_check()` ile karşılaştırılır. Yalnız zamanı geçmişe yazan dört yardımcı ayrıdır ve farkları dosyanın başında
+yazılıdır: `tests/backup/legal-test-helpers.sql`.
+
+Önceki sentetik şemanın gerçek migration'a göre eksikleri (katalog karşılaştırmasıyla bulundu, artık geçersiz): 15 CHECK
+kısıtı (eylem listesi, metin uzunlukları, onay/süre ve serbest bırakma tutarlılığı, koruma kapsamı), 9 indeks, 4 TRUNCATE
+tetikleyicisi, 6 tabloda RLS ve 10 koruma/iş fonksiyonu (`legal_close`, `legal_destroy`, `legal_expired`,
+`legal_chain_check`, `legal_log` imzası dahil).
 
 > Bu aşama hiçbir canlı sisteme dokunmaz. Depo testlerde bellek içi taklittir; R2 davranışı (koşullu yazma V1, tutarlı
 > okuma V2, kilit V3) **kanıtlanmamıştır**. Kanıt B7-B'de K3 test kovasında alınır. O zamana kadar başlıkta
@@ -51,8 +61,9 @@ Yasal kayıtlar:
 - Mevcut kayıtların değişmez alanları ve snapshot hash'i aynı; durum yalnız `open → closed`.
 - Görülmemiş bir kayıt için tutanak → `destruction_without_seen_record`.
 
-Korumalar yalnız kaydıyla birlikte silinebilir; serbest bırakma tek yönlüdür. `retention_runs` değişmez; yalnız 3 yıldan
-(1096 gün) eskiler silinebilir.
+Korumalar yalnız kaydıyla birlikte silinebilir; serbest bırakma tek yönlüdür. `retention_runs` değişmez; bir kayıt
+yalnız aralıkta bir retention çalışması varsa ve o çalışmanın zamanından **3 takvim yılı** (PostgreSQL `interval '3 years'`
+ile aynı hesap, 29 Şubat dahil test edildi) eskiyse silinebilir.
 
 ### Tek başına yeterli sayılmayanlar
 Hash zinciri (kuyruğu göremez), dizi numarası (geri alınan işlemler de boşluk bırakır — yalnız `id_gap` bilgisi),
@@ -88,7 +99,9 @@ listenin birlikte değerlendirilmesidir.
 | Şifreleme | Gövde K7 ile şifreli; açık başlıkta yalnız kökler ve sayılar. |
 | Erişim | K7 yalnız yedek iş akışının ortam gizlisinde (B7-B'de, ayrı onayla). Okuma yalnız sahip ve CI. Yaprakta ad, iletişim, gerekçe metni, IP, kullanıcı/ilan kimliği **yok**; yalnız yasal tablo kimlikleri, günler, hash'ler. |
 | Saklama | Başlıklar kalıcı (küçük, kişisel veri yok). Gövdeler `audit/` kilidi (90 gün) boyunca silinemez; sonra en az 13 ay tutulur. Gövde silme bu aşamada **yok**; ayrı onay ve runbook gerektirir (B7-B/C). |
-| Kurtarma | K7 kaybında age ile sarılmış kopya çevrim dışı anahtarla açılır. |
+| Kurtarma | Her gövdenin veri anahtarı K7'ye ek olarak çevrim dışı age alıcılarına (A, B) sarılır (A4'te zorunlu). K7 kaybında gövde A ya da B ile açılır (`openBodyWithAge`); veri anahtarı yeni K7'ye sarılıp ayrı bir nesneye yazılır (`rewrapWithAge` → `<seq>.rewrap.<K7 kimliği>`); kilitli gövde değişmez. Sahte yeniden sarma yalnız çözmeyi başarısız kılar. |
+| Rotasyon | `k7 = [yeni, ...eski]`: yazma yeni anahtarla, okuma halkadaki herhangi biriyle. Halkada uygun anahtar yoksa çalışma `body` aşamasında durur; açık olay sayısı bilinmez, çapa doğrulanmaz, silme kapısı kapalı kalır. |
+| Görev ayrılığı | K1 (CI imzası), K2 (sahip; serbest bırakma/muafiyet), K7 (gövde şifrelemesi), A/B (yedek ve gövde kurtarma) ayrı anahtarlardır. K1 ile imzalanmış serbest bırakma belgesi reddedilir (testli); A4 yapılandırma denetimi K1 ile K2 listelerinin kesişmesini reddeder. |
 
 ## 4. Olaylar ve K2 serbest bırakma
 
@@ -136,5 +149,5 @@ yazılamazsa ya da başı doğrulamıyorsa `anchorsOk=false` ve silme kapısı k
 
 ## 8. Test edilemeyenler
 - R2 koşullu PUT, tutarlı okuma ve kilit davranışı (K3, B7-B).
-- Gerçek #125 migration'ı bu dalda yoktur; testler birebir kopyalanmış sentetik şemayla koşar.
+- Gerçek #125 migration'ı bu dalda migration olarak yoktur; testler onun birebir kopyasını uygular.
 - Gerçek K1/K2/K7 anahtarları: yalnız test süresince bellekte üretilen geçici anahtarlar kullanıldı.

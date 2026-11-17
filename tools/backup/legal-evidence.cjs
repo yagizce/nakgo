@@ -108,6 +108,15 @@ function genesisFindings(leaves){
   return f;
 }
 
+/** retention_run: delete from retention_runs where ran_at < now() - interval '3 years' (takvim yılı, UTC oturum).
+ * µs cinsinden zamandan 3 takvim yılı çıkarır; 29 Şubat → 28 Şubat (PostgreSQL ay aritmetiğiyle aynı). */
+function minus3Years(us){
+  if(us===0n)return 0n;
+  const ms=Number(us/1000n),rest=us%1000n,d=new Date(ms);
+  const y=d.getUTCFullYear()-3,m=d.getUTCMonth(),last=new Date(Date.UTC(y,m+1,0)).getUTCDate();
+  const t=Date.UTC(y,m,Math.min(d.getUTCDate(),last),d.getUTCHours(),d.getUTCMinutes(),d.getUTCSeconds(),d.getUTCMilliseconds());
+  return BigInt(t)*1000n+rest;
+}
 const byId=list=>new Map(list.map(x=>[x.id,x]));
 const maxId=list=>list.reduce((m,x)=>BigInt(x.id)>m?BigInt(x.id):m,0n);
 const big=s=>BigInt(s);
@@ -129,10 +138,11 @@ function verifyTransition(prev,cur){
   // retention_runs: değişmez, yalnız 3 yıldan eski olanlar silinebilir; aralıktaki çalışmalar yeni kimliklilerdir.
   const runsP=byId(prev.leaves.runs),runsC=byId(cur.leaves.runs);
   const prevRunMax=maxId(prev.leaves.runs);
-  const curRunLatest=cur.leaves.runs.reduce((m,r)=>big(r.ran_at_us)>m?big(r.ran_at_us):m,0n);
+  // Silme yalnız aralıktaki (yeni) bir retention çalışmasıyla meşrudur; en geç aralık çalışmasının sınırı kullanılır.
+  const curRunLatest=cur.leaves.runs.filter(r=>big(r.id)>prevRunMax).reduce((m,r)=>big(r.ran_at_us)>m?big(r.ran_at_us):m,0n);
   for(const [id,r] of runsP){
     const c=runsC.get(id);
-    if(!c){if(!(big(r.ran_at_us)<curRunLatest-1096n*DAY_US))add('run_deleted_early','integrity','runs',id);}
+    if(!c){if(!(big(r.ran_at_us)<minus3Years(curRunLatest)))add('run_deleted_early','integrity','runs',id);}
     else if(c.counts_sha!==r.counts_sha||c.ran_at_us!==r.ran_at_us)add('run_modified','integrity','runs',id);
   }
   const interval=cur.leaves.runs.filter(r=>big(r.id)>prevRunMax);
@@ -225,4 +235,4 @@ function verifyTransition(prev,cur){
 /** Bulgu → olay gerektiriyor mu? 'info' kaydedilir ama olay açmaz. */
 const blocking=findings=>findings.filter(x=>x.severity==='integrity'||x.severity==='legal_regression');
 
-module.exports={extractState,buildLeaves,roots,commitments,internalChecks,genesisFindings,verifyTransition,blocking,policyIndex,LISTS};
+module.exports={minus3Years,extractState,buildLeaves,roots,commitments,internalChecks,genesisFindings,verifyTransition,blocking,policyIndex,LISTS};
