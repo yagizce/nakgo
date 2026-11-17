@@ -18,7 +18,7 @@
     "test:static": "node tests/gate/static.js && python tests/gate/static_html.py",
     "test:gate": "node --test tests/gate/control.test.js",
     "test:browser": "python tests/gate/browser.py",
-    "test:db": "node tools/admin-db-check.cjs && node tools/schema-check.cjs && node tools/api-contract.cjs && node tools/contract-mutations.cjs && npm run -s test:backup",
+    "test:db": "node tools/admin-db-check.cjs && node tools/schema-check.cjs && node tools/api-contract.cjs && node tools/contract-mutations.cjs && node --test tests/db/*.test.cjs && npm run -s test:backup",
     "test:backup": "node tools/backup/privilege-audit.cjs --invariants && node --test tests/backup/*.test.cjs",
     "whatsapp:test": "node --test tests/whatsapp/*.test.cjs",
     "whatsapp:parse": "node tools/whatsapp-parse.js",

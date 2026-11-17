@@ -117,6 +117,13 @@ column private.listing_moderation.reason text not null default ''::text
 column private.listing_moderation.removed boolean not null default false
 column private.listing_moderation.revision bigint not null default 0
 column private.listing_moderation.updated_at timestamp with time zone not null default now()
+column private.retention_jobs.batches integer not null default 0
+column private.retention_jobs.counts jsonb not null default '{}'::jsonb
+column private.retention_jobs.error text
+column private.retention_jobs.finished_at timestamp with time zone
+column private.retention_jobs.id bigint not null
+column private.retention_jobs.started_at timestamp with time zone not null default clock_timestamp()
+column private.retention_jobs.status text not null
 column private.retention_runs.counts jsonb not null
 column private.retention_runs.id bigint not null
 column private.retention_runs.ran_at timestamp with time zone not null default now()
@@ -259,6 +266,9 @@ constraint private.document_reviewers.document_reviewers_user_id_fkey FOREIGN KE
 constraint private.listing_moderation.listing_moderation_hold_reason_check CHECK ((char_length(hold_reason) <= 500))
 constraint private.listing_moderation.listing_moderation_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
 constraint private.listing_moderation.listing_moderation_pkey PRIMARY KEY (listing_id)
+constraint private.retention_jobs.retention_jobs_error_check CHECK ((char_length(error) <= 300))
+constraint private.retention_jobs.retention_jobs_pkey PRIMARY KEY (id)
+constraint private.retention_jobs.retention_jobs_status_check CHECK ((status = ANY (ARRAY['running'::text, 'done'::text, 'failed'::text, 'stopped'::text, 'skipped'::text, 'interrupted'::text])))
 constraint private.retention_runs.retention_runs_pkey PRIMARY KEY (id)
 constraint private.storage_cleanup.storage_cleanup_pkey PRIMARY KEY (bucket_id, object_path)
 constraint public.carrier_applications.carrier_applications_id_check CHECK ((id <= '9007199254740991'::bigint))
@@ -391,6 +401,9 @@ function private.queue_document_cleanup() returns trigger definer vol=v cfg=sear
 function private.record_daily_stats(p_day date) returns void definer vol=v cfg=search_path="" body=99870024791054f1392497f216da1865
 function private.request_ip() returns inet invoker vol=s cfg=search_path="" body=c62e37d479aa5be286b5043923e19ecf
 function private.require_activity(p_user uuid) returns void definer vol=v cfg=search_path="" body=17f1187e5fadf401964fce8083eb4c17
+function private.retention_batch(p_step text, p_limit integer) returns integer definer vol=v cfg=search_path="" body=138970efd113e1ae1426cc784a0919fd
+function private.retention_batches(IN p_batch integer, IN p_max_batches integer) returns procedure invoker vol=v cfg= body=5fd6a3c83197700bb22e971ab74d5dcc
+function private.retention_job_close(p_job bigint, p_status text, p_error text) returns void definer vol=v cfg=search_path="" body=8c80d98c41d77c938d414318cdc05319
 function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=f5fd96f991fa1c5bfe49415f8b8eae37
 function private.route_alert_actor() returns uuid definer vol=v cfg=search_path="" body=2910e7045346bdce544ebee0dc3c4dc5
 function private.storage_activity_guard() returns trigger definer vol=v cfg=search_path="" body=5b01313fa3de9834b54927d935980fa2
@@ -425,6 +438,8 @@ index private.contact_clicks_pkey CREATE UNIQUE INDEX contact_clicks_pkey ON pri
 index private.daily_stats_pkey CREATE UNIQUE INDEX daily_stats_pkey ON private.daily_stats USING btree (day)
 index private.document_reviewers_pkey CREATE UNIQUE INDEX document_reviewers_pkey ON private.document_reviewers USING btree (user_id)
 index private.listing_moderation_pkey CREATE UNIQUE INDEX listing_moderation_pkey ON private.listing_moderation USING btree (listing_id)
+index private.retention_jobs_pkey CREATE UNIQUE INDEX retention_jobs_pkey ON private.retention_jobs USING btree (id)
+index private.retention_jobs_started CREATE INDEX retention_jobs_started ON private.retention_jobs USING btree (started_at)
 index private.retention_runs_at CREATE INDEX retention_runs_at ON private.retention_runs USING btree (ran_at)
 index private.retention_runs_pkey CREATE UNIQUE INDEX retention_runs_pkey ON private.retention_runs USING btree (id)
 index private.storage_cleanup_pkey CREATE UNIQUE INDEX storage_cleanup_pkey ON private.storage_cleanup USING btree (bucket_id, object_path)
@@ -448,6 +463,7 @@ index public.listing_favorites_pkey CREATE UNIQUE INDEX listing_favorites_pkey O
 index public.listings_active_route CREATE INDEX listings_active_route ON public.listings USING btree (kind, from_city, to_city, available_on) WHERE (status = 'active'::text)
 index public.listings_owner_created CREATE INDEX listings_owner_created ON public.listings USING btree (owner_id, created_at DESC)
 index public.listings_pkey CREATE UNIQUE INDEX listings_pkey ON public.listings USING btree (id)
+index public.listings_unredacted CREATE INDEX listings_unredacted ON public.listings USING btree (id) WHERE (redacted_at IS NULL)
 index public.messages_conversation CREATE INDEX messages_conversation ON public.conversation_messages USING btree (conversation_id, id DESC)
 index public.profiles_pkey CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
 index public.route_alerts_pkey CREATE UNIQUE INDEX route_alerts_pkey ON public.route_alerts USING btree (id)
@@ -482,6 +498,7 @@ table private.contact_clicks rls=true force=false
 table private.daily_stats rls=true force=false
 table private.document_reviewers rls=true force=false
 table private.listing_moderation rls=true force=false
+table private.retention_jobs rls=true force=false
 table private.retention_runs rls=true force=false
 table private.storage_cleanup rls=true force=false
 table public.carrier_applications rls=true force=false
