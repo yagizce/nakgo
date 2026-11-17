@@ -3,8 +3,8 @@
  * Yalnız YEREL ve geçici bir veritabanına geri yükler (db-lib openDb: NAKGO_PG_HOST yerel olmalı; uzak host reddedilir).
  * Production'a, DEV'e ya da herhangi bir Supabase projesine geri yükleme yolu bu kodda yoktur.
  *
- * Sıra: roller (NOLOGIN) → bootstrap (şemalar, tipler, başvurulan fonksiyonlar) → B ön-veri+veri → A (tamamı) →
- *       B son-veri (politika, kendi tetikleyicilerimiz, yabancı anahtarlar).
+ * Sıra: roller (NOLOGIN) → bootstrap (şemalar, tipler, başvurulan fonksiyonlar) → B.pre.sql + B/*.jsonl (sha256 denetimli)
+ *       → A (tamamı) → B.post.sql (yabancı anahtar, RLS, politika, kendi tetikleyicilerimiz, ACL).
  * Kontroller (hepsi geçmeli):
  *   counts        tablo başına satır sayısı = S1 (aynı anlık görüntü kanıtı)
  *   fk_orphans    her yabancı anahtar (NOT VALID olanlar dahil) için yetim satır = 0
@@ -17,6 +17,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const {openDb,finish}=require('../db-lib.cjs');
 const {run,binPath,pgEnv,catalogFingerprint}=require('./dump.cjs');
+const {loadScope,compareScope}=require('./scope-export.cjs');
 
 const SUPABASE_ROLE_ATTRS={service_role:'nologin bypassrls'};
 
@@ -65,20 +66,12 @@ async function restoreAndVerify({bundleDir,pgBin,contractCheck=true,hooks={}}){
       const args=['--exit-on-error','--no-owner','--no-password','-d',db.name,...(listFile?['-L',listFile]:[]),path.join(bundleDir,file)];
       return run(pgr,args,{env});
     };
-    const hasB=fs.existsSync(path.join(bundleDir,'B.dump'));
-    let post='';
+    const hasB=fs.existsSync(path.join(bundleDir,'B.pre.sql'));
     if(hasB){
-      const list=(await run(pgr,['-l',path.join(bundleDir,'B.dump')],{env})).out;
-      const allowedTriggers=new Set(source.restore.triggers);
-      const isPost=l=>/ (POLICY|FK CONSTRAINT|TRIGGER) /.test(l);
-      fs.writeFileSync(path.join(bundleDir,'B.pre.list'),tocFilter(list,{include:l=>!isPost(l)}));
-      post=tocFilter(list,{include:l=>{
-        if(/ TRIGGER /.test(l)){const m=/ TRIGGER (\S+) (\S+) (\S+) /.exec(l);return m&&allowedTriggers.has(m[1]+' '+m[2]+' '+m[3]);}
-        return isPost(l);
-      }});
-      fs.writeFileSync(path.join(bundleDir,'B.post.list'),post);
-      const r=await restore('B.dump',path.join(bundleDir,'B.pre.list'));
-      if(r.code!==0){fail('restore_b',r.err.trim().split('\n').slice(-3).join(' | '));return;}
+      try{
+        await db.exec(fs.readFileSync(path.join(bundleDir,'B.pre.sql'),'utf8'));
+        await loadScope(db,{bundleDir,files:source.b_files||{}});
+      }catch(e){fail('restore_b',e.message);return;}
     }
     // Döküm public şemasını açıkça oluşturur; hedefte zaten var. Yalnız "SCHEMA - public" kaydı atlanır, ACL ve
     // yorum kayıtları uygulanır; böylece şemanın varsayılan yetkileri kaynakla aynı kalır.
@@ -86,9 +79,9 @@ async function restoreAndVerify({bundleDir,pgBin,contractCheck=true,hooks={}}){
     fs.writeFileSync(path.join(bundleDir,'A.list'),tocFilter(aList,{include:l=>!/ SCHEMA - public /.test(l)}));
     const ra=await restore('A.dump',path.join(bundleDir,'A.list'));
     if(ra.code!==0){fail('restore_a',ra.err.trim().split('\n').slice(-3).join(' | '));return;}
-    if(hasB&&post.trim()){
-      const r=await restore('B.dump',path.join(bundleDir,'B.post.list'));
-      if(r.code!==0){fail('restore_b_post',r.err.trim().split('\n').slice(-3).join(' | '));return;}
+    if(hasB){
+      try{await db.exec(fs.readFileSync(path.join(bundleDir,'B.post.sql'),'utf8'));}
+      catch(e){fail('restore_b_post',e.message);return;}
     }
     pass('restore','A ve B geri yüklendi');
     // Sayılar
@@ -98,6 +91,11 @@ async function restoreAndVerify({bundleDir,pgBin,contractCheck=true,hooks={}}){
       if(got!==n)mism.push(`${t}: kaynak ${n}, geri yüklenen ${got}`);
     }
     mism.length?fail('counts',mism):pass('counts',Object.keys(source.counts).length+' tablo');
+    // B içeriği: geri yüklenen satırlar dosyadakiyle birebir aynı mı (yalnız sayı değil).
+    if(hasB){
+      const d=await compareScope(db,{bundleDir,files:source.b_files||{}});
+      d.length?fail('b_content',d):pass('b_content',Object.keys(source.b_files||{}).length+' tablo');
+    }
     // Yabancı anahtarlar
     const fks=await fkOrphans(db);
     const orphans=fks.filter(f=>f.orphans>0);

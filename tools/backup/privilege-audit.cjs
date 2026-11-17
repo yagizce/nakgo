@@ -5,10 +5,13 @@
  * audit(db,{role})     → rolün özellikleri, üyelikleri, veritabanı/şema/tablo/dizi yetkileri ve çağırabildiği
  *                        tetikleyici olmayan her SECURITY DEFINER fonksiyonun ayrıntılı parmak izi.
  * evaluate(audit,opts) → bulguları üç sınıfa ayırır:
- *     nonwaivable: rolün kendisi beklenen profilden saptı (yazma, üyelik, CREATE, rol özelliği). Hiçbir muafiyet geçmez.
+ *     nonwaivable: rolün kendisi beklenen profilden saptı (yazma, herhangi bir üyelik, CREATE, rol özelliği), dışa aktarma
+ *                  fonksiyonu sabitlenen (ops/backup/export-functions.json) halinden saptı ya da rol bir ağ fonksiyonunu
+ *                  (net.*, http*, dblink*) çağırabiliyor. Hiçbir muafiyet geçmez.
  *     waivable:    izin listesinde olmayan ya da parmak izi değişmiş çağrılabilir SECURITY DEFINER fonksiyon.
  *                  Döküm başlamaz; yalnız geçerli, imzalı ve tek kullanımlık bir K6 muafiyeti (varsayılan kapalı) geçer.
- *     info:        izin listesinde olup artık bulunmayan kayıtlar.
+ *     info:        izin listesinde olup artık bulunmayan kayıtlar; sabitlenmiş halde bulunan dışa aktarma fonksiyonları;
+ *                  süper kullanıcı olmadan kapatılamayan, kabul edilmiş PUBLIC yan yolları (büyük nesne, WAL mesajı, TEMP).
  * invariants(db)       → migration'lardan kurulan şemada değişmezler: public/private'ta PUBLIC'e açık tetikleyici olmayan
  *                        SECURITY DEFINER fonksiyon yok; service_role'e verilen açık yetkiler sözleşmedeki listeyle aynı.
  *
@@ -21,10 +24,8 @@ const {canonical,sha256,sha256Json}=require('./crypto.cjs');
 const root=path.resolve(__dirname,'../..');
 
 // Yedek rolünün beklenen profili. Değişiklik ancak bu dosyada, incelemeli PR ile.
-const ROLE_PROFILE={super:false,createrole:false,createdb:false,replication:false,login:true,bypassrls:true,connlimitMax:2,
-  // Supabase'in resmi yedek rolü yöntemi: BYPASSRLS + pg_read_all_data. İzin verilen TEK üyelik budur ve yalnız şu
-  // seçeneklerle: INHERIT açık (okuma yetkisi etkili), ADMIN kapalı (başkasına veremez), SET kapalı (o role geçemez).
-  readMembership:'pg_read_all_data'};
+// B7-A5 dar rol: HİÇBİR üyelik yok (pg_read_all_data dahil). Auth/Storage yalnız sabitlenmiş dışa aktarma fonksiyonlarıyla.
+const ROLE_PROFILE={super:false,createrole:false,createdb:false,replication:false,login:true,bypassrls:true,connlimitMax:2};
 const WRITE_TABLE_PRIVS=['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'];
 
 async function rows(db,sql,args=[]){return (await db.query(sql,args)).rows;}
@@ -69,12 +70,13 @@ function qualifiedRefs(src){
   return {rels:[...rels].sort(),funcs:[...funcs].sort()};
 }
 
+/** Katalogdan ad ile bulunur: to_regclass, rolün USAGE'ı olmayan şemada (ör. auth) "permission denied" verir. */
 async function relationState(db,qname){
   const r=await rows(db,`select c.oid,c.relkind::text kind,pg_get_userbyid(c.relowner) owner,coalesce(c.relacl::text,'') acl,
     c.relrowsecurity rls,c.relforcerowsecurity force_rls,
     coalesce((select string_agg(p.polname||':'||p.polcmd::text||':'||p.polpermissive::text||':'||coalesce(pg_get_expr(p.polqual,p.polrelid),'')||':'||coalesce(pg_get_expr(p.polwithcheck,p.polrelid),'')||':'||array_to_string(p.polroles::regrole[]::text[],','),'|' order by p.polname)
       from pg_policy p where p.polrelid=c.oid),'') policies
-    from pg_class c where c.oid=to_regclass($1)`,[qname]);
+    from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname=$1 and c.relname=$2`,qname.split('.'));
   if(!r.length)return null;
   const x=r[0];return {name:qname,kind:x.kind,owner:x.owner,acl:x.acl,rls:x.rls,force_rls:x.force_rls,policies_sha256:sha256(x.policies)};
 }
@@ -132,7 +134,7 @@ async function fingerprintFunction(db,oid,role,{depth=3,seen=new Set()}={}){
   return record;
 }
 
-async function audit(db,{role}){
+async function audit(db,{role,fullSchemas=require('./backup-role.cjs').loadScope().full_schemas}={}){
   const r=await rows(db,`select rolname,rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolcanlogin,rolreplication,rolbypassrls,rolconnlimit,
       rolvaliduntil::text valid_until from pg_roles where rolname=$1`,[role]);
   if(!r.length)return {role,exists:false};
@@ -145,6 +147,14 @@ async function audit(db,{role}){
   const membershipGrants=(await rows(db,`select r.rolname role,m.admin_option,m.inherit_option,m.set_option
       from pg_auth_members m join pg_roles r on r.oid=m.roleid where m.member=(select oid from pg_roles where rolname=$1)
       order by 1,2,3,4`,[role]));
+  // Rolün ÜYELERİ (dolaylı dahil): INHERIT ya da SET seçenekli üye, yedek rolünün okuma ve dışa aktarma yetkisini kullanır.
+  // Hariç: yalnız ADMIN seçenekli üyelik (PG16+: CREATEROLE ile rolü oluşturan rol buna otomatik sahip olur; yetki
+  // vermez), süper kullanıcılar ve şemaların sahibinin yetkilerini zaten taşıyan roller (Supabase: postgres).
+  const members=(await rows(db,`with recursive m(oid) as (
+      select member from pg_auth_members where roleid=(select oid from pg_roles where rolname=$1) and (inherit_option or set_option)
+      union select am.member from pg_auth_members am join m on am.roleid=m.oid where am.inherit_option or am.set_option)
+    select distinct r.rolname from m join pg_roles r on r.oid=m.oid
+    where not r.rolsuper and not pg_has_role(r.oid,(select nspowner from pg_namespace where nspname='private'),'USAGE') order by 1`,[role])).map(x=>x.rolname);
   const database=(await rows(db,`select has_database_privilege($1,current_database(),'CREATE') "create",
       has_database_privilege($1,current_database(),'TEMP') temp,has_database_privilege($1,current_database(),'CONNECT') connect`,[role]))[0];
   const schemas=await rows(db,`select nspname schema,has_schema_privilege($1,oid,'USAGE') usage,has_schema_privilege($1,oid,'CREATE') "create"
@@ -166,12 +176,77 @@ async function audit(db,{role}){
       and has_schema_privilege($1,n.oid,'USAGE') and has_function_privilege($1,p.oid,'EXECUTE') order by n.nspname,p.proname,p.oid`,[role]);
   const functions=[];
   for(const c of callable)functions.push(await fingerprintFunction(db,c.oid,role));
+  const exportFunctions=await exportFunctionFacts(db,role);
+  // Tam şemalardaki, rolün okuyabildiği ve sahibinin yetkisiyle çalışan görünümler (security_invoker değil) ile
+  // materyalize görünümler, tam şemalar dışındaki bir tabloya dayanıyorsa (ör. public.v → auth.sessions) rol o veriyi
+  // görünüm üzerinden okur: dar rolün sınırı delinir.
+  const outsideViews=(await rows(db,`select n.nspname||'.'||c.relname v from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname = any($2::text[]) and c.relkind in ('v','m') and has_table_privilege($1,c.oid,'SELECT')
+      and not (c.relkind='v' and exists(select 1 from unnest(coalesce(c.reloptions,'{}'::text[])) o where o ~* '^security_invoker=(true|on|1|yes)$'))
+      and exists(select 1 from pg_rewrite rw join pg_depend d on d.classid='pg_rewrite'::regclass and d.objid=rw.oid and d.refclassid='pg_class'::regclass
+        join pg_class rc on rc.oid=d.refobjid join pg_namespace rn on rn.oid=rc.relnamespace
+        where rw.ev_class=c.oid and rc.oid<>c.oid and rn.nspname <> all($2::text[]) and rn.nspname not in ('pg_catalog','information_schema'))
+    order by 1`,[role,fullSchemas])).map(x=>x.v);
+  // Rolün çağırabildiği yazma/dış bağlantı yan yolları. Ağ: net şeması (pg_net), http uzantısı, dblink. Kalıcı yazma:
+  // büyük nesne fonksiyonları ve WAL mesajı (pg_catalog, PUBLIC; süper kullanıcı olmadan geri alınamaz).
+  const sideChannels=await rows(db,`select n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')' id,
+      case when n.nspname='net' or (n.nspname<>'pg_catalog' and p.proname ~ '^(http|dblink)') then 'network'
+        else 'pg_catalog_write' end kind
+    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where (n.nspname='net' or (n.nspname<>'pg_catalog' and p.proname ~ '^(http|dblink)')
+        or (n.nspname='pg_catalog' and p.proname in ('lo_create','lo_creat','lo_from_bytea','lo_put','lowrite','lo_import','lo_truncate','lo_truncate64','lo_unlink','pg_logical_emit_message')))
+      and has_schema_privilege($1,n.oid,'USAGE') and has_function_privilege($1,p.oid,'EXECUTE')
+    order by 1`,[role]);
   return {
     role,exists:true,
     attributes:{super:a.rolsuper,inherit:a.rolinherit,createrole:a.rolcreaterole,createdb:a.rolcreatedb,login:a.rolcanlogin,
       replication:a.rolreplication,bypassrls:a.rolbypassrls,connlimit:a.rolconnlimit,valid_until:a.valid_until},
-    memberships,membership_grants:membershipGrants,database,schemas,tables_write:tablesWrite,tables_read:tablesRead,sequences,definer_functions:functions
+    memberships,membership_grants:membershipGrants,members,database,schemas,tables_write:tablesWrite,tables_read:tablesRead,sequences,definer_functions:functions,
+    export_functions:exportFunctions,side_channels:sideChannels,outside_views:outsideViews
   };
+}
+
+function loadExportPins(file=path.join(root,'ops/backup/export-functions.json')){
+  const j=JSON.parse(fs.readFileSync(file,'utf8'));
+  if(j.version!==1||!Array.isArray(j.functions))throw Error('Dışa aktarma sabitleri biçimi geçersiz: '+file);
+  return j;
+}
+
+/** Ortamdan bağımsız sabit: gövde (prosrc, boşluk/yorum normalize), dil, oynaklık, sonuç tipi, ayarlar, SECURITY DEFINER.
+ * Ortama bağlı olanlar sabite girmez, kural olarak denetlenir: sahip = fonksiyonun şemasının sahibi; EXECUTE yalnız yedek
+ * rolüne doğrudan (PUBLIC, API rolleri ya da üyelik yolu yok). */
+async function exportFunctionFacts(db,role,{pins=loadExportPins()}={}){
+  const out=[];
+  for(const pin of pins.functions){
+    const m=/^([a-z_]+)\.([a-z_][a-z0-9_]*)\(\)$/.exec(pin.id);
+    if(!m)throw Error('Geçersiz sabit kimliği: '+pin.id);
+    const f=(await rows(db,`select p.prosrc src,l.lanname lang,p.prosecdef secdef,p.provolatile::text volatility,pg_get_function_result(p.oid) result,
+        coalesce(p.proconfig,'{}'::text[]) config,p.proowner=n.nspowner owner_is_schema_owner,
+        array(select case when a.grantee=0 then 'PUBLIC' else pg_get_userbyid(a.grantee)::text end from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+          where a.privilege_type='EXECUTE' and a.grantee<>p.proowner order by 1)::text[] execute_grantees,
+        -- Fonksiyonu fiilen çağırabilen roller (PUBLIC, doğrudan, üyelik; yedek rolünün üyeleri dahil). Hariç: süper
+        -- kullanıcılar, yedek rolünün kendisi ve sahibin yetkilerini zaten taşıyan roller (onlar Auth'u doğrudan okuyabilir).
+        array(select r.rolname::text from pg_roles r where not r.rolsuper and r.rolname<>$3
+          and not pg_has_role(r.oid,p.proowner,'USAGE') and has_function_privilege(r.oid,p.oid,'EXECUTE')
+          and has_schema_privilege(r.oid,n.oid,'USAGE') order by 1)::text[] other_callers
+      from pg_proc p join pg_namespace n on n.oid=p.pronamespace join pg_language l on l.oid=p.prolang
+      where n.nspname=$1 and p.proname=$2 and p.pronargs=0`,[m[1],m[2],role]))[0];
+    if(!f){out.push({id:pin.id,present:false});continue;}
+    out.push({id:pin.id,present:true,src_sha256:sha256(normalizeBody(f.src)),lang:f.lang,secdef:f.secdef,volatility:f.volatility,
+      result:f.result,config:[...f.config].sort(),owner_is_schema_owner:f.owner_is_schema_owner,execute_grantees:f.execute_grantees,
+      execute_ok:f.execute_grantees.length===1&&f.execute_grantees[0]===role,other_callers:f.other_callers});
+  }
+  return out;
+}
+const PIN_FIELDS=['src_sha256','lang','secdef','volatility','result','config'];
+function exportPinDiff(fact,pin){
+  const d=[];
+  if(!fact||!fact.present)return ['yok'];
+  for(const k of PIN_FIELDS)if(canonical(fact[k])!==canonical(pin[k]))d.push(k);
+  if(!fact.owner_is_schema_owner)d.push('sahip şema sahibi değil');
+  if(!fact.execute_ok)d.push('EXECUTE yalnız yedek rolünde olmalı: '+fact.execute_grantees.join(','));
+  if(fact.other_callers&&fact.other_callers.length)d.push('başka roller çağırabiliyor: '+fact.other_callers.join(','));
+  return d;
 }
 
 function loadAllowlist(file=path.join(root,'ops/backup/definer-allowlist.json')){
@@ -196,30 +271,41 @@ function allowlistEntryValid(entry,fn){
   return problems;
 }
 
-function evaluate(a,{allowlist={version:1,entries:[]}}={}){
+function evaluate(a,{allowlist={version:1,entries:[]},exportPins=loadExportPins(),fullSchemas=require('./backup-role.cjs').loadScope().full_schemas}={}){
   const nonwaivable=[],waivable=[],info=[];
   const nw=(code,detail)=>nonwaivable.push({code,detail});
   if(!a.exists){nw('role_missing',a.role);return finalize();}
   const at=a.attributes;
   for(const k of ['super','createrole','createdb','replication','login','bypassrls'])if(at[k]!==ROLE_PROFILE[k])nw('role_attribute',k+'='+at[k]);
   if(!(at.connlimit>0&&at.connlimit<=ROLE_PROFILE.connlimitMax))nw('role_attribute','connlimit='+at.connlimit);
-  // pg_read_all_data dışındaki her üyelik (doğrudan ya da dolaylı) muaf tutulamaz; pg_read_all_data'ya başka bir rol
-  // üzerinden ulaşılıyorsa o ara rol de üyelik olarak görünür ve yakalanır.
-  for(const m of a.memberships)if(m!==ROLE_PROFILE.readMembership)nw('membership',m);
-  // PG16+: aynı üyelik farklı verenlerce birden çok satır olarak verilebilir; HER satır değerlendirilir.
-  const rms=(a.membership_grants||[]).filter(g=>g.role===ROLE_PROFILE.readMembership);
-  if(!rms.length)nw('read_membership_missing',ROLE_PROFILE.readMembership);
-  else{
-    if(rms.some(g=>g.admin_option))nw('membership_option',ROLE_PROFILE.readMembership+' ADMIN');
-    if(rms.some(g=>g.set_option))nw('membership_option',ROLE_PROFILE.readMembership+' SET');
-    if(!rms.some(g=>g.inherit_option))nw('membership_option',ROLE_PROFILE.readMembership+' INHERIT kapalı (okuma yetkisi etkisiz)');
-  }
+  // Her üyelik (doğrudan ya da dolaylı, pg_read_all_data dahil) muaf tutulamaz: rol yalnız doğrudan yetkilerle okur.
+  for(const m of a.memberships)nw('membership',m);
+  // Yedek rolüne üye olan her rol (dolaylı dahil) onun yetkileriyle Auth verisini dışa aktarabilir: muaf tutulamaz.
+  for(const m of a.members||[])nw('role_has_members',m);
   if(a.database.create)nw('database_create','CREATE');
   for(const s of a.schemas)if(s.create)nw('schema_create',s.schema);
   for(const t of a.tables_write)nw('table_write',t.rel+':'+t.privs.join(','));
+  // Tam şemalar dışında GERÇEKTEN okunabilen tablo (şema USAGE + SELECT): ör. auth.sessions. Auth/Storage yalnız dışa
+  // aktarma fonksiyonlarıyla alınır; doğrudan okuma muaf tutulamaz.
+  const usable=new Set(a.schemas.filter(s=>s.usage).map(s=>s.schema));
+  for(const t of a.tables_read){const ns=t.split('.')[0];if(!fullSchemas.includes(ns)&&usable.has(ns))nw('read_outside_scope',t);}
+  for(const v of a.outside_views||[])nw('view_reads_outside_scope',v);
   for(const s of a.sequences)nw('sequence_write',s.seq);
+  for(const s of a.side_channels||[]){
+    if(s.kind==='network')nw('network_function',s.id);
+    else info.push({code:'accepted_residual',id:s.id});
+  }
+  if(a.database.temp)info.push({code:'accepted_residual',id:'TEMP'});
+  const pinById=new Map(exportPins.functions.map(p=>[p.id,p]));
+  for(const pin of exportPins.functions){
+    const fact=(a.export_functions||[]).find(f=>f.id===pin.id);
+    const d=exportPinDiff(fact,pin);
+    if(d.length)nw('export_function_changed',pin.id+': '+d.join('; '));
+    else info.push({code:'export_function_pinned',id:pin.id});
+  }
   const byId=new Map(allowlist.entries.map(e=>[e.id,e]));
   for(const fn of a.definer_functions){
+    if(pinById.has(fn.id))continue;
     const e=byId.get(fn.id);
     if(!e){waivable.push({code:'definer_unreviewed',id:fn.id,fingerprint_sha256:fn.fingerprint_sha256});continue;}
     if(e.fingerprint_sha256!==fn.fingerprint_sha256){waivable.push({code:'definer_changed',id:fn.id,fingerprint_sha256:fn.fingerprint_sha256,expected:e.fingerprint_sha256});continue;}
@@ -231,7 +317,7 @@ function evaluate(a,{allowlist={version:1,entries:[]}}={}){
   return finalize();
   function finalize(){
     const sortBy=x=>canonical(x);
-    nonwaivable.sort((x,y)=>sortBy(x)<sortBy(y)?-1:1);waivable.sort((x,y)=>sortBy(x)<sortBy(y)?-1:1);
+    nonwaivable.sort((x,y)=>sortBy(x)<sortBy(y)?-1:1);waivable.sort((x,y)=>sortBy(x)<sortBy(y)?-1:1);info.sort((x,y)=>sortBy(x)<sortBy(y)?-1:1);
     const decision=nonwaivable.length?'stop_nonwaivable':waivable.length?'stop_waivable':'ok';
     return {decision,nonwaivable,waivable,info,waivable_diff_sha256:sha256Json(waivable),audit_sha256:sha256Json(a)};
   }
@@ -272,7 +358,16 @@ async function invariants(db,{serviceRoleContract=path.join(root,'supabase/contr
   return {ok:failures.length===0,failures,public_definers:publicDefiners,service_role_checked:hasServiceRole,service_role_grants:serviceRole};
 }
 
-module.exports={ROLE_PROFILE,audit,evaluate,invariants,loadAllowlist,allowlistEntryValid,searchPathStatus,riskFlags,qualifiedRefs,fingerprintFunction};
+/** Migration'lardan kurulan şemadan dışa aktarma sabitlerini üretir (ops/backup/export-functions.json). */
+async function exportPins(db,{scope=require('./backup-role.cjs').loadScope()}={}){
+  const ids=require('./backup-role.cjs').exportFunctions(scope).map(f=>f+'()');
+  const facts=await exportFunctionFacts(db,'-',{pins:{version:1,functions:ids.map(id=>({id}))}});
+  return {version:1,
+    description:'Yedek rolünün çağırdığı dışa aktarma fonksiyonlarının ortamdan bağımsız sabitleri. Üretici: node tools/backup/privilege-audit.cjs --export-pins. Elle düzenlenmez; değişiklik incelemeli PR ister. Sahip ve EXECUTE kuralları sabite girmez, privilege-audit tarafından ayrıca denetlenir.',
+    functions:facts.map(f=>{if(!f.present)throw Error('Dışa aktarma fonksiyonu yok: '+f.id);return {id:f.id,...Object.fromEntries(PIN_FIELDS.map(k=>[k,f[k]]))};})};
+}
+
+module.exports={ROLE_PROFILE,audit,evaluate,invariants,loadAllowlist,loadExportPins,exportPins,exportPinDiff,allowlistEntryValid,searchPathStatus,riskFlags,qualifiedRefs,fingerprintFunction};
 
 if(require.main===module)(async()=>{
   const {openDb,build,finish}=require('../db-lib.cjs');
@@ -287,6 +382,15 @@ if(require.main===module)(async()=>{
       for(const f of r.failures)console.log('  ✗ '+f.code+': '+f.id);
       console.log('Yetki değişmezleri ('+db.engine+'): '+(r.ok?'geçti':'BAŞARISIZ')+'; PUBLIC SECURITY DEFINER='+r.public_definers.length+', service_role açık yetki='+(r.service_role_grants||[]).length);
       if(!r.ok)process.exitCode=1;
-    }else{console.log('Kullanım: node tools/backup/privilege-audit.cjs --invariants');process.exitCode=2;}
+    }else if(args.includes('--export-pins')){
+      const j=await exportPins(db);
+      const file=path.join(root,'ops/backup/export-functions.json');
+      const text=JSON.stringify(j,null,1)+'\n';
+      if(args.includes('--check')){
+        const same=fs.existsSync(file)&&fs.readFileSync(file,'utf8')===text;
+        console.log('Dışa aktarma sabitleri ('+db.engine+'): '+(same?'güncel':'FARKLI — node tools/backup/privilege-audit.cjs --export-pins'));
+        if(!same)process.exitCode=1;
+      }else{fs.writeFileSync(file,text);console.log('Yazıldı: ops/backup/export-functions.json ('+j.functions.length+' fonksiyon)');}
+    }else{console.log('Kullanım: node tools/backup/privilege-audit.cjs --invariants | --export-pins [--check]');process.exitCode=2;}
   }catch(e){primary=e;throw e;}finally{await finish(db,primary);}
 })().catch(e=>{console.error(e.message);process.exitCode=1;});
