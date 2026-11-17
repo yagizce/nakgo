@@ -7,14 +7,14 @@ Araç: `tools/backup/privilege-audit.cjs`. Yalnız katalog okur, hiçbir şey ya
 | Alan | Beklenen | Sapma sınıfı |
 |---|---|---|
 | Rol özellikleri | LOGIN, BYPASSRLS, süper kullanıcı değil, CREATEROLE/CREATEDB/REPLICATION yok, bağlantı sınırı 1–2 | Muaf tutulamaz |
-| Rol üyelikleri (dolaylı dahil) | Hiç | Muaf tutulamaz |
+| Rol üyelikleri (dolaylı dahil) | Yalnız `pg_read_all_data`: INHERIT açık, ADMIN ve SET kapalı (PG16+ her veren satırı ayrı denetlenir); başka hiçbiri; üyelik yoksa da durur | Muaf tutulamaz |
 | Veritabanında CREATE | Yok | Muaf tutulamaz |
 | Şemada CREATE | Hiçbir şemada | Muaf tutulamaz |
 | Tablo/kolon yetkileri | Yalnız SELECT | INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER muaf tutulamaz |
 | Dizi yetkileri | Yalnız SELECT | USAGE/UPDATE muaf tutulamaz |
 | Çağrılabilir SECURITY DEFINER | İzin listesinde ve parmak izi aynı | Muaf tutulabilir (K6), varsayılan olarak döküm başlamaz |
 
-"Çağrılabilir": rolün şemada USAGE ve fonksiyonda EXECUTE yetkisi var (PUBLIC, doğrudan ya da üyelik yoluyla), fonksiyon tetikleyici değil. Rolün USAGE yetkisi olan bütün şemalar taranır (public, private, auth, storage ve PUBLIC'e açık diğerleri).
+"Çağrılabilir": rolün şemada USAGE ve fonksiyonda EXECUTE yetkisi var (PUBLIC, doğrudan ya da üyelik yoluyla), fonksiyon tetikleyici değil. Rolün USAGE yetkisi olan bütün şemalar taranır; `pg_read_all_data` her şemada USAGE verdiği için bu, veritabanındaki bütün şemalardır.
 
 ## Fonksiyon parmak izi
 
