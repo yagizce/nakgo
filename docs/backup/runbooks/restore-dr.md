@@ -17,8 +17,10 @@
    doğrulanır; kontrol noktası zincirinde açık `integrity` olayı varsa önce o incelenir.
 3. **Çevrim dışı çöz.** A (ya da B) gizli anahtarıyla, ağsız makinede. Şifresiz dosya yalnız o makinede ve şifreli diskte.
 4. **Yalıtılmış hedef.** Yeni, geçici bir Supabase projesi (ayrı onay). Bağlantı yalnız `sslmode=verify-full`.
-5. **Sıra.** `bootstrap.sql` → B (Auth/Storage kapsamı) ön veri → A (`public`, `private`) → B son veri (politikalar,
-   FK'ler, izinli tetikleyiciler). Ayrıntı: `docs/backup/core.md`.
+5. **Sıra.** Yeni Supabase projesinde Auth/Storage şemasını Supabase kurar; `bootstrap.sql`, `B.pre.sql` ve
+   `B.post.sql` yalnız düz PostgreSQL doğrulaması içindir, Supabase'e UYGULANMAZ. Sıra: `B/*.jsonl` verisi (Auth sürümü
+   yedektekiyle aynı olmalı; değilse DUR) → A (`public`, `private`) → izinli tetikleyiciler. Tek kullanımlık belirteçler
+   yedekte yoktur; herkes yeniden giriş yapar. Ayrıntı: `docs/backup/core.md`. Yükleme yöntemi S2a'da kanıtlanır.
 6. **Doğrula.** S1 denetimlerinin hepsi + giriş denemesi (test hesabı), Storage nesne listesi, yasal kayıt sayıları ve
    `legal_chain_check`.
 7. **Geçiş** ayrı bir karardır (DNS, uygulama ayarları): bu runbook'un dışında.

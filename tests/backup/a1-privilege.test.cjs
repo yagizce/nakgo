@@ -14,6 +14,24 @@ test('backup-role.sql üreticiyle birebir aynı (elle düzenleme yok)',()=>{
   assert.equal(fs.readFileSync(path.join(root,'ops/backup/backup-role.sql'),'utf8'),BR.renderTemplate());
 });
 
+test('dışa aktarma sabitleri: dosya üreticiyle aynı; sayım listesi scope.json ile aynı',async()=>{
+  const db=await migratedDb();let primary=null;
+  try{
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root,'ops/backup/export-functions.json'),'utf8')),await PA.exportPins(db));
+    const scope=BR.loadScope();
+    const src=(await db.query(`select prosrc from pg_proc where oid='private.nakgo_backup_guard_counts()'::regprocedure`)).rows[0].prosrc;
+    const inFn=[...new Set([...src.matchAll(/to_regclass\('([a-z_.]+)'\)/g)].map(m=>m[1]))].sort();
+    const want=[...scope.excluded.guard_stop_if_rows,...scope.excluded.known_loss,...scope.guard_exact_zero,'pg_catalog.pg_largeobject_metadata'].sort();
+    assert.deepEqual(inFn,want);
+    // Her kapsam tablosunun dışa aktarma fonksiyonu var ve PUBLIC'e kapalı.
+    for(const f of BR.exportFunctions(scope)){
+      const pub=(await db.query(`select exists(select 1 from pg_proc p cross join lateral aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+        where p.oid=$1::regprocedure and a.grantee=0) v`,[f+'()'])).rows[0].v;
+      assert.equal(pub,false,f+' PUBLIC\'e kapalı olmalı');
+    }
+  }catch(e){primary=e;throw e;}finally{await finish(db,primary);}
+});
+
 test('search_path kuralı: pg_temp açıkça en sonda olmalı',()=>{
   assert.equal(PA.searchPathStatus([]).ok,false);
   assert.equal(PA.searchPathStatus(['search_path=""']).ok,false);
@@ -66,15 +84,31 @@ test('veritabanı denetimleri',async t=>{
       const a=await PA.audit(db,{role});
       const e=PA.evaluate(a);
       assert.equal(e.decision,'ok',JSON.stringify(e));
-      assert.deepEqual(a.memberships,['pg_read_all_data']);
-      assert.deepEqual(a.membership_grants,[{role:'pg_read_all_data',admin_option:false,inherit_option:true,set_option:false}]);
+      assert.deepEqual(a.memberships,[]);
+      assert.deepEqual(a.membership_grants,[]);
       assert.ok(a.tables_read.includes('public.listings'));
-      assert.ok(a.tables_read.includes('auth.users')&&a.tables_read.includes('auth.identities'));
-      // BİLİNÇLİ DEĞİŞEN ÖZELLİK: pg_read_all_data tablo yetkilerinden bağımsız okur; oturum ve yenileme belirteci
-      // tabloları da OKUNABİLİR. Döküme girmedikleri ayrıca test edilir (a2-core: dışlanan tablolar). Açık risk olarak belgelendi.
-      assert.ok(a.tables_read.includes('auth.sessions'),'pg_read_all_data oturumları da okur');
+      assert.deepEqual(a.schemas.filter(x=>x.usage).map(x=>x.schema).filter(x=>!['public','private','pg_catalog','information_schema'].includes(x)),[],'auth/storage şemalarında USAGE yok');
       assert.deepEqual(a.tables_write,[]);
-      assert.equal(a.database.temp,true,'TEMP PUBLIC üzerinden gelir; belgelenmiş kalan risk');
+      assert.ok(a.export_functions.length===7&&a.export_functions.every(f=>f.execute_ok&&f.owner_is_schema_owner),JSON.stringify(a.export_functions));
+      assert.equal(e.info.filter(x=>x.code==='export_function_pinned').length,7);
+      // Süper kullanıcı olmadan kapatılamayan PUBLIC yan yolları bilgi olarak raporlanır (docs/backup/side-channels.md).
+      const res=e.info.filter(x=>x.code==='accepted_residual').map(x=>x.id);
+      for(const id of ['pg_catalog.lo_create(oid)','pg_catalog.lo_from_bytea(oid, bytea)','TEMP'])assert.ok(res.includes(id),id+' '+res.join(','));
+      assert.ok(res.some(x=>x.startsWith('pg_catalog.pg_logical_emit_message(')));
+      assert.deepEqual(await BR.verifyRole((s,p)=>db.query(s,p),{role}),[]);
+    });
+    await t.test('rol oturum tablolarını okuyamaz; Auth satırlarını yalnız dışa aktarma fonksiyonuyla alır',async()=>{
+      await withRollback(db,'select 1',async()=>{
+        await db.exec(`set role ${role}`);
+        for(const t of ['auth.sessions','auth.refresh_tokens','auth.users']){
+          await db.exec('savepoint d');
+          await assert.rejects(db.query('select count(*) from '+t),e=>e.code==='42501',t);
+          await db.exec('rollback to savepoint d');
+        }
+        const n=Number((await db.query('select count(*) n from private.nakgo_backup_auth_users()')).rows[0].n);
+        await db.exec('reset role');
+        assert.equal(n,Number((await db.query('select count(*) n from auth.users')).rows[0].n));
+      });
     });
     await t.test('denetim deterministik',async()=>{
       const x=await evalNow(),y=await evalNow();
@@ -87,12 +121,17 @@ test('veritabanı denetimleri',async t=>{
       ['TRUNCATE',`grant truncate on private.admin_audit to ${role}`,'table_write'],
       ['rol üyeliği',`grant authenticated to ${role}`,'membership'],
       ['pg_write_all_data üyeliği',`grant pg_write_all_data to ${role}`,'membership'],
-      ['pg_read_all_data ADMIN seçeneğiyle',`grant pg_read_all_data to ${role} with admin true`,'membership_option'],
-      ['ikinci verenden SET seçenekli satır',`grant pg_read_all_data to ${other} with admin option; set role ${other}; grant pg_read_all_data to ${role} with set true; reset role`,'membership_option'],
-      ['pg_read_all_data SET seçeneğiyle',`grant pg_read_all_data to ${role} with set true`,'membership_option'],
-      ['pg_read_all_data INHERIT kapalı',`grant pg_read_all_data to ${role} with inherit false`,'membership_option'],
-      ['pg_read_all_data üyeliği yok',`revoke pg_read_all_data from ${role}`,'read_membership_missing'],
-      ['pg_read_all_data ara rol üzerinden',`revoke pg_read_all_data from ${role}; grant pg_read_all_data to ${other}; grant ${other} to ${role}`,'membership'],
+      ['pg_read_all_data üyeliği (eski yöntem)',`grant pg_read_all_data to ${role}`,'membership'],
+      ['auth şemasında doğrudan okuma',`grant usage on schema auth to ${role}; grant select on auth.sessions to ${role}`,'read_outside_scope'],
+      ['dışa aktarma fonksiyonu PUBLIC\'e açıldı',`grant execute on function private.nakgo_backup_auth_users() to public`,'export_function_changed'],
+      ['dışa aktarma fonksiyonu başka role açıldı',`grant execute on function private.nakgo_backup_auth_identities() to ${other}`,'export_function_changed'],
+      ['dışa aktarma gövdesi değişti',`create or replace function private.nakgo_backup_storage_buckets() returns setof jsonb language plpgsql stable security definer
+        set search_path = pg_catalog, pg_temp as $f$ begin return query select to_jsonb(t) from auth.sessions t; end $f$`,'export_function_changed'],
+      ['dışa aktarma ayarı değişti',`alter function private.nakgo_backup_auth_users() set search_path = public, pg_temp`,'export_function_changed'],
+      ['dışa aktarma sahibi değişti',`alter function private.nakgo_backup_auth_users() owner to ${other}`,'export_function_changed'],
+      ['dışa aktarma fonksiyonu silindi',`drop function private.nakgo_backup_storage_objects()`,'export_function_changed'],
+      ['ağ fonksiyonu çağrılabilir (pg_net benzeri)',`create schema net; create function net.http_post(u text) returns bigint language sql as 'select 1'; grant usage on schema net to ${role}`,'network_function'],
+      ['dblink benzeri fonksiyon',`create function public.dblink_exec(t text) returns text language sql as 'select t'`,'network_function'],
       ['dolaylı üyelik',`grant authenticated to ${other}; grant ${other} to ${role}`,'membership'],
       ['şemada CREATE',`grant create on schema public to ${role}`,'schema_create'],
       ['dizi USAGE',`grant usage on sequence public.listings_id_seq to ${role}`,'sequence_write'],
@@ -174,15 +213,14 @@ test('veritabanı denetimleri',async t=>{
         assert.ok(e.waivable[0].problems.some(p=>p.includes('risk')));
       });
     });
-    await t.test('storage, auth ve diğer bütün şemalar kapsamda (pg_read_all_data her şemada USAGE verir)',async()=>{
+    await t.test('çağrılabilirlik şema USAGE ister: auth/storage çağrılamaz; PUBLIC USAGE\'lı yeni şema denetlenir',async()=>{
       await withRollback(db,`create function storage.zz_s() returns int language sql security definer set search_path = pg_catalog, pg_temp as 'select 1';
         create function auth.zz_a() returns int language sql security definer set search_path = pg_catalog, pg_temp as 'select 1';
-        create schema zz_hidden; create function zz_hidden.f() returns int language sql security definer as 'select 1';`,async()=>{
+        create schema zz_hidden; create function zz_hidden.f() returns int language sql security definer as 'select 1';
+        create schema zz_open; grant usage on schema zz_open to public; create function zz_open.f() returns int language sql security definer as 'select 1';`,async()=>{
         const ids=(await PA.audit(db,{role})).definer_functions.map(f=>f.id);
-        assert.ok(ids.includes('storage.zz_s()')&&ids.includes('auth.zz_a()'));
-        // pg_read_all_data rolün her şemada USAGE'ı olmasını sağlar; yeni bir şemadaki PUBLIC'e açık SECURITY DEFINER
-        // fonksiyon da çağrılabilir olur ve denetime girer (incelenmemişse yedek durur).
-        assert.ok(ids.includes('zz_hidden.f()'),'yeni şemadaki fonksiyon da denetlenir');
+        assert.ok(!ids.includes('storage.zz_s()')&&!ids.includes('auth.zz_a()')&&!ids.includes('zz_hidden.f()'),'USAGE olmayan şemadaki fonksiyon çağrılamaz');
+        assert.ok(ids.includes('zz_open.f()'),'PUBLIC USAGE verilen şemadaki fonksiyon denetlenir');
         assert.equal(PA.evaluate(await PA.audit(db,{role})).decision,'stop_waivable');
       });
     });
@@ -241,26 +279,31 @@ test('veritabanı denetimleri',async t=>{
   finally{await finish(db,primary);await dropRoles([role,other]);}
 });
 
-/* BYPASSRLS uygulanabilirliği. Supabase'in sahiplik modeli YEREL olarak taklit edilir (gerçek Supabase'e bağlanılmaz):
- *  - "postgres" benzeri rol: süper kullanıcı DEĞİL, CREATEROLE + BYPASSRLS; public/private nesnelerinin sahibi;
- *  - auth şeması ve tabloları başka rollerin; "postgres" benzeri rol onlarda USAGE/SELECT'i grant option OLMADAN tutar.
- * Bu, Supabase belgelerinde anlatılan durumdur; gerçek davranış B7-B'de geçici bir Supabase projesinde doğrulanır. */
-test('BYPASSRLS + pg_read_all_data: PG16+ kuralı ve Supabase sahiplik modelinde şablonun etkisi',async t=>{
+/* Dar rol uygulanabilirliği. Supabase'in sahiplik modeli YEREL olarak taklit edilir (gerçek Supabase'e bağlanılmaz):
+ *  - "postgres" benzeri rol: süper kullanıcı DEĞİL, CREATEROLE + BYPASSRLS; public/private nesnelerinin ve dışa aktarma
+ *    fonksiyonlarının sahibi;
+ *  - auth/storage şeması ve tabloları başka rollerin; "postgres" benzeri rol onlarda USAGE/SELECT'i grant option OLMADAN tutar.
+ * Bu, Supabase belgelerinde anlatılan durumdur; gerçek davranış B7-B'de geçici bir Supabase projesinde doğrulanır (V4–V8). */
+test('dar rol: PG16+ BYPASSRLS kuralı ve Supabase sahiplik modelinde şablon, dışa aktarma ve RLS koruması',async t=>{
   const {realPg}=require('./helpers.cjs');
   if(!realPg()){t.skip('PGlite tek kullanıcılı; rol öznitelik kuralları gerçek PostgreSQL16/17 ile sınanır');return;}
   const db=await migratedDb();
   const sfx=uniqueRole('x').slice(2);
   const R={pg:'sim_pg'+sfx,nobypass:'sim_nobypass'+sfx,schemaOwner:'sim_admin'+sfx,authOwner:'sim_auth_admin'+sfx,backup:'nakgo_backup_sim'+sfx,b2:'nakgo_backup_nb'+sfx};
+  const verify=()=>BR.verifyRole((q,p)=>db.query(q,p),{role:R.backup});
   let primary=null;
   try{
     const major=Number(/postgresql (\d+)/.exec(db.engine)[1]);
     await db.exec(`create role ${R.pg} createrole bypassrls; create role ${R.nobypass} createrole; create role ${R.schemaOwner}; create role ${R.authOwner};`);
-    // public/private'ın sahibi "postgres" benzeri rol (Supabase'te migration'lar postgres ile çalışır).
+    // public/private'ın ve dışa aktarma fonksiyonlarının sahibi "postgres" benzeri rol (Supabase'te migration'lar postgres ile çalışır).
     await db.exec(`do $$ declare r record; begin
       for r in select n.nspname s,c.relname t,c.relkind k from pg_class c join pg_namespace n on n.oid=c.relnamespace
         where n.nspname in('public','private') and c.relkind in('r','p','v','m','S')
           and not exists(select 1 from pg_depend d where d.classid='pg_class'::regclass and d.objid=c.oid and d.deptype in('a','i')) loop
         execute format('alter %s %I.%I owner to ${R.pg}',case when r.k='S' then 'sequence' when r.k in('v') then 'view' when r.k='m' then 'materialized view' else 'table' end,r.s,r.t);
+      end loop;
+      for r in select p.oid::regprocedure f from pg_proc p where p.pronamespace='private'::regnamespace and p.proname like 'nakgo_backup_%' loop
+        execute format('alter function %s owner to ${R.pg}',r.f);
       end loop;
       alter schema public owner to ${R.pg}; alter schema private owner to ${R.pg};
       alter schema auth owner to ${R.schemaOwner}; alter schema storage owner to ${R.schemaOwner};
@@ -270,34 +313,40 @@ test('BYPASSRLS + pg_read_all_data: PG16+ kuralı ve Supabase sahiplik modelinde
       end loop;
       grant usage on schema auth, storage to ${R.pg};
     end $$;`);
-    // 1) BYPASSRLS'i olmayan CREATEROLE rolü BYPASSRLS'li rol oluşturamaz.
-    await assert.rejects(db.exec(`set role ${R.nobypass}; create role ${R.b2} login bypassrls;`),e=>e.code==='42501','CREATEROLE tek başına yetmez');
+    // 1) BYPASSRLS'i olmayan CREATEROLE rolü BYPASSRLS'li rol oluşturamaz; şablon tek işlemde durur, yarım rol kalmaz.
+    await assert.rejects(db.exec(`set role ${R.nobypass}; ${BR.renderLiteral({role:R.b2,password:'test-only-'+R.b2})}`),e=>e.code==='42501','CREATEROLE tek başına yetmez');
     await db.exec('reset role');
-    // 2) Eski "tablo tablo" yaklaşım bu sahiplik modelinde ETKİSİZ: grant option olmadan verilen SELECT hiçbir şey vermez.
+    assert.equal((await db.query(`select count(*)::int n from pg_roles where rolname=$1`,[R.b2])).rows[0].n,0,'yarım rol yok');
+    // 2) Tablo tablo Auth yetkisi bu sahiplik modelinde ETKİSİZ (grant option yok): dışa aktarma fonksiyonları bu yüzden var.
     await db.exec(`create role ${R.b2} nologin; set role ${R.pg}; grant select on auth.users to ${R.b2}; reset role;`);
     assert.equal((await db.query(`select has_table_privilege($1,'auth.users','SELECT') v`,[R.b2])).rows[0].v,false,'tablo tablo yetki etkisiz');
-    // 3) "postgres" pg_read_all_data üzerinde ADMIN değilse şablon (pg_read_all_data verirken) durur; yarım rol kalmaz.
-    await assert.rejects(db.exec(`set role ${R.pg}; ${BR.renderLiteral({role:R.backup,password:'test-only-'+R.backup})}`),e=>e.code==='42501');
-    await db.exec('reset role');
-    assert.equal((await db.query(`select count(*)::int n from pg_roles where rolname=$1`,[R.backup])).rows[0].n,0,'yarım rol yok');
-    // 4) Supabase'in belgelediği durum: postgres pg_read_all_data'yı verebiliyor. Şablon hatasız çalışır ve rol, sahibi
-    //    başka olan auth/storage tabloları DAHİL kapsamdaki her şeyi gerçekten okuyabilir.
-    await db.exec(`grant pg_read_all_data to ${R.pg} with admin option`);
+    // 3) Şablon, süper kullanıcı ve pg_read_all_data olmadan, "postgres" benzeri rolle hatasız çalışır.
     await db.exec(`set role ${R.pg}; ${BR.renderLiteral({role:R.backup,password:'test-only-'+R.backup})} reset role;`);
     const a=(await db.query(`select rolbypassrls,rolsuper from pg_roles where rolname=$1`,[R.backup])).rows[0];
     assert.equal(a.rolbypassrls,true,'PG'+major+': BYPASSRLS verilebildi');assert.equal(a.rolsuper,false);
-    assert.deepEqual(await BR.verifyRole((s,p)=>db.query(s,p),{role:R.backup}),[]);
+    assert.deepEqual(await verify(),[]);
     const e=PA.evaluate(await PA.audit(db,{role:R.backup}));
     assert.equal(e.decision,'ok',JSON.stringify(e.nonwaivable));
-    // 5) Doğrulama BYPASSRLS eksikliğini ve yanlış üyelik seçeneklerini yakalar.
+    await db.exec(`insert into auth.users(id,email) values (gen_random_uuid(),'sim-${sfx}@example.test')`);
+    // 4) Rol Auth satırlarını yalnız fonksiyonla alır (sahibi başka olan tablolardan); oturumlara hiçbir yoldan ulaşamaz.
+    await db.exec(`set role ${R.backup}`);
+    const n=Number((await db.query('select count(*) n from private.nakgo_backup_auth_users()')).rows[0].n);
+    await assert.rejects(db.query('select 1 from auth.sessions limit 1'),e=>e.code==='42501');
+    await db.exec('reset role');
+    assert.equal(n,Number((await db.query('select count(*) n from auth.users')).rows[0].n));
+    assert.ok(n>0,'test verisinde kullanıcı var');
+    // 5) Fonksiyon sahibi RLS'ye tabi olursa sessizce eksik döndürmez, HATA verir.
+    await db.exec(`alter table auth.users enable row level security; alter role ${R.pg} nobypassrls; set role ${R.backup}`);
+    await assert.rejects(db.query('select count(*) from private.nakgo_backup_auth_users()'),/RLS etkin/);
+    await db.exec(`reset role; alter role ${R.pg} bypassrls; alter table auth.users disable row level security`);
+    // 6) Doğrulama sapmaları yakalar.
     await db.exec(`alter role ${R.backup} nobypassrls`);
-    assert.ok((await BR.verifyRole((s,p)=>db.query(s,p),{role:R.backup})).some(p=>/BYPASSRLS/.test(p)));
-    await db.exec(`alter role ${R.backup} bypassrls; grant pg_read_all_data to ${R.backup} with set true`);
-    assert.ok((await BR.verifyRole((s,p)=>db.query(s,p),{role:R.backup})).some(p=>/üyelik seçenekleri/.test(p)));
-    // PG16+: her verenin satırı ayrı geri alınır.
-    await db.exec(`revoke pg_read_all_data from ${R.backup}; revoke pg_read_all_data from ${R.backup} granted by ${R.pg}`);
-    assert.ok((await BR.verifyRole((s,p)=>db.query(s,p),{role:R.backup})).some(p=>/üyeliği yok/.test(p)));
-    assert.ok((await BR.verifyRole((s,p)=>db.query(s,p),{role:R.backup})).some(p=>/auth\.users/.test(p)),'üyelik yoksa auth okunamaz');
+    assert.ok((await verify()).some(p=>/BYPASSRLS/.test(p)));
+    await db.exec(`alter role ${R.backup} bypassrls; grant pg_read_all_data to ${R.backup} with inherit true`);
+    assert.ok((await verify()).some(p=>/beklenmeyen üyelik: pg_read_all_data/.test(p)));
+    assert.ok((await verify()).some(p=>/doğrudan okunabilmemeli: auth\.sessions/.test(p)),'pg_read_all_data oturumları okutur');
+    await db.exec(`revoke pg_read_all_data from ${R.backup}; set role ${R.pg}; revoke execute on function private.nakgo_backup_auth_users() from ${R.backup}; reset role`);
+    assert.ok((await verify()).some(p=>/çağrılamıyor: private\.nakgo_backup_auth_users/.test(p)));
   }catch(e){primary=e;throw e;}
   finally{
     try{await db.exec('reset role');}catch{}

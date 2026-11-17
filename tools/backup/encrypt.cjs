@@ -34,7 +34,9 @@ function parseHeader(buf){
 async function ageVersion(ageBin='age'){const r=await run(ageBin,['--version']);return r.code===0?r.out.trim().replace(/^v/,''):null;}
 
 async function packBundle(dir,out){
-  const files=['source.json','bootstrap.sql','A.dump','B.dump'].filter(f=>fs.existsSync(path.join(dir,f)));
+  const files=['source.json','bootstrap.sql','A.dump','B.pre.sql','B.post.sql',
+    ...(fs.existsSync(path.join(dir,'B'))?fs.readdirSync(path.join(dir,'B')).filter(f=>f.endsWith('.jsonl')).sort().map(f=>'B/'+f):[])]
+    .filter(f=>fs.existsSync(path.join(dir,f)));
   const r=await run('tar',['-cf',out,'-C',dir,...files]);
   if(r.code!==0)throw Error('tar: '+r.err);
   return files;

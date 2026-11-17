@@ -65,12 +65,26 @@ const MUTATIONS=[
   ["tools/backup/deletion-journal.cjs", "status:h?'present_after_reconcile':'absent_after_reconcile'", "status:'absent_after_reconcile'"],
   ["tools/backup/deletion-journal.cjs", "try{r=await store.put(key,bytes,{ifNoneMatch:true});}", "try{r=await store.put(key,bytes,{});}"],
   ["tools/backup/state-machine.cjs", "const covered=new Set([...sm.events.filter(e=>e.status==='open'&&e.type===type).flatMap(e=>e.finding_keys),...accepted]);", "const covered=new Set([...sm.events.filter(e=>e.status==='open'&&e.type===type).flatMap(e=>e.finding_keys)]);"],
-  ["ops/backup/monitor/core.mjs", "if (input.journal && input.journal.unresolved > 0)", "if (false)"]
+  ["ops/backup/monitor/core.mjs", "if (input.journal && input.journal.unresolved > 0)", "if (false)"],
+  // B7-A5 dar rol ve dışa aktarma
+  ["tools/backup/privilege-audit.cjs", "for(const m of a.memberships)nw('membership',m);", "for(const m of [])nw('membership',m);"],
+  ["tools/backup/privilege-audit.cjs", "if(s.kind==='network')nw('network_function',s.id);", "if(false)nw('network_function',s.id);"],
+  ["tools/backup/privilege-audit.cjs", "if(d.length)nw('export_function_changed'", "if(false)nw('export_function_changed'"],
+  ["tools/backup/privilege-audit.cjs", "if(!fullSchemas.includes(ns)&&usable.has(ns))nw(", "if(false)nw("],
+  ["tools/backup/privilege-audit.cjs", "execute_ok:f.execute_grantees.length===1&&f.execute_grantees[0]===role", "execute_ok:true"],
+  ["tools/backup/privilege-audit.cjs", "if(!fact.owner_is_schema_owner)d.push", "if(false)d.push"],
+  ["tools/backup/backup-role.cjs", "if(r&&r.sel&&r.u)problems.push", "if(false)problems.push"],
+  ["tools/backup/backup-role.cjs", "else if(!r.ok)problems.push('dışa aktarma fonksiyonu çağrılamıyor: '+f);", ""],
+  ["tools/backup/scope-export.cjs", "if(sha256(buf)!==f.sha256)throw", "if(false)throw"],
+  ["tools/backup/dump.cjs", "if(unreadable.length||notCallable.length)return", "if(unreadable.length)return"],
+  ["tools/backup/dump.cjs", "if(included.includes(q)&&gc[q])guards.push", "if(false)guards.push"]
 ];
 // Her mutasyon yalnız o dosyayı sınayan test dosyalarıyla denenir (gerçek migration'lı testler uzun sürer).
-const T={a2:'tests/backup/a2-core.test.cjs',a3:'tests/backup/a3-legal.test.cjs',a4:'tests/backup/a4-orchestrator.test.cjs',mon:'tests/backup/a4-monitor.test.cjs'};
+const T={a1:'tests/backup/a1-privilege.test.cjs',a2:'tests/backup/a2-core.test.cjs',a3:'tests/backup/a3-legal.test.cjs',a4:'tests/backup/a4-orchestrator.test.cjs',mon:'tests/backup/a4-monitor.test.cjs'};
 function testsFor(file){
   if(file.includes('/monitor/'))return [T.mon];
+  if(/privilege-audit\.cjs$|backup-role\.cjs$/.test(file))return [T.a1,T.a4];
+  if(/scope-export\.cjs$|dump\.cjs$/.test(file))return [T.a2];
   if(/(^|\/)run\.cjs$|deletion-journal\.cjs$/.test(file))return [T.a4];
   if(/deletion\.cjs$/.test(file))return [T.a2,T.a3,T.a4];
   if(/legal-run\.cjs$|state-machine\.cjs$|checkpoint\.cjs$/.test(file))return [T.a3,T.a4];

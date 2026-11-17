@@ -4,11 +4,16 @@
  *   renderLiteral({role,password,validUntil})      → yalnız yerel testler için değerleri gömülü SQL
  *
  * Bu araç hiçbir uzak veritabanına bağlanmaz. Production'da rolün oluşturulması B7-D'de ayrı onayla, proje sahibinin
- * gözetiminde yapılır (bkz. docs/backup/privilege-audit.md, "BYPASSRLS ve Supabase uygulanabilirliği").
+ * gözetiminde yapılır (bkz. docs/backup/privilege-audit.md).
+ *
+ * Yöntem (B7-A5, dar rol): üyelik YOK (pg_read_all_data dahil). Rol yalnız public/private tablo ve dizilerini, bu
+ * şemaların sahibi olan rolden (Supabase'te postgres) aldığı doğrudan SELECT ile okur. auth ve storage şemalarında
+ * USAGE'ı yoktur; oturum ve yenileme belirteci tablolarına hiçbir yoldan ulaşamaz. Kapsamdaki Auth/Storage satırlarını
+ * yalnız scope.json'daki dışa aktarma fonksiyonlarıyla alır.
  *
  * Güvenlik notu: default_transaction_read_only bir güvenlik sınırı değildir; oturum onu kapatabilir. Gerçek sınırlar
- * yalnız okuma veren pg_read_all_data üyeliği (başka üyelik yok), yazma yetkisi olmaması ve privilege-audit'in
- * çağrılabilir SECURITY DEFINER denetimidir. */
+ * yazma yetkisi olmaması, üyelik olmaması ve privilege-audit denetimidir. PUBLIC'e açık pg_catalog fonksiyonları
+ * (büyük nesne, WAL mesajı, geçici tablo) süper kullanıcı olmadan kapatılamaz; bkz. docs/backup/side-channels.md. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'../..');
@@ -16,21 +21,30 @@ const loadScope=(file=path.join(root,'ops/backup/scope.json'))=>JSON.parse(fs.re
 const ident=s=>{if(!/^[a-z_][a-z0-9_]*$/.test(s))throw Error('Geçersiz tanımlayıcı: '+s);return s;};
 const qname=n=>n.split('.').map(ident).join('.');
 const lit=s=>"'"+String(s).replace(/'/g,"''")+"'";
+/** Rolün EXECUTE alacağı fonksiyonlar: tablo başına dışa aktarma ve sayım fonksiyonu. */
+const exportFunctions=scope=>[...scope.tables.map(t=>t.export),scope.guard_counts_function].map(qname);
 
 function body(scope,role,{password,validUntil}){
   const r=ident(role);
+  const schemas=scope.full_schemas.map(ident).join(', ');
   return [
     `-- NakGo yedek rolü. Üretici: tools/backup/backup-role.cjs. Elle düzenlenmez.`,
-    `-- Yöntem: Supabase'in resmi yedek rolü (BYPASSRLS + pg_read_all_data). pg_dump RLS'yi kapatır; BYPASSRLS olmadan durur.`,
-    `-- pg_read_all_data: auth ve storage DAHİL her şemadaki tablo, görünüm ve dizileri OKUR (oturumlar ve yenileme`,
-    `-- belirteçleri dahil). Döküm kapsamı ayrıca ops/backup/scope.json ile sınırlanır; okuma yetkisi bundan geniştir.`,
-    `-- Büyük nesneler (large objects) pg_read_all_data kapsamında DEĞİLDİR.`,
+    `-- Şemaların ve dışa aktarma fonksiyonlarının SAHİBİ olan rolle çalıştırılır (Supabase: postgres). Süper kullanıcı gerekmez;`,
+    `-- BYPASSRLS verebilmek için çalıştıran rolün de BYPASSRLS'i olmalıdır (PG16+). Tek işlem olarak çalıştırılır (psql --single-transaction): biri başarısızsa rol oluşmaz.`,
     `create role ${r} login bypassrls nosuperuser nocreatedb nocreaterole noreplication noinherit connection limit 2`,
     `  password ${password} valid until ${validUntil};`,
-    `-- Yalnız bu üyelik için INHERIT açık; ADMIN ve SET kapalı (PG16+ sözdizimi).`,
-    `grant pg_read_all_data to ${r} with inherit true, set false;`,
+    `-- Üyelik verilmez (pg_read_all_data dahil). Okuma yalnız aşağıdaki doğrudan yetkilerle.`,
+    `grant usage on schema ${schemas} to ${r};`,
+    `grant select on all tables in schema ${schemas} to ${r};`,
+    `grant select on all sequences in schema ${schemas} to ${r};`,
+    `-- Bu betiği çalıştıran rolün ileride oluşturacağı tablolar da okunur. Başka bir rolün oluşturduğu tablo okunamaz ve`,
+    `-- döküm "yetki" aşamasında açıkça durur (sessiz eksik yok).`,
+    `alter default privileges in schema ${schemas} grant select on tables to ${r};`,
+    `alter default privileges in schema ${schemas} grant select on sequences to ${r};`,
+    `-- Auth/Storage: tablo yetkisi YOK; yalnız sabit kapsamlı dışa aktarma ve sayım fonksiyonları.`,
+    ...exportFunctions(scope).map(f=>`grant execute on function ${f}() to ${r};`),
     `-- default_transaction_read_only GÜVENLİK SINIRI DEĞİLDİR: oturum "set default_transaction_read_only = off" diyebilir.`,
-    `-- Gerçek sınırlar: yalnız okuma veren üyelik, yazma yetkisi olmaması ve privilege-audit denetimidir.`,
+    `-- Açık kaldığı sürece lo_create ve geçici tablo gibi PUBLIC yan yollarını da engeller (ek katman).`,
     `alter role ${r} set default_transaction_read_only = on;`,
     `alter role ${r} set statement_timeout = '15min';`,
     `alter role ${r} set lock_timeout = '30s';`,
@@ -40,11 +54,9 @@ function body(scope,role,{password,validUntil}){
 }
 const renderTemplate=(scope=loadScope(),role='nakgo_backup')=>body(scope,role,{password:":'backup_password'",validUntil:":'valid_until'"});
 const renderLiteral=({scope=loadScope(),role,password,validUntil='infinity'})=>body(scope,role,{password:lit(password),validUntil:lit(validUntil)});
-/** Rol oluşturulduktan HEMEN SONRA çalıştırılır: verilen yetkilerin gerçekten ETKİLİ olduğunu doğrular.
+/** Rol oluşturulduktan HEMEN SONRA çalıştırılır: verilen yetkilerin gerçekten ETKİLİ olduğunu ve fazlasının OLMADIĞINI doğrular.
  * Neden: GRANT veren rol yetkiyi "grant option" ile tutmuyorsa PostgreSQL hata vermez, yalnız uyarı verir ve hiçbir şey
- * vermez (Supabase'te postgres, auth şemasında USAGE'ı grant option olmadan tutar; tablo tablo yetki bu yüzden orada
- * etkisizdir ve şablon pg_read_all_data kullanır). Bu denetim kurulumun gerçekten çalıştığını, "başarılı" sanılmadan,
- * sınar. Boş liste = rol beklenen her şeyi okuyabiliyor ve üyelik seçenekleri doğru. */
+ * vermez. Bu denetim kurulumun gerçekten çalıştığını, "başarılı" sanılmadan, sınar. Boş liste = beklenen durum. */
 async function verifyRole(query,{role,scope=loadScope()}){
   const problems=[];
   const q=async(sql,args)=>(await query(sql,args)).rows;
@@ -52,11 +64,8 @@ async function verifyRole(query,{role,scope=loadScope()}){
   if(!attr)return ['rol yok: '+role];
   if(!attr.rolbypassrls)problems.push('BYPASSRLS yok: pg_dump RLS\'li tablolarda durur');
   if(attr.rolsuper)problems.push('rol süper kullanıcı olmamalı');
-  // PG16+: aynı üyelik farklı verenlerce birden çok satır olabilir; hepsi değerlendirilir.
-  const ms=await q(`select m.admin_option,m.inherit_option,m.set_option from pg_auth_members m
-    where m.member=(select oid from pg_roles where rolname=$1) and m.roleid=(select oid from pg_roles where rolname='pg_read_all_data')`,[role]);
-  if(!ms.length)problems.push('pg_read_all_data üyeliği yok');
-  else if(ms.some(m=>m.admin_option||m.set_option)||!ms.some(m=>m.inherit_option))problems.push('pg_read_all_data üyelik seçenekleri beklenen gibi değil (INHERIT açık, ADMIN/SET kapalı)');
+  const ms=await q(`select r.rolname from pg_auth_members m join pg_roles r on r.oid=m.roleid where m.member=(select oid from pg_roles where rolname=$1) order by 1`,[role]);
+  for(const m of ms)problems.push('beklenmeyen üyelik: '+m.rolname);
   for(const s of scope.full_schemas){
     if(!(await q(`select has_schema_privilege($1,$2,'USAGE') ok`,[role,s]))[0].ok)problems.push('şema kullanımı yok: '+s);
     for(const r of await q(`select c.oid::regclass::text n,c.relkind::text k,
@@ -64,16 +73,25 @@ async function verifyRole(query,{role,scope=loadScope()}){
         from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname=$2 and c.relkind in('r','p','S') order by 1`,[role,s]))
       if(!r.ok)problems.push((r.k==='S'?'dizi':'tablo')+' okunamıyor: '+r.n);
   }
-  for(const t of scope.tables){
-    const [schema]=t.name.split('.');
-    const reg=(await q(`select to_regclass($1)::text r`,[t.name]))[0].r;
-    if(!reg){if(t.required)problems.push('zorunlu tablo yok: '+t.name);continue;}
-    const ok=(await q(`select has_schema_privilege($1,$2,'USAGE') u,has_table_privilege($1,$3::regclass,'SELECT') s`,[role,schema,t.name]))[0];
-    if(!ok.u||!ok.s)problems.push('kapsam tablosu okunamıyor: '+t.name+(ok.u?'':' (şema kullanımı yok)'));
+  for(const f of exportFunctions(scope)){
+    const [ns,fn]=f.split('.');
+    const r=(await q(`select has_function_privilege($1,p.oid,'EXECUTE') ok from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname=$2 and p.proname=$3 and p.pronargs=0`,[role,ns,fn]))[0];
+    if(!r)problems.push('dışa aktarma fonksiyonu yok: '+f);else if(!r.ok)problems.push('dışa aktarma fonksiyonu çağrılamıyor: '+f);
   }
+  // Negatif denetim: kapsam dışı Auth/Storage tabloları ve bu şemaların kendisi okunamamalı.
+  const forbidden=[...scope.excluded.transient,...scope.excluded.known_loss,...scope.excluded.guard_stop_if_rows,...scope.tables.map(t=>t.name)];
+  for(const t of forbidden){
+    const [ns,rel]=t.split('.');
+    const r=(await q(`select has_table_privilege($1,c.oid,'SELECT') or has_any_column_privilege($1,c.oid,'SELECT') sel,has_schema_privilege($1,n.oid,'USAGE') u
+      from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname=$2 and c.relname=$3`,[role,ns,rel]))[0];
+    if(r&&r.sel&&r.u)problems.push('doğrudan okunabilmemeli: '+t);
+  }
+  for(const s of [...new Set(forbidden.map(t=>t.split('.')[0]))].filter(s=>!scope.full_schemas.includes(s)))
+    if((await q(`select has_schema_privilege($1,oid,'USAGE') u from pg_namespace where nspname=$2`,[role,s]))[0]?.u)problems.push('şema kullanımı olmamalı: '+s);
   return problems;
 }
 const dropLiteral=role=>`drop owned by ${ident(role)}; drop role if exists ${ident(role)};`;
 
-module.exports={loadScope,renderTemplate,renderLiteral,dropLiteral,verifyRole};
+module.exports={loadScope,renderTemplate,renderLiteral,dropLiteral,verifyRole,exportFunctions};
 if(require.main===module)process.stdout.write(renderTemplate());

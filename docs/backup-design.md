@@ -16,7 +16,7 @@ R2 yaşam döngüsüyle silme → uygulama kapısıyla silme (D1); yasal kayıtl
 | Şifreleme | `age`, iki çevrim dışı alıcı (A, B). Alıcı listesi hash'i repo'da sabit. |
 | İmza | K1 (CI): manifest, kontrol noktası, silme kaydı. K2 (çevrim dışı sahip): serbest bırakma ve K6 muafiyeti. |
 | Gizlilik | K7 (CI): kontrol noktası gövdelerinin şifrelenmesi. |
-| Bağlantı | Yalnız `nakgo_backup` rolü (BYPASSRLS + `pg_read_all_data`, Supabase resmi yöntemi); Supavisor oturum modu 5432; `sslmode=verify-full`. 6543 reddedilir. |
+| Bağlantı | Yalnız `nakgo_backup` rolü (BYPASSRLS, üyelik yok, `public`/`private` SELECT, Auth/Storage yalnız sabitlenmiş dışa aktarma fonksiyonlarıyla); Supavisor oturum modu 5432; `sslmode=verify-full`. 6543 reddedilir. |
 | Doğrulama | Her çalışmada S1 (düz PG17'ye geri yükleme ve denetim). S2a/S2b ayrı ve elle. |
 | Production'a geri yükleme | Otomatik değil; yalıtılmış projeye, ayrı onayla. |
 | K5 (şifreli e-posta eki) | Uygulanmadı; kapalı. Açılması ayrı tasarım ve onay ister. |
@@ -47,15 +47,14 @@ yerine her çalışmada şifrelemeden önce S1 ile geri yüklenebilirlik, ayda b
 kanıtlanır.
 
 ## B7-B'ye geçiş ENGELLERİ
-1. **Yedek rolü (A1):** Supabase'in resmi yöntemi (BYPASSRLS + `pg_read_all_data`) uygulandı. Gerçek projede
-   doğrulanacaklar: V4 (şablon `postgres` ile çalışıyor mu, `with inherit true, set false` dahil), V5 (`verifyRole`
-   temiz mi), V6 (Supabase şemalarındaki PUBLIC'e açık SECURITY DEFINER fonksiyonları incelenip izin listesine girmeli;
-   pg_net etkin mi), V7 (PUBLIC'ten gelen yazma yolları). Ayrıntı: [backup/privilege-audit.md](backup/privilege-audit.md).
-2. **Kabul edilmesi gereken risk:** yedek rolü oturum ve yenileme belirteci tablolarını okuyabilir (döküme girmez).
-   Sahibin açık kabulü ve önlemlerin (kısa ömürlü parola, onaylı ortam, ağ kısıtı) uygulanması gerekir.
-3. **Storage dosyaları:** pg_dump yalnız meta veriyi alır. Uygulama dosya saklamaya başlamadan önce ayrı dosya yedeği
-   kurulmalıdır; o zamana kadar `storage.objects` dolu ise yedek durur.
-4. R2 V1–V3 (aşağıda).
+1. **Yedek rolü (A1, B7-A5'te daraltıldı):** üyelik yok; Auth/Storage yalnız `private.nakgo_backup_*` dışa aktarma
+   fonksiyonlarıyla (migration `20261118000000_backup_export.sql`). Oturum/yenileme belirteci tablolarına erişim yok.
+   Gerçek projede V4–V8 doğrulanmadan B7-D'ye geçilmez: [backup/b7b-acceptance.md](backup/b7b-acceptance.md).
+2. **Kabul edilmesi gereken kalan risk:** PUBLIC `pg_catalog` yan yolları (`lo_create`, `pg_logical_emit_message`, TEMP)
+   süper kullanıcı olmadan kapatılamaz: [backup/side-channels.md](backup/side-channels.md). Sahibin açık kabulü gerekir.
+3. **Storage dosyaları:** veritabanı yedeği yalnız meta veriyi alır. Dosya yedeği tasarımı:
+   [backup/storage-files.md](backup/storage-files.md). Uygulanana kadar `storage.objects` dolu ise yedek durur.
+4. R2 V1–V3: [backup/b7b-acceptance.md](backup/b7b-acceptance.md).
 
 ## #125 ve B1 API sözleşmesi
 `supabase/contract/v0.json → migration_execute`: `nakgo_legal_page` ve `nakgo_legal_action` yalnız `authenticated`.
@@ -68,7 +67,7 @@ denetimi "sözleşme dışı çalıştırma yetkisi" verir.
 - V1: R2 koşullu PUT (`If-None-Match: *`) gerçekten 412 döndürüyor mu.
 - V2: yazdıktan hemen sonra okuma ve listeleme tutarlı mı.
 - V3: kova kilidi silmeyi ve üzerine yazmayı engelliyor mu.
-- Supabase: `nakgo_backup` rolünün BYPASSRLS ile oluşturulabilmesi (supautils), Supavisor oturum modu, sertifika zinciri.
+- Supabase V4–V8: [backup/b7b-acceptance.md](backup/b7b-acceptance.md).
 - S2a: iki geçici Supabase projesi arasında yöntem kanıtı.
 
 ## B7 için gereken onaylar

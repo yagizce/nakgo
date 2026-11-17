@@ -380,6 +380,13 @@ function private.job_activity_guard() returns trigger definer vol=v cfg=search_p
 function private.listing_quota() returns trigger definer vol=v cfg=search_path="" body=eb33b4a25067963dd75cd660e6ab8f9f
 function private.log_listing_write() returns trigger definer vol=v cfg=search_path="" body=bba4c453dce05c6b521f4aa51fdbd84a
 function private.log_login() returns trigger definer vol=v cfg=search_path="" body=9a72a368cb13548209f929d932282ac8
+function private.nakgo_backup_auth_identities() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=84a5b1ec4a92c6dff0df1354abc3a3b9
+function private.nakgo_backup_auth_mfa_factors() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=332bf3aea14bb3b43e2befe4a46755ac
+function private.nakgo_backup_auth_schema_migrations() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=670095e15fe730c4230caff7c4ec7018
+function private.nakgo_backup_auth_users() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=33e771b8859f05eaf539c9bbde2d1ad0
+function private.nakgo_backup_guard_counts() returns jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=f7d51f2cd377b21d7c7767f4bd89c058
+function private.nakgo_backup_storage_buckets() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=1b6bc4003e21cf3240ef149f074d27e2
+function private.nakgo_backup_storage_objects() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=530e2c9e36b6c7a3c4740007094a53c1
 function private.queue_document_cleanup() returns trigger definer vol=v cfg=search_path="" body=6f37cf1717b4d03a40a20643ebc74051
 function private.record_daily_stats(p_day date) returns void definer vol=v cfg=search_path="" body=99870024791054f1392497f216da1865
 function private.request_ip() returns inet invoker vol=s cfg=search_path="" body=c62e37d479aa5be286b5043923e19ecf

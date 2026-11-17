@@ -1,0 +1,83 @@
+{
+ "version": 1,
+ "description": "Yedek rolünün çağırdığı dışa aktarma fonksiyonlarının ortamdan bağımsız sabitleri. Üretici: node tools/backup/privilege-audit.cjs --export-pins. Elle düzenlenmez; değişiklik incelemeli PR ister. Sahip ve EXECUTE kuralları sabite girmez, privilege-audit tarafından ayrıca denetlenir.",
+ "functions": [
+  {
+   "id": "private.nakgo_backup_auth_users()",
+   "src_sha256": "20bca1fda005f868e9b995aad2262523b10e944cde055b2eaf2cec87c75b0ba4",
+   "lang": "plpgsql",
+   "secdef": true,
+   "volatility": "s",
+   "result": "SETOF jsonb",
+   "config": [
+    "search_path=pg_catalog, pg_temp"
+   ]
+  },
+  {
+   "id": "private.nakgo_backup_auth_identities()",
+   "src_sha256": "42981f9c141aa81075bf8ec550c3587383d1629b050f0d3113d8b09fe55e9858",
+   "lang": "plpgsql",
+   "secdef": true,
+   "volatility": "s",
+   "result": "SETOF jsonb",
+   "config": [
+    "search_path=pg_catalog, pg_temp"
+   ]
+  },
+  {
+   "id": "private.nakgo_backup_auth_mfa_factors()",
+   "src_sha256": "eecfa14db2e6a6e3068e519dab0bf2d365191c277b37df5001fd26ed7f32e3ee",
+   "lang": "plpgsql",
+   "secdef": true,
+   "volatility": "s",
+   "result": "SETOF jsonb",
+   "config": [
+    "search_path=pg_catalog, pg_temp"
+   ]
+  },
+  {
+   "id": "private.nakgo_backup_auth_schema_migrations()",
+   "src_sha256": "4c7e0a6db46849e7597e79dc9d08709606dabf92b2b301393f58e03c9e1c11ea",
+   "lang": "plpgsql",
+   "secdef": true,
+   "volatility": "s",
+   "result": "SETOF jsonb",
+   "config": [
+    "search_path=pg_catalog, pg_temp"
+   ]
+  },
+  {
+   "id": "private.nakgo_backup_storage_buckets()",
+   "src_sha256": "a5053276960806581f1675b564ecbf2ad6765d32d2afd5e69c6b145e8629b163",
+   "lang": "plpgsql",
+   "secdef": true,
+   "volatility": "s",
+   "result": "SETOF jsonb",
+   "config": [
+    "search_path=pg_catalog, pg_temp"
+   ]
+  },
+  {
+   "id": "private.nakgo_backup_storage_objects()",
+   "src_sha256": "f935e552fa4cdaaa40178fbf10f26872e3fa794a30caacbd8f41b6cd10ed6764",
+   "lang": "plpgsql",
+   "secdef": true,
+   "volatility": "s",
+   "result": "SETOF jsonb",
+   "config": [
+    "search_path=pg_catalog, pg_temp"
+   ]
+  },
+  {
+   "id": "private.nakgo_backup_guard_counts()",
+   "src_sha256": "bb94bdea880044b41822c9aec27a373ced19a72bf9dabfda6e3be6c588b89c76",
+   "lang": "plpgsql",
+   "secdef": true,
+   "volatility": "s",
+   "result": "jsonb",
+   "config": [
+    "search_path=pg_catalog, pg_temp"
+   ]
+  }
+ ]
+}

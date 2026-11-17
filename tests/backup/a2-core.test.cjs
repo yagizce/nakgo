@@ -163,14 +163,15 @@ test('uçtan uca boru hattı (gerçek PostgreSQL)',async t=>{
       assert.ok(!JSON.stringify(r.manifest).includes('public.listings'),'manifestte tablo bazında sayı yok');
       const ct=await store.get(r.keys.data);const f=path.join(dir,'c.age');fs.writeFileSync(f,ct);
       const tarList=execFileSync('sh',['-c',`age -d -i ${ids[1]} ${f} | tar -tf -`]).toString().split('\n').filter(Boolean).sort();
-      assert.deepEqual(tarList,['A.dump','B.dump','bootstrap.sql','source.json']);
-      // Rol oturum/belirteç tablolarını OKUYABİLİR (pg_read_all_data) ama döküm onları İÇERMEZ.
-      execFileSync('sh',['-c',`age -d -i ${ids[1]} ${f} | tar -xf - -C ${dir} B.dump`]);
-      const toc=execFileSync(path.join(process.env.NAKGO_PG_BIN||'/usr/lib/postgresql/16/bin','pg_restore'),['-l',path.join(dir,'B.dump')]).toString();
-      fs.rmSync(path.join(dir,'B.dump'));
-      assert.match(toc,/TABLE DATA auth users/);assert.match(toc,/TABLE DATA auth identities/);
-      for(const t of ['sessions','refresh_tokens','mfa_challenges','one_time_tokens','flow_state'])assert.ok(!new RegExp('auth '+t+'\\b').test(toc),'dökümde yok: auth.'+t);
+      // Auth/Storage yalnız dışa aktarma fonksiyonlarından (B/*.jsonl); oturum/belirteç tabloları ne okunabilir ne dökümde.
+      assert.ok(tarList.includes('A.dump')&&tarList.includes('B.pre.sql')&&tarList.includes('B.post.sql')&&tarList.includes('bootstrap.sql')&&tarList.includes('source.json'),tarList.join(','));
+      assert.ok(tarList.includes('B/auth.users.jsonl')&&tarList.includes('B/auth.identities.jsonl'),tarList.join(','));
+      assert.ok(!tarList.some(x=>/sessions|refresh_tokens|mfa_challenges|one_time_tokens|flow_state/.test(x)),tarList.join(','));
+      assert.ok(!tarList.includes('B.dump'));
       assert.ok(Number((await db.query('select count(*) n from auth.sessions')).rows[0].n)>0,'kaynakta oturum vardı');
+      const tokens=(await db.query(`select string_agg(token,'|') t from (select token from auth.refresh_tokens where token is not null union all select id::text from auth.sessions) x`)).rows[0].t;
+      const plainAll=execFileSync('sh',['-c',`age -d -i ${ids[1]} ${f} | tar -xOf - ${tarList.filter(x=>x.startsWith('B/')).join(' ')}`]).toString();
+      for(const tk of (tokens||'').split('|').filter(x=>x.length>8))assert.ok(!plainAll.includes(tk),'oturum/belirteç değeri B dosyalarında yok');
       assert.deepEqual(r.restore_checks.filter(c=>!c.ok),[]);
     });
 
@@ -227,7 +228,7 @@ test('uçtan uca boru hattı (gerçek PostgreSQL)',async t=>{
       `create table auth.webauthn_credentials(id int); insert into auth.webauthn_credentials values (1);`,
       r=>{assert.equal(r.stages.dump.code,'guards');assert.match(r.stages.dump.reason,/webauthn_credentials \(1 satır\)/);},
       `drop table auth.webauthn_credentials`);
-    // pg_read_all_data ile yeni tablo otomatik okunur ve tam şema dökümüne girer (önceki "bilinçli kırılma" bu yöntemde yok).
+    // Varsayılan yetkiler (şablonu çalıştıran rol için) sayesinde yeni tablo otomatik okunur ve tam şema dökümüne girer.
     await t.test('yeni tablo otomatik dökülür ve geri yüklemede sayısı tutar',async()=>{
       await db.exec(`create table public.zz_new(id int); insert into public.zz_new select generate_series(1,7)`);
       try{
@@ -237,10 +238,35 @@ test('uçtan uca boru hattı (gerçek PostgreSQL)',async t=>{
         assert.equal((await restoreAndVerify({bundleDir:out,pgBin:process.env.NAKGO_PG_BIN})).status,'ok');
       }finally{await db.exec(`drop table public.zz_new`);}
     });
-    await failCase('okuma üyeliği yoksa (pg_read_all_data geri alınmış) → yetki aşamasında durur',
-      `revoke pg_read_all_data from ${role}`,
-      r=>{assert.equal(r.stages.dump.status,'failed');assert.equal(r.stages.dump.code,'permissions',r.stages.dump.reason);assert.ok(r.stages.dump.reason.includes('auth.users'),r.stages.dump.reason);},
-      `grant pg_read_all_data to ${role} with inherit true, set false`);
+    await failCase('dışa aktarma yetkisi geri alınmışsa → yetki aşamasında durur',
+      `revoke execute on function private.nakgo_backup_auth_users() from ${role}`,
+      r=>{assert.equal(r.stages.dump.status,'failed');assert.equal(r.stages.dump.code,'permissions',r.stages.dump.reason);assert.ok(r.stages.dump.reason.includes('nakgo_backup_auth_users'),r.stages.dump.reason);},
+      `grant execute on function private.nakgo_backup_auth_users() to ${role}`);
+    await failCase('başka rolün oluşturduğu tablo okunamıyorsa → yetki aşamasında durur (sessiz eksik yok)',
+      `create table public.zz_foreign(id int); revoke select on public.zz_foreign from ${role}`,
+      r=>{assert.equal(r.stages.dump.code,'permissions');assert.ok(r.stages.dump.reason.includes('public.zz_foreign'),r.stages.dump.reason);},
+      `drop table public.zz_foreign`);
+    await t.test('tek kullanımlık Auth belirteç sütunları yedeğe girmez; geri yükleme yine geçer',async()=>{
+      await db.exec(`alter table auth.users add column recovery_token varchar(255), add column confirmation_token varchar(255);
+        update auth.users set recovery_token='rt-secret-'||id, confirmation_token='ct-secret-'||id`);
+      try{
+        const out=path.join(dir,'tok');
+        const d=await snapshotDump({conn,scope,outDir:out,allowLocal:true,pgBin:process.env.NAKGO_PG_BIN});
+        assert.equal(d.status,'ok',JSON.stringify(d));
+        const text=fs.readFileSync(path.join(out,'B/auth.users.jsonl'),'utf8');
+        assert.ok(!/rt-secret-|ct-secret-/.test(text),'belirteç değeri yok');
+        assert.ok(text.split('\n').filter(Boolean).every(l=>{const j=JSON.parse(l);return j.recovery_token===''&&j.confirmation_token==='';}));
+        assert.equal(d.source.counts['auth.users'],Number((await db.query('select count(*) n from auth.users')).rows[0].n));
+        assert.equal((await restoreAndVerify({bundleDir:out,pgBin:process.env.NAKGO_PG_BIN})).status,'ok');
+      }finally{await db.exec(`alter table auth.users drop column recovery_token, drop column confirmation_token`);}
+    });
+    await t.test('bozma: B veri dosyası değiştirilirse geri yükleme düşer',async()=>{
+      const out=path.join(dir,'bmod');
+      assert.equal((await snapshotDump({conn,scope,outDir:out,allowLocal:true,pgBin:process.env.NAKGO_PG_BIN})).status,'ok');
+      const f=path.join(out,'B/auth.users.jsonl');fs.writeFileSync(f,fs.readFileSync(f,'utf8').split('\n').slice(1).join('\n'));
+      const v=await restoreAndVerify({bundleDir:out,pgBin:process.env.NAKGO_PG_BIN});
+      assert.equal(v.status,'failed');assert.ok(v.checks.some(c=>c.code==='restore_b'&&/bozuk/.test(c.detail)),JSON.stringify(v.checks));
+    });
     await failCase('büyük nesne varsa (yedeğe girmez) → koruma aşamasında durur',
       `select lo_create(0)`,
       r=>{assert.equal(r.stages.dump.status,'failed');assert.equal(r.stages.dump.code,'guards');assert.match(r.stages.dump.reason,/büyük nesne/);},

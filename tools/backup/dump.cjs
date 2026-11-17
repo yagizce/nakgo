@@ -4,9 +4,11 @@
  *   S1 (dışa aktaran oturum, yedek rolüyle): BEGIN ISOLATION LEVEL REPEATABLE READ, READ ONLY;
  *      ilk komut pg_export_snapshot() → işlemin görüntüsü sabitlenir. Aynı işlem içinde: tablo başına satır sayıları,
  *      kapsam korumaları, Auth sürümü, şema parmak izi (db-lib SNAPSHOT_SQL), geri yükleme için tip/fonksiyon/rol bilgisi.
- *   S2: pg_dump --snapshot=<id> iki kez (tam şemalar ve kapsamdaki tekil tablolar). PostgreSQL dışa aktarılan görüntünün
- *      içe alınmasını, dışa aktaran işlem açık kaldığı sürece garanti eder; alınamazsa pg_dump hata ile durur.
- *   S1, iki pg_dump bitene kadar açık kalır, sonra geri alınır. Kanıt: geri yüklenen kopyadaki sayılar S1 ile birebir eşit
+ *   B (Auth/Storage kapsamı) S1 içinde: yapı katalogdan, veri yalnız dışa aktarma fonksiyonlarından (scope-export.cjs);
+ *      yedek rolü bu şemalarda hiçbir tabloyu doğrudan okuyamaz.
+ *   S2: pg_dump --snapshot=<id> (tam şemalar). PostgreSQL dışa aktarılan görüntünün içe alınmasını, dışa aktaran işlem
+ *      açık kaldığı sürece garanti eder; alınamazsa pg_dump hata ile durur.
+ *   S1, pg_dump bitene kadar açık kalır, sonra geri alınır. Kanıt: geri yüklenen kopyadaki sayılar S1 ile birebir eşit
  *   olmalı (restore-verify); eşzamanlı yazıcı testi bunu canlı yazma altında gösterir.
  *
  * Bağlantı kuralları (muaf tutulamaz):
@@ -18,6 +20,7 @@
 const fs=require('node:fs'),path=require('node:path'),{spawn}=require('node:child_process');
 const {SNAPSHOT_SQL}=require('../db-lib.cjs');
 const {sha256}=require('./crypto.cjs');
+const {scopeDDL,exportScope}=require('./scope-export.cjs');
 
 const isLocalHost=h=>typeof h==='string'&&(h.startsWith('/')||['localhost','127.0.0.1','::1'].includes(h));
 
@@ -147,7 +150,8 @@ async function restoreBootstrap(c,scope,includedTables){
 }
 
 /**
- * Döküm alır. Dönüş: {status:'ok'|'failed', reasons[], source:{...}} ve outDir altında A.dump, B.dump, bootstrap.sql, source.json.
+ * Döküm alır. Dönüş: {status:'ok'|'failed', reasons[], source:{...}} ve outDir altında A.dump, B.pre.sql, B/*.jsonl,
+ * B.post.sql, bootstrap.sql, source.json.
  * Testlere özel: delayBeforeDumpMs (S1 ile pg_dump arasında bekleme), useSnapshot=false (kasıtlı bozma).
  */
 async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBeforeDumpMs=0,useSnapshot=true,Client=require('pg').Client}){
@@ -176,40 +180,48 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
       if(ok)included.push(t.name);else if(t.required)missing.push(t.name);
     }
     if(missing.length)return {status:'failed',stage:'scope',reasons:missing.map(m=>'zorunlu tablo yok: '+m)};
-    // Yetki: korumalar ve sayımlar bu tabloları okur; okuma yetkisi yoksa önce ve açıkça "yetki" aşamasında durur.
+    // Yetki: tam şemalarda tablo okuma; kapsam tablolarında yalnız dışa aktarma fonksiyonu. Eksikse "yetki" aşamasında durur.
     const tables=(await c.query(`select n.nspname||'.'||c.relname q from pg_class c join pg_namespace n on n.oid=c.relnamespace
-      where c.relkind in ('r','p') and n.nspname = any($1::text[]) order by 1`,[scope.full_schemas])).rows.map(r=>r.q).concat(included).sort();
+      where c.relkind in ('r','p') and n.nspname = any($1::text[]) order by 1`,[scope.full_schemas])).rows.map(r=>r.q);
     const unreadable=(await c.query(`select x from unnest($1::text[]) x where not coalesce((select has_table_privilege(current_user,c.oid,'SELECT')
       from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname=split_part(x,'.',1) and c.relname=split_part(x,'.',2)),false)
       or not has_schema_privilege(current_user,split_part(x,'.',1),'USAGE')`,[tables])).rows.map(r=>r.x);
-    if(unreadable.length)return {status:'failed',stage:'permissions',reasons:unreadable.map(t=>'yedek rolünün okuma yetkisi yok: '+t)};
-    const stat=async q=>{const [s,n]=q.split('.');const r=(await c.query(`select n_live_tup from pg_stat_all_tables where schemaname=$1 and relname=$2`,[s,n])).rows;return r.length?Number(r[0].n_live_tup):null;};
+    const scoped=scope.tables.filter(t=>included.includes(t.name));
+    const fnNames=[...scoped.map(t=>t.export),scope.guard_counts_function];
+    const notCallable=(await c.query(`select x from unnest($1::text[]) x where not coalesce((select has_function_privilege(current_user,p.oid,'EXECUTE')
+      and has_schema_privilege(current_user,n.oid,'USAGE') from pg_catalog.pg_proc p join pg_catalog.pg_namespace n on n.oid=p.pronamespace
+      where n.nspname=split_part(x,'.',1) and p.proname=split_part(x,'.',2) and p.pronargs=0),false)`,[fnNames])).rows.map(r=>r.x);
+    if(unreadable.length||notCallable.length)return {status:'failed',stage:'permissions',reasons:[
+      ...unreadable.map(t=>'yedek rolünün okuma yetkisi yok: '+t),...notCallable.map(f=>'dışa aktarma fonksiyonu çağrılamıyor: '+f)]};
+    // Kesin sayımlar (içerik değil): kapsam dışı tablolar ve storage.objects. Liste fonksiyonda sabittir.
+    const gc=(await c.query(`select ${scope.guard_counts_function.split('.').map(qi).join('.')}() g`)).rows[0].g;
     const guards=[];
-    // Okunabiliyorsa kesin sayım (pg_read_all_data), okunamıyorsa yaklaşık istatistik.
-    const exact=async q=>{const [ns,rel]=q.split('.');
-      const r=(await c.query(`select c.oid from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace
-        where n.nspname=$1 and c.relname=$2 and has_schema_privilege(current_user,n.oid,'USAGE') and has_table_privilege(current_user,c.oid,'SELECT')`,[ns,rel])).rows;
-      return r.length?Number((await c.query(`select count(*) n from ${qi(ns)}.${qi(rel)}`)).rows[0].n):null;};
-    for(const q of scope.excluded.guard_stop_if_rows){const e=await exact(q);const n=e===null?await stat(q):e;if(n)guards.push(`kapsam dışı ama veri içeren tablo: ${q} (${e===null?'~':''}${n} satır)`);}
-    for(const q of scope.guard_exact_zero){
-      if(!included.includes(q))continue;
-      const n=Number((await c.query(`select count(*) n from ${q.split('.').map(qi).join('.')}`)).rows[0].n);
-      if(n)guards.push(`${q} boş olmalı: ${n} satır (dosya yedeği tasarlanmadı)`);
-    }
-    // Büyük nesneler pg_read_all_data kapsamında değildir ve şema/tablo seçimli dökümler onları içermez:
-    // varsa yedek "eksik ama başarılı" görünmesin diye durur.
+    for(const q of scope.excluded.guard_stop_if_rows)if(gc[q])guards.push(`kapsam dışı ama veri içeren tablo: ${q} (${gc[q]} satır)`);
+    for(const q of scope.guard_exact_zero)if(included.includes(q)&&gc[q])guards.push(`${q} boş olmalı: ${gc[q]} satır (dosya yedeği tasarlanmadı)`);
+    // Büyük nesneler ne pg_dump -n ne de dışa aktarma kapsamındadır; ayrıca PUBLIC lo_create yan yolunun tek kalıcı izi
+    // burada görünür (docs/backup/side-channels.md). Varsa yedek "eksik ama başarılı" görünmesin diye durur.
     const lo=Number((await c.query(`select count(*) n from pg_catalog.pg_largeobject_metadata`)).rows[0].n);
     if(lo)guards.push(`büyük nesne (large object) var: ${lo}; yedek kapsamında değil`);
     if(guards.length)return {status:'failed',stage:'guards',reasons:guards};
     const knownLoss={};
-    for(const q of scope.excluded.known_loss){const n=await stat(q);if(n!==null)knownLoss[q]=n;}
-    // Sayılar (S1 görüntüsü)
+    for(const q of scope.excluded.known_loss)if(q in gc)knownLoss[q]=Number(gc[q]);
+    // Sayılar (S1 görüntüsü): tam şemalar count(*), kapsam tabloları dışa aktarılan satır sayısı (aşağıda).
     const counts={};
     for(const t of tables)counts[t]=Number((await c.query(`select count(*) n from ${t.split('.').map(qi).join('.')}`)).rows[0].n);
-    const authVersion=included.includes('auth.schema_migrations')?(await c.query(`select max(version)::text v from auth.schema_migrations`)).rows[0].v:null;
+    const migr=scoped.find(t=>t.name==='auth.schema_migrations');
+    const authVersion=migr?(await c.query(`select max(j->>'version') v from ${migr.export.split('.').map(qi).join('.')}() j`)).rows[0].v:null;
     const fingerprint=await catalogFingerprint((q,a)=>c.query(q,a),{fullSchemas:scope.full_schemas,includedTables:included,excludeRoles:[snap.role,'postgres']});
     const bootstrap=await restoreBootstrap(c,scope,included);
     fs.writeFileSync(path.join(outDir,'bootstrap.sql'),bootstrap.sql,{mode:0o600});
+    let bFiles={},bSkipped=[];
+    if(scoped.length){
+      const ddl=await scopeDDL(c,{included,allowedTriggers:bootstrap.triggers,excludeAclRoles:[snap.role,'postgres']});
+      fs.writeFileSync(path.join(outDir,'B.pre.sql'),ddl.pre,{mode:0o600});
+      fs.writeFileSync(path.join(outDir,'B.post.sql'),ddl.post,{mode:0o600});
+      bSkipped=ddl.skipped;
+      bFiles=await exportScope(c,{tables:scoped,outDir});
+      for(const [t,f] of Object.entries(bFiles))counts[t]=f.rows;
+    }
     if(delayBeforeDumpMs)await new Promise(r=>setTimeout(r,delayBeforeDumpMs));
     // S2: pg_dump (aynı görüntü)
     const env=pgEnv(conn);
@@ -218,11 +230,6 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
     const a=await run(binPath('pg_dump',pgBin),['-Fc','--no-password',...snapArgs,...scope.full_schemas.flatMap(s=>['-n',s]),'-f',path.join(outDir,'A.dump')],{env});
     dumps.A={code:a.code,stderr:a.err.slice(-2000)};
     if(a.code!==0)return {status:'failed',stage:'pg_dump',reasons:['tam şema dökümü başarısız: '+a.err.trim().split('\n').slice(-3).join(' | ')]};
-    if(included.length){
-      const b=await run(binPath('pg_dump',pgBin),['-Fc','--no-password',...snapArgs,...included.flatMap(t=>['-t',t]),'-f',path.join(outDir,'B.dump')],{env});
-      dumps.B={code:b.code,stderr:b.err.slice(-2000)};
-      if(b.code!==0)return {status:'failed',stage:'pg_dump',reasons:['kapsam tabloları dökümü başarısız: '+b.err.trim().split('\n').slice(-3).join(' | ')]};
-    }
     await c.query('rollback');s1Open=false;
     const source={
       version:1,snapshot_id:snap.id,txid_snapshot:snap.txid_snapshot,taken_at:snap.taken_at,
@@ -230,6 +237,7 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
       full_schemas:scope.full_schemas,included_tables:included,excluded:scope.excluded,known_loss:knownLoss,
       counts,auth_version:authVersion,fingerprint_lines:fingerprint,fingerprint_sha256:sha256(fingerprint.join('\n')),
       restore:{roles:bootstrap.roles,triggers:bootstrap.triggers,extra_schemas:bootstrap.extraSchemas},
+      b_files:bFiles,b_skipped:bSkipped,
       s1_open_ms:Date.now()-started
     };
     fs.writeFileSync(path.join(outDir,'source.json'),JSON.stringify(source,null,1),{mode:0o600});
