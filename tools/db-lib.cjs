@@ -145,11 +145,27 @@ select regexp_replace(line,'\\s+',' ','g') line from (
   where n.nspname in('public','private') and has_schema_privilege(r.rolname,n.oid,'usage')
 ) s order by 1`;
 
-async function snapshot(db){return (await db.query(SNAPSHOT_SQL)).rows.map(r=>r.line);}
+// Sürümlü API (api şeması, B3). Ayrı tutulur: yedeğin şema parmak izi (tools/backup/dump.cjs) yalnız SNAPSHOT_SQL'i
+// kullanır ve yedek kapsamı public/private'tır; kayma kontrolü ikisini birlikte denetler.
+const API_SNAPSHOT_SQL=`
+select line from (
+ select 'schema-usage api '||r.rolname line from pg_namespace n cross join (values('anon'),('authenticated')) r(rolname)
+  where n.nspname='api' and has_schema_privilege(r.rolname,n.oid,'usage')
+ union all select 'function api.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||') returns '||coalesce(pg_get_function_result(p.oid),'procedure')
+  ||case when p.prosecdef then ' definer' else ' invoker' end||' vol='||p.provolatile::text||' cfg='||coalesce(array_to_string(p.proconfig,';'),'')
+  ||' body='||md5(regexp_replace(regexp_replace(pg_get_functiondef(p.oid),'--[^\\n]*|\\r','','g'),'\\s+','','g'))
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='api'
+ union all select 'execute api.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||') '||r.rolname
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace cross join (values('anon'),('authenticated')) r(rolname)
+  where n.nspname='api' and has_function_privilege(r.rolname,p.oid,'execute')
+) a`;
+const FULL_SNAPSHOT_SQL='select line from ('+SNAPSHOT_SQL+') s union all '+API_SNAPSHOT_SQL+' order by 1';
+
+async function snapshot(db){return (await db.query(FULL_SNAPSHOT_SQL)).rows.map(r=>r.line);}
 
 function diff(expected,actual){
   const e=new Set(expected),a=new Set(actual);
   return {missing:expected.filter(x=>!a.has(x)),extra:actual.filter(x=>!e.has(x))};
 }
 
-module.exports={root,STUB,migrations,openDb,finish,assertTestRoles,build,SNAPSHOT_SQL,snapshot,diff};
+module.exports={root,STUB,migrations,openDb,finish,assertTestRoles,build,SNAPSHOT_SQL,API_SNAPSHOT_SQL,FULL_SNAPSHOT_SQL,snapshot,diff};

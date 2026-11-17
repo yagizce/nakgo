@@ -9,7 +9,7 @@
  *   node tools/schema-check.cjs --fingerprint       aynı özeti yerelde hesapla (iki çıktı satır satır aynı olmalı) */
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const {root,openDb,finish,build,snapshot,diff,SNAPSHOT_SQL}=require('./db-lib.cjs');
+const {root,openDb,finish,build,snapshot,diff,FULL_SNAPSHOT_SQL}=require('./db-lib.cjs');
 const file=path.join(root,'supabase/schema/snapshot.txt');
 const known=path.join(root,'supabase/schema/known-drift.txt');
 const readLines=f=>fs.readFileSync(f,'utf8').split('\n').map(x=>x.replace(/\r$/,'')).filter(x=>x&&!x.startsWith('#'));
@@ -22,7 +22,7 @@ function report(title,d){
   const args=process.argv.slice(2);
   if(args.includes('--fingerprint-sql')){
     const extra=(fs.existsSync(known)?readLines(known):[]).filter(x=>x.startsWith('+ ')).map(x=>"'"+x.slice(2).replace(/'/g,"''")+"'");
-    console.log("select split_part(line,' ',1) k,count(*) n,md5(string_agg(line,chr(10) order by line collate \"C\")) h from ("+SNAPSHOT_SQL+") z"
+    console.log("select split_part(line,' ',1) k,count(*) n,md5(string_agg(line,chr(10) order by line collate \"C\")) h from ("+FULL_SNAPSHOT_SQL+") z"
       +(extra.length?" where line not in("+extra.join(',')+")":"")+" group by 1 order by 1;");
     return;
   }
