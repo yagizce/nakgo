@@ -21,7 +21,10 @@ const {canonical,sha256,sha256Json}=require('./crypto.cjs');
 const root=path.resolve(__dirname,'../..');
 
 // Yedek rolünün beklenen profili. Değişiklik ancak bu dosyada, incelemeli PR ile.
-const ROLE_PROFILE={super:false,createrole:false,createdb:false,replication:false,login:true,bypassrls:true,connlimitMax:2};
+const ROLE_PROFILE={super:false,createrole:false,createdb:false,replication:false,login:true,bypassrls:true,connlimitMax:2,
+  // Supabase'in resmi yedek rolü yöntemi: BYPASSRLS + pg_read_all_data. İzin verilen TEK üyelik budur ve yalnız şu
+  // seçeneklerle: INHERIT açık (okuma yetkisi etkili), ADMIN kapalı (başkasına veremez), SET kapalı (o role geçemez).
+  readMembership:'pg_read_all_data'};
 const WRITE_TABLE_PRIVS=['INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'];
 
 async function rows(db,sql,args=[]){return (await db.query(sql,args)).rows;}
@@ -138,6 +141,10 @@ async function audit(db,{role}){
       select roleid from pg_auth_members where member=(select oid from pg_roles where rolname=$1)
       union select am.roleid from pg_auth_members am join m on am.member=m.oid)
     select distinct r.rolname from m join pg_roles r on r.oid=m.oid order by 1`,[role])).map(x=>x.rolname);
+  // Doğrudan üyelik seçenekleri (PG16+: inherit_option, set_option).
+  const membershipGrants=(await rows(db,`select r.rolname role,m.admin_option,m.inherit_option,m.set_option
+      from pg_auth_members m join pg_roles r on r.oid=m.roleid where m.member=(select oid from pg_roles where rolname=$1)
+      order by 1,2,3,4`,[role]));
   const database=(await rows(db,`select has_database_privilege($1,current_database(),'CREATE') "create",
       has_database_privilege($1,current_database(),'TEMP') temp,has_database_privilege($1,current_database(),'CONNECT') connect`,[role]))[0];
   const schemas=await rows(db,`select nspname schema,has_schema_privilege($1,oid,'USAGE') usage,has_schema_privilege($1,oid,'CREATE') "create"
@@ -163,7 +170,7 @@ async function audit(db,{role}){
     role,exists:true,
     attributes:{super:a.rolsuper,inherit:a.rolinherit,createrole:a.rolcreaterole,createdb:a.rolcreatedb,login:a.rolcanlogin,
       replication:a.rolreplication,bypassrls:a.rolbypassrls,connlimit:a.rolconnlimit,valid_until:a.valid_until},
-    memberships,database,schemas,tables_write:tablesWrite,tables_read:tablesRead,sequences,definer_functions:functions
+    memberships,membership_grants:membershipGrants,database,schemas,tables_write:tablesWrite,tables_read:tablesRead,sequences,definer_functions:functions
   };
 }
 
@@ -196,7 +203,17 @@ function evaluate(a,{allowlist={version:1,entries:[]}}={}){
   const at=a.attributes;
   for(const k of ['super','createrole','createdb','replication','login','bypassrls'])if(at[k]!==ROLE_PROFILE[k])nw('role_attribute',k+'='+at[k]);
   if(!(at.connlimit>0&&at.connlimit<=ROLE_PROFILE.connlimitMax))nw('role_attribute','connlimit='+at.connlimit);
-  for(const m of a.memberships)nw('membership',m);
+  // pg_read_all_data dışındaki her üyelik (doğrudan ya da dolaylı) muaf tutulamaz; pg_read_all_data'ya başka bir rol
+  // üzerinden ulaşılıyorsa o ara rol de üyelik olarak görünür ve yakalanır.
+  for(const m of a.memberships)if(m!==ROLE_PROFILE.readMembership)nw('membership',m);
+  // PG16+: aynı üyelik farklı verenlerce birden çok satır olarak verilebilir; HER satır değerlendirilir.
+  const rms=(a.membership_grants||[]).filter(g=>g.role===ROLE_PROFILE.readMembership);
+  if(!rms.length)nw('read_membership_missing',ROLE_PROFILE.readMembership);
+  else{
+    if(rms.some(g=>g.admin_option))nw('membership_option',ROLE_PROFILE.readMembership+' ADMIN');
+    if(rms.some(g=>g.set_option))nw('membership_option',ROLE_PROFILE.readMembership+' SET');
+    if(!rms.some(g=>g.inherit_option))nw('membership_option',ROLE_PROFILE.readMembership+' INHERIT kapalı (okuma yetkisi etkisiz)');
+  }
   if(a.database.create)nw('database_create','CREATE');
   for(const s of a.schemas)if(s.create)nw('schema_create',s.schema);
   for(const t of a.tables_write)nw('table_write',t.rel+':'+t.privs.join(','));

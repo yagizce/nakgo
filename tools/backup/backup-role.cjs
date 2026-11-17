@@ -7,7 +7,8 @@
  * gözetiminde yapılır (bkz. docs/backup/privilege-audit.md, "BYPASSRLS ve Supabase uygulanabilirliği").
  *
  * Güvenlik notu: default_transaction_read_only bir güvenlik sınırı değildir; oturum onu kapatabilir. Gerçek sınırlar
- * yalnız SELECT yetkisi, hiçbir role üyelik olmaması ve privilege-audit'in çağrılabilir SECURITY DEFINER denetimidir. */
+ * yalnız okuma veren pg_read_all_data üyeliği (başka üyelik yok), yazma yetkisi olmaması ve privilege-audit'in
+ * çağrılabilir SECURITY DEFINER denetimidir. */
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'../..');
@@ -18,26 +19,22 @@ const lit=s=>"'"+String(s).replace(/'/g,"''")+"'";
 
 function body(scope,role,{password,validUntil}){
   const r=ident(role);
-  const schemas=scope.full_schemas.map(ident);
-  const extraSchemas=[...new Set(scope.tables.map(t=>t.name.split('.')[0]))].filter(s=>!schemas.includes(s)).map(ident);
-  const required=scope.tables.filter(t=>t.required).map(t=>qname(t.name));
-  const optional=scope.tables.filter(t=>!t.required).map(t=>qname(t.name));
   return [
-    `-- NakGo yedek rolü. Kaynak: ops/backup/scope.json. Üretici: tools/backup/backup-role.cjs. Elle düzenlenmez.`,
-    `-- BYPASSRLS: pg_dump RLS'li tablolarda satır kaçırmamak için gerekir; rol bu yüzden kapsamdaki her satırı OKUYABİLİR.`,
+    `-- NakGo yedek rolü. Üretici: tools/backup/backup-role.cjs. Elle düzenlenmez.`,
+    `-- Yöntem: Supabase'in resmi yedek rolü (BYPASSRLS + pg_read_all_data). pg_dump RLS'yi kapatır; BYPASSRLS olmadan durur.`,
+    `-- pg_read_all_data: auth ve storage DAHİL her şemadaki tablo, görünüm ve dizileri OKUR (oturumlar ve yenileme`,
+    `-- belirteçleri dahil). Döküm kapsamı ayrıca ops/backup/scope.json ile sınırlanır; okuma yetkisi bundan geniştir.`,
+    `-- Büyük nesneler (large objects) pg_read_all_data kapsamında DEĞİLDİR.`,
     `create role ${r} login bypassrls nosuperuser nocreatedb nocreaterole noreplication noinherit connection limit 2`,
     `  password ${password} valid until ${validUntil};`,
+    `-- Yalnız bu üyelik için INHERIT açık; ADMIN ve SET kapalı (PG16+ sözdizimi).`,
+    `grant pg_read_all_data to ${r} with inherit true, set false;`,
+    `-- default_transaction_read_only GÜVENLİK SINIRI DEĞİLDİR: oturum "set default_transaction_read_only = off" diyebilir.`,
+    `-- Gerçek sınırlar: yalnız okuma veren üyelik, yazma yetkisi olmaması ve privilege-audit denetimidir.`,
     `alter role ${r} set default_transaction_read_only = on;`,
     `alter role ${r} set statement_timeout = '15min';`,
     `alter role ${r} set lock_timeout = '30s';`,
     `alter role ${r} set idle_in_transaction_session_timeout = '20min';`,
-    `grant usage on schema ${schemas.join(', ')} to ${r};`,
-    `grant select on all tables in schema ${schemas.join(', ')} to ${r};`,
-    `grant select on all sequences in schema ${schemas.join(', ')} to ${r};`,
-    ...(extraSchemas.length?[`grant usage on schema ${extraSchemas.join(', ')} to ${r};`]:[]),
-    ...(required.length?[`grant select on ${required.join(', ')} to ${r};`]:[]),
-    ...optional.map(t=>`do $$ begin if to_regclass(${lit(t)}) is not null then execute 'grant select on ${t} to ${r}'; end if; end $$;`),
-    `-- Yeni tablolar için varsayılan yetki VERİLMEZ: yeni tablo eklendiğinde yedek "yetki yok" diye durur (bilinçli kırılma).`,
     ''
   ].join('\n');
 }
@@ -45,8 +42,9 @@ const renderTemplate=(scope=loadScope(),role='nakgo_backup')=>body(scope,role,{p
 const renderLiteral=({scope=loadScope(),role,password,validUntil='infinity'})=>body(scope,role,{password:lit(password),validUntil:lit(validUntil)});
 /** Rol oluşturulduktan HEMEN SONRA çalıştırılır: verilen yetkilerin gerçekten ETKİLİ olduğunu doğrular.
  * Neden: GRANT veren rol yetkiyi "grant option" ile tutmuyorsa PostgreSQL hata vermez, yalnız uyarı verir ve hiçbir şey
- * vermez. Supabase'te postgres, auth şemasında USAGE'ı grant option OLMADAN tutar; şablonun auth/storage satırları orada
- * etkisiz kalır. Bu denetim o durumu "başarılı kurulum" sanılmadan yakalar. Boş liste = rol beklenen her şeyi okuyabiliyor. */
+ * vermez (Supabase'te postgres, auth şemasında USAGE'ı grant option olmadan tutar; tablo tablo yetki bu yüzden orada
+ * etkisizdir ve şablon pg_read_all_data kullanır). Bu denetim kurulumun gerçekten çalıştığını, "başarılı" sanılmadan,
+ * sınar. Boş liste = rol beklenen her şeyi okuyabiliyor ve üyelik seçenekleri doğru. */
 async function verifyRole(query,{role,scope=loadScope()}){
   const problems=[];
   const q=async(sql,args)=>(await query(sql,args)).rows;
@@ -54,6 +52,11 @@ async function verifyRole(query,{role,scope=loadScope()}){
   if(!attr)return ['rol yok: '+role];
   if(!attr.rolbypassrls)problems.push('BYPASSRLS yok: pg_dump RLS\'li tablolarda durur');
   if(attr.rolsuper)problems.push('rol süper kullanıcı olmamalı');
+  // PG16+: aynı üyelik farklı verenlerce birden çok satır olabilir; hepsi değerlendirilir.
+  const ms=await q(`select m.admin_option,m.inherit_option,m.set_option from pg_auth_members m
+    where m.member=(select oid from pg_roles where rolname=$1) and m.roleid=(select oid from pg_roles where rolname='pg_read_all_data')`,[role]);
+  if(!ms.length)problems.push('pg_read_all_data üyeliği yok');
+  else if(ms.some(m=>m.admin_option||m.set_option)||!ms.some(m=>m.inherit_option))problems.push('pg_read_all_data üyelik seçenekleri beklenen gibi değil (INHERIT açık, ADMIN/SET kapalı)');
   for(const s of scope.full_schemas){
     if(!(await q(`select has_schema_privilege($1,$2,'USAGE') ok`,[role,s]))[0].ok)problems.push('şema kullanımı yok: '+s);
     for(const r of await q(`select c.oid::regclass::text n,c.relkind::text k,

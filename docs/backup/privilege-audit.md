@@ -72,40 +72,62 @@ Migration'lardan kurulan şemada:
 - PGlite: veritabanı düzeyinde CREATE testi atlanır. Geri alınmış bir işlemden sonra `pg_database` güncellemesi PGlite'ta hata veriyor; test PG16 ve PG17'de çalışır.
 - Supabase'in kendi `auth` ve `storage` fonksiyonları yerelde yok. Gerçek kapsam B7-B'deki T2 geçidinde denetlenir.
 
-## BYPASSRLS ve Supabase uygulanabilirliği (B7-B için AÇIK ENGEL)
+## Yedek rolü yöntemi: BYPASSRLS + pg_read_all_data (Supabase resmi yöntemi)
 
-### PostgreSQL kuralı (yerelde doğrulandı)
-- PG15 ve öncesi: BYPASSRLS'li rolü yalnız süper kullanıcı oluşturabilir.
-- PG16 ve sonrası: CREATE ROLE için CREATEROLE gerekir; BYPASSRLS'i ise yalnız süper kullanıcı **ya da kendisi BYPASSRLS'e
-  sahip** bir rol verebilir. CREATEROLE tek başına yetmez.
-- Testle doğrulandı (`a1-privilege.test.cjs`, PG16.15 ve PG17.11): CREATEROLE'lü ama BYPASSRLS'siz rol `42501` alır;
-  CREATEROLE + BYPASSRLS'li, süper kullanıcı olmayan rol şablondaki `create role … bypassrls` satırını çalıştırabilir.
+Esas alınan kaynak: Supabase bilgi bankası, "pg_dump fails with 'query would be affected by row-level security
+policy'" (son güncelleme 4 Kasım 2026). Önerilen rol: `bypassrls` + `grant pg_read_all_data` +
+`default_transaction_read_only = on`; döküm Supavisor oturum modu (5432) ya da doğrudan bağlantıyla, `supabase db dump`
+olmadan.
 
-### Supabase'te `postgres`
-- Süper kullanıcı değil; production'da BYPASSRLS'e sahip olduğu bildirildi. CREATEROLE'e sahip olduğu Supabase belgelerinden
-  anlaşılıyor ama production'da **sorgulanmadı** (yasak).
-- Supabase'in kendi bilgi bankası yedek rolü için SQL Editör'de (`postgres` ile) `create role … bypassrls` ve
-  `grant pg_read_all_data` önerir. Yani BYPASSRLS'li rol oluşturmak **büyük olasılıkla mümkün**. supautils'in bu konuda
-  özel kodu vardır (supautils sorun #78); gerçek davranış doğrulanmadı.
-- **Engel:** Supabase belgesine göre `postgres`, `auth` şemasında USAGE'ı *grant option olmadan* tutar; auth tablolarının
-  sahibi `supabase_auth_admin`, şemanın sahibi `supabase_admin`'dir. Bu yüzden şablondaki
-  `grant usage on schema auth, storage` ve `grant select on auth.users, auth.identities…` satırları hata vermeden
-  **etkisiz** kalır. Bu durum yerelde aynı sahiplik modeliyle taklit edildi: şablon hatasız biter, ama rol `auth.users`'ı
-  okuyamaz. Yeni `verifyRole` denetimi (`tools/backup/backup-role.cjs`) bunu yakalar. Ayrıca yedek çalışması da
-  `permissions` aşamasında durur, yani sessiz eksik yedek oluşmaz.
-- Sonuç: Mevcut şablon `public`/`private` için uygulanabilir. Auth/Storage kapsamı (B dökümü) Supabase'te bu haliyle
-  **uygulanamaz**. Sahte başarı ya da başka bir yetki varsayımı üretilmedi.
-
-### Seçenekler (karar sahibin; hiçbiri uygulanmadı)
-| Seçenek | Ne sağlar | Risk / bedel |
+### Karşılaştırma
+| Konu | Önceki A1 (tablo tablo SELECT) | Şimdiki (Supabase yöntemi) |
 |---|---|---|
-| A. `grant pg_read_all_data to nakgo_backup` (Supabase'in belgelediği yol) | Auth ve Storage dahil her şeyi okuyabilir | Kapsam çok geniş: oturumlar, yenileme belirteçleri, vault şifreli metinleri, cron vb. A1 her üyeliği "muaf tutulamaz" sayar. Kabul edilirse yalnız bu tek üyeliğe izin veren ayrı bir tasarım değişikliği, telafi edici önlemler (IP kısıtı, kısa geçerlilik, sık parola yenileme) ve ayrı onay gerekir. |
-| B. Otomatik yedek yalnız `public`/`private`; Auth için Supabase'in kendi yedekleri/PITR | En az yetki korunur | Auth kurtarması bizim tatbikatlarımızın dışında kalır; RPO ve doğrulama Supabase'e bağlı. |
-| C. `postgres`'in sahibi olduğu, yalnız kapsam sütunlarını döndüren SECURITY DEFINER dışa aktarma fonksiyonu | Dar kapsam | `postgres`'in auth tablolarında SELECT'i olduğu doğrulanmalı; pg_dump biçimi değil, ayrı içe aktarma yazılmalı; fonksiyon A1 izin listesine gerekçeyle girer. |
-| D. Supabase destek ekibinden grant option ile dar yetki istemek | En temiz | Sağlanması belirsiz. |
+| Supabase'te uygulanabilirlik | `auth`/`storage` için **etkisiz**: `postgres` bu şemalarda grant option'a sahip değil; GRANT hata vermeden hiçbir şey vermez (yerelde aynı sahiplik modeliyle gösterildi) | Supabase'in belgelediği yol; `pg_read_all_data` auth ve storage dahil her şemayı okur |
+| Okuma kapsamı | Yalnız kapsam tabloları | **Her şema**: `auth.sessions`, `auth.refresh_tokens`, `vault` (şifreli), storage meta verisi dahil. Tek tek geri alınamaz |
+| Şema USAGE | public, private, auth, storage | Her şema → PUBLIC'e açık SECURITY DEFINER fonksiyonları her şemada çağrılabilir olur; A1 hepsini denetler, incelenmemiş olan yedeği durdurur |
+| Yeni tablo | Yetki yok → yedek durur (bilinçli kırılma) | Otomatik okunur; public/private dökümüne girer. Auth/Storage tarafında yalnız `scope.json`'daki tablolar dökülür |
+| Üyelik denetimi | Her üyelik muaf tutulamaz | Yalnız `pg_read_all_data`, INHERIT açık, ADMIN ve SET kapalı; başka her üyelik (dolaylı dahil) ve her ek satır (PG16+ veren başına) muaf tutulamaz |
+| Yazma | Yok | Yok (A1 her şemada yazma yetkisini denetler). PUBLIC'ten gelen kalan yollar aşağıda |
+
+### Güvenlik değerlendirmesi
+- **Bilinçli değişen özellik:** rol oturum ve yenileme belirteci tablolarını OKUYABİLİR. Yenileme belirteci bir taşıyıcı
+  kimlik bilgisidir; yedek rolünün parolası ele geçirilirse kullanıcı oturumları çalınabilir. Önlemler: parola yalnız
+  GitHub ortam gizlisinde, ortam onaylı; `valid until` ile kısa ömür ve düzenli yenileme; bağlantı sınırı 2; Supabase ağ
+  kısıtları (varsa) yalnız CI çıkışlarına; şüphede `alter role … password` ile hemen yenileme.
+- **Döküm** oturum/belirteç tablolarını içermez (aşağıda). Bu, okuma riskini değil yalnız yedek içeriğini sınırlar.
+- **default_transaction_read_only güvenlik sınırı DEĞİLDİR:** oturum `set default_transaction_read_only = off` diyebilir.
+  Gerçek sınır yazma yetkisi olmamasıdır.
+- **PUBLIC'ten gelen kalan yazma yolları (kaynak sayfa):** pg_net etkinse `net.http_request_queue`'ya ekleme (dışarıya
+  HTTP isteği) ve `lo_create` ile büyük nesne oluşturma. A1, pg_net tablosuna yazma yetkisini görürse yedeği muaf
+  tutulamaz biçimde durdurur. `lo_create` A1'in tablo denetiminin dışındadır; açık risk.
+- **Büyük nesneler** `pg_read_all_data` kapsamında değildir ve şema/tablo seçimli dökümler onları içermez. A2,
+  `pg_largeobject_metadata` boş değilse yedeği durdurur (sessiz eksik yedek yok).
+
+### Auth kapsamı (B dökümü, `ops/backup/scope.json`)
+| Tablo | Karar | Neden |
+|---|---|---|
+| `auth.users` | Dökülür (zorunlu) | Hesaplar, parola özetleri, doğrulama durumu; geri yüklemenin özü |
+| `auth.identities` | Dökülür (zorunlu) | E-posta/Google bağları; yoksa sosyal giriş yeni hesap açar |
+| `auth.mfa_factors` | Dökülür | Yönetici AAL2 girişi için gerekli; TOTP sırları yedekte (şifreli) bulunur |
+| `auth.schema_migrations` | Dökülür | Auth sürüm denetimi (geri yüklenen hedefle uyum) |
+| `auth.sessions`, `auth.refresh_tokens`, `mfa_amr_claims`, `mfa_challenges`, `one_time_tokens`, `flow_state`, `saml_relay_states`, OAuth durumları, `webauthn_challenges` | **Dökülmez** | Geçici ve taşıyıcı kimlik bilgisi; yedekte bulunmaları sızıntıda oturum çalınmasına yol açar. **Geri yüklemeden sonra herkes yeniden giriş yapar** (önerilen yaklaşım) |
+| `mfa_recovery_code*`, `audit_log_entries` | Dökülmez (bilinen kayıp) | Kurtarma kodları yeniden üretilir; denetim günlüğü yedek kapsamında değil |
+| `webauthn_credentials`, `oauth_*`, `saml_*`, `sso_*`, `scim_*`, `vault.secrets` | Dökülmez; **satır varsa yedek durur** | Kullanılmıyorlar; kullanılmaya başlanırsa kapsam ayrıca kararlaştırılır |
+
+### Storage kapsamı
+- **Storage meta verisi** (`storage.buckets`, `storage.objects` satırları) veritabanındadır ve B dökümüne girer.
+- **Gerçek dosyalar** veritabanında DEĞİLDİR; pg_dump onları içermez. Kaynak sayfa da dosyaların dahil olduğunu söylemez.
+  Dosyalar ayrı bir yedek kapsamı ister: Storage S3 uyumlu API'siyle ayrı, şifreli ve doğrulanan bir kopya (B7-C/D, ayrı
+  onay).
+- Bugün `storage.objects` satır sayısı 0 olmalıdır; değilse yedek durur. Uygulama dosya saklamaya başlamadan önce dosya
+  yedeği kurulmalıdır.
 
 ### B7-B'de geçici bir Supabase projesinde (production/DEV DEĞİL, ayrı onayla) doğrulanacaklar
-- V4: `postgres` ile `create role … bypassrls` çalışıyor mu (supautils davranışı)?
-- V5: auth/storage `grant` satırları gerçekten etkisiz mi? (`verifyRole` çıktısı)
-- V6: seçilen seçenekle (A/B/C/D) `verifyRole` ve S1 uçtan uca temiz mi?
-Bu doğrulamalar tamamlanmadan ve seçenek seçilmeden production'da yedek rolü oluşturulmaz.
+- V4: `postgres` ile şablon hatasız çalışıyor mu: `create role … bypassrls` ve
+  `grant pg_read_all_data … with inherit true, set false` (PG16+ seçenek sözdizimi; supautils davranışı).
+- V5: `verifyRole` boş liste döndürüyor mu (auth/storage gerçekten okunuyor mu)?
+- V6: A1 denetimi: Supabase şemalarındaki PUBLIC'e açık SECURITY DEFINER fonksiyonlarının listesi; her biri incelenip
+  izin listesine gerekçesiyle girmeli ya da yedek durur. pg_net etkin mi (etkinse yazma yolu A1'de durdurur)?
+- V7: PUBLIC'ten gelen dizi USAGE ya da başka yazma yetkisi var mı?
+- V8: S1 uçtan uca: Supavisor oturum modu, `sslmode=verify-full`, pg_dump 17, `pg_largeobject_metadata` boş.
+- S2a: iki geçici proje arasında Auth geri yükleme yöntemi (yeniden giriş zorunlu).

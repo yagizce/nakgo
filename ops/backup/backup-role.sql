@@ -1,18 +1,15 @@
--- NakGo yedek rolü. Kaynak: ops/backup/scope.json. Üretici: tools/backup/backup-role.cjs. Elle düzenlenmez.
--- BYPASSRLS: pg_dump RLS'li tablolarda satır kaçırmamak için gerekir; rol bu yüzden kapsamdaki her satırı OKUYABİLİR.
+-- NakGo yedek rolü. Üretici: tools/backup/backup-role.cjs. Elle düzenlenmez.
+-- Yöntem: Supabase'in resmi yedek rolü (BYPASSRLS + pg_read_all_data). pg_dump RLS'yi kapatır; BYPASSRLS olmadan durur.
+-- pg_read_all_data: auth ve storage DAHİL her şemadaki tablo, görünüm ve dizileri OKUR (oturumlar ve yenileme
+-- belirteçleri dahil). Döküm kapsamı ayrıca ops/backup/scope.json ile sınırlanır; okuma yetkisi bundan geniştir.
+-- Büyük nesneler (large objects) pg_read_all_data kapsamında DEĞİLDİR.
 create role nakgo_backup login bypassrls nosuperuser nocreatedb nocreaterole noreplication noinherit connection limit 2
   password :'backup_password' valid until :'valid_until';
+-- Yalnız bu üyelik için INHERIT açık; ADMIN ve SET kapalı (PG16+ sözdizimi).
+grant pg_read_all_data to nakgo_backup with inherit true, set false;
+-- default_transaction_read_only GÜVENLİK SINIRI DEĞİLDİR: oturum "set default_transaction_read_only = off" diyebilir.
+-- Gerçek sınırlar: yalnız okuma veren üyelik, yazma yetkisi olmaması ve privilege-audit denetimidir.
 alter role nakgo_backup set default_transaction_read_only = on;
 alter role nakgo_backup set statement_timeout = '15min';
 alter role nakgo_backup set lock_timeout = '30s';
 alter role nakgo_backup set idle_in_transaction_session_timeout = '20min';
-grant usage on schema public, private to nakgo_backup;
-grant select on all tables in schema public, private to nakgo_backup;
-grant select on all sequences in schema public, private to nakgo_backup;
-grant usage on schema auth, storage to nakgo_backup;
-grant select on auth.users, auth.identities to nakgo_backup;
-do $$ begin if to_regclass('auth.mfa_factors') is not null then execute 'grant select on auth.mfa_factors to nakgo_backup'; end if; end $$;
-do $$ begin if to_regclass('auth.schema_migrations') is not null then execute 'grant select on auth.schema_migrations to nakgo_backup'; end if; end $$;
-do $$ begin if to_regclass('storage.buckets') is not null then execute 'grant select on storage.buckets to nakgo_backup'; end if; end $$;
-do $$ begin if to_regclass('storage.objects') is not null then execute 'grant select on storage.objects to nakgo_backup'; end if; end $$;
--- Yeni tablolar için varsayılan yetki VERİLMEZ: yeni tablo eklendiğinde yedek "yetki yok" diye durur (bilinçli kırılma).
