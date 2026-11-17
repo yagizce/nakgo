@@ -37,6 +37,15 @@
     "private.document_object_access(p_path text, p_action text)": {"roles": ["authenticated"], "why": "eski taşıyıcı belge Storage politikaları"},
     "private.is_document_reviewer()": {"roles": ["authenticated"], "why": "eski taşıyıcı belge tablolarının RLS politikaları"}
   },
+  "migration_execute": {
+    "20261117000000_legal_archive.sql": {
+      "why": "#125 yasal arşiv yönetici paneli; fonksiyonlar AAL2 ve legal_access yetkisini içeride denetler. Migration dosyası depoda yoksa yalnız veritabanında varsa doğrulanır; dosya depoya girince zorunlu olur.",
+      "functions": {
+        "nakgo_legal_page(p_section text, p_offset integer, p_query jsonb)": {"roles": ["authenticated"]},
+        "nakgo_legal_action(p_action text, p_data jsonb)": {"roles": ["authenticated"]}
+      }
+    }
+  },
   "errors": {
     "23505": "profiles: aynı anda iki ilk giriş; istemci profili yeniden okur",
     "54000": "listings: yayındaki ilan sınırı aşıldı; istemci kullanıcıya özel mesaj gösterir",

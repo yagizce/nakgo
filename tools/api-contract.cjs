@@ -2,6 +2,7 @@
  *  1. İstemci ↔ sözleşme: src/js/cloud.js'in çağırdığı RPC'ler, argümanlar, tablolar ve kolonlar
  *     supabase/contract/v0.json'daki listeyle aynı mı?
  *  2. Sözleşme ↔ veritabanı: migration'lardan kurulan şemada her RPC aynı imza, dönüş tipi ve rol yetkisiyle var mı;
+ *     migration'a bağlı yetkiler (migration_execute) dosya depodaysa zorunlu, değilse varsa doğrulanır;
  *     tablo/kolon yetkileri istemcinin ihtiyacını karşılıyor mu, yasak kolonlar kapalı mı; sözleşme dışında
  *     anon/authenticated'a açılmış fonksiyon ya da tablo var mı?
  * Motor db-lib.cjs ile seçilir (PGlite veya NAKGO_PG_HOST ile yerel PostgreSQL). Uzak veritabanına bağlanmaz. */
@@ -64,6 +65,19 @@ async function databaseSide(db){
   const allowed=new Set();
   for(const n of Object.keys(contract.rpc))for(const r of contract.rpc[n].roles)allowed.add('public.'+n+' '+r);
   for(const [sig,v] of Object.entries(contract.internal_execute))for(const r of v.roles)allowed.add((sig.includes('.')?sig.replace(/\(.*$/,''):'public.'+sig.replace(/\(.*$/,''))+' '+r);
+  // Migration'a bağlı yetkiler: migration dosyası depoda varsa ZORUNLU; yoksa isteğe bağlı (veritabanında varsa imza ve
+  // roller birebir doğrulanır, yoksa beklenmez). Böylece ayrı bir PR'daki migration (ör. #125) birleşmeden önce de
+  // geri yüklenen production verisi doğrulanabilir; birleştiği anda kural kendiliğinden zorunlu olur.
+  for(const [file,spec] of Object.entries(contract.migration_execute||{})){
+    const required=presentMigrations?presentMigrations.has(file):fs.existsSync(path.join(root,'supabase/migrations',file));
+    for(const [sig,v] of Object.entries(spec.functions)){
+      const name=sig.replace(/\(.*$/,''),args=sig.slice(sig.indexOf('(')+1,-1);
+      const fns=await q(`select pg_get_function_identity_arguments(p.oid) a from pg_proc p where p.pronamespace='public'::regnamespace and p.proname=$1`,[name]);
+      if(!fns.length){ok(!required,name+': '+file+' depoda var ama fonksiyon veritabanında yok');continue;}
+      ok(fns.length===1&&fns[0].a===args,name+': imza sözleşmeyle uyuşmuyor: '+fns.map(f=>f.a).join(' | '));
+      for(const r of v.roles)allowed.add('public.'+name+' '+r);
+    }
+  }
   const exposed=await q(`select n.nspname||'.'||p.proname||' '||r.rolname k from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     cross join (values('anon'),('authenticated')) r(rolname) where n.nspname in('public','private') and p.prokind='f'
     and has_function_privilege(r.rolname,p.oid,'execute') order by 1`);
@@ -94,8 +108,9 @@ async function databaseSide(db){
 }
 
 /** İstemci kaynağını (verilmezse src/js/cloud.js) ve/veya hazır bir veritabanını denetler; {checks,fails} döner. */
-async function check({client=true,db=null,clientSource=null}={}){
-  fails=[];checks=0;
+let presentMigrations=null;
+async function check({client=true,db=null,clientSource=null,migrationsPresent=null}={}){
+  fails=[];checks=0;presentMigrations=migrationsPresent?new Set(migrationsPresent):null;
   if(client){source=clientSource??fs.readFileSync(path.join(root,'src/js/cloud.js'),'utf8');clientSide();}
   if(db)await databaseSide(db);
   return {checks,fails};

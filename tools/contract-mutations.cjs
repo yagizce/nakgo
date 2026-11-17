@@ -37,6 +37,11 @@ const db_mutations=[
   ['favori tablosuna doğrudan yazma yetkisi açılır',`grant insert on public.listing_favorites to authenticated;`,[S,C]],
   ['favori tablosuna doğrudan yazma tamamen açılır',`grant insert on public.listing_favorites to authenticated; create policy mutation_fav on public.listing_favorites for insert to authenticated with check (true);`,[S,C,F]],
   ['RLS kapatılır',`alter table public.route_alerts disable row level security;`,[S,C]],
+  // Migration'a bağlı (#125) yetkiler: dosya depoda yokken bile veritabanında beliren fonksiyon birebir doğrulanır.
+  ['#125 fonksiyonu yanlış imzayla belirir',`create function public.nakgo_legal_action(p_action text) returns jsonb language sql as 'select null::jsonb';
+    revoke all on function public.nakgo_legal_action(text) from public; grant execute on function public.nakgo_legal_action(text) to authenticated;`,[S,C]],
+  ['#125 fonksiyonu anon\'a açık belirir',`create function public.nakgo_legal_page(p_section text,p_offset integer default 0,p_query jsonb default '{}') returns jsonb language sql as 'select null::jsonb';
+    revoke all on function public.nakgo_legal_page(text,integer,jsonb) from public; grant execute on function public.nakgo_legal_page(text,integer,jsonb) to anon,authenticated;`,[S,C]],
   ['okuma politikası silinir',`drop policy listings_read on public.listings;`,[S,F]],
   ['istemcinin okuduğu kolon silinir',`alter table public.listings drop column contact_consent cascade;`,[S,C,F]],
   ['yalnız şema değişir (indeks)',`create index mutation_note on public.listings(note);`,[S]],

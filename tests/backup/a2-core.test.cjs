@@ -75,14 +75,17 @@ test('S3Store (SigV4) yerel taklide karşı',async()=>{
 
 test('kapılı silme: fail-closed',async()=>{
   const now=new Date('2026-12-01T00:00:00Z');
-  const objects=[{key:'db/old',last_modified:'2026-11-10T00:00:00Z'},{key:'db/new',last_modified:'2026-11-25T00:00:00Z'}];
+  const recent=[1,2,3,4].map(i=>({key:'db/v'+i,last_modified:`2026-11-${26+i>30?30:26+i}T0${i}:00:00Z`}));
+  const objects=[{key:'db/old',last_modified:'2026-11-10T00:00:00Z'},{key:'db/new',last_modified:'2026-11-25T00:00:00Z'},...recent];
+  const coverage={verified:['db/old','db/new',...recent.map(o=>o.key)]};
   const ok={enabled:true,capabilityVerified:true,openEvents:0,anchorsOk:true};
-  assert.equal(D.plan({objects,now}).allowed,false,'varsayılan kapalı');
+  assert.equal(D.plan({objects,now,coverage}).allowed,false,'varsayılan kapalı');
   for(const [k,v] of [['enabled',false],['capabilityVerified',false],['openEvents',1],['openEvents',undefined],['anchorsOk',false]]){
-    const p=D.plan({objects,now,gate:{...ok,[k]:v}});
+    const p=D.plan({objects,now,gate:{...ok,[k]:v},coverage});
     assert.equal(p.allowed,false,k);assert.deepEqual(p.delete,[]);
   }
-  const p=D.plan({objects,now,gate:ok});
+  assert.equal(D.plan({objects,now,gate:ok}).allowed,false,'kapsama bilinmiyorsa silme yok');
+  const p=D.plan({objects,now,gate:ok,coverage});
   assert.deepEqual(p.delete,['db/old']);
   const store=new MemoryStore({lockDays:14,lockPrefixes:['db/'],clock:()=>now});
   store.objects.set('db/old',{body:Buffer.from('x'),created:new Date('2026-11-10T00:00:00Z')});
