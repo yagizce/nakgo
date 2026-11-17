@@ -28,7 +28,8 @@ Supabase'te `postgres` süper kullanıcı değildir. Yalnız bir rolden geri alm
 | `lo_create`, `lo_creat`, `lo_from_bytea`, `lowrite`, `lo_put` | Rolün sahibi olduğu büyük nesne oluşturur; veritabanında kalıcı yer tüketir | Yazılabilir işlemde başarılı; `default_transaction_read_only` açıkken "cannot execute lo_create() in a read-only transaction" | (1) Rol varsayılanı salt okunur işlem. (2) A2 koruması: `pg_largeobject_metadata` boş değilse yedek DURUR ve izleme uyarısı üretir; tek kalıcı iz böylece görünür. (3) Bağlantı sınırı 2, `statement_timeout` 15 dk. |
 | `pg_logical_emit_message` | WAL'a mesaj yazar (tabloya değil); mantıksal kod çözme kullanan bir tüketici mesajları isterse görür | Salt okunur işlemde **de** başarılı | Kalıcı tablo verisi değiştirmez. Supabase Realtime'ın mesajları işleyip işlemediği V7'de denetlenir. |
 | TEMP (geçici tablo) | Oturum ömrünce geçici tablo; disk kullanımı | Salt okunur işlemde engellenir | Oturum bitince silinir; `search_path` kuralı (`pg_temp` en sonda) A1'de. |
-| `pg_notify`, danışma kilitleri, `set_config` | Oturum içi; kalıcı değişiklik yok | — | Bağlantı sınırı, zaman aşımları. |
+| Oturum düzeyi danışma kilitleri (`pg_advisory_lock`) | Uygulamanın kullandığı anahtarları (ör. `7291`: yönetici hesap işlemleri; `hashtextextended(<kullanıcı>, 7290)`) tutarak ilgili RPC'leri **bekletebilir** (erişilebilirlik) | — | Veri değiştirmez. Oturum kilidi işlem dışı boşta oturumda da kalır; `idle_in_transaction_session_timeout` bunu kesmez. Önlem yalnız parolanın korunması ve şüphede `pg_terminate_backend` (postgres) ile oturumu kapatmak. |
+| `pg_notify`, `set_config` | Oturum içi; uygulama `LISTEN` kullanmıyor (migration'larda yok) | — | Bağlantı sınırı, zaman aşımları. |
 
 **Neden bu kabul edilebilir:** Bu yolların hiçbiri kullanıcı verisini değiştirmez ya da veritabanı dışına veri taşımaz.
 Kötüye kullanım için yedek rolünün parolası gerekir; parola yalnız GitHub ortam gizlisindedir. En kötü durum disk/WAL

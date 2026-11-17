@@ -8,8 +8,10 @@ Araç: `tools/backup/privilege-audit.cjs`. Yalnız katalog okur, hiçbir şey ya
 |---|---|---|
 | Rol özellikleri | LOGIN, BYPASSRLS, süper kullanıcı değil, CREATEROLE/CREATEDB/REPLICATION yok, bağlantı sınırı 1–2 | Muaf tutulamaz |
 | Rol üyelikleri (dolaylı dahil) | **Hiçbiri** (`pg_read_all_data` dahil) | Muaf tutulamaz |
+| Rolün üyeleri | INHERIT ya da SET seçenekli üye yok (dolaylı dahil). Hariç: rolü oluşturanın PG16+ otomatik ADMIN-yalnız üyeliği, süper kullanıcılar, şema sahibinin yetkisini zaten taşıyanlar | Muaf tutulamaz (`role_has_members`) |
+| Görünüm üzerinden okuma | `public`/`private`'ta rolün okuyabildiği, `security_invoker` olmayan görünüm ya da materyalize görünüm tam şemalar dışındaki bir tabloya dayanmamalı (ör. `public.v → auth.sessions`) | Muaf tutulamaz (`view_reads_outside_scope`) |
 | Tam şemalar dışında okuma | `public`/`private` dışında, şema USAGE + SELECT ile gerçekten okunabilen tablo yok (ör. `auth.sessions`) | Muaf tutulamaz (`read_outside_scope`) |
-| Dışa aktarma fonksiyonları | `ops/backup/export-functions.json` sabitiyle aynı gövde/ayar/dil/oynaklık/sonuç; sahibi şemanın sahibi; EXECUTE yalnız yedek rolünde (PUBLIC, API rolleri, üyelik yolu yok) | Muaf tutulamaz (`export_function_changed`); uyarsa bilgi |
+| Dışa aktarma fonksiyonları | `ops/backup/export-functions.json` sabitiyle aynı gövde/ayar/dil/oynaklık/sonuç; sahibi şemanın sahibi; EXECUTE yalnız yedek rolünde (PUBLIC, API rolleri, üyelik yolu yok); süper kullanıcı ve şema sahibi dışında fiilen çağırabilen başka rol yok | Muaf tutulamaz (`export_function_changed`); uyarsa bilgi |
 | Ağ fonksiyonları | `net.*` (pg_net), `http*`, `dblink*` çağrılamaz | Muaf tutulamaz (`network_function`) |
 | PUBLIC `pg_catalog` yazma yolları | `lo_create`, `lo_from_bytea`, `lowrite`, `pg_logical_emit_message`, TEMP | Bilgi (`accepted_residual`); süper kullanıcı olmadan kapatılamaz, bkz. [side-channels.md](side-channels.md) |
 | Veritabanında CREATE | Yok | Muaf tutulamaz |

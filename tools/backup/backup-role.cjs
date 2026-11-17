@@ -66,6 +66,12 @@ async function verifyRole(query,{role,scope=loadScope()}){
   if(attr.rolsuper)problems.push('rol süper kullanıcı olmamalı');
   const ms=await q(`select r.rolname from pg_auth_members m join pg_roles r on r.oid=m.roleid where m.member=(select oid from pg_roles where rolname=$1) order by 1`,[role]);
   for(const m of ms)problems.push('beklenmeyen üyelik: '+m.rolname);
+  // Yalnız yetki veren (INHERIT/SET) üyelikler; rolü oluşturanın otomatik ADMIN üyeliği ve şema sahibi hariç (privilege-audit ile aynı kural).
+  for(const m of await q(`with recursive m(oid) as (select member from pg_auth_members where roleid=(select oid from pg_roles where rolname=$1) and (inherit_option or set_option)
+      union select am.member from pg_auth_members am join m on am.roleid=m.oid where am.inherit_option or am.set_option)
+      select distinct r.rolname from m join pg_roles r on r.oid=m.oid
+      where not r.rolsuper and not pg_has_role(r.oid,(select nspowner from pg_namespace where nspname='private'),'USAGE') order by 1`,[role]))
+    problems.push('yedek rolünün üyesi olmamalı: '+m.rolname);
   for(const s of scope.full_schemas){
     if(!(await q(`select has_schema_privilege($1,$2,'USAGE') ok`,[role,s]))[0].ok)problems.push('şema kullanımı yok: '+s);
     for(const r of await q(`select c.oid::regclass::text n,c.relkind::text k,

@@ -260,6 +260,17 @@ test('uçtan uca boru hattı (gerçek PostgreSQL)',async t=>{
         assert.equal((await restoreAndVerify({bundleDir:out,pgBin:process.env.NAKGO_PG_BIN})).status,'ok');
       }finally{await db.exec(`alter table auth.users drop column recovery_token, drop column confirmation_token`);}
     });
+    await t.test('kayıpsızlık: türü kayıplı dönüşen sütun içerik denetiminde yakalanır (sayılar tutsa da)',async()=>{
+      const out=path.join(dir,'lossy');
+      assert.equal((await snapshotDump({conn,scope,outDir:out,allowLocal:true,pgBin:process.env.NAKGO_PG_BIN})).status,'ok');
+      const ok=await restoreAndVerify({bundleDir:out,pgBin:process.env.NAKGO_PG_BIN});
+      assert.ok(ok.checks.some(c=>c.code==='b_content'&&c.ok),JSON.stringify(ok.checks));
+      const f=path.join(out,'B.pre.sql');
+      fs.writeFileSync(f,fs.readFileSync(f,'utf8').replace(/"email_confirmed_at" timestamp with time zone/,'"email_confirmed_at" date'));
+      const v=await restoreAndVerify({bundleDir:out,pgBin:process.env.NAKGO_PG_BIN});
+      assert.ok(v.checks.some(c=>c.code==='counts'&&c.ok),'sayılar tutar');
+      assert.ok(v.checks.some(c=>c.code==='b_content'&&!c.ok&&JSON.stringify(c.detail).includes('auth.users')),JSON.stringify(v.checks.filter(c=>!c.ok)));
+    });
     await t.test('bozma: B veri dosyası değiştirilirse geri yükleme düşer',async()=>{
       const out=path.join(dir,'bmod');
       assert.equal((await snapshotDump({conn,scope,outDir:out,allowLocal:true,pgBin:process.env.NAKGO_PG_BIN})).status,'ok');

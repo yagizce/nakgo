@@ -110,6 +110,11 @@ test('veritabanı denetimleri',async t=>{
         assert.equal(n,Number((await db.query('select count(*) n from auth.users')).rows[0].n));
       });
     });
+    await t.test('security_invoker görünümü Auth\'a dayansa da rol okuyamaz: bulgu yok',async()=>{
+      await withRollback(db,`create view public.zz_inv with (security_invoker=true) as select id from auth.users; grant select on public.zz_inv to ${role}`,async()=>{
+        assert.equal((await evalNow()).decision,'ok');
+      });
+    });
     await t.test('denetim deterministik',async()=>{
       const x=await evalNow(),y=await evalNow();
       assert.equal(x.audit_sha256,y.audit_sha256);
@@ -132,6 +137,10 @@ test('veritabanı denetimleri',async t=>{
       ['dışa aktarma fonksiyonu silindi',`drop function private.nakgo_backup_storage_objects()`,'export_function_changed'],
       ['ağ fonksiyonu çağrılabilir (pg_net benzeri)',`create schema net; create function net.http_post(u text) returns bigint language sql as 'select 1'; grant usage on schema net to ${role}`,'network_function'],
       ['dblink benzeri fonksiyon',`create function public.dblink_exec(t text) returns text language sql as 'select t'`,'network_function'],
+      ['public görünümü üzerinden oturum okuma',`create view public.zz_sess as select * from auth.sessions; grant select on public.zz_sess to ${role}`,'view_reads_outside_scope'],
+      ['materyalize görünüm üzerinden Auth okuma',`create materialized view private.zz_mv as select id,email from auth.users; grant select on private.zz_mv to ${role}`,'view_reads_outside_scope'],
+      ['yedek rolünün üyesi olan rol (dışa aktarmayı çağırabilir)',`grant ${role} to ${other}`,'role_has_members'],
+      ['dışa aktarma fonksiyonu yedek rolünün üyesine dolaylı açık',`grant ${role} to ${other}`,'export_function_changed'],
       ['dolaylı üyelik',`grant authenticated to ${other}; grant ${other} to ${role}`,'membership'],
       ['şemada CREATE',`grant create on schema public to ${role}`,'schema_create'],
       ['dizi USAGE',`grant usage on sequence public.listings_id_seq to ${role}`,'sequence_write'],

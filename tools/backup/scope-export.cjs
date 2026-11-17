@@ -16,6 +16,9 @@ const {sha256}=require('./crypto.cjs');
 const qi=s=>'"'+String(s).replace(/"/g,'""')+'"';
 const qn=t=>t.split('.').map(qi).join('.');
 const fileOf=t=>'B/'+t+'.jsonl';
+/** to_jsonb'nin metin çıktısını etkileyen oturum ayarları. Dışa aktarma (S1) ve geri yükleme içerik denetimi aynı
+ * ayarlarla çalışır; böylece geri yüklenen satırların yeniden dışa aktarımı dosyayla bayt bayt karşılaştırılabilir. */
+const EXPORT_SETTINGS=`set local timezone='UTC'; set local datestyle='ISO, YMD'; set local intervalstyle='postgres'; set local extra_float_digits=1;`;
 
 async function tableOid(c,t){
   const [ns,rel]=t.split('.');
@@ -125,4 +128,23 @@ async function loadScope(db,{bundleDir,files,batch=500}){
   }
 }
 
-module.exports={scopeDDL,exportScope,loadScope,fileOf};
+/** Kayıpsızlık denetimi: geri yüklenen tablonun aynı ayarlarla yeniden dışa aktarımı, dosyadaki satırlarla (çoklu küme
+ * olarak) birebir aynı olmalı. Yalnız satır sayısı değil içerik de karşılaştırılır; tür dönüşümünde kayıp yakalanır. */
+async function compareScope(db,{bundleDir,files}){
+  const diffs=[];
+  await db.exec('begin');
+  try{
+    await db.exec(EXPORT_SETTINGS);
+    for(const [t,f] of Object.entries(files)){
+      const want=fs.readFileSync(path.join(bundleDir,f.file),'utf8').split('\n').filter(Boolean).sort();
+      const got=(await db.query(`select to_jsonb(x)::text j from ${qn(t)} x`)).rows.map(r=>r.j).sort();
+      if(sha256(want.join('\n'))!==sha256(got.join('\n'))){
+        const g=new Set(got),w=new Set(want);
+        diffs.push({table:t,missing:want.filter(l=>!g.has(l)).length,extra:got.filter(l=>!w.has(l)).length});
+      }
+    }
+  }finally{await db.exec('rollback');}
+  return diffs;
+}
+
+module.exports={scopeDDL,exportScope,loadScope,compareScope,fileOf,EXPORT_SETTINGS};

@@ -20,7 +20,7 @@
 const fs=require('node:fs'),path=require('node:path'),{spawn}=require('node:child_process');
 const {SNAPSHOT_SQL}=require('../db-lib.cjs');
 const {sha256}=require('./crypto.cjs');
-const {scopeDDL,exportScope}=require('./scope-export.cjs');
+const {scopeDDL,exportScope,EXPORT_SETTINGS}=require('./scope-export.cjs');
 
 const isLocalHost=h=>typeof h==='string'&&(h.startsWith('/')||['localhost','127.0.0.1','::1'].includes(h));
 
@@ -219,6 +219,9 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
       fs.writeFileSync(path.join(outDir,'B.pre.sql'),ddl.pre,{mode:0o600});
       fs.writeFileSync(path.join(outDir,'B.post.sql'),ddl.post,{mode:0o600});
       bSkipped=ddl.skipped;
+      // to_jsonb çıktısını belirleyen ayarlar (geri yükleme içerik denetimiyle aynı). Parmak izinden SONRA: parmak izi
+      // ifadeleri oturum ayarlarıyla biçimlenir ve geri yüklenen kopyada varsayılan ayarlarla hesaplanır.
+      await c.query(EXPORT_SETTINGS);
       bFiles=await exportScope(c,{tables:scoped,outDir});
       for(const [t,f] of Object.entries(bFiles))counts[t]=f.rows;
     }

@@ -77,7 +77,12 @@ const MUTATIONS=[
   ["tools/backup/backup-role.cjs", "else if(!r.ok)problems.push('dışa aktarma fonksiyonu çağrılamıyor: '+f);", ""],
   ["tools/backup/scope-export.cjs", "if(sha256(buf)!==f.sha256)throw", "if(false)throw"],
   ["tools/backup/dump.cjs", "if(unreadable.length||notCallable.length)return", "if(unreadable.length)return"],
-  ["tools/backup/dump.cjs", "if(included.includes(q)&&gc[q])guards.push", "if(false)guards.push"]
+  ["tools/backup/dump.cjs", "if(included.includes(q)&&gc[q])guards.push", "if(false)guards.push"],
+  // B7-A5 bağımsız inceleme düzeltmeleri
+  ["tools/backup/privilege-audit.cjs", "for(const m of a.members||[])nw('role_has_members',m);", ""],
+  ["tools/backup/privilege-audit.cjs", "for(const v of a.outside_views||[])nw('view_reads_outside_scope',v);", ""],
+  ["tools/backup/privilege-audit.cjs", "if(fact.other_callers&&fact.other_callers.length)d.push", "if(false)d.push"],
+  ["tools/backup/scope-export.cjs", "if(sha256(want.join('\\n'))!==sha256(got.join('\\n'))){", "if(false){"]
 ];
 // Her mutasyon yalnız o dosyayı sınayan test dosyalarıyla denenir (gerçek migration'lı testler uzun sürer).
 const T={a1:'tests/backup/a1-privilege.test.cjs',a2:'tests/backup/a2-core.test.cjs',a3:'tests/backup/a3-legal.test.cjs',a4:'tests/backup/a4-orchestrator.test.cjs',mon:'tests/backup/a4-monitor.test.cjs'};

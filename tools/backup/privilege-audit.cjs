@@ -134,7 +134,7 @@ async function fingerprintFunction(db,oid,role,{depth=3,seen=new Set()}={}){
   return record;
 }
 
-async function audit(db,{role}){
+async function audit(db,{role,fullSchemas=require('./backup-role.cjs').loadScope().full_schemas}={}){
   const r=await rows(db,`select rolname,rolsuper,rolinherit,rolcreaterole,rolcreatedb,rolcanlogin,rolreplication,rolbypassrls,rolconnlimit,
       rolvaliduntil::text valid_until from pg_roles where rolname=$1`,[role]);
   if(!r.length)return {role,exists:false};
@@ -147,6 +147,14 @@ async function audit(db,{role}){
   const membershipGrants=(await rows(db,`select r.rolname role,m.admin_option,m.inherit_option,m.set_option
       from pg_auth_members m join pg_roles r on r.oid=m.roleid where m.member=(select oid from pg_roles where rolname=$1)
       order by 1,2,3,4`,[role]));
+  // Rolün ÜYELERİ (dolaylı dahil): INHERIT ya da SET seçenekli üye, yedek rolünün okuma ve dışa aktarma yetkisini kullanır.
+  // Hariç: yalnız ADMIN seçenekli üyelik (PG16+: CREATEROLE ile rolü oluşturan rol buna otomatik sahip olur; yetki
+  // vermez), süper kullanıcılar ve şemaların sahibinin yetkilerini zaten taşıyan roller (Supabase: postgres).
+  const members=(await rows(db,`with recursive m(oid) as (
+      select member from pg_auth_members where roleid=(select oid from pg_roles where rolname=$1) and (inherit_option or set_option)
+      union select am.member from pg_auth_members am join m on am.roleid=m.oid where am.inherit_option or am.set_option)
+    select distinct r.rolname from m join pg_roles r on r.oid=m.oid
+    where not r.rolsuper and not pg_has_role(r.oid,(select nspowner from pg_namespace where nspname='private'),'USAGE') order by 1`,[role])).map(x=>x.rolname);
   const database=(await rows(db,`select has_database_privilege($1,current_database(),'CREATE') "create",
       has_database_privilege($1,current_database(),'TEMP') temp,has_database_privilege($1,current_database(),'CONNECT') connect`,[role]))[0];
   const schemas=await rows(db,`select nspname schema,has_schema_privilege($1,oid,'USAGE') usage,has_schema_privilege($1,oid,'CREATE') "create"
@@ -169,6 +177,16 @@ async function audit(db,{role}){
   const functions=[];
   for(const c of callable)functions.push(await fingerprintFunction(db,c.oid,role));
   const exportFunctions=await exportFunctionFacts(db,role);
+  // Tam şemalardaki, rolün okuyabildiği ve sahibinin yetkisiyle çalışan görünümler (security_invoker değil) ile
+  // materyalize görünümler, tam şemalar dışındaki bir tabloya dayanıyorsa (ör. public.v → auth.sessions) rol o veriyi
+  // görünüm üzerinden okur: dar rolün sınırı delinir.
+  const outsideViews=(await rows(db,`select n.nspname||'.'||c.relname v from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname = any($2::text[]) and c.relkind in ('v','m') and has_table_privilege($1,c.oid,'SELECT')
+      and not (c.relkind='v' and exists(select 1 from unnest(coalesce(c.reloptions,'{}'::text[])) o where o ~* '^security_invoker=(true|on|1|yes)$'))
+      and exists(select 1 from pg_rewrite rw join pg_depend d on d.classid='pg_rewrite'::regclass and d.objid=rw.oid and d.refclassid='pg_class'::regclass
+        join pg_class rc on rc.oid=d.refobjid join pg_namespace rn on rn.oid=rc.relnamespace
+        where rw.ev_class=c.oid and rc.oid<>c.oid and rn.nspname <> all($2::text[]) and rn.nspname not in ('pg_catalog','information_schema'))
+    order by 1`,[role,fullSchemas])).map(x=>x.v);
   // Rolün çağırabildiği yazma/dış bağlantı yan yolları. Ağ: net şeması (pg_net), http uzantısı, dblink. Kalıcı yazma:
   // büyük nesne fonksiyonları ve WAL mesajı (pg_catalog, PUBLIC; süper kullanıcı olmadan geri alınamaz).
   const sideChannels=await rows(db,`select n.nspname||'.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||')' id,
@@ -183,8 +201,8 @@ async function audit(db,{role}){
     role,exists:true,
     attributes:{super:a.rolsuper,inherit:a.rolinherit,createrole:a.rolcreaterole,createdb:a.rolcreatedb,login:a.rolcanlogin,
       replication:a.rolreplication,bypassrls:a.rolbypassrls,connlimit:a.rolconnlimit,valid_until:a.valid_until},
-    memberships,membership_grants:membershipGrants,database,schemas,tables_write:tablesWrite,tables_read:tablesRead,sequences,definer_functions:functions,
-    export_functions:exportFunctions,side_channels:sideChannels
+    memberships,membership_grants:membershipGrants,members,database,schemas,tables_write:tablesWrite,tables_read:tablesRead,sequences,definer_functions:functions,
+    export_functions:exportFunctions,side_channels:sideChannels,outside_views:outsideViews
   };
 }
 
@@ -205,13 +223,18 @@ async function exportFunctionFacts(db,role,{pins=loadExportPins()}={}){
     const f=(await rows(db,`select p.prosrc src,l.lanname lang,p.prosecdef secdef,p.provolatile::text volatility,pg_get_function_result(p.oid) result,
         coalesce(p.proconfig,'{}'::text[]) config,p.proowner=n.nspowner owner_is_schema_owner,
         array(select case when a.grantee=0 then 'PUBLIC' else pg_get_userbyid(a.grantee)::text end from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
-          where a.privilege_type='EXECUTE' and a.grantee<>p.proowner order by 1)::text[] execute_grantees
+          where a.privilege_type='EXECUTE' and a.grantee<>p.proowner order by 1)::text[] execute_grantees,
+        -- Fonksiyonu fiilen çağırabilen roller (PUBLIC, doğrudan, üyelik; yedek rolünün üyeleri dahil). Hariç: süper
+        -- kullanıcılar, yedek rolünün kendisi ve sahibin yetkilerini zaten taşıyan roller (onlar Auth'u doğrudan okuyabilir).
+        array(select r.rolname::text from pg_roles r where not r.rolsuper and r.rolname<>$3
+          and not pg_has_role(r.oid,p.proowner,'USAGE') and has_function_privilege(r.oid,p.oid,'EXECUTE')
+          and has_schema_privilege(r.oid,n.oid,'USAGE') order by 1)::text[] other_callers
       from pg_proc p join pg_namespace n on n.oid=p.pronamespace join pg_language l on l.oid=p.prolang
-      where n.nspname=$1 and p.proname=$2 and p.pronargs=0`,[m[1],m[2]]))[0];
+      where n.nspname=$1 and p.proname=$2 and p.pronargs=0`,[m[1],m[2],role]))[0];
     if(!f){out.push({id:pin.id,present:false});continue;}
     out.push({id:pin.id,present:true,src_sha256:sha256(normalizeBody(f.src)),lang:f.lang,secdef:f.secdef,volatility:f.volatility,
       result:f.result,config:[...f.config].sort(),owner_is_schema_owner:f.owner_is_schema_owner,execute_grantees:f.execute_grantees,
-      execute_ok:f.execute_grantees.length===1&&f.execute_grantees[0]===role});
+      execute_ok:f.execute_grantees.length===1&&f.execute_grantees[0]===role,other_callers:f.other_callers});
   }
   return out;
 }
@@ -222,6 +245,7 @@ function exportPinDiff(fact,pin){
   for(const k of PIN_FIELDS)if(canonical(fact[k])!==canonical(pin[k]))d.push(k);
   if(!fact.owner_is_schema_owner)d.push('sahip şema sahibi değil');
   if(!fact.execute_ok)d.push('EXECUTE yalnız yedek rolünde olmalı: '+fact.execute_grantees.join(','));
+  if(fact.other_callers&&fact.other_callers.length)d.push('başka roller çağırabiliyor: '+fact.other_callers.join(','));
   return d;
 }
 
@@ -256,6 +280,8 @@ function evaluate(a,{allowlist={version:1,entries:[]},exportPins=loadExportPins(
   if(!(at.connlimit>0&&at.connlimit<=ROLE_PROFILE.connlimitMax))nw('role_attribute','connlimit='+at.connlimit);
   // Her üyelik (doğrudan ya da dolaylı, pg_read_all_data dahil) muaf tutulamaz: rol yalnız doğrudan yetkilerle okur.
   for(const m of a.memberships)nw('membership',m);
+  // Yedek rolüne üye olan her rol (dolaylı dahil) onun yetkileriyle Auth verisini dışa aktarabilir: muaf tutulamaz.
+  for(const m of a.members||[])nw('role_has_members',m);
   if(a.database.create)nw('database_create','CREATE');
   for(const s of a.schemas)if(s.create)nw('schema_create',s.schema);
   for(const t of a.tables_write)nw('table_write',t.rel+':'+t.privs.join(','));
@@ -263,6 +289,7 @@ function evaluate(a,{allowlist={version:1,entries:[]},exportPins=loadExportPins(
   // aktarma fonksiyonlarıyla alınır; doğrudan okuma muaf tutulamaz.
   const usable=new Set(a.schemas.filter(s=>s.usage).map(s=>s.schema));
   for(const t of a.tables_read){const ns=t.split('.')[0];if(!fullSchemas.includes(ns)&&usable.has(ns))nw('read_outside_scope',t);}
+  for(const v of a.outside_views||[])nw('view_reads_outside_scope',v);
   for(const s of a.sequences)nw('sequence_write',s.seq);
   for(const s of a.side_channels||[]){
     if(s.kind==='network')nw('network_function',s.id);

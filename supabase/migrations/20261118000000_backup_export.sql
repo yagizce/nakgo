@@ -88,14 +88,15 @@ end $$;
 revoke all on function private.nakgo_backup_auth_users(),private.nakgo_backup_auth_identities(),private.nakgo_backup_auth_mfa_factors(),
  private.nakgo_backup_auth_schema_migrations(),private.nakgo_backup_storage_buckets(),private.nakgo_backup_storage_objects(),
  private.nakgo_backup_guard_counts() from public;
--- Supabase varsayılan yetkileri ileride private'a da uygulanırsa diye: API rollerinden de açıkça geri alınır.
-do $$ declare r text; begin
- foreach r in array array['anon','authenticated','service_role'] loop
-  if exists(select 1 from pg_roles where rolname=r) then
-   execute format('revoke all on function private.nakgo_backup_auth_users(),private.nakgo_backup_auth_identities(),private.nakgo_backup_auth_mfa_factors(),
-    private.nakgo_backup_auth_schema_migrations(),private.nakgo_backup_storage_buckets(),private.nakgo_backup_storage_objects(),
-    private.nakgo_backup_guard_counts() from %I',r);
-  end if;
+-- Sahip dışındaki HER EXECUTE yetkisi geri alınır: PUBLIC'in yanında, projede tanımlı olabilecek varsayılan yetkilerle
+-- (ör. anon/authenticated/service_role ya da başka bir rol) gelenler de. Yedek rolü EXECUTE'u yalnız rol betiğiyle alır.
+do $$ declare r record; begin
+ for r in select p.oid::regprocedure f,a.grantee g from pg_catalog.pg_proc p
+   cross join lateral pg_catalog.aclexplode(p.proacl) a
+   where p.pronamespace='private'::regnamespace and p.pronargs=0 and a.grantee<>p.proowner
+     and p.proname in ('nakgo_backup_auth_users','nakgo_backup_auth_identities','nakgo_backup_auth_mfa_factors',
+       'nakgo_backup_auth_schema_migrations','nakgo_backup_storage_buckets','nakgo_backup_storage_objects','nakgo_backup_guard_counts') loop
+  execute format('revoke all on function %s from %s',r.f,case when r.g=0 then 'public' else quote_ident(pg_catalog.pg_get_userbyid(r.g)) end);
  end loop;
 end $$;
 commit;

@@ -17,7 +17,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const {openDb,finish}=require('../db-lib.cjs');
 const {run,binPath,pgEnv,catalogFingerprint}=require('./dump.cjs');
-const {loadScope}=require('./scope-export.cjs');
+const {loadScope,compareScope}=require('./scope-export.cjs');
 
 const SUPABASE_ROLE_ATTRS={service_role:'nologin bypassrls'};
 
@@ -91,6 +91,11 @@ async function restoreAndVerify({bundleDir,pgBin,contractCheck=true,hooks={}}){
       if(got!==n)mism.push(`${t}: kaynak ${n}, geri yüklenen ${got}`);
     }
     mism.length?fail('counts',mism):pass('counts',Object.keys(source.counts).length+' tablo');
+    // B içeriği: geri yüklenen satırlar dosyadakiyle birebir aynı mı (yalnız sayı değil).
+    if(hasB){
+      const d=await compareScope(db,{bundleDir,files:source.b_files||{}});
+      d.length?fail('b_content',d):pass('b_content',Object.keys(source.b_files||{}).length+' tablo');
+    }
     // Yabancı anahtarlar
     const fks=await fkOrphans(db);
     const orphans=fks.filter(f=>f.orphans>0);

@@ -74,6 +74,9 @@ Yalnız yerel ve geçici bir veritabanına (db-lib). Production'a ya da herhangi
 
 **Kontroller:**
 - satır sayıları = S1;
+- B içeriği (`b_content`): geri yüklenen Auth/Storage satırlarının aynı oturum ayarlarıyla (`UTC`, `ISO`) yeniden
+  `to_jsonb` çıktısı, dosyadaki satırlarla çoklu küme olarak birebir aynı (tür dönüşümünde kayıp yakalanır; `json` türü
+  sütunlar dışa aktarmada zaten `jsonb` biçimine normalleşir ve bu fark görünmez);
 - her yabancı anahtar için yetim satır = 0 (NOT VALID olanlar dahil);
 - rolden bağımsız şema parmak izi = S1;
 - Auth sürümü = S1;
