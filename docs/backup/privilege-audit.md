@@ -71,3 +71,41 @@ Migration'lardan kurulan şemada:
 
 - PGlite: veritabanı düzeyinde CREATE testi atlanır. Geri alınmış bir işlemden sonra `pg_database` güncellemesi PGlite'ta hata veriyor; test PG16 ve PG17'de çalışır.
 - Supabase'in kendi `auth` ve `storage` fonksiyonları yerelde yok. Gerçek kapsam B7-B'deki T2 geçidinde denetlenir.
+
+## BYPASSRLS ve Supabase uygulanabilirliği (B7-B için AÇIK ENGEL)
+
+### PostgreSQL kuralı (yerelde doğrulandı)
+- PG15 ve öncesi: BYPASSRLS'li rolü yalnız süper kullanıcı oluşturabilir.
+- PG16 ve sonrası: CREATE ROLE için CREATEROLE gerekir; BYPASSRLS'i ise yalnız süper kullanıcı **ya da kendisi BYPASSRLS'e
+  sahip** bir rol verebilir. CREATEROLE tek başına yetmez.
+- Testle doğrulandı (`a1-privilege.test.cjs`, PG16.15 ve PG17.11): CREATEROLE'lü ama BYPASSRLS'siz rol `42501` alır;
+  CREATEROLE + BYPASSRLS'li, süper kullanıcı olmayan rol şablondaki `create role … bypassrls` satırını çalıştırabilir.
+
+### Supabase'te `postgres`
+- Süper kullanıcı değil; production'da BYPASSRLS'e sahip olduğu bildirildi. CREATEROLE'e sahip olduğu Supabase belgelerinden
+  anlaşılıyor ama production'da **sorgulanmadı** (yasak).
+- Supabase'in kendi bilgi bankası yedek rolü için SQL Editör'de (`postgres` ile) `create role … bypassrls` ve
+  `grant pg_read_all_data` önerir. Yani BYPASSRLS'li rol oluşturmak **büyük olasılıkla mümkün**. supautils'in bu konuda
+  özel kodu vardır (supautils sorun #78); gerçek davranış doğrulanmadı.
+- **Engel:** Supabase belgesine göre `postgres`, `auth` şemasında USAGE'ı *grant option olmadan* tutar; auth tablolarının
+  sahibi `supabase_auth_admin`, şemanın sahibi `supabase_admin`'dir. Bu yüzden şablondaki
+  `grant usage on schema auth, storage` ve `grant select on auth.users, auth.identities…` satırları hata vermeden
+  **etkisiz** kalır. Bu durum yerelde aynı sahiplik modeliyle taklit edildi: şablon hatasız biter, ama rol `auth.users`'ı
+  okuyamaz. Yeni `verifyRole` denetimi (`tools/backup/backup-role.cjs`) bunu yakalar. Ayrıca yedek çalışması da
+  `permissions` aşamasında durur, yani sessiz eksik yedek oluşmaz.
+- Sonuç: Mevcut şablon `public`/`private` için uygulanabilir. Auth/Storage kapsamı (B dökümü) Supabase'te bu haliyle
+  **uygulanamaz**. Sahte başarı ya da başka bir yetki varsayımı üretilmedi.
+
+### Seçenekler (karar sahibin; hiçbiri uygulanmadı)
+| Seçenek | Ne sağlar | Risk / bedel |
+|---|---|---|
+| A. `grant pg_read_all_data to nakgo_backup` (Supabase'in belgelediği yol) | Auth ve Storage dahil her şeyi okuyabilir | Kapsam çok geniş: oturumlar, yenileme belirteçleri, vault şifreli metinleri, cron vb. A1 her üyeliği "muaf tutulamaz" sayar. Kabul edilirse yalnız bu tek üyeliğe izin veren ayrı bir tasarım değişikliği, telafi edici önlemler (IP kısıtı, kısa geçerlilik, sık parola yenileme) ve ayrı onay gerekir. |
+| B. Otomatik yedek yalnız `public`/`private`; Auth için Supabase'in kendi yedekleri/PITR | En az yetki korunur | Auth kurtarması bizim tatbikatlarımızın dışında kalır; RPO ve doğrulama Supabase'e bağlı. |
+| C. `postgres`'in sahibi olduğu, yalnız kapsam sütunlarını döndüren SECURITY DEFINER dışa aktarma fonksiyonu | Dar kapsam | `postgres`'in auth tablolarında SELECT'i olduğu doğrulanmalı; pg_dump biçimi değil, ayrı içe aktarma yazılmalı; fonksiyon A1 izin listesine gerekçeyle girer. |
+| D. Supabase destek ekibinden grant option ile dar yetki istemek | En temiz | Sağlanması belirsiz. |
+
+### B7-B'de geçici bir Supabase projesinde (production/DEV DEĞİL, ayrı onayla) doğrulanacaklar
+- V4: `postgres` ile `create role … bypassrls` çalışıyor mu (supautils davranışı)?
+- V5: auth/storage `grant` satırları gerçekten etkisiz mi? (`verifyRole` çıktısı)
+- V6: seçilen seçenekle (A/B/C/D) `verifyRole` ve S1 uçtan uca temiz mi?
+Bu doğrulamalar tamamlanmadan ve seçenek seçilmeden production'da yedek rolü oluşturulmaz.

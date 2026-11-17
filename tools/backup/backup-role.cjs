@@ -4,7 +4,7 @@
  *   renderLiteral({role,password,validUntil})      → yalnız yerel testler için değerleri gömülü SQL
  *
  * Bu araç hiçbir uzak veritabanına bağlanmaz. Production'da rolün oluşturulması B7-D'de ayrı onayla, proje sahibinin
- * gözetiminde yapılır (bkz. docs/backup/runbook-role.md).
+ * gözetiminde yapılır (bkz. docs/backup/privilege-audit.md, "BYPASSRLS ve Supabase uygulanabilirliği").
  *
  * Güvenlik notu: default_transaction_read_only bir güvenlik sınırı değildir; oturum onu kapatabilir. Gerçek sınırlar
  * yalnız SELECT yetkisi, hiçbir role üyelik olmaması ve privilege-audit'in çağrılabilir SECURITY DEFINER denetimidir. */
@@ -43,7 +43,34 @@ function body(scope,role,{password,validUntil}){
 }
 const renderTemplate=(scope=loadScope(),role='nakgo_backup')=>body(scope,role,{password:":'backup_password'",validUntil:":'valid_until'"});
 const renderLiteral=({scope=loadScope(),role,password,validUntil='infinity'})=>body(scope,role,{password:lit(password),validUntil:lit(validUntil)});
+/** Rol oluşturulduktan HEMEN SONRA çalıştırılır: verilen yetkilerin gerçekten ETKİLİ olduğunu doğrular.
+ * Neden: GRANT veren rol yetkiyi "grant option" ile tutmuyorsa PostgreSQL hata vermez, yalnız uyarı verir ve hiçbir şey
+ * vermez. Supabase'te postgres, auth şemasında USAGE'ı grant option OLMADAN tutar; şablonun auth/storage satırları orada
+ * etkisiz kalır. Bu denetim o durumu "başarılı kurulum" sanılmadan yakalar. Boş liste = rol beklenen her şeyi okuyabiliyor. */
+async function verifyRole(query,{role,scope=loadScope()}){
+  const problems=[];
+  const q=async(sql,args)=>(await query(sql,args)).rows;
+  const attr=(await q(`select rolbypassrls,rolsuper,rolcanlogin from pg_roles where rolname=$1`,[role]))[0];
+  if(!attr)return ['rol yok: '+role];
+  if(!attr.rolbypassrls)problems.push('BYPASSRLS yok: pg_dump RLS\'li tablolarda durur');
+  if(attr.rolsuper)problems.push('rol süper kullanıcı olmamalı');
+  for(const s of scope.full_schemas){
+    if(!(await q(`select has_schema_privilege($1,$2,'USAGE') ok`,[role,s]))[0].ok)problems.push('şema kullanımı yok: '+s);
+    for(const r of await q(`select c.oid::regclass::text n,c.relkind::text k,
+        case when c.relkind='S' then has_sequence_privilege($1,c.oid,'SELECT') else has_table_privilege($1,c.oid,'SELECT') end ok
+        from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname=$2 and c.relkind in('r','p','S') order by 1`,[role,s]))
+      if(!r.ok)problems.push((r.k==='S'?'dizi':'tablo')+' okunamıyor: '+r.n);
+  }
+  for(const t of scope.tables){
+    const [schema]=t.name.split('.');
+    const reg=(await q(`select to_regclass($1)::text r`,[t.name]))[0].r;
+    if(!reg){if(t.required)problems.push('zorunlu tablo yok: '+t.name);continue;}
+    const ok=(await q(`select has_schema_privilege($1,$2,'USAGE') u,has_table_privilege($1,$3::regclass,'SELECT') s`,[role,schema,t.name]))[0];
+    if(!ok.u||!ok.s)problems.push('kapsam tablosu okunamıyor: '+t.name+(ok.u?'':' (şema kullanımı yok)'));
+  }
+  return problems;
+}
 const dropLiteral=role=>`drop owned by ${ident(role)}; drop role if exists ${ident(role)};`;
 
-module.exports={loadScope,renderTemplate,renderLiteral,dropLiteral};
+module.exports={loadScope,renderTemplate,renderLiteral,dropLiteral,verifyRole};
 if(require.main===module)process.stdout.write(renderTemplate());

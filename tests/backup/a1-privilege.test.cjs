@@ -227,3 +227,59 @@ test('veritabanı denetimleri',async t=>{
   }catch(e){primary=e;throw e;}
   finally{await finish(db,primary);await dropRoles([role,other]);}
 });
+
+/* BYPASSRLS uygulanabilirliği. Supabase'in sahiplik modeli YEREL olarak taklit edilir (gerçek Supabase'e bağlanılmaz):
+ *  - "postgres" benzeri rol: süper kullanıcı DEĞİL, CREATEROLE + BYPASSRLS; public/private nesnelerinin sahibi;
+ *  - auth şeması ve tabloları başka rollerin; "postgres" benzeri rol onlarda USAGE/SELECT'i grant option OLMADAN tutar.
+ * Bu, Supabase belgelerinde anlatılan durumdur; gerçek davranış B7-B'de geçici bir Supabase projesinde doğrulanır. */
+test('BYPASSRLS: PG16+ kuralı ve Supabase sahiplik modelinde şablonun etkisi',async t=>{
+  const {realPg}=require('./helpers.cjs');
+  if(!realPg()){t.skip('PGlite tek kullanıcılı; rol öznitelik kuralları gerçek PostgreSQL16/17 ile sınanır');return;}
+  const db=await migratedDb();
+  const sfx=uniqueRole('x').slice(2);
+  const R={pg:'sim_pg'+sfx,nobypass:'sim_nobypass'+sfx,schemaOwner:'sim_admin'+sfx,authOwner:'sim_auth_admin'+sfx,backup:'nakgo_backup_sim'+sfx,b2:'nakgo_backup_nb'+sfx};
+  let primary=null;
+  try{
+    const major=Number(/postgresql (\d+)/.exec(db.engine)[1]);
+    await db.exec(`create role ${R.pg} createrole bypassrls; create role ${R.nobypass} createrole; create role ${R.schemaOwner}; create role ${R.authOwner};`);
+    // public/private'ın sahibi "postgres" benzeri rol (Supabase'te migration'lar postgres ile çalışır).
+    await db.exec(`do $$ declare r record; begin
+      for r in select n.nspname s,c.relname t,c.relkind k from pg_class c join pg_namespace n on n.oid=c.relnamespace
+        where n.nspname in('public','private') and c.relkind in('r','p','v','m','S')
+          and not exists(select 1 from pg_depend d where d.classid='pg_class'::regclass and d.objid=c.oid and d.deptype in('a','i')) loop
+        execute format('alter %s %I.%I owner to ${R.pg}',case when r.k='S' then 'sequence' when r.k in('v') then 'view' when r.k='m' then 'materialized view' else 'table' end,r.s,r.t);
+      end loop;
+      alter schema public owner to ${R.pg}; alter schema private owner to ${R.pg};
+      alter schema auth owner to ${R.schemaOwner}; alter schema storage owner to ${R.schemaOwner};
+      for r in select n.nspname s,c.relname t from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in('auth','storage') and c.relkind='r' loop
+        execute format('alter table %I.%I owner to ${R.authOwner}',r.s,r.t);
+        execute format('grant select on %I.%I to ${R.pg}',r.s,r.t);
+      end loop;
+      grant usage on schema auth, storage to ${R.pg};
+    end $$;`);
+    // 1) BYPASSRLS'i olmayan CREATEROLE rolü BYPASSRLS'li rol oluşturamaz.
+    await assert.rejects(db.exec(`set role ${R.nobypass}; create role ${R.b2} login bypassrls;`),e=>e.code==='42501','CREATEROLE tek başına yetmez');
+    await db.exec('reset role');
+    // 2) CREATEROLE + BYPASSRLS (Supabase postgres'inin özellikleri) ile şablonun tamamı hatasız çalışır...
+    await db.exec(`set role ${R.pg}; ${BR.renderLiteral({role:R.backup,password:'test-only-'+R.backup})} reset role;`);
+    const a=(await db.query(`select rolbypassrls,rolsuper from pg_roles where rolname=$1`,[R.backup])).rows[0];
+    assert.equal(a.rolbypassrls,true,'PG'+major+': BYPASSRLS verilebildi');assert.equal(a.rolsuper,false);
+    // ...ama auth/storage yetkileri ETKİSİZ kalır (grant option yok); doğrulama bunu yakalar, "başarılı kurulum" sayılmaz.
+    const problems=await BR.verifyRole((s,p)=>db.query(s,p),{role:R.backup});
+    assert.ok(problems.some(p=>/auth\.users/.test(p)),problems.join('\n'));
+    assert.ok(problems.some(p=>/auth\.identities/.test(p)));
+    assert.ok(!problems.some(p=>/(public|private)\./.test(p)),'public/private yetkileri etkili: '+problems.join('; '));
+    // 3) Aynı şablon yetkileri gerçekten verebilen bir rolle çalıştırılırsa doğrulama temiz çıkar (denetimin kendisi doğru).
+    await db.exec(`drop owned by ${R.backup}; drop role ${R.backup};`);
+    await db.exec(BR.renderLiteral({role:R.backup,password:'test-only-'+R.backup}));
+    assert.deepEqual(await BR.verifyRole((s,p)=>db.query(s,p),{role:R.backup}),[]);
+    // 4) Doğrulama BYPASSRLS eksikliğini de yakalar.
+    await db.exec(`alter role ${R.backup} nobypassrls`);
+    assert.ok((await BR.verifyRole((s,p)=>db.query(s,p),{role:R.backup})).some(p=>/BYPASSRLS/.test(p)));
+  }catch(e){primary=e;throw e;}
+  finally{
+    try{await db.exec('reset role');}catch{}
+    await finish(db,primary);
+    await dropRoles([R.backup,R.b2,R.pg,R.nobypass,R.schemaOwner,R.authOwner]);
+  }
+});
