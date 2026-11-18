@@ -658,9 +658,24 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
+    // Şikâyet: ilan ya da ilanın sahibi (hesap). Kimlik, bağ, tekrar ve sınır sunucuda; yanıt {report,created}.
+    const REPORT_REASONS=['fake','fraud','inappropriate','wrong_info','other'];
+    async function reportListing(listingId,subject,reason,note=''){
+        const account=listingAccount();
+        if(!Number.isSafeInteger(listingId)||listingId<1||!['listing','account'].includes(subject)||!REPORT_REASONS.includes(reason)||typeof note!=='string'||note.trim().length>200)throw Error('Invalid report');
+        const text=note.trim();
+        return via(async()=>(await v1('report_create_v1',{p_listing_id:listingId,p_subject:subject,p_reason:reason,p_note:text},account)).data,
+            async()=>listingResult(await requireClient().rpc('nakgo_report_listing',{p_listing_id:listingId,p_subject:subject,p_reason:reason,p_note:text}),account));
+    }
+    async function adminReports(status='',offset=0){const account=listingAccount();if(!['','open','reviewing','resolved','rejected'].includes(status)||!Number.isSafeInteger(offset)||offset<0)throw Error('Invalid query');return messageResult(requireClient().rpc('nakgo_admin_reports',{p_status:status,p_offset:offset}),account);}
+    async function adminReportSet(id,status,reason,expectedRevision){
+        const account=listingAccount();
+        if(!Number.isSafeInteger(id)||id<1||!['open','reviewing','resolved','rejected'].includes(status)||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
+        return messageResult(requireClient().rpc('nakgo_admin_report_set',{p_id:id,p_status:status,p_reason:reason.trim(),p_revision:expectedRevision}),account);
+    }
     // Şu an bilinen API sürümü (sorgu sürüyorsa 'v0'): yalnız v1'e özgü form kontrolleri için.
     const currentApi=()=>apiPreference==='auto'&&apiMode==='v1'?'v1':'v0';
-    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,listingPhoto,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen};
+    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,listingPhoto,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.

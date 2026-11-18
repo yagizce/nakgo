@@ -76,9 +76,9 @@ function openLoad(id) {
         track("c", l.id);
         callTo(phoneOf(l));
     };
-    $("#pf").onclick = () => openProfile({ uid: l.uid, name: l.owner || (l.uid ? nm(l.uid) : "Yük sahibi") });
+    $("#pf").onclick = () => openProfile({ uid: l.uid, name: l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), listingId: l.remoteId });
     bindPhoneContact(l, false);
-    $("#rp").onclick = () => openReport("l", l.id);
+    $("#rp").onclick = () => openReport("l", l.id, l.remoteId);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
     if ($("#mg")) $("#mg").onclick = () => {
@@ -100,9 +100,9 @@ function openTruck(id) {
     $("#close").onclick = closeSheet;
     if ($("#mg")) $("#mg").onclick = () => { if(t._remote)return; if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
     $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
-    $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid) });
+    $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid), listingId: t.remoteId });
     bindPhoneContact(t, true);
-    $("#rp").onclick = () => openReport("t", t.id);
+    $("#rp").onclick = () => openReport("t", t.id, t.remoteId);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(t.uid);
 }

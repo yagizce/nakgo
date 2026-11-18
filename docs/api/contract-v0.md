@@ -32,6 +32,9 @@ Production karşılaştırması salt okunurdur: `node tools/schema-check.cjs --f
 | `nakgo_admin_page` | `p_section text`; isteğe bağlı `p_offset`, `p_search`, `p_filter`, `p_query jsonb`. `security` bölümü güvenlik olaylarını verir (`p_filter`: boş, `contact_limit_hour`, `contact_limit_day`) | `jsonb` | authenticated (sunucu yönetici denetler) |
 | `nakgo_admin_live` | `p_kind text` (isteğe bağlı) | `jsonb` | authenticated (sunucu yönetici denetler) |
 | `nakgo_admin_moderate` | `p_kind`, `p_target`, `p_action`, `p_reason` (text), `p_revision bigint` | `jsonb` | authenticated (sunucu yönetici denetler) |
+| `nakgo_report_listing` | `p_listing_id bigint`, `p_subject` (`listing`/`account`), `p_reason` (`fake`/`fraud`/`inappropriate`/`wrong_info`/`other`), `p_note` (isteğe bağlı, ≤200) | `{report:{id,subject,listing_id,reason,status,created_at}, created}` | authenticated |
+| `nakgo_admin_reports` | `p_status` (isteğe bağlı: boş/`open`/`reviewing`/`resolved`/`rejected`), `p_offset` | `jsonb` dizi (20 + 1) | authenticated (sunucu yönetici denetler) |
+| `nakgo_admin_report_set` | `p_id bigint`, `p_status`, `p_reason` (3–500), `p_revision bigint` | `{revision, changed}` | authenticated (sunucu yönetici denetler) |
 
 Her RPC'nin tek tanımı olmalıdır; aynı adla ikinci tanım PostgREST çağrısını belirsizleştirir.
 
@@ -60,6 +63,9 @@ Bunlar istemci çağrısı değildir; veritabanının kendi işleyişi için aut
 | `23505` | profiles ilk ekleme yarışı | Profili yeniden okur |
 | `54000` | ilan sınırı (10 yayında ilan) | Özel mesaj gösterir |
 | `40001` | `nakgo_admin_moderate` sürüm çakışması | "Başka yönetici değiştirdi" mesajı |
+| `PT409` (HTTP 409) | `nakgo_admin_report_set` sürüm çakışması | Listeyi yeniden okur. 40001 kullanılmaz: PostgREST 40001'i yeniden dener ve değişmeyen revision'da yanıt dönmez |
+| `54000` | `nakgo_report_listing` şikâyet sınırı (10/saat, 30/24 saat) | "Çok fazla şikayet" mesajı |
+| `42501` + `Listing unavailable` / `Own listing` / `Account suspended` | `nakgo_report_listing` | Şikâyet ekranında ilgili mesaj; ekran açık kalır |
 | `42501` + `Owner account` / `Last administrator` | `nakgo_delete_my_account` | "Yönetici hesabı uygulamadan silinemez" |
 | `42501` | oturumsuz, doğrulanmamış veya yetkisiz çağrı | Genel hata / yeniden deneme |
 | `22023` | geçersiz argüman | Genel hata |

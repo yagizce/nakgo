@@ -13,7 +13,10 @@
     "nakgo_admin_role": {"args": [], "returns": "boolean", "roles": ["authenticated"]},
     "nakgo_admin_page": {"args": [["p_section", "text"], ["p_offset", "integer", "optional"], ["p_search", "text", "optional"], ["p_filter", "text", "optional"], ["p_query", "jsonb", "optional"]], "returns": "jsonb", "roles": ["authenticated"]},
     "nakgo_admin_live": {"args": [["p_kind", "text", "optional"]], "returns": "jsonb", "roles": ["authenticated"]},
-    "nakgo_admin_moderate": {"args": [["p_kind", "text"], ["p_target", "text"], ["p_action", "text"], ["p_reason", "text"], ["p_revision", "bigint"]], "returns": "jsonb", "roles": ["authenticated"]}
+    "nakgo_admin_moderate": {"args": [["p_kind", "text"], ["p_target", "text"], ["p_action", "text"], ["p_reason", "text"], ["p_revision", "bigint"]], "returns": "jsonb", "roles": ["authenticated"]},
+    "nakgo_report_listing": {"args": [["p_listing_id", "bigint"], ["p_subject", "text"], ["p_reason", "text"], ["p_note", "text", "optional"]], "returns": "jsonb", "shape": ["report", "created"], "roles": ["authenticated"]},
+    "nakgo_admin_reports": {"args": [["p_status", "text", "optional"], ["p_offset", "integer", "optional"]], "returns": "jsonb", "roles": ["authenticated"]},
+    "nakgo_admin_report_set": {"args": [["p_id", "bigint"], ["p_status", "text"], ["p_reason", "text"], ["p_revision", "bigint"]], "returns": "jsonb", "shape": ["revision", "changed"], "roles": ["authenticated"]}
   },
   "tables": {
     "profiles": {
@@ -48,8 +51,9 @@
   },
   "errors": {
     "23505": "profiles: aynı anda iki ilk giriş; istemci profili yeniden okur",
-    "54000": "listings: yayındaki ilan sınırı aşıldı; istemci kullanıcıya özel mesaj gösterir",
+    "54000": "listings: yayındaki ilan sınırı aşıldı; istemci kullanıcıya özel mesaj gösterir. nakgo_report_listing: şikâyet sınırı (10/saat, 30/24 saat)",
     "40001": "nakgo_admin_moderate: kayıt başka yönetici tarafından değişti (revision çakışması)",
+    "PT409": "nakgo_admin_report_set: şikâyet başka yönetici tarafından değişti (revision çakışması; HTTP 409)",
     "42501": "yetkisiz/oturumsuz/doğrulanmamış hesap; mesaj metinleri: 'Sign in required', 'Verified account required', 'Owner account', 'Last administrator'",
     "22023": "geçersiz argüman"
   }

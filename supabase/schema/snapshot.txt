@@ -140,6 +140,19 @@ column private.listing_moderation.reason text not null default ''::text
 column private.listing_moderation.removed boolean not null default false
 column private.listing_moderation.revision bigint not null default 0
 column private.listing_moderation.updated_at timestamp with time zone not null default now()
+column private.listing_reports.account_id uuid
+column private.listing_reports.created_at timestamp with time zone not null default now()
+column private.listing_reports.id bigint not null
+column private.listing_reports.listing_id bigint not null
+column private.listing_reports.note text not null default ''::text
+column private.listing_reports.reason text not null
+column private.listing_reports.reporter_id uuid
+column private.listing_reports.reviewed_at timestamp with time zone
+column private.listing_reports.reviewed_by uuid
+column private.listing_reports.revision bigint not null default 0
+column private.listing_reports.status text not null default 'open'::text
+column private.listing_reports.subject text not null
+column private.listing_reports.updated_at timestamp with time zone not null default now()
 column private.retention_jobs.batches integer not null default 0
 column private.retention_jobs.counts jsonb not null default '{}'::jsonb
 column private.retention_jobs.error text
@@ -312,6 +325,16 @@ constraint private.document_reviewers.document_reviewers_user_id_fkey FOREIGN KE
 constraint private.listing_moderation.listing_moderation_hold_reason_check CHECK ((char_length(hold_reason) <= 500))
 constraint private.listing_moderation.listing_moderation_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
 constraint private.listing_moderation.listing_moderation_pkey PRIMARY KEY (listing_id)
+constraint private.listing_reports.listing_reports_account_id_fkey FOREIGN KEY (account_id) REFERENCES auth.users(id) ON DELETE SET NULL
+constraint private.listing_reports.listing_reports_listing_id_check CHECK ((listing_id > 0))
+constraint private.listing_reports.listing_reports_note_check CHECK ((char_length(note) <= 200))
+constraint private.listing_reports.listing_reports_pkey PRIMARY KEY (id)
+constraint private.listing_reports.listing_reports_reason_check CHECK ((reason = ANY (ARRAY['fake'::text, 'fraud'::text, 'inappropriate'::text, 'wrong_info'::text, 'other'::text])))
+constraint private.listing_reports.listing_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES auth.users(id) ON DELETE SET NULL
+constraint private.listing_reports.listing_reports_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES auth.users(id) ON DELETE SET NULL
+constraint private.listing_reports.listing_reports_revision_check CHECK ((revision >= 0))
+constraint private.listing_reports.listing_reports_status_check CHECK ((status = ANY (ARRAY['open'::text, 'reviewing'::text, 'resolved'::text, 'rejected'::text])))
+constraint private.listing_reports.listing_reports_subject_check CHECK ((subject = ANY (ARRAY['listing'::text, 'account'::text])))
 constraint private.retention_jobs.retention_jobs_error_check CHECK ((char_length(error) <= 300))
 constraint private.retention_jobs.retention_jobs_pkey PRIMARY KEY (id)
 constraint private.retention_jobs.retention_jobs_status_check CHECK ((status = ANY (ARRAY['running'::text, 'done'::text, 'failed'::text, 'stopped'::text, 'skipped'::text, 'interrupted'::text])))
@@ -428,6 +451,7 @@ execute api.listings_v1(p_cursor text, p_kind text, p_vehicle text, p_body text,
 execute api.my_listings_v1(p_cursor text) authenticated
 execute api.profile_update_v1(p_changes jsonb) authenticated
 execute api.profile_v1() authenticated
+execute api.report_create_v1(p_listing_id bigint, p_subject text, p_reason text, p_note text) authenticated
 execute api.route_alert_create_v1(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) authenticated
 execute api.route_alert_delete_v1(p_id bigint) authenticated
 execute api.route_alert_update_v1(p_id bigint, p_active boolean) authenticated
@@ -441,6 +465,8 @@ execute private.is_document_reviewer() authenticated
 execute public.nakgo_admin_live(p_kind text) authenticated
 execute public.nakgo_admin_moderate(p_kind text, p_target text, p_action text, p_reason text, p_revision bigint) authenticated
 execute public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) authenticated
+execute public.nakgo_admin_report_set(p_id bigint, p_status text, p_reason text, p_revision bigint) authenticated
+execute public.nakgo_admin_reports(p_status text, p_offset integer) authenticated
 execute public.nakgo_admin_role() authenticated
 execute public.nakgo_delete_my_account() authenticated
 execute public.nakgo_listing_contact(p_id bigint, p_channel text) authenticated
@@ -448,6 +474,7 @@ execute public.nakgo_listing_items_valid(items jsonb) authenticated
 execute public.nakgo_public_listings(p_before bigint) anon
 execute public.nakgo_public_listings(p_before bigint) authenticated
 execute public.nakgo_remove_route_alert(p_id bigint) authenticated
+execute public.nakgo_report_listing(p_listing_id bigint, p_subject text, p_reason text, p_note text) authenticated
 execute public.nakgo_route_alerts_seen() authenticated
 execute public.nakgo_save_route_alert(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) authenticated
 execute public.nakgo_set_favorite(p_listing_id bigint, p_saved boolean) authenticated
@@ -467,6 +494,7 @@ function api.listings_v1(p_cursor text, p_kind text, p_vehicle text, p_body text
 function api.my_listings_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=72799cc72ebbc189f6bf6114fc22fd2b
 function api.profile_update_v1(p_changes jsonb) returns jsonb definer vol=v cfg=search_path="" body=cefaadce6c461e3035b72cf14f566319
 function api.profile_v1() returns jsonb definer vol=v cfg=search_path="" body=7587cd8bca339f678363101e60113e6b
+function api.report_create_v1(p_listing_id bigint, p_subject text, p_reason text, p_note text) returns jsonb definer vol=v cfg=search_path="" body=9ef1316a82809fd547f216841a68273b
 function api.route_alert_create_v1(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) returns jsonb definer vol=v cfg=search_path="" body=d6065c8b4656e784c27991f85b8f282a
 function api.route_alert_delete_v1(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=f145ebf0a7b05beb4b99cfeb00c27262
 function api.route_alert_update_v1(p_id bigint, p_active boolean) returns jsonb definer vol=v cfg=search_path="" body=cf2d6e9bd956ef1a2ecf5ba0a05fd946
@@ -515,6 +543,8 @@ function private.nakgo_backup_storage_buckets() returns SETOF jsonb definer vol=
 function private.nakgo_backup_storage_objects() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=530e2c9e36b6c7a3c4740007094a53c1
 function private.queue_document_cleanup() returns trigger definer vol=v cfg=search_path="" body=6f37cf1717b4d03a40a20643ebc74051
 function private.record_daily_stats(p_day date) returns void definer vol=v cfg=search_path="" body=99870024791054f1392497f216da1865
+function private.report_create(p_actor uuid, p_listing_id bigint, p_subject text, p_reason text, p_note text) returns jsonb definer vol=v cfg=search_path="" body=b4f4f79a1a639b68c735b9d3aa642a4d
+function private.report_json(r private.listing_reports) returns jsonb invoker vol=s cfg=search_path="" body=e52d1c18cf73dfed75a0d799fa77c25c
 function private.request_ip() returns inet invoker vol=s cfg=search_path="" body=c62e37d479aa5be286b5043923e19ecf
 function private.require_activity(p_user uuid) returns void definer vol=v cfg=search_path="" body=17f1187e5fadf401964fce8083eb4c17
 function private.retention_batch(p_step text, p_limit integer) returns integer definer vol=v cfg=search_path="" body=138970efd113e1ae1426cc784a0919fd
@@ -527,6 +557,8 @@ function private.storage_activity_guard() returns trigger definer vol=v cfg=sear
 function public.nakgo_admin_live(p_kind text) returns jsonb definer vol=s cfg=search_path="" body=3e701ba4a3b8e7c04a8046116a4369a5
 function public.nakgo_admin_moderate(p_kind text, p_target text, p_action text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="" body=b74ee8f30986a8c33c92279ccd024e8e
 function public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) returns jsonb definer vol=s cfg=search_path="" body=7cec573e1bed08cacd9a1ae767965516
+function public.nakgo_admin_report_set(p_id bigint, p_status text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="" body=e327af8b349aeaba0731b50d1f631047
+function public.nakgo_admin_reports(p_status text, p_offset integer) returns jsonb definer vol=s cfg=search_path="" body=f6c74b6d0b781f592fac02b71c8adb39
 function public.nakgo_admin_role() returns boolean definer vol=s cfg=search_path="" body=3484c96cb778dbff7bb4b0b2710f574e
 function public.nakgo_delete_my_account() returns jsonb definer vol=v cfg=search_path="" body=fc782511c235263fe82efc297e67effa
 function public.nakgo_listing_contact(p_id bigint, p_channel text) returns text definer vol=v cfg=search_path="" body=4d23889c59861ea6cd3dca7af1e3be9f
@@ -534,6 +566,7 @@ function public.nakgo_listing_items_valid(items jsonb) returns boolean invoker v
 function public.nakgo_listing_write_guard() returns trigger invoker vol=v cfg=search_path="" body=f6b1be0b3b0cee54bdc9ffcc32f6cd7e
 function public.nakgo_public_listings(p_before bigint) returns TABLE(id bigint, kind text, from_city text, to_city text, from_district text, to_district text, vehicle text, body text, amount numeric, cargo text, items jsonb, available_on date, available_until date, available_time text, loading_text text, status text, created_at timestamp with time zone) definer vol=s cfg=search_path="" body=679af752965f132840bdcac78f4ee33e
 function public.nakgo_remove_route_alert(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=c33c8a13f59073ff154e0135931657de
+function public.nakgo_report_listing(p_listing_id bigint, p_subject text, p_reason text, p_note text) returns jsonb definer vol=v cfg=search_path="" body=78cf33e7394d74c54981e1aba8e0bd0e
 function public.nakgo_route_alerts_seen() returns integer definer vol=v cfg=search_path="" body=cdb9883e4922eb91cfef8a25e279a2fa
 function public.nakgo_save_route_alert(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) returns route_alerts definer vol=v cfg=search_path="" body=e5e04044090f3203ad9a128b67ab267e
 function public.nakgo_set_favorite(p_listing_id bigint, p_saved boolean) returns jsonb definer vol=v cfg=search_path="" body=2011ac20c28f6be2705616d97107b87a
@@ -563,6 +596,11 @@ index private.contact_views_user_time CREATE INDEX contact_views_user_time ON pr
 index private.daily_stats_pkey CREATE UNIQUE INDEX daily_stats_pkey ON private.daily_stats USING btree (day)
 index private.document_reviewers_pkey CREATE UNIQUE INDEX document_reviewers_pkey ON private.document_reviewers USING btree (user_id)
 index private.listing_moderation_pkey CREATE UNIQUE INDEX listing_moderation_pkey ON private.listing_moderation USING btree (listing_id)
+index private.listing_reports_open_account CREATE UNIQUE INDEX listing_reports_open_account ON private.listing_reports USING btree (reporter_id, account_id) WHERE ((subject = 'account'::text) AND (status = ANY (ARRAY['open'::text, 'reviewing'::text])))
+index private.listing_reports_open_listing CREATE UNIQUE INDEX listing_reports_open_listing ON private.listing_reports USING btree (reporter_id, listing_id) WHERE ((subject = 'listing'::text) AND (status = ANY (ARRAY['open'::text, 'reviewing'::text])))
+index private.listing_reports_pkey CREATE UNIQUE INDEX listing_reports_pkey ON private.listing_reports USING btree (id)
+index private.listing_reports_reporter_recent CREATE INDEX listing_reports_reporter_recent ON private.listing_reports USING btree (reporter_id, created_at)
+index private.listing_reports_status CREATE INDEX listing_reports_status ON private.listing_reports USING btree (status, id)
 index private.retention_jobs_pkey CREATE UNIQUE INDEX retention_jobs_pkey ON private.retention_jobs USING btree (id)
 index private.retention_jobs_started CREATE INDEX retention_jobs_started ON private.retention_jobs USING btree (started_at)
 index private.retention_runs_at CREATE INDEX retention_runs_at ON private.retention_runs USING btree (ran_at)
@@ -634,6 +672,7 @@ table private.contact_views rls=true force=false
 table private.daily_stats rls=true force=false
 table private.document_reviewers rls=true force=false
 table private.listing_moderation rls=true force=false
+table private.listing_reports rls=true force=false
 table private.retention_jobs rls=true force=false
 table private.retention_runs rls=true force=false
 table private.security_events rls=true force=false
