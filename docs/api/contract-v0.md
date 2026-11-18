@@ -29,7 +29,7 @@ Production karşılaştırması salt okunurdur: `node tools/schema-check.cjs --f
 | `nakgo_route_alerts_seen` | — | `integer` | authenticated |
 | `nakgo_delete_my_account` | — | `{deleted}` | authenticated |
 | `nakgo_admin_role` | — | `boolean` | authenticated |
-| `nakgo_admin_page` | `p_section text`; isteğe bağlı `p_offset`, `p_search`, `p_filter`, `p_query jsonb`. `security` bölümü güvenlik olaylarını verir (`p_filter`: boş, `contact_limit_hour`, `contact_limit_day`) | `jsonb` | authenticated (sunucu yönetici denetler) |
+| `nakgo_admin_page` | `p_section text`; isteğe bağlı `p_offset`, `p_search`, `p_filter`, `p_query jsonb`. `security` bölümü güvenlik olaylarını verir (`p_filter`: boş, `contact_limit_hour`, `contact_limit_day`); `health` bölümü sistem sağlığını verir (yalnız okuma) | `jsonb` | authenticated (sunucu yönetici denetler) |
 | `nakgo_admin_live` | `p_kind text` (isteğe bağlı) | `jsonb` | authenticated (sunucu yönetici denetler) |
 | `nakgo_admin_moderate` | `p_kind`, `p_target`, `p_action`, `p_reason` (text), `p_revision bigint` | `jsonb` | authenticated (sunucu yönetici denetler) |
 | `nakgo_report_listing` | `p_listing_id bigint`, `p_subject` (`listing`/`account`), `p_reason` (`fake`/`fraud`/`inappropriate`/`wrong_info`/`other`), `p_note` (isteğe bağlı, ≤200) | `{report:{id,subject,listing_id,reason,status,created_at}, created}` | authenticated |
