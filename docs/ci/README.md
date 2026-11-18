@@ -1,15 +1,16 @@
-# CI otomasyon önerisi: HTTP, supabase-js ve Workers testleri
+# CI: HTTP, supabase-js ve Workers testleri
 
-**Durum:** öneri. `.github/workflows/` değişmedi; etkinleştirmek için `docs/ci/db-http.workflow.yml` dosyasının
-`.github/workflows/db-http.yml` olarak taşınması **ayrı onay** ister.
+İş akışı: `.github/workflows/db-http.yml` (`NakGo HTTP and Workers`). Mevcut iş akışları değişmedi; bu ayrı bir iştir.
+Dal koruma kurallarına zorunlu kontrol olarak eklenmesi GitHub ayarıdır ve ayrı onay ister.
 
-## Bugün CI'da koşmayanlar
+## Bu işle CI'a eklenenler
 | Test | Neden koşmuyor | Önerideki çözüm |
 |---|---|---|
 | `tests/db/*-http.test.cjs` (PostgREST üzerinden v1 uçları) | CI'da PostgREST yok | PostgREST 12.2.3 sabit sürüm, SHA-256 doğrulamalı indirme |
 | `tests/db/api-v1-client-http.test.cjs` (gerçek supabase-js + uygulama kodu) | supabase-js ve PostgREST yok | `@supabase/supabase-js@2.117.3` (uygulamanın sabitlediği sürüm) geçici dizine |
 | `tests/db/worker-role.test.cjs` PostgREST/workerd adımları | PostgREST ve Miniflare yok | aynı iş |
 | `tests/server/workerd.test.mjs` | Miniflare yok | `miniflare@4.20260730.0` geçici dizine |
+| `tests/db/admin-moderate-conflict.test.cjs` PostgREST bölümü (#148) | PostgREST yok | aynı iş; dosya varsa çalışır |
 
 ## Güvenlik
 - Gizli anahtar, GitHub Secret, Environment, canlı hesap ya da production/DEV bağlantısı **yok**. Veritabanı CI içindeki
@@ -22,9 +23,6 @@
 - Miniflare, workerd ikili dosyasını npm'in platform paketinden alır; `--ignore-scripts` kullanılmadı. İlk koşuda kurulum
   süresi ve ikilinin doğru indirildiği görülmeli.
 
-## Onay gerektirenler
-1. `.github/workflows/db-http.yml` eklenmesi (bu dosyanın taşınması).
-2. İsterseniz bu işin dal koruma kurallarına zorunlu kontrol olarak eklenmesi (GitHub ayarı; ayrı onay).
 
 ## Yerelde aynı koşu
 ```

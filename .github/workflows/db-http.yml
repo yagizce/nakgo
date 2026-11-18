@@ -1,5 +1,4 @@
-# ÖNERİ — ETKİN DEĞİL. `.github/workflows/` altına taşınması ayrı onay ister (docs/ci/README.md).
-# Amaç: bugün yalnız yerelde koşan HTTP testlerini (yerel PostgREST), gerçek supabase-js istemci testini ve Workers
+# Bugün yalnız yerelde koşan HTTP testlerini (yerel PostgREST), gerçek supabase-js istemci testini ve Workers
 # (workerd/Miniflare) testlerini CI'da koşturmak. Gizli anahtar, canlı hesap ya da production bağlantısı YOK: veritabanı CI
 # içindeki geçici PostgreSQL 17, PostgREST ve JWT sırrı test sırasında rastgele üretilir.
 name: NakGo HTTP and Workers
@@ -48,6 +47,10 @@ jobs:
           NAKGO_PG_PASSWORD: ci-only-local
           NAKGO_POSTGREST_BIN: ${{ runner.temp }}/postgrest
           NAKGO_MINIFLARE: ${{ runner.temp }}/nakgo-mf/node_modules/miniflare/dist/src/index.js
+        # Ortam eksikse bu testler atlanır; burada atlanan test başarısızlık sayılır (sessizce geçmesin).
         run: |
-          node --test tests/db/*-http.test.cjs tests/db/worker-role.test.cjs
-          node --test tests/server/*.test.mjs
+          # Yönetici çakışması testinin PostgREST bölümü (#148 ile gelir; dosya yoksa eklenmez).
+          extra=$(ls tests/db/admin-moderate-conflict.test.cjs 2>/dev/null || true)
+          # Dosyalar sırayla: her biri küme genelindeki rolleri (authenticator) "yoksa oluştur" ile kurar; paralel koşu yarışır.
+          node --test --test-reporter=tap --test-concurrency=1 tests/db/*-http.test.cjs tests/db/worker-role.test.cjs $extra tests/server/*.test.mjs | tee "$RUNNER_TEMP/http.tap"
+          grep -qx '# skipped 0' "$RUNNER_TEMP/http.tap" || { echo "Atlanan test var: PostgREST, supabase-js ya da Miniflare kurulamadı"; exit 1; }
