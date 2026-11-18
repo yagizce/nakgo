@@ -23,7 +23,11 @@ const root=path.resolve(__dirname,'..');
  create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner_id text,metadata jsonb);
  alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;`);
  await assertTestRoles(db);
+ // Production'daki depo dışı nesne: Supabase panelinin "RLS'yi otomatik aç" ayarı bu fonksiyonu misafir ve üyeye açık oluşturur.
+ await db.exec(`create function public.rls_auto_enable() returns event_trigger language plpgsql security definer set search_path='' as $$begin end$$;
+ grant execute on function public.rls_auto_enable() to public,anon,authenticated;`);
  for(const f of fs.readdirSync(path.join(root,'supabase/migrations')).sort())await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',f),'utf8'));
+ for(const r of ['public','anon','authenticated'])check(!(await query(`select has_function_privilege($1,'public.rls_auto_enable()','EXECUTE') x`,[r]))[0].x,'rls_auto_enable kapalı: '+r);
  for(const id of ids){await query('insert into auth.users values($1,$2)',[id,id===unverified?null:new Date().toISOString()]);await as(id,"insert into public.profiles(id,display_name,account_type) values($1,$2,'carrier')",[id,id===owner?'Test Owner':'Test User']);}
  await query('insert into private.admin_members(user_id,active) values($1,true),($2,false),($3,false)',[admin,partner,unverified]);
  const page=(id,section='users')=>as(id,'select public.nakgo_admin_page($1,0,\'\') data',[section]);
