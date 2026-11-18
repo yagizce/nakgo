@@ -12,9 +12,14 @@ const SOURCE=fs.readFileSync(path.join(__dirname,'../../src/js/cloud.js'),'utf8'
 const FAKE='https://abcdefghijklmnopqrst.supabase.co';
 
 /** cloud.js'i ayrı bir bağlamda başlatır; istekler yerel PostgREST'e, kimlik verilen JWT ile. */
-async function app(pg,{user,metadata={},config={}}){
+async function app(pg,{user,metadata={},config={},net=null}){
   const token=pg.jwt({sub:user});
-  const fetchLocal=(url,init)=>fetch(String(url).replace(FAKE+'/rest/v1',pg.base),init);
+  // net.drop: adı geçen uç bir kez sunucuda çalışır ama yanıtı istemciye ulaşmaz (bağlantı kopması benzetimi).
+  const fetchLocal=async(url,init)=>{
+    const res=await fetch(String(url).replace(FAKE+'/rest/v1',pg.base),init);
+    if(net&&net.drop&&String(url).endsWith('/rpc/'+net.drop)){net.drop=null;throw new TypeError('fetch failed');}
+    return res;
+  };
   const ctx={URL,AbortSignal,setTimeout,clearTimeout,crypto:globalThis.crypto,Uint8Array,tab:'list',render(){},location:{href:'https://preview.example/',origin:'https://preview.example'},
     localStorage:{getItem:()=>null,setItem(){}},sessionStorage:{getItem:()=>null,removeItem(){}},document:{createElement:()=>({remove(){}}),head:{appendChild:s=>queueMicrotask(()=>s.onload())}},
     window:{fetch:async()=>({ok:true,json:async()=>({enabled:true,url:FAKE,publishableKey:'sb_publishable_abcdefghijklmnopqrst',...config})}),
@@ -58,9 +63,10 @@ test('İstemci API v1 geçişi: gerçek supabase-js + yerel PostgREST',async t=>
       const own=await a.listListings({own:true});assert.deepEqual(own.map(r=>r.id),[mine.id]);
       assert.equal(own[0].image_data,'','listede fotoğraf yok');assert.equal(own[0].has_photo,true);
       assert.equal(await a.listingPhoto(mine.id),JPEG,'fotoğraf ayrıntıdan');
-      const updated=await a.updateListing(mine.id,{note:'Yeni not'},own[0].updated_at);
+      assert.equal(own[0].revision,0);
+      const updated=await a.updateListing(mine.id,{note:'Yeni not'},own[0].revision);assert.equal(updated.revision,1);
       assert.equal(updated.note,'Yeni not');
-      await assert.rejects(a.updateListing(mine.id,{note:'Eski'},own[0].updated_at),e=>e.code==='conflict'&&e.current.note==='Yeni not'&&a.message(e).startsWith('İlan başka bir yerde değişti'));
+      await assert.rejects(a.updateListing(mine.id,{note:'Eski'},own[0].revision),e=>e.code==='conflict'&&e.current.note==='Yeni not'&&e.current.revision===1&&a.message(e).startsWith('İlan başka bir yerde değişti'));
       assert.equal((await db.query(`select note from public.listings where id=$1`,[mine.id])).rows[0].note,'Yeni not','çakışan güncelleme yazılmadı');
       const u=await usage(db);
       for(const fn of ['status_v1','profile_v1','profile_update_v1','listing_create_v1','my_listings_v1','listing_v1','listing_update_v1'])assert.ok(u[fn]>0,fn);
@@ -94,7 +100,7 @@ test('İstemci API v1 geçişi: gerçek supabase-js + yerel PostgREST',async t=>
       const v0rows=await a0.listListings(),own0=await a0.listListings({own:true});
       assert.deepEqual(plain(v1rows.map(view)),plain(v0rows.map(view)));assert.deepEqual(plain(own1.map(view)),plain(own0.map(view)));
       assert.equal(own0[0].owner_id,A);assert.equal(own1[0].owner_id,A);
-      assert.equal(Date.parse(own1[0].updated_at),Math.floor(Date.parse(own0[0].updated_at)),'revision aynı an (milisaniye)');
+      assert.ok(Number.isInteger(own1[0].revision)&&own0[0].revision===undefined,'revision yalnız v1\'de (v0 sütunu göremez)');
     });
     await t.test('oturum ortasında v1 kapatılır: aynı çağrı v0 ile sürer, veri kaybı yok',async()=>{
       const before=await a.listListings();
@@ -109,6 +115,25 @@ test('İstemci API v1 geçişi: gerçek supabase-js + yerel PostgREST',async t=>
       }finally{await db.query('update private.api_settings set v1_enabled=true');}
       await a.listListings();
       assert.equal((await usage(db)).listings_v1,u0,'v1 yeniden açılsa da bu oturum v0\'da kalır (yenileyince yeniden sorar)');
+    });
+    await t.test('bağlantı kopması: ilan sunucuda açıldı ama yanıt gelmedi; yeniden gönderim ikinci ilan açmaz, v1 kapatılsa da v0\'a devredilmez',async()=>{
+      const net={drop:null};
+      const c=await app(pg,{user:A,net});
+      const input={kind:'truck',from_city:'Sivas',to_city:'Kayseri',vehicle:'Kamyon',body:'Tenteli',amount:7,available_on:today};
+      const count=async()=>Number((await db.query(`select count(*) n from public.listings where owner_id=$1 and from_city='Sivas'`,[A])).rows[0].n);
+      net.drop='listing_create_v1';
+      await assert.rejects(c.createListing(input));
+      assert.equal(await count(),1,'sunucu ilanı açtı, istemci bilmiyor');
+      await db.query('update private.api_settings set v1_enabled=false');
+      try{
+        await assert.rejects(c.createListing(input),e=>e.code==='create_uncertain'&&c.message(e).includes('doğrulanamadı'));
+        assert.equal(await count(),1,'v1 kapalıyken v0 ile ikinci ilan açılmadı');
+      }finally{await db.query('update private.api_settings set v1_enabled=true');}
+      const d=await app(pg,{user:A,net});net.drop='listing_create_v1';
+      await assert.rejects(d.createListing({...input,to_city:'Tokat'}));
+      const again=await d.createListing({...input,to_city:'Tokat'});
+      assert.equal(Number((await db.query(`select count(*) n from public.listings where owner_id=$1 and to_city='Tokat'`,[A])).rows[0].n),1,'v1 açıkken yeniden gönderim aynı istek kimliğiyle: tek ilan');
+      assert.ok(again.id>0);
     });
     await t.test('api şeması açılmamış (bugünkü Supabase): baştan v0, uygulama çalışır',async()=>{
       pg0=await startPostgrest(db,{schemas:'public'});
