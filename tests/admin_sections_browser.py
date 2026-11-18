@@ -21,7 +21,9 @@ MOCK = """()=>{
   if(section==='health'){if(window.healthFail)throw Error('offline');return window.health;}
   if(section==='security')return filter?window.events.filter(e=>e.kind===filter):window.events;
   if(section==='users')return [];
+  if(section==='listings')return [{id:7,owner_label:'Test',kind:'load',from_city:'İzmir',to_city:'Manisa',status:'active',state:'active',removed:false,revision:3}];
   return [];};
+ window.moderated=[];nakgoAuth.adminModerate=async(...a)=>{window.moderated.push(a);const e=Error('Moderation changed; refresh');e.code='PT409';throw e;};
  nakgoAuth.adminReports=async(status,offset)=>{window.calls.push({section:'reports',filter:status,offset});return status?window.reports.filter(r=>r.status===status):window.reports;};
  nakgoAuth.adminReportSet=async(...a)=>{window.reportSets.push(a);await new Promise(r=>setTimeout(r,150));
   if(window.reportConflict){const e=Error('x');e.code='PT409';throw e;}const r=window.reports.find(x=>x.id===a[0]);r.status=a[1];r.revision++;return {revision:r.revision,changed:true};};
@@ -138,6 +140,20 @@ def main():
         page.locator('#admin-refresh').click()
         expect(page.get_by_role('alert')).to_contain_text('Yönetici paneli açılamadı')
         page.evaluate("window.healthFail=false")
+
+        # Yönetici işlemi çakışması (HTTP 409): işlem tekrar gönderilmez, güncel durumu yükle istenir.
+        page.evaluate('openAdminPanel()')
+        page.wait_for_timeout(300)
+        page.locator('[data-admin-section="listings"]').click()
+        page.get_by_role('button', name='İlanı yayından kaldır', exact=True).first.click()
+        page.locator('#admin-reason').fill('Eşzamanlı deneme')
+        page.locator('#admin-submit').dblclick()
+        expect(page.get_by_role('alert')).to_contain_text('başka bir yönetici')
+        expect(page.get_by_role('alert')).to_contain_text('güncel durumu yükle')
+        page.wait_for_timeout(300)
+        assert page.evaluate('window.moderated') == [['listing', '7', 'remove', 'Eşzamanlı deneme', 3]], page.evaluate('window.moderated')
+        page.locator('#admin-reload').click()
+        page.wait_for_timeout(200)
 
         # Telefon: her bölümde yatay taşma yok, menü kaydırılabilir, sekmeler görünür.
         page.set_viewport_size({'width': 390, 'height': 844})

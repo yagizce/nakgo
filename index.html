@@ -7117,7 +7117,7 @@ async function openAdminPanel() {
                 if(!valid())return;
                 $('#admin-bulk-status').textContent=(done+failed.length+1)+' / '+items.length+' işleniyor…';
                 try{await nakgoAuth.adminModerate('listing',String(row.id),'remove',reason,Number(row.revision));done++;}
-                catch(error){failed.push([row,error?.code==='40001'?'başka bir yönetici değiştirdi':'doğrulanamadı']);}
+                catch(error){failed.push([row,conflict(error)?'başka bir yönetici ya da işlem değiştirdi; güncel durumu yükle':'doğrulanamadı']);}
             }
             if(!valid())return;
             checked=new Map();
@@ -7126,6 +7126,8 @@ async function openAdminPanel() {
             $('#admin-reload').onclick=load;
         };
     }
+    // Eşzamanlı işlem: sunucu HTTP 409 (PT409) döner; eski sunucu 40001. İkisinde de istek tekrar gönderilmez.
+    const conflict=error=>error?.code==='PT409'||error?.code==='40001';
     function confirmAction(row,forced){
         if(!valid()||!row)return;
         ++request;
@@ -7149,7 +7151,7 @@ async function openAdminPanel() {
             sending=true;$('#admin-submit').disabled=true;$('#admin-cancel').disabled=true;
             try{await nakgoAuth.adminModerate(kind,String(row.id),action,reason,Number(row.revision));if(valid())await load();}
             catch(error){if(!valid())return;
-                show('<div class="adm-d-head"><h3>'+label+'</h3></div><p role="alert">'+(error?.code==='40001'?'Bu kayıt başka bir yönetici tarafından değiştirildi. Güncel durumu yükle.':'İşlem sonucu doğrulanamadı. Yeniden işlem yapmadan önce güncel durumu yükle.')+'</p><button class="btn" id="admin-reload" type="button">Güncel durumu yükle</button>');
+                show('<div class="adm-d-head"><h3>'+label+'</h3></div><p role="alert">'+(conflict(error)?'Bu kayıt başka bir yönetici tarafından değiştirildi ya da şu an başka bir işlemde. İşlem yapılmadı; güncel durumu yükle.':'İşlem sonucu doğrulanamadı. Yeniden işlem yapmadan önce güncel durumu yükle.')+'</p><button class="btn" id="admin-reload" type="button">Güncel durumu yükle</button>');
                 $('#admin-reload').onclick=load;
             }
         };

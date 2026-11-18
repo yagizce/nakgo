@@ -62,7 +62,7 @@ Bunlar istemci çağrısı değildir; veritabanının kendi işleyişi için aut
 |---|---|---|
 | `23505` | profiles ilk ekleme yarışı | Profili yeniden okur |
 | `54000` | ilan sınırı (10 yayında ilan) | Özel mesaj gösterir |
-| `40001` | `nakgo_admin_moderate` sürüm çakışması | "Başka yönetici değiştirdi" mesajı |
+| `PT409` (HTTP 409) | `nakgo_admin_moderate` sürüm çakışması (`Moderation changed; refresh`) ya da 5 sn'yi aşan kilit (`Moderation busy; refresh`) | "Başka yönetici değiştirdi; güncel durumu yükle"; tekrar gönderilmez. Eski sunucunun `40001`'i de aynı karşılanır |
 | `PT409` (HTTP 409) | `nakgo_admin_report_set` sürüm çakışması | Listeyi yeniden okur. 40001 kullanılmaz: PostgREST 40001'i yeniden dener ve değişmeyen revision'da yanıt dönmez |
 | `54000` | `nakgo_report_listing` şikâyet sınırı (10/saat, 30/24 saat) | "Çok fazla şikayet" mesajı |
 | `42501` + `Listing unavailable` / `Own listing` / `Account suspended` | `nakgo_report_listing` | Şikâyet ekranında ilgili mesaj; ekran açık kalır |
