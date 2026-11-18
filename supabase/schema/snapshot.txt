@@ -1,4 +1,5 @@
 # Migration'lardan kurulan şemanın özeti. tools/schema-check.cjs --update ile üretilir; elle düzenlenmez.
+apiview private.api_visible_listings body=972c04cfc2aa2d14cc1323d8ed2538fa
 colgrant public.listings.amount authenticated INSERT
 colgrant public.listings.amount authenticated SELECT
 colgrant public.listings.amount authenticated UPDATE
@@ -108,6 +109,8 @@ column private.api_usage.fn text not null
 column private.api_usage.hour timestamp with time zone not null
 column private.api_usage.shard smallint not null
 column private.api_usage.version text not null
+column private.api_visible_listings.id bigint
+column private.api_visible_listings.kind text
 column private.contact_clicks.channel text not null
 column private.contact_clicks.clicks integer not null default 0
 column private.contact_clicks.hour timestamp with time zone not null
@@ -372,6 +375,11 @@ defacl public r anon TRUNCATE
 defacl public r authenticated REFERENCES
 defacl public r authenticated TRIGGER
 defacl public r authenticated TRUNCATE
+execute api.listing_v1(p_id bigint) anon
+execute api.listing_v1(p_id bigint) authenticated
+execute api.listings_v1(p_cursor text, p_kind text) anon
+execute api.listings_v1(p_cursor text, p_kind text) authenticated
+execute api.my_listings_v1(p_cursor text) authenticated
 execute api.status_v1() anon
 execute api.status_v1() authenticated
 execute private.document_account_verified() authenticated
@@ -391,6 +399,9 @@ execute public.nakgo_route_alerts_seen() authenticated
 execute public.nakgo_save_route_alert(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) authenticated
 execute public.nakgo_set_favorite(p_listing_id bigint, p_saved boolean) authenticated
 execute public.nakgo_set_route_alert(p_id bigint, p_active boolean) authenticated
+function api.listing_v1(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=e3655a04573929ce7e481c8c38703be7
+function api.listings_v1(p_cursor text, p_kind text) returns jsonb definer vol=v cfg=search_path="" body=9f3145533732f4d4ec132d61986c6655
+function api.my_listings_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=72799cc72ebbc189f6bf6114fc22fd2b
 function api.status_v1() returns jsonb definer vol=v cfg=search_path="" body=2523637b93b591a6fd280ebebebe6833
 function private.account_deleted(p_user uuid) returns boolean definer vol=s cfg=search_path="" body=71c686aff64786a7b3af1d6b37a7435b
 function private.account_suspended(p_user uuid) returns boolean definer vol=s cfg=search_path="" body=6f81a36ee8d611cee6c5778b2e9f6497
@@ -399,10 +410,13 @@ function private.api_actor(p_write boolean) returns uuid invoker vol=v cfg=searc
 function private.api_admin() returns uuid invoker vol=v cfg=search_path="" body=4b1f9524567b012ced32ac1ed0676693
 function private.api_begin(p_fn text, p_allow_disabled boolean) returns void invoker vol=v cfg=search_path="" body=d71fd85112d72557ee1ba2c7cd37c3ac
 function private.api_cursor(p_cursor text) returns bigint invoker vol=i cfg=search_path="" body=62dedb28478fc19af7c7e6cccc88321c
+function private.api_listing_json(l listings, p_member boolean, p_actor uuid, p_detail boolean) returns jsonb invoker vol=s cfg= body=098aaffd52bc6f85b08e0ce99f5153ce
 function private.api_ok(p_data jsonb) returns jsonb invoker vol=i cfg=search_path="" body=29fca8ebd7103d59922ed29229384aa6
 function private.api_page(p_items jsonb, p_next bigint) returns jsonb invoker vol=i cfg=search_path="" body=dc9acd4df67355dd1b34665d7fd902f9
 function private.api_raise(p_key text) returns void invoker vol=v cfg=search_path="" body=1376ba8d37ab797550e71bdd4670d32f
+function private.api_ts(p timestamp with time zone) returns text invoker vol=s cfg= body=e73980aaab4c5857996c4865c1e4f798
 function private.api_usage_retention() returns bigint definer vol=v cfg=search_path="" body=70ddb771060645538baf72ec5cc75ed3
+function private.api_viewer() returns uuid invoker vol=v cfg=search_path="" body=6aa3cbc6f8e11fd7d23dffc3cd3f0fbc
 function private.auth_lock(p_user uuid, p_lock boolean) returns void definer vol=v cfg=search_path="" body=6ea41fdd41d26e06514771e5640d171f
 function private.document_account_verified() returns boolean definer vol=s cfg=search_path="" body=ddac92d92e14a35c8050a0531361d37d
 function private.document_object_access(p_path text, p_action text) returns boolean definer vol=v cfg=search_path="" body=3605adecbfeecee2758f1eba869326c1
@@ -549,3 +563,4 @@ trigger CREATE TRIGGER moderation_message BEFORE INSERT ON public.conversation_m
 trigger CREATE TRIGGER moderation_profile BEFORE INSERT OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.activity_write_guard()
 trigger CREATE TRIGGER moderation_storage BEFORE INSERT OR DELETE OR UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION private.storage_activity_guard()
 trigger CREATE TRIGGER nakgo_access_log AFTER INSERT ON auth.sessions FOR EACH ROW EXECUTE FUNCTION private.log_login()
+view private.api_visible_listings

@@ -3,24 +3,203 @@
   "description": "Sürümlü istemci API'si. Uçlar yalnız api şemasında fonksiyon; istemci tabloya dokunmaz. v1 içinde yalnız geriye uyumlu değişiklik (yeni isteğe bağlı argüman, yeni alan, yeni fonksiyon). Alan silme, yeniden adlandırma ya da anlam değişikliği v2 gerektirir. Ayrıntı: docs/api/contract-v1.md",
   "schema": "api",
   "naming": "^[a-z][a-z0-9_]*_v1$",
-  "function_rules": {"returns": "jsonb", "security_definer": true, "search_path": "", "volatility": "v", "begin": "private.api_begin('<name>'"},
+  "function_rules": {
+    "returns": "jsonb",
+    "security_definer": true,
+    "search_path": "",
+    "volatility": "v",
+    "begin": "private.api_begin('<name>'"
+  },
   "response": {
-    "single": {"keys": ["data"]},
-    "list": {"keys": ["data", "page"], "page": ["next"], "next": "opak metin imleç ya da null; sayfa boyutu sunucuda sabit"}
+    "single": {
+      "keys": [
+        "data"
+      ]
+    },
+    "list": {
+      "keys": [
+        "data",
+        "page"
+      ],
+      "page": [
+        "next"
+      ],
+      "next": "opak metin imleç ya da null; sayfa boyutu sunucuda sabit"
+    }
   },
   "functions": {
-    "status_v1": {"args": [], "roles": ["anon", "authenticated"], "kind": "single", "data": ["api", "enabled", "server_time"], "works_when_disabled": true}
+    "status_v1": {
+      "args": [],
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "api",
+        "enabled",
+        "server_time"
+      ],
+      "works_when_disabled": true
+    },
+    "listings_v1": {
+      "args": [
+        [
+          "p_cursor",
+          "text",
+          "optional"
+        ],
+        [
+          "p_kind",
+          "text",
+          "optional"
+        ]
+      ],
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "kind": "list",
+      "page_size": 50,
+      "order": "id desc",
+      "item": "listing_item (guest|member)"
+    },
+    "listing_v1": {
+      "args": [
+        [
+          "p_id",
+          "bigint"
+        ]
+      ],
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "kind": "single",
+      "item": "listing_item (guest|member+photo)",
+      "errors": [
+        "invalid_argument",
+        "not_found"
+      ]
+    },
+    "my_listings_v1": {
+      "args": [
+        [
+          "p_cursor",
+          "text",
+          "optional"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "list",
+      "page_size": 50,
+      "order": "id desc",
+      "item": "listing_item (member)"
+    }
   },
   "errors": {
-    "auth_required": {"sqlstate": "42501", "http": 401},
-    "account_unverified": {"sqlstate": "42501", "http": 403},
-    "account_suspended": {"sqlstate": "42501", "http": 403},
-    "admin_required": {"sqlstate": "42501", "http": 403},
-    "invalid_argument": {"sqlstate": "22023", "http": 400},
-    "invalid_cursor": {"sqlstate": "22023", "http": 400},
-    "not_found": {"sqlstate": "PT404", "http": 404},
-    "conflict": {"sqlstate": "PT409", "http": 409},
-    "api_disabled": {"sqlstate": "PT503", "http": 503}
+    "auth_required": {
+      "sqlstate": "42501",
+      "http": 401
+    },
+    "account_unverified": {
+      "sqlstate": "42501",
+      "http": 403
+    },
+    "account_suspended": {
+      "sqlstate": "42501",
+      "http": 403
+    },
+    "admin_required": {
+      "sqlstate": "42501",
+      "http": 403
+    },
+    "invalid_argument": {
+      "sqlstate": "22023",
+      "http": 400
+    },
+    "invalid_cursor": {
+      "sqlstate": "22023",
+      "http": 400
+    },
+    "not_found": {
+      "sqlstate": "PT404",
+      "http": 404
+    },
+    "conflict": {
+      "sqlstate": "PT409",
+      "http": 409
+    },
+    "api_disabled": {
+      "sqlstate": "PT503",
+      "http": 503
+    }
   },
-  "usage_columns": ["hour", "version", "fn", "shard", "calls"]
+  "usage_columns": [
+    "hour",
+    "version",
+    "fn",
+    "shard",
+    "calls"
+  ],
+  "listing_item": {
+    "guest": [
+      "id",
+      "kind",
+      "from",
+      "to",
+      "vehicle",
+      "body",
+      "amount",
+      "cargo",
+      "items",
+      "date",
+      "status",
+      "created_at",
+      "has_photo"
+    ],
+    "member": [
+      "id",
+      "kind",
+      "from",
+      "to",
+      "vehicle",
+      "body",
+      "amount",
+      "cargo",
+      "items",
+      "date",
+      "status",
+      "created_at",
+      "has_photo",
+      "owner_label",
+      "note",
+      "mine",
+      "expires_at",
+      "updated_at",
+      "contact_allowed"
+    ],
+    "detail_member_extra": [
+      "photo"
+    ],
+    "place": [
+      "city",
+      "district"
+    ],
+    "date": [
+      "on",
+      "until",
+      "time",
+      "text"
+    ],
+    "never": [
+      "contact_phone",
+      "phone",
+      "owner_id",
+      "redacted_at",
+      "image_data"
+    ]
+  }
 }
