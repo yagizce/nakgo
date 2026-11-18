@@ -239,6 +239,11 @@ açılmadı, v0 tablosu, kısıtları, RLS, kotalar ve moderasyon değişmedi. M
   başka birimli, metin, 3'ten fazla ondalıklı tonaj ve tonajsız birim `invalid_argument`. Ondalık sayısı sayının yazıldığı
   biçimle ölçülür: `18.5`, `18.250`, `0.001`, `1e-3` geçerli; `18.2501`, `18.2500`, `0.0001` geçersiz. Araç/kasa listede
   olmalı. Yanıt biçimi değişmedi (`amount` ton).
+- **Form (istemci):** v1 modunda ilan formu (yük ağırlığı, boş kapasite) ve düzenleme formu girilen metni ve gönderilecek
+  sayıyı denetler; 3'ten fazla ondalıkta form gönderilmez ve "Tonaj en fazla 3 ondalık basamak içerebilir. Örnek: 18,250
+  ton." gösterilir. Yuvarlama yapılmaz. Boş, sıfır ve geçersiz karakter bugünkü mesajlarla reddedilir. v0 modunda (oturum
+  ortasında v0'a dönüldüğünde de) form davranışı değişmez. Kontrol sunucu doğrulamasının yerine geçmez. Mod, istemcinin o an
+  bildiği sürümdür (`nakgoAuth.apiMode()`); sürüm sorgusu sürerken v0 sayılır ve sunucu yine reddeder.
 - **v0 ve eski veri:** hassasiyet kuralı yalnız v1 girdisinde; tablo kısıtı ve v0 değişmedi. v0 ile girilmiş daha hassas
   tonaj (ör. 18.2501) v1'de olduğu gibi okunur; tonaja dokunmayan v1 düzenlemesi serbesttir, tonaj v1 ile yeniden yazılırken
   kural uygulanır.

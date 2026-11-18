@@ -241,6 +241,8 @@ function openEdit(k, id, reopen=false) {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
+        if (!L && nakgoMarket.active() && v1TonError($("#ep").value))
+            return toast(v1TonError($("#ep").value));
         const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 1000) } : { cap: v, date: $("#ed").value };
         const selectedDate=$("#ed").value;
         if (L && 'dateText' in it) {

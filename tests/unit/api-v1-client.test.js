@@ -134,7 +134,7 @@ module.exports=({test,fs,path,ROOT})=>{
   const out=[],ok=(v,m)=>out.push([!!v,m]);
   // 1) Sunucu "kapalı" derse v0.
   let h=harness({status:{data:{data:{enabled:false}},error:null}});await h.auth().init();await h.auth().listListings();
-  ok(fns(h.calls).join()==='status_v1'&&h.calls.v0.some(x=>x.table==='listings'),'kapalı: v0');
+  ok(fns(h.calls).join()==='status_v1'&&h.calls.v0.some(x=>x.table==='listings')&&h.auth().apiMode()==='v0','kapalı: v0');
   // 2) Şema açık değil (son aşamaya kadar bugünkü durum): PGRST106 → v0.
   h=harness({status:{data:null,error:{code:'PGRST106',message:'Invalid schema: api'}}});await h.auth().init();await h.auth().listListings();
   ok(fns(h.calls).join()==='status_v1'&&h.calls.v0.some(x=>x.table==='profiles')&&h.calls.v0.some(x=>x.table==='listings'),'şema yok: v0');
@@ -143,14 +143,15 @@ module.exports=({test,fs,path,ROOT})=>{
   ok(h.calls.v0.some(x=>x.table==='listings'),'ağ hatası: v0');
   // 4) Yapılandırma api:"v0" → hiç sorulmaz.
   h=harness({config:{api:'v0'}});await h.auth().init();await h.auth().listListings();
-  ok(!h.calls.v1.length&&h.calls.v0.some(x=>x.table==='listings'),'yapılandırma v0: v1 çağrısı yok');
+  ok(!h.calls.v1.length&&h.calls.v0.some(x=>x.table==='listings')&&h.auth().apiMode()==='v0','yapılandırma v0: v1 çağrısı yok, mod v0');
   // 5) Oturum ortasında v1 kapatılır (api_disabled): aynı istek bir kez v0 ile, sonrası hep v0.
   let disabled=false;
   h=harness({v1:{profile_v1:{data:{data:{display_name:'A',account_type:'owner',city:'',about:'',phone:''}},error:null},
    listings_v1:()=>disabled?{data:null,error:{code:'PT503',message:'api_disabled',hint:'nakgo.api'}}:{data:{data:[item(1)],page:{next:null}},error:null}}});
-  await h.auth().init();await h.auth().listListings();ok(fns(h.calls).at(-1)==='listings_v1','önce v1');
+  await h.auth().init();await h.auth().listListings();ok(fns(h.calls).at(-1)==='listings_v1'&&h.auth().apiMode()==='v1','önce v1 (form kontrolleri v1)');
   disabled=true;const v0Before=h.calls.v0.length;const rows=await h.auth().listListings();
   ok(Array.isArray(rows)&&h.calls.v0.length===v0Before+1,'kapatılınca aynı istek v0 ile tekrarlandı');
+  ok(h.auth().apiMode()==='v0','geçişten sonra form kontrolleri v0 (değişmeyen davranış)');
   const v1Before=h.calls.v1.length;await h.auth().listListings();await h.auth().setFavorite(1,true);
   ok(h.calls.v1.length===v1Before,'oturumun kalanı v0');
   // 5b) Oturum ortasında şema kapatılır (PGRST106): aynı istek v0 ile.

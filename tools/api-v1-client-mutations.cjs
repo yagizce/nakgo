@@ -40,6 +40,14 @@ const M=[
   [D,"        if (imgOk(photo)) { l.img = photo;","        if (photo !== undefined) { l.img = photo;"],
   [D,"Promise.race([nakgoAuth.listingPhoto(id), late])","nakgoAuth.listingPhoto(id)"],
   [D,"    : l.hasPhoto && l._remote && nakgoMarket.active() ?","    : l.hasPhoto && l._remote ?"],
+  [C,"const currentApi=()=>apiPreference==='auto'&&apiMode==='v1'?'v1':'v0';","const currentApi=()=>'v1';"],
+  ['src/js/data.js',"decimals(text) <= 3 && decimals(String(n)) <= 3","decimals(String(n)) <= 3"],
+  ['src/js/data.js',"decimals(text) <= 3 && decimals(String(n)) <= 3","decimals(text) <= 4 && decimals(String(n)) <= 4"],
+  ['src/js/data.js',"return !/e/i.test(String(n)) && ","return "],
+  ['src/js/data.js',"nakgoAuth.apiMode() === \"v1\" && ",""],
+  ['src/js/screens/post.js',"error=postError(value,true)||v1TonError($(\"#w\").value);","error=postError(value,true);"],
+  ['src/js/screens/post.js',"postError(l) || (nakgoMarket.active() ? v1TonError($(\"#w\").value) : \"\")","postError(l)"],
+  ['src/js/features/listings.js',"        if (!L && nakgoMarket.active() && v1TonError($(\"#ep\").value))\n            return toast(v1TonError($(\"#ep\").value));\n",""],
 ];
 const tests=()=>{
   if(spawnSync(process.execPath,['tools/bundle.js'],{encoding:'utf8'}).status!==0)return true;
