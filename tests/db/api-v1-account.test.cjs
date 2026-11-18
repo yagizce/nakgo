@@ -23,7 +23,7 @@ const day=d=>d==null?null:(d instanceof Date?d.getFullYear()+'-'+pad(d.getMonth(
 const memberItem=(r,actor)=>({id:Number(r.id),kind:r.kind,from:{city:r.from_city,district:r.from_district},to:{city:r.to_city,district:r.to_district},
   vehicle:r.vehicle,body:r.body,amount:Number(r.amount),cargo:r.cargo,items:r.items,
   date:{on:day(r.available_on),until:day(r.available_until),time:r.available_time,text:r.loading_text},status:r.status,created_at:iso(r.created_at),
-  has_photo:r.image_data!=='',owner_label:r.owner_label,note:r.note,mine:r.owner_id===actor,expires_at:iso(r.expires_at),updated_at:iso(r.updated_at),contact_allowed:r.contact_consent});
+  has_photo:r.image_data!=='',owner_label:r.owner_label,note:r.note,mine:r.owner_id===actor,expires_at:iso(r.expires_at),updated_at:iso(r.updated_at),contact_allowed:r.contact_consent,revision:r.owner_id===actor?Number(r.revision??0):null});
 const norm=x=>JSON.parse(JSON.stringify(x));
 
 async function pages(fn){const out=[],sizes=[];let c=null;for(let i=0;i<20;i++){const p=await fn(c);out.push(...p.items);sizes.push(p.items.length);if(p.next==null)break;c=p.next;}return {items:out,sizes};}

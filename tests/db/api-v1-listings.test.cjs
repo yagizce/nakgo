@@ -72,7 +72,7 @@ function expectedItem(row,{member=false,actor=null,photo=null,detail=false}){
     vehicle:row.vehicle,body:row.body,amount:Number(row.amount),cargo:row.cargo,items:row.items,
     date:{on:day(row.available_on),until:day(row.available_until),time:row.available_time,text:row.loading_text},
     status:row.status,created_at:iso(row.created_at),has_photo:(photo??row.image_data)!==''};
-  if(member)Object.assign(o,{owner_label:row.owner_label,note:row.note,mine:row.owner_id===actor,expires_at:iso(row.expires_at),updated_at:iso(row.updated_at),contact_allowed:row.contact_consent});
+  if(member)Object.assign(o,{owner_label:row.owner_label,note:row.note,mine:row.owner_id===actor,expires_at:iso(row.expires_at),updated_at:iso(row.updated_at),contact_allowed:row.contact_consent,revision:row.owner_id===actor?Number(row.revision??0):null});
   if(member&&detail)o.photo=(row.image_data||'')===''?null:row.image_data;
   return o;
 }

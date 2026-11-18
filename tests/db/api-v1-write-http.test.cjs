@@ -38,11 +38,11 @@ test('API v1 yazma uçları HTTP (yerel PostgREST)',async t=>{
       assert.equal((await pg.rpc('listing_create_v1',{token:TS,body:{p_request_id:crypto.randomUUID(),p_listing:truck}})).status,403,'askıdaki hesap');
     });
     await t.test('güncelleme: doğru revision 200, eski revision 409; başka hesap 404',async()=>{
-      const ok=await pg.rpc('listing_update_v1',{token:TA,body:{p_id:listing.id,p_revision:listing.updated_at,p_changes:{note:'Yeni'}}});
+      const ok=await pg.rpc('listing_update_v1',{token:TA,body:{p_id:listing.id,p_revision:listing.revision,p_changes:{note:'Yeni'}}});
       assert.equal(ok.status,200);assert.equal(ok.body.data.listing.note,'Yeni');
-      const stale=await pg.rpc('listing_update_v1',{token:TA,body:{p_id:listing.id,p_revision:listing.updated_at,p_changes:{note:'Eski'}}});
+      const stale=await pg.rpc('listing_update_v1',{token:TA,body:{p_id:listing.id,p_revision:listing.revision,p_changes:{note:'Eski'}}});
       assert.equal(stale.status,409);assert.equal(stale.body.message,'conflict');
-      assert.equal((await pg.rpc('listing_update_v1',{token:TB,body:{p_id:listing.id,p_revision:ok.body.data.listing.updated_at,p_changes:{note:'X'}}})).status,404);
+      assert.equal((await pg.rpc('listing_update_v1',{token:TB,body:{p_id:listing.id,p_revision:ok.body.data.listing.revision,p_changes:{note:'X'}}})).status,404);
       assert.equal((await pg.rpc('listing_close_v1',{token:TB,body:{p_id:listing.id}})).status,404);
       const c=await pg.rpc('listing_close_v1',{token:TA,body:{p_id:listing.id}});assert.equal(c.body.data.listing.status,'closed');
     });

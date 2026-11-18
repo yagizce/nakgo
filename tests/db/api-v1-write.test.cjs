@@ -120,7 +120,7 @@ test('API v1 yazma uçları',async t=>{
       assert.equal(await count(db,`select count(*) n from private.api_requests where request_id=$1`,[req]),0,'başarısız istek kaydı kalmaz');
       assert.equal((await call(db,B,'listing_close_v1',[ids[0]])).data.changed,true);
       assert.equal((await call(db,B,'listing_create_v1',[req,truckPayload()])).data.created,true,'aynı istek kimliği sınır açılınca çalışır');
-      const r=await call(db,B,'listing_update_v1',[ids[0],(await call(db,B,'listing_v1',[ids[0]])).data.updated_at,{status:'active'}]);
+      const r=await call(db,B,'listing_update_v1',[ids[0],(await call(db,B,'listing_v1',[ids[0]])).data.revision,{status:'active'}]);
       assert.equal(key(r),'limit_reached','yeniden açma da kotaya tabi');
       await db.query(`delete from public.listings where owner_id=$1`,[B]);
     });
@@ -129,24 +129,24 @@ test('API v1 yazma uçları',async t=>{
       const a=(await v0Insert(db,A,'Ayşe',truckPayload())).rows[0],b=(await call(db,B,'listing_create_v1',[rid(),truckPayload()])).data.listing;
       const change={note:'Yeni not',amount:14,available_time:''};
       const va=await v0Update(db,A,a.id,change);assert.ok(!va.error);
-      const vb=await call(db,B,'listing_update_v1',[b.id,b.updated_at,change]);assert.ok(vb.data,JSON.stringify(vb));
+      const vb=await call(db,B,'listing_update_v1',[b.id,b.revision,change]);assert.ok(vb.data,JSON.stringify(vb));
       assert.deepEqual(pick(await row(db,b.id)),pick(await row(db,a.id)));
       assert.notEqual(vb.data.listing.updated_at,b.updated_at,'updated_at tetikleyiciyle değişti');
       const before=await row(db,b.id);
-      assert.equal(key(await call(db,B,'listing_update_v1',[b.id,b.updated_at,{note:'Eski'}])),'conflict');
+      assert.equal(key(await call(db,B,'listing_update_v1',[b.id,b.revision,{note:'Eski'}])),'conflict');
       assert.deepEqual(await row(db,b.id),before);
       // Başka hesabın ilanı, olmayan ilan: aynı yanıt (var olup olmadığı belli edilmez).
-      assert.equal(key(await call(db,A,'listing_update_v1',[b.id,vb.data.listing.updated_at,{note:'X'}])),'not_found');
-      assert.equal(key(await call(db,A,'listing_update_v1',[999999999,'x',{note:'X'}])),'not_found');
+      assert.equal(key(await call(db,A,'listing_update_v1',[b.id,vb.data.listing.revision,{note:'X'}])),'not_found');
+      assert.equal(key(await call(db,A,'listing_update_v1',[999999999,0,{note:'X'}])),'not_found');
       assert.deepEqual(await row(db,b.id),before);
       // Değişmez ve istemciye kapalı alanlar.
       for(const c of [{kind:'load'},{owner_id:A},{owner_label:'X'},{expires_at:'2099-01-01'},{redacted_at:null},{created_at:'2020-01-01'},{id:1},{}])
-        assert.equal(key(await call(db,B,'listing_update_v1',[b.id,vb.data.listing.updated_at,c])),'invalid_argument',JSON.stringify(c));
+        assert.equal(key(await call(db,B,'listing_update_v1',[b.id,vb.data.listing.revision,c])),'invalid_argument',JSON.stringify(c));
       // Yazma koruması tetikleyicisi: etkin ilanın tarihi geçmiş olamaz.
-      assert.equal(key(await call(db,B,'listing_update_v1',[b.id,vb.data.listing.updated_at,{available_on:'2020-01-01'}])),'invalid_argument');
+      assert.equal(key(await call(db,B,'listing_update_v1',[b.id,vb.data.listing.revision,{available_on:'2020-01-01'}])),'invalid_argument');
       assert.deepEqual(await row(db,b.id),before);
       await db.exec('set session_replication_role=replica');await db.query(`update public.listings set redacted_at=now() where id=$1`,[a.id]);await db.exec('reset session_replication_role');
-      assert.equal(key(await call(db,A,'listing_update_v1',[a.id,'x',{note:'X'}])),'not_found','karartılmış ilan');
+      assert.equal(key(await call(db,A,'listing_update_v1',[a.id,0,{note:'X'}])),'not_found','karartılmış ilan');
       assert.equal((await v0Update(db,A,a.id,{note:'X'})).rows.length,0,'v0 RLS de güncellemez');
       await db.query(`delete from public.listings where owner_id in($1,$2)`,[A,B]);
     });
@@ -156,14 +156,14 @@ test('API v1 yazma uçları',async t=>{
       assert.deepEqual((await db.query(`select user_id,action,detail from private.access_log where listing_id=$1 order by id`,[l.id])).rows,[{user_id:B,action:'listing_create',detail:null}]);
       await db.exec('set session_replication_role=replica');await db.query(`update public.listings set expires_at=now()-interval '1 hour' where id=$1`,[l.id]);await db.exec('reset session_replication_role');
       const cur=(await call(db,B,'my_listings_v1')).data.find(x=>x.id===l.id);
-      const r=await call(db,B,'listing_update_v1',[l.id,cur.updated_at,{status:'active'}]);
+      const r=await call(db,B,'listing_update_v1',[l.id,cur.revision,{status:'active'}]);
       assert.ok(new Date(r.data.listing.expires_at)>Date.now()+5*3600e3,'süresi dolmuş ilan etkinleşince 6 saat yenilenir');
       const closed=await call(db,B,'listing_close_v1',[l.id]);assert.equal(closed.data.listing.status,'closed');
       assert.equal((await call(db,B,'listing_close_v1',[l.id])).data.changed,false,'kapatma tekrar güvenli');
       assert.deepEqual((await db.query(`select user_id,action,detail from private.access_log where listing_id=$1 order by id`,[l.id])).rows.map(x=>x.detail),[null,'edit','status:active>closed']);
       assert.ok((await db.query(`select bool_and(user_id=$2) v from private.access_log where listing_id=$1`,[l.id,B])).rows[0].v);
       await db.query(`insert into private.listing_moderation(listing_id,removed) values($1,true)`,[l.id]);
-      assert.equal(key(await call(db,B,'listing_update_v1',[l.id,closed.data.listing.updated_at,{status:'active'}])),'not_allowed','kaldırılmış ilan açılamaz');
+      assert.equal(key(await call(db,B,'listing_update_v1',[l.id,closed.data.listing.revision,{status:'active'}])),'not_allowed','kaldırılmış ilan açılamaz');
       assert.equal((await v0Update(db,B,l.id,{status:'active'})).error.code,'42501','v0 de reddeder');
       await db.query(`delete from public.listings where owner_id=$1`,[B]);
     });
@@ -174,7 +174,7 @@ test('API v1 yazma uçları',async t=>{
       await db.query(`insert into public.listing_favorites(user_id,listing_id) values($1,$2)`,[C,lid]);
       const alert=Number((await db.query(`insert into public.route_alerts(user_id,kind,from_city) values($1,'load','Adana') returning id`,[C])).rows[0].id);
       await db.exec('reset session_replication_role');
-      const writes=[['listing_create_v1',[rid(),truckPayload()]],['listing_update_v1',[lid,'x',{note:'a'}]],['listing_close_v1',[lid]],['profile_update_v1',[{city:'Bursa'}]],
+      const writes=[['listing_create_v1',[rid(),truckPayload()]],['listing_update_v1',[lid,0,{note:'a'}]],['listing_close_v1',[lid]],['profile_update_v1',[{city:'Bursa'}]],
         ['favorite_add_v1',[lid]],['route_alert_create_v1',['load','Adana','Mersin']],['route_alert_update_v1',[alert,false]],['listing_contact_v1',[lid]]];
       for(const [fn,args] of writes)assert.equal(key(await call(db,C,fn,args)),'account_suspended',fn);
       assert.equal((await call(db,C,'favorite_remove_v1',[lid])).data.saved,false);
@@ -375,8 +375,8 @@ test('API v1 yazma uçları',async t=>{
       try{
         await t2.test('aynı revision ile iki güncelleme: biri yazar, diğeri conflict; kayıp güncelleme yok',async()=>{
           const l=(await call(db,B,'listing_create_v1',[rid(),truckPayload()])).data.listing;
-          const [a,b]=await Promise.all([on(x,B,'listing_update_v1',[l.id,l.updated_at,{note:'birinci'}],0.3),
-            new Promise(r=>setTimeout(r,100)).then(()=>on(y,B,'listing_update_v1',[l.id,l.updated_at,{amount:30}]))]);
+          const [a,b]=await Promise.all([on(x,B,'listing_update_v1',[l.id,l.revision,{note:'birinci'}],0.3),
+            new Promise(r=>setTimeout(r,100)).then(()=>on(y,B,'listing_update_v1',[l.id,l.revision,{amount:30}]))]);
           assert.ok(a.data,JSON.stringify(a));assert.equal(b.error.key,'conflict');
           const r=await row(db,l.id);assert.equal(r.note,'birinci');assert.equal(Number(r.amount),12);
         });
