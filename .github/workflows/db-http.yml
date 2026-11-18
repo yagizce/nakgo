@@ -49,5 +49,7 @@ jobs:
           NAKGO_MINIFLARE: ${{ runner.temp }}/nakgo-mf/node_modules/miniflare/dist/src/index.js
         # Ortam eksikse bu testler atlanır; burada atlanan test başarısızlık sayılır (sessizce geçmesin).
         run: |
-          node --test tests/db/*-http.test.cjs tests/db/worker-role.test.cjs tests/server/*.test.mjs | tee "$RUNNER_TEMP/http.tap"
+          # Yönetici çakışması testinin PostgREST bölümü (#148 ile gelir; dosya yoksa eklenmez).
+          extra=$(ls tests/db/admin-moderate-conflict.test.cjs 2>/dev/null || true)
+          node --test tests/db/*-http.test.cjs tests/db/worker-role.test.cjs $extra tests/server/*.test.mjs | tee "$RUNNER_TEMP/http.tap"
           grep -qx '# skipped 0' "$RUNNER_TEMP/http.tap" || { echo "Atlanan test var: PostgREST, supabase-js ya da Miniflare kurulamadı"; exit 1; }

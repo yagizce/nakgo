@@ -10,6 +10,7 @@ Dal koruma kurallarına zorunlu kontrol olarak eklenmesi GitHub ayarıdır ve ay
 | `tests/db/api-v1-client-http.test.cjs` (gerçek supabase-js + uygulama kodu) | supabase-js ve PostgREST yok | `@supabase/supabase-js@2.117.3` (uygulamanın sabitlediği sürüm) geçici dizine |
 | `tests/db/worker-role.test.cjs` PostgREST/workerd adımları | PostgREST ve Miniflare yok | aynı iş |
 | `tests/server/workerd.test.mjs` | Miniflare yok | `miniflare@4.20260730.0` geçici dizine |
+| `tests/db/admin-moderate-conflict.test.cjs` PostgREST bölümü (#148) | PostgREST yok | aynı iş; dosya varsa çalışır |
 
 ## Güvenlik
 - Gizli anahtar, GitHub Secret, Environment, canlı hesap ya da production/DEV bağlantısı **yok**. Veritabanı CI içindeki
