@@ -6,8 +6,12 @@ const b64=x=>Buffer.from(typeof x==='string'?x:JSON.stringify(x)).toString('base
 
 /** schemas: PostgREST'in açtığı şemalar (varsayılan public,api; 'public' = api açılmamış Supabase gibi). */
 async function startPostgrest(db,{schemas='public,api'}={}){
-  const SECRET=crypto.randomBytes(32).toString('hex'),PW=crypto.randomBytes(16).toString('hex');
-  const PORT=3900+Math.floor(Math.random()*90),ADMIN=PORT+100;
+  // Aynı veritabanında ikinci sunucu aynı parola ve sırrı kullanır (parola değişirse ilk sunucunun yeni bağlantıları düşer).
+  const keys=db.__postgrest??=(db.__postgrest={SECRET:crypto.randomBytes(32).toString('hex'),PW:crypto.randomBytes(16).toString('hex')});
+  const {SECRET,PW}=keys;
+  // Boş portlar işletim sisteminden alınır (testler paralel çalışır; rastgele port çakışıp başka sunucuya bağlanmasın).
+  const free=()=>new Promise((ok,fail)=>{const srv=require('node:net').createServer();srv.on('error',fail);srv.listen(0,'127.0.0.1',()=>{const {port}=srv.address();srv.close(()=>ok(port));});});
+  const PORT=await free(),ADMIN=await free();
   await db.exec(`create or replace function auth.uid() returns uuid language sql stable as $$
     select coalesce(nullif(current_setting('request.jwt.claim.sub',true),''),(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub'))::uuid $$;
     do $$ begin if not exists(select 1 from pg_roles where rolname='authenticator') then create role authenticator login noinherit; end if; end $$;
