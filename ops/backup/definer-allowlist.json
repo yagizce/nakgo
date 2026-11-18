@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Yedek rolünün çağırabildiği ve incelenip güvenli bulunmuş tetikleyici olmayan SECURITY DEFINER fonksiyonlar. Her kayıt: id, fingerprint_sha256 (tools/backup/privilege-audit.cjs çıktısı), reviewed_by, reviewed_at, reason, data_scope (döndürdüğü veri kapsamı); search_path kuralına uymuyorsa search_path_exception, risk işareti varsa risk_exception zorunludur. Kayıtlar yalnız incelemeli PR ile eklenir; araç hiçbir zaman kendiliğinden kayıt eklemez.",
+  "entries": []
+}

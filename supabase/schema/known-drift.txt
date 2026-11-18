@@ -1,0 +1,10 @@
+# Production ile migration'lardan kurulan şema arasındaki bilinen ve onaylı farklar.
+# Biçim: "+ satır" = yalnız karşılaştırılan ortamda var, "- satır" = yalnız repoda var.
+# Kaynak: 16.11.2026 salt okunur production karşılaştırması (B1).
+#
+# rls_auto_enable: Supabase panelinden eklenmiş olay tetikleyici fonksiyonu, repoda yok.
+# Yalnız event trigger olarak çalışabilir; doğrudan çağrı hata verir. Kaldırma/yetki daraltma
+# ayrı bir aşamada ve ayrı onayla ele alınacak.
++ execute public.rls_auto_enable() anon
++ execute public.rls_auto_enable() authenticated
++ function public.rls_auto_enable() returns event_trigger definer vol=v cfg=search_path=pg_catalog body=0114e7179dc4f574ceb44ffbebd281d1

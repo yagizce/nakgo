@@ -54,7 +54,7 @@ function renderPost(m) {
                 if (tab !== "post" || $("#go") !== publishButton) return;
                 if(publishButton.disabled)return;
                 if(nakgoMarket.active()) {
-                    const value=postValues(), error=postError(value,true); if(error)return toast(error);
+                    const value=postValues(), error=postError(value,true)||v1TonError($("#w").value); if(error)return toast(error);
                     publishButton.disabled=true;
                     try {await nakgoMarket.create(value,true);} catch(e){publishButton.disabled=false;toast(nakgoAuth.message(e));return;}
                 } else if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
@@ -96,7 +96,7 @@ function renderPost(m) {
             const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
             if (its.length)
                 l.items = its;
-            const error = postError(l);
+            const error = postError(l) || (nakgoMarket.active() ? v1TonError($("#w").value) : "");
             if (error) return toast(error);
             if(publishButton.disabled)return;
             if(nakgoMarket.active()) {

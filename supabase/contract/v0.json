@@ -1,0 +1,60 @@
+{
+  "version": "v0",
+  "description": "Mevcut web istemcisinin (src/js/cloud.js) Supabase'e doğrudan kullandığı yüzey. Bu sözleşme bozulursa yayındaki eski istemciler bozulur. Değişiklik yalnız geriye uyumlu (yeni isteğe bağlı argüman, yeni alan) olabilir; kaldırma/yeniden adlandırma v1 ile ve eski istemciler emekliye ayrıldıktan sonra yapılır.",
+  "rpc": {
+    "nakgo_public_listings": {"args": [["p_before", "bigint", "optional"]], "returns": "TABLE(id bigint, kind text, from_city text, to_city text, from_district text, to_district text, vehicle text, body text, amount numeric, cargo text, items jsonb, available_on date, available_until date, available_time text, loading_text text, status text, created_at timestamp with time zone)", "roles": ["anon", "authenticated"]},
+    "nakgo_listing_contact": {"args": [["p_id", "bigint"], ["p_channel", "text", "optional"]], "returns": "text", "roles": ["authenticated"]},
+    "nakgo_set_favorite": {"args": [["p_listing_id", "bigint"], ["p_saved", "boolean"]], "returns": "jsonb", "shape": ["listing_id", "saved"], "roles": ["authenticated"]},
+    "nakgo_save_route_alert": {"args": [["p_kind", "text"], ["p_from", "text"], ["p_to", "text"], ["p_vehicle", "text"], ["p_body", "text"]], "returns": "route_alerts", "roles": ["authenticated"]},
+    "nakgo_set_route_alert": {"args": [["p_id", "bigint"], ["p_active", "boolean"]], "returns": "route_alerts", "roles": ["authenticated"]},
+    "nakgo_remove_route_alert": {"args": [["p_id", "bigint"]], "returns": "jsonb", "shape": ["id", "removed"], "roles": ["authenticated"]},
+    "nakgo_route_alerts_seen": {"args": [], "returns": "integer", "roles": ["authenticated"]},
+    "nakgo_delete_my_account": {"args": [], "returns": "jsonb", "shape": ["deleted"], "roles": ["authenticated"]},
+    "nakgo_admin_role": {"args": [], "returns": "boolean", "roles": ["authenticated"]},
+    "nakgo_admin_page": {"args": [["p_section", "text"], ["p_offset", "integer", "optional"], ["p_search", "text", "optional"], ["p_filter", "text", "optional"], ["p_query", "jsonb", "optional"]], "returns": "jsonb", "roles": ["authenticated"]},
+    "nakgo_admin_live": {"args": [["p_kind", "text", "optional"]], "returns": "jsonb", "roles": ["authenticated"]},
+    "nakgo_admin_moderate": {"args": [["p_kind", "text"], ["p_target", "text"], ["p_action", "text"], ["p_reason", "text"], ["p_revision", "bigint"]], "returns": "jsonb", "roles": ["authenticated"]},
+    "nakgo_report_listing": {"args": [["p_listing_id", "bigint"], ["p_subject", "text"], ["p_reason", "text"], ["p_note", "text", "optional"]], "returns": "jsonb", "shape": ["report", "created"], "roles": ["authenticated"]},
+    "nakgo_admin_reports": {"args": [["p_status", "text", "optional"], ["p_offset", "integer", "optional"]], "returns": "jsonb", "roles": ["authenticated"]},
+    "nakgo_admin_report_set": {"args": [["p_id", "bigint"], ["p_status", "text"], ["p_reason", "text"], ["p_revision", "bigint"]], "returns": "jsonb", "shape": ["revision", "changed"], "roles": ["authenticated"]}
+  },
+  "tables": {
+    "profiles": {
+      "select": ["id", "display_name", "account_type", "city", "about", "phone"],
+      "insert": ["id", "display_name", "account_type"],
+      "update": ["display_name", "account_type", "city", "about", "phone"]
+    },
+    "listings": {
+      "select": ["id", "owner_id", "kind", "from_city", "to_city", "from_district", "to_district", "expires_at", "vehicle", "body", "amount", "cargo", "note", "owner_label", "available_on", "available_until", "available_time", "loading_text", "items", "image_data", "status", "created_at", "updated_at", "contact_consent"],
+      "insert": ["kind", "owner_label", "from_city", "to_city", "from_district", "to_district", "vehicle", "body", "amount", "cargo", "note", "available_on", "available_until", "available_time", "loading_text", "items", "image_data", "contact_phone", "contact_consent"],
+      "update": ["from_city", "to_city", "from_district", "to_district", "vehicle", "body", "amount", "cargo", "note", "available_on", "available_until", "available_time", "loading_text", "items", "image_data", "contact_phone", "contact_consent", "status"],
+      "forbidden": {"select": ["contact_phone", "redacted_at"], "insert": ["id", "owner_id", "status", "expires_at", "created_at", "redacted_at"], "update": ["id", "owner_id", "kind", "expires_at", "created_at", "redacted_at"]}
+    },
+    "listing_favorites": {"select": ["listing_id"], "embeds": {"listing": "listings"}, "forbidden": {"insert": ["*"], "update": ["*"], "delete": ["*"]}},
+    "route_alerts": {"select": ["id", "kind", "from_city", "to_city", "vehicle", "body", "active", "seen_at", "created_at"], "forbidden": {"insert": ["*"], "update": ["*"], "delete": ["*"]}}
+  },
+  "anon": {"tables": "none", "rpc": ["nakgo_public_listings"]},
+  "internal_execute": {
+    "nakgo_listing_items_valid(items jsonb)": {"roles": ["authenticated"], "why": "listings CHECK kısıtı ekleyen kullanıcının yetkisiyle çalışır"},
+    "private.document_account_verified()": {"roles": ["authenticated"], "why": "eski taşıyıcı belge tablolarının RLS politikaları"},
+    "private.document_object_access(p_path text, p_action text)": {"roles": ["authenticated"], "why": "eski taşıyıcı belge Storage politikaları"},
+    "private.is_document_reviewer()": {"roles": ["authenticated"], "why": "eski taşıyıcı belge tablolarının RLS politikaları"}
+  },
+  "migration_execute": {
+    "20261117000000_legal_archive.sql": {
+      "why": "#125 yasal arşiv yönetici paneli; fonksiyonlar AAL2 ve legal_access yetkisini içeride denetler. Migration dosyası depoda yoksa yalnız veritabanında varsa doğrulanır; dosya depoya girince zorunlu olur.",
+      "functions": {
+        "nakgo_legal_page(p_section text, p_offset integer, p_query jsonb)": {"roles": ["authenticated"]},
+        "nakgo_legal_action(p_action text, p_data jsonb)": {"roles": ["authenticated"]}
+      }
+    }
+  },
+  "errors": {
+    "23505": "profiles: aynı anda iki ilk giriş; istemci profili yeniden okur",
+    "54000": "listings: yayındaki ilan sınırı aşıldı; istemci kullanıcıya özel mesaj gösterir. nakgo_report_listing: şikâyet sınırı (10/saat, 30/24 saat)",
+    "40001": "eski sunucu: nakgo_admin_moderate revision çakışması (artık PT409); istemci PT409 ile aynı karşılar",
+    "PT409": "nakgo_admin_moderate, nakgo_admin_report_set: kayıt başka yönetici tarafından değişti ya da 5 sn'den uzun kilitli (HTTP 409)",
+    "42501": "yetkisiz/oturumsuz/doğrulanmamış hesap; mesaj metinleri: 'Sign in required', 'Verified account required', 'Owner account', 'Last administrator'",
+    "22023": "geçersiz argüman"
+  }
+}

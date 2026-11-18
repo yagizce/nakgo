@@ -1,0 +1,4385 @@
+{
+ "version": "159ccc7fb74947a2",
+ "schema": 1,
+ "source": "src/js/config.js",
+ "cities": [
+  {
+   "code": "01",
+   "name": "Adana",
+   "districts": [
+    {
+     "code": "01-aladag",
+     "name": "Aladağ"
+    },
+    {
+     "code": "01-ceyhan",
+     "name": "Ceyhan"
+    },
+    {
+     "code": "01-cukurova",
+     "name": "Çukurova"
+    },
+    {
+     "code": "01-feke",
+     "name": "Feke"
+    },
+    {
+     "code": "01-imamoglu",
+     "name": "İmamoğlu"
+    },
+    {
+     "code": "01-karaisali",
+     "name": "Karaisalı"
+    },
+    {
+     "code": "01-karatas",
+     "name": "Karataş"
+    },
+    {
+     "code": "01-kozan",
+     "name": "Kozan"
+    },
+    {
+     "code": "01-pozanti",
+     "name": "Pozantı"
+    },
+    {
+     "code": "01-saimbeyli",
+     "name": "Saimbeyli"
+    },
+    {
+     "code": "01-saricam",
+     "name": "Sarıçam"
+    },
+    {
+     "code": "01-seyhan",
+     "name": "Seyhan"
+    },
+    {
+     "code": "01-tufanbeyli",
+     "name": "Tufanbeyli"
+    },
+    {
+     "code": "01-yumurtalik",
+     "name": "Yumurtalık"
+    },
+    {
+     "code": "01-yuregir",
+     "name": "Yüreğir"
+    }
+   ]
+  },
+  {
+   "code": "02",
+   "name": "Adıyaman",
+   "districts": [
+    {
+     "code": "02-besni",
+     "name": "Besni"
+    },
+    {
+     "code": "02-celikhan",
+     "name": "Çelikhan"
+    },
+    {
+     "code": "02-gerger",
+     "name": "Gerger"
+    },
+    {
+     "code": "02-golbasi",
+     "name": "Gölbaşı"
+    },
+    {
+     "code": "02-kahta",
+     "name": "Kahta"
+    },
+    {
+     "code": "02-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "02-samsat",
+     "name": "Samsat"
+    },
+    {
+     "code": "02-sincik",
+     "name": "Sincik"
+    },
+    {
+     "code": "02-tut",
+     "name": "Tut"
+    }
+   ]
+  },
+  {
+   "code": "03",
+   "name": "Afyonkarahisar",
+   "districts": [
+    {
+     "code": "03-basmakci",
+     "name": "Başmakçı"
+    },
+    {
+     "code": "03-bayat",
+     "name": "Bayat"
+    },
+    {
+     "code": "03-bolvadin",
+     "name": "Bolvadin"
+    },
+    {
+     "code": "03-cay",
+     "name": "Çay"
+    },
+    {
+     "code": "03-cobanlar",
+     "name": "Çobanlar"
+    },
+    {
+     "code": "03-dazkiri",
+     "name": "Dazkırı"
+    },
+    {
+     "code": "03-dinar",
+     "name": "Dinar"
+    },
+    {
+     "code": "03-emirdag",
+     "name": "Emirdağ"
+    },
+    {
+     "code": "03-evciler",
+     "name": "Evciler"
+    },
+    {
+     "code": "03-hocalar",
+     "name": "Hocalar"
+    },
+    {
+     "code": "03-ihsaniye",
+     "name": "İhsaniye"
+    },
+    {
+     "code": "03-iscehisar",
+     "name": "İscehisar"
+    },
+    {
+     "code": "03-kiziloren",
+     "name": "Kızılören"
+    },
+    {
+     "code": "03-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "03-sandikli",
+     "name": "Sandıklı"
+    },
+    {
+     "code": "03-sinanpasa",
+     "name": "Sinanpaşa"
+    },
+    {
+     "code": "03-sultandagi",
+     "name": "Sultandağı"
+    },
+    {
+     "code": "03-suhut",
+     "name": "Şuhut"
+    }
+   ]
+  },
+  {
+   "code": "04",
+   "name": "Ağrı",
+   "districts": [
+    {
+     "code": "04-diyadin",
+     "name": "Diyadin"
+    },
+    {
+     "code": "04-dogubayazit",
+     "name": "Doğubayazıt"
+    },
+    {
+     "code": "04-eleskirt",
+     "name": "Eleşkirt"
+    },
+    {
+     "code": "04-hamur",
+     "name": "Hamur"
+    },
+    {
+     "code": "04-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "04-patnos",
+     "name": "Patnos"
+    },
+    {
+     "code": "04-taslicay",
+     "name": "Taşlıçay"
+    },
+    {
+     "code": "04-tutak",
+     "name": "Tutak"
+    }
+   ]
+  },
+  {
+   "code": "05",
+   "name": "Amasya",
+   "districts": [
+    {
+     "code": "05-goynucek",
+     "name": "Göynücek"
+    },
+    {
+     "code": "05-gumushacikoy",
+     "name": "Gümüşhacıköy"
+    },
+    {
+     "code": "05-hamamozu",
+     "name": "Hamamözü"
+    },
+    {
+     "code": "05-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "05-merzifon",
+     "name": "Merzifon"
+    },
+    {
+     "code": "05-suluova",
+     "name": "Suluova"
+    },
+    {
+     "code": "05-tasova",
+     "name": "Taşova"
+    }
+   ]
+  },
+  {
+   "code": "06",
+   "name": "Ankara",
+   "districts": [
+    {
+     "code": "06-akyurt",
+     "name": "Akyurt"
+    },
+    {
+     "code": "06-altindag",
+     "name": "Altındağ"
+    },
+    {
+     "code": "06-ayas",
+     "name": "Ayaş"
+    },
+    {
+     "code": "06-bala",
+     "name": "Bala"
+    },
+    {
+     "code": "06-beypazari",
+     "name": "Beypazarı"
+    },
+    {
+     "code": "06-camlidere",
+     "name": "Çamlıdere"
+    },
+    {
+     "code": "06-cankaya",
+     "name": "Çankaya"
+    },
+    {
+     "code": "06-cubuk",
+     "name": "Çubuk"
+    },
+    {
+     "code": "06-elmadag",
+     "name": "Elmadağ"
+    },
+    {
+     "code": "06-etimesgut",
+     "name": "Etimesgut"
+    },
+    {
+     "code": "06-evren",
+     "name": "Evren"
+    },
+    {
+     "code": "06-golbasi",
+     "name": "Gölbaşı"
+    },
+    {
+     "code": "06-gudul",
+     "name": "Güdül"
+    },
+    {
+     "code": "06-haymana",
+     "name": "Haymana"
+    },
+    {
+     "code": "06-kahramankazan",
+     "name": "Kahramankazan"
+    },
+    {
+     "code": "06-kalecik",
+     "name": "Kalecik"
+    },
+    {
+     "code": "06-kecioren",
+     "name": "Keçiören"
+    },
+    {
+     "code": "06-kizilcahamam",
+     "name": "Kızılcahamam"
+    },
+    {
+     "code": "06-mamak",
+     "name": "Mamak"
+    },
+    {
+     "code": "06-nallihan",
+     "name": "Nallıhan"
+    },
+    {
+     "code": "06-polatli",
+     "name": "Polatlı"
+    },
+    {
+     "code": "06-pursaklar",
+     "name": "Pursaklar"
+    },
+    {
+     "code": "06-sincan",
+     "name": "Sincan"
+    },
+    {
+     "code": "06-sereflikochisar",
+     "name": "Şereflikoçhisar"
+    },
+    {
+     "code": "06-yenimahalle",
+     "name": "Yenimahalle"
+    }
+   ]
+  },
+  {
+   "code": "07",
+   "name": "Antalya",
+   "districts": [
+    {
+     "code": "07-akseki",
+     "name": "Akseki"
+    },
+    {
+     "code": "07-aksu",
+     "name": "Aksu"
+    },
+    {
+     "code": "07-alanya",
+     "name": "Alanya"
+    },
+    {
+     "code": "07-demre",
+     "name": "Demre"
+    },
+    {
+     "code": "07-dosemealti",
+     "name": "Döşemealtı"
+    },
+    {
+     "code": "07-elmali",
+     "name": "Elmalı"
+    },
+    {
+     "code": "07-finike",
+     "name": "Finike"
+    },
+    {
+     "code": "07-gazipasa",
+     "name": "Gazipaşa"
+    },
+    {
+     "code": "07-gundogmus",
+     "name": "Gündoğmuş"
+    },
+    {
+     "code": "07-ibradi",
+     "name": "İbradı"
+    },
+    {
+     "code": "07-kas",
+     "name": "Kaş"
+    },
+    {
+     "code": "07-kemer",
+     "name": "Kemer"
+    },
+    {
+     "code": "07-kepez",
+     "name": "Kepez"
+    },
+    {
+     "code": "07-konyaalti",
+     "name": "Konyaaltı"
+    },
+    {
+     "code": "07-korkuteli",
+     "name": "Korkuteli"
+    },
+    {
+     "code": "07-kumluca",
+     "name": "Kumluca"
+    },
+    {
+     "code": "07-manavgat",
+     "name": "Manavgat"
+    },
+    {
+     "code": "07-muratpasa",
+     "name": "Muratpaşa"
+    },
+    {
+     "code": "07-serik",
+     "name": "Serik"
+    }
+   ]
+  },
+  {
+   "code": "08",
+   "name": "Artvin",
+   "districts": [
+    {
+     "code": "08-ardanuc",
+     "name": "Ardanuç"
+    },
+    {
+     "code": "08-arhavi",
+     "name": "Arhavi"
+    },
+    {
+     "code": "08-borcka",
+     "name": "Borçka"
+    },
+    {
+     "code": "08-hopa",
+     "name": "Hopa"
+    },
+    {
+     "code": "08-kemalpasa",
+     "name": "Kemalpaşa"
+    },
+    {
+     "code": "08-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "08-murgul",
+     "name": "Murgul"
+    },
+    {
+     "code": "08-savsat",
+     "name": "Şavşat"
+    },
+    {
+     "code": "08-yusufeli",
+     "name": "Yusufeli"
+    }
+   ]
+  },
+  {
+   "code": "09",
+   "name": "Aydın",
+   "districts": [
+    {
+     "code": "09-bozdogan",
+     "name": "Bozdoğan"
+    },
+    {
+     "code": "09-buharkent",
+     "name": "Buharkent"
+    },
+    {
+     "code": "09-cine",
+     "name": "Çine"
+    },
+    {
+     "code": "09-didim",
+     "name": "Didim"
+    },
+    {
+     "code": "09-efeler",
+     "name": "Efeler"
+    },
+    {
+     "code": "09-germencik",
+     "name": "Germencik"
+    },
+    {
+     "code": "09-incirliova",
+     "name": "İncirliova"
+    },
+    {
+     "code": "09-karacasu",
+     "name": "Karacasu"
+    },
+    {
+     "code": "09-karpuzlu",
+     "name": "Karpuzlu"
+    },
+    {
+     "code": "09-kocarli",
+     "name": "Koçarlı"
+    },
+    {
+     "code": "09-kosk",
+     "name": "Köşk"
+    },
+    {
+     "code": "09-kusadasi",
+     "name": "Kuşadası"
+    },
+    {
+     "code": "09-kuyucak",
+     "name": "Kuyucak"
+    },
+    {
+     "code": "09-nazilli",
+     "name": "Nazilli"
+    },
+    {
+     "code": "09-soke",
+     "name": "Söke"
+    },
+    {
+     "code": "09-sultanhisar",
+     "name": "Sultanhisar"
+    },
+    {
+     "code": "09-yenipazar",
+     "name": "Yenipazar"
+    }
+   ]
+  },
+  {
+   "code": "10",
+   "name": "Balıkesir",
+   "districts": [
+    {
+     "code": "10-altieylul",
+     "name": "Altıeylül"
+    },
+    {
+     "code": "10-ayvalik",
+     "name": "Ayvalık"
+    },
+    {
+     "code": "10-balya",
+     "name": "Balya"
+    },
+    {
+     "code": "10-bandirma",
+     "name": "Bandırma"
+    },
+    {
+     "code": "10-bigadic",
+     "name": "Bigadiç"
+    },
+    {
+     "code": "10-burhaniye",
+     "name": "Burhaniye"
+    },
+    {
+     "code": "10-dursunbey",
+     "name": "Dursunbey"
+    },
+    {
+     "code": "10-edremit",
+     "name": "Edremit"
+    },
+    {
+     "code": "10-erdek",
+     "name": "Erdek"
+    },
+    {
+     "code": "10-gomec",
+     "name": "Gömeç"
+    },
+    {
+     "code": "10-gonen",
+     "name": "Gönen"
+    },
+    {
+     "code": "10-havran",
+     "name": "Havran"
+    },
+    {
+     "code": "10-ivrindi",
+     "name": "İvrindi"
+    },
+    {
+     "code": "10-karesi",
+     "name": "Karesi"
+    },
+    {
+     "code": "10-kepsut",
+     "name": "Kepsut"
+    },
+    {
+     "code": "10-manyas",
+     "name": "Manyas"
+    },
+    {
+     "code": "10-marmara",
+     "name": "Marmara"
+    },
+    {
+     "code": "10-savastepe",
+     "name": "Savaştepe"
+    },
+    {
+     "code": "10-sindirgi",
+     "name": "Sındırgı"
+    },
+    {
+     "code": "10-susurluk",
+     "name": "Susurluk"
+    }
+   ]
+  },
+  {
+   "code": "11",
+   "name": "Bilecik",
+   "districts": [
+    {
+     "code": "11-bozuyuk",
+     "name": "Bozüyük"
+    },
+    {
+     "code": "11-golpazari",
+     "name": "Gölpazarı"
+    },
+    {
+     "code": "11-inhisar",
+     "name": "İnhisar"
+    },
+    {
+     "code": "11-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "11-osmaneli",
+     "name": "Osmaneli"
+    },
+    {
+     "code": "11-pazaryeri",
+     "name": "Pazaryeri"
+    },
+    {
+     "code": "11-sogut",
+     "name": "Söğüt"
+    },
+    {
+     "code": "11-yenipazar",
+     "name": "Yenipazar"
+    }
+   ]
+  },
+  {
+   "code": "12",
+   "name": "Bingöl",
+   "districts": [
+    {
+     "code": "12-adakli",
+     "name": "Adaklı"
+    },
+    {
+     "code": "12-genc",
+     "name": "Genç"
+    },
+    {
+     "code": "12-karliova",
+     "name": "Karlıova"
+    },
+    {
+     "code": "12-kigi",
+     "name": "Kiğı"
+    },
+    {
+     "code": "12-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "12-solhan",
+     "name": "Solhan"
+    },
+    {
+     "code": "12-yayladere",
+     "name": "Yayladere"
+    },
+    {
+     "code": "12-yedisu",
+     "name": "Yedisu"
+    }
+   ]
+  },
+  {
+   "code": "13",
+   "name": "Bitlis",
+   "districts": [
+    {
+     "code": "13-adilcevaz",
+     "name": "Adilcevaz"
+    },
+    {
+     "code": "13-ahlat",
+     "name": "Ahlat"
+    },
+    {
+     "code": "13-guroymak",
+     "name": "Güroymak"
+    },
+    {
+     "code": "13-hizan",
+     "name": "Hizan"
+    },
+    {
+     "code": "13-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "13-mutki",
+     "name": "Mutki"
+    },
+    {
+     "code": "13-tatvan",
+     "name": "Tatvan"
+    }
+   ]
+  },
+  {
+   "code": "14",
+   "name": "Bolu",
+   "districts": [
+    {
+     "code": "14-dortdivan",
+     "name": "Dörtdivan"
+    },
+    {
+     "code": "14-gerede",
+     "name": "Gerede"
+    },
+    {
+     "code": "14-goynuk",
+     "name": "Göynük"
+    },
+    {
+     "code": "14-kibriscik",
+     "name": "Kıbrıscık"
+    },
+    {
+     "code": "14-mengen",
+     "name": "Mengen"
+    },
+    {
+     "code": "14-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "14-mudurnu",
+     "name": "Mudurnu"
+    },
+    {
+     "code": "14-seben",
+     "name": "Seben"
+    },
+    {
+     "code": "14-yenicaga",
+     "name": "Yeniçağa"
+    }
+   ]
+  },
+  {
+   "code": "15",
+   "name": "Burdur",
+   "districts": [
+    {
+     "code": "15-aglasun",
+     "name": "Ağlasun"
+    },
+    {
+     "code": "15-altinyayla",
+     "name": "Altınyayla"
+    },
+    {
+     "code": "15-bucak",
+     "name": "Bucak"
+    },
+    {
+     "code": "15-cavdir",
+     "name": "Çavdır"
+    },
+    {
+     "code": "15-celtikci",
+     "name": "Çeltikçi"
+    },
+    {
+     "code": "15-golhisar",
+     "name": "Gölhisar"
+    },
+    {
+     "code": "15-karamanli",
+     "name": "Karamanlı"
+    },
+    {
+     "code": "15-kemer",
+     "name": "Kemer"
+    },
+    {
+     "code": "15-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "15-tefenni",
+     "name": "Tefenni"
+    },
+    {
+     "code": "15-yesilova",
+     "name": "Yeşilova"
+    }
+   ]
+  },
+  {
+   "code": "16",
+   "name": "Bursa",
+   "districts": [
+    {
+     "code": "16-buyukorhan",
+     "name": "Büyükorhan"
+    },
+    {
+     "code": "16-gemlik",
+     "name": "Gemlik"
+    },
+    {
+     "code": "16-gursu",
+     "name": "Gürsu"
+    },
+    {
+     "code": "16-harmancik",
+     "name": "Harmancık"
+    },
+    {
+     "code": "16-inegol",
+     "name": "İnegöl"
+    },
+    {
+     "code": "16-iznik",
+     "name": "İznik"
+    },
+    {
+     "code": "16-karacabey",
+     "name": "Karacabey"
+    },
+    {
+     "code": "16-keles",
+     "name": "Keles"
+    },
+    {
+     "code": "16-kestel",
+     "name": "Kestel"
+    },
+    {
+     "code": "16-mudanya",
+     "name": "Mudanya"
+    },
+    {
+     "code": "16-mustafakemalpasa",
+     "name": "Mustafakemalpaşa"
+    },
+    {
+     "code": "16-nilufer",
+     "name": "Nilüfer"
+    },
+    {
+     "code": "16-orhaneli",
+     "name": "Orhaneli"
+    },
+    {
+     "code": "16-orhangazi",
+     "name": "Orhangazi"
+    },
+    {
+     "code": "16-osmangazi",
+     "name": "Osmangazi"
+    },
+    {
+     "code": "16-yenisehir",
+     "name": "Yenişehir"
+    },
+    {
+     "code": "16-yildirim",
+     "name": "Yıldırım"
+    }
+   ]
+  },
+  {
+   "code": "17",
+   "name": "Çanakkale",
+   "districts": [
+    {
+     "code": "17-ayvacik",
+     "name": "Ayvacık"
+    },
+    {
+     "code": "17-bayramic",
+     "name": "Bayramiç"
+    },
+    {
+     "code": "17-biga",
+     "name": "Biga"
+    },
+    {
+     "code": "17-bozcaada",
+     "name": "Bozcaada"
+    },
+    {
+     "code": "17-can",
+     "name": "Çan"
+    },
+    {
+     "code": "17-eceabat",
+     "name": "Eceabat"
+    },
+    {
+     "code": "17-ezine",
+     "name": "Ezine"
+    },
+    {
+     "code": "17-gelibolu",
+     "name": "Gelibolu"
+    },
+    {
+     "code": "17-gokceada",
+     "name": "Gökçeada"
+    },
+    {
+     "code": "17-lapseki",
+     "name": "Lapseki"
+    },
+    {
+     "code": "17-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "17-yenice",
+     "name": "Yenice"
+    }
+   ]
+  },
+  {
+   "code": "18",
+   "name": "Çankırı",
+   "districts": [
+    {
+     "code": "18-atkaracalar",
+     "name": "Atkaracalar"
+    },
+    {
+     "code": "18-bayramoren",
+     "name": "Bayramören"
+    },
+    {
+     "code": "18-cerkes",
+     "name": "Çerkeş"
+    },
+    {
+     "code": "18-eldivan",
+     "name": "Eldivan"
+    },
+    {
+     "code": "18-ilgaz",
+     "name": "Ilgaz"
+    },
+    {
+     "code": "18-kizilirmak",
+     "name": "Kızılırmak"
+    },
+    {
+     "code": "18-korgun",
+     "name": "Korgun"
+    },
+    {
+     "code": "18-kursunlu",
+     "name": "Kurşunlu"
+    },
+    {
+     "code": "18-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "18-orta",
+     "name": "Orta"
+    },
+    {
+     "code": "18-sabanozu",
+     "name": "Şabanözü"
+    },
+    {
+     "code": "18-yaprakli",
+     "name": "Yapraklı"
+    }
+   ]
+  },
+  {
+   "code": "19",
+   "name": "Çorum",
+   "districts": [
+    {
+     "code": "19-alaca",
+     "name": "Alaca"
+    },
+    {
+     "code": "19-bayat",
+     "name": "Bayat"
+    },
+    {
+     "code": "19-bogazkale",
+     "name": "Boğazkale"
+    },
+    {
+     "code": "19-dodurga",
+     "name": "Dodurga"
+    },
+    {
+     "code": "19-iskilip",
+     "name": "İskilip"
+    },
+    {
+     "code": "19-kargi",
+     "name": "Kargı"
+    },
+    {
+     "code": "19-lacin",
+     "name": "Laçin"
+    },
+    {
+     "code": "19-mecitozu",
+     "name": "Mecitözü"
+    },
+    {
+     "code": "19-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "19-oguzlar",
+     "name": "Oğuzlar"
+    },
+    {
+     "code": "19-ortakoy",
+     "name": "Ortaköy"
+    },
+    {
+     "code": "19-osmancik",
+     "name": "Osmancık"
+    },
+    {
+     "code": "19-sungurlu",
+     "name": "Sungurlu"
+    },
+    {
+     "code": "19-ugurludag",
+     "name": "Uğurludağ"
+    }
+   ]
+  },
+  {
+   "code": "20",
+   "name": "Denizli",
+   "districts": [
+    {
+     "code": "20-acipayam",
+     "name": "Acıpayam"
+    },
+    {
+     "code": "20-babadag",
+     "name": "Babadağ"
+    },
+    {
+     "code": "20-baklan",
+     "name": "Baklan"
+    },
+    {
+     "code": "20-bekilli",
+     "name": "Bekilli"
+    },
+    {
+     "code": "20-beyagac",
+     "name": "Beyağaç"
+    },
+    {
+     "code": "20-bozkurt",
+     "name": "Bozkurt"
+    },
+    {
+     "code": "20-buldan",
+     "name": "Buldan"
+    },
+    {
+     "code": "20-cal",
+     "name": "Çal"
+    },
+    {
+     "code": "20-cameli",
+     "name": "Çameli"
+    },
+    {
+     "code": "20-cardak",
+     "name": "Çardak"
+    },
+    {
+     "code": "20-civril",
+     "name": "Çivril"
+    },
+    {
+     "code": "20-guney",
+     "name": "Güney"
+    },
+    {
+     "code": "20-honaz",
+     "name": "Honaz"
+    },
+    {
+     "code": "20-kale",
+     "name": "Kale"
+    },
+    {
+     "code": "20-merkezefendi",
+     "name": "Merkezefendi"
+    },
+    {
+     "code": "20-pamukkale",
+     "name": "Pamukkale"
+    },
+    {
+     "code": "20-saraykoy",
+     "name": "Sarayköy"
+    },
+    {
+     "code": "20-serinhisar",
+     "name": "Serinhisar"
+    },
+    {
+     "code": "20-tavas",
+     "name": "Tavas"
+    }
+   ]
+  },
+  {
+   "code": "21",
+   "name": "Diyarbakır",
+   "districts": [
+    {
+     "code": "21-baglar",
+     "name": "Bağlar"
+    },
+    {
+     "code": "21-bismil",
+     "name": "Bismil"
+    },
+    {
+     "code": "21-cermik",
+     "name": "Çermik"
+    },
+    {
+     "code": "21-cinar",
+     "name": "Çınar"
+    },
+    {
+     "code": "21-cungus",
+     "name": "Çüngüş"
+    },
+    {
+     "code": "21-dicle",
+     "name": "Dicle"
+    },
+    {
+     "code": "21-egil",
+     "name": "Eğil"
+    },
+    {
+     "code": "21-ergani",
+     "name": "Ergani"
+    },
+    {
+     "code": "21-hani",
+     "name": "Hani"
+    },
+    {
+     "code": "21-hazro",
+     "name": "Hazro"
+    },
+    {
+     "code": "21-kayapinar",
+     "name": "Kayapınar"
+    },
+    {
+     "code": "21-kocakoy",
+     "name": "Kocaköy"
+    },
+    {
+     "code": "21-kulp",
+     "name": "Kulp"
+    },
+    {
+     "code": "21-lice",
+     "name": "Lice"
+    },
+    {
+     "code": "21-silvan",
+     "name": "Silvan"
+    },
+    {
+     "code": "21-sur",
+     "name": "Sur"
+    },
+    {
+     "code": "21-yenisehir",
+     "name": "Yenişehir"
+    }
+   ]
+  },
+  {
+   "code": "22",
+   "name": "Edirne",
+   "districts": [
+    {
+     "code": "22-enez",
+     "name": "Enez"
+    },
+    {
+     "code": "22-havsa",
+     "name": "Havsa"
+    },
+    {
+     "code": "22-ipsala",
+     "name": "İpsala"
+    },
+    {
+     "code": "22-kesan",
+     "name": "Keşan"
+    },
+    {
+     "code": "22-lalapasa",
+     "name": "Lalapaşa"
+    },
+    {
+     "code": "22-meric",
+     "name": "Meriç"
+    },
+    {
+     "code": "22-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "22-suloglu",
+     "name": "Süloğlu"
+    },
+    {
+     "code": "22-uzunkopru",
+     "name": "Uzunköprü"
+    }
+   ]
+  },
+  {
+   "code": "23",
+   "name": "Elazığ",
+   "districts": [
+    {
+     "code": "23-agin",
+     "name": "Ağın"
+    },
+    {
+     "code": "23-alacakaya",
+     "name": "Alacakaya"
+    },
+    {
+     "code": "23-aricak",
+     "name": "Arıcak"
+    },
+    {
+     "code": "23-baskil",
+     "name": "Baskil"
+    },
+    {
+     "code": "23-karakocan",
+     "name": "Karakoçan"
+    },
+    {
+     "code": "23-keban",
+     "name": "Keban"
+    },
+    {
+     "code": "23-kovancilar",
+     "name": "Kovancılar"
+    },
+    {
+     "code": "23-maden",
+     "name": "Maden"
+    },
+    {
+     "code": "23-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "23-palu",
+     "name": "Palu"
+    },
+    {
+     "code": "23-sivrice",
+     "name": "Sivrice"
+    }
+   ]
+  },
+  {
+   "code": "24",
+   "name": "Erzincan",
+   "districts": [
+    {
+     "code": "24-cayirli",
+     "name": "Çayırlı"
+    },
+    {
+     "code": "24-ilic",
+     "name": "İliç"
+    },
+    {
+     "code": "24-kemah",
+     "name": "Kemah"
+    },
+    {
+     "code": "24-kemaliye",
+     "name": "Kemaliye"
+    },
+    {
+     "code": "24-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "24-otlukbeli",
+     "name": "Otlukbeli"
+    },
+    {
+     "code": "24-refahiye",
+     "name": "Refahiye"
+    },
+    {
+     "code": "24-tercan",
+     "name": "Tercan"
+    },
+    {
+     "code": "24-uzumlu",
+     "name": "Üzümlü"
+    }
+   ]
+  },
+  {
+   "code": "25",
+   "name": "Erzurum",
+   "districts": [
+    {
+     "code": "25-askale",
+     "name": "Aşkale"
+    },
+    {
+     "code": "25-aziziye",
+     "name": "Aziziye"
+    },
+    {
+     "code": "25-cat",
+     "name": "Çat"
+    },
+    {
+     "code": "25-hinis",
+     "name": "Hınıs"
+    },
+    {
+     "code": "25-horasan",
+     "name": "Horasan"
+    },
+    {
+     "code": "25-ispir",
+     "name": "İspir"
+    },
+    {
+     "code": "25-karacoban",
+     "name": "Karaçoban"
+    },
+    {
+     "code": "25-karayazi",
+     "name": "Karayazı"
+    },
+    {
+     "code": "25-koprukoy",
+     "name": "Köprüköy"
+    },
+    {
+     "code": "25-narman",
+     "name": "Narman"
+    },
+    {
+     "code": "25-oltu",
+     "name": "Oltu"
+    },
+    {
+     "code": "25-olur",
+     "name": "Olur"
+    },
+    {
+     "code": "25-palandoken",
+     "name": "Palandöken"
+    },
+    {
+     "code": "25-pasinler",
+     "name": "Pasinler"
+    },
+    {
+     "code": "25-pazaryolu",
+     "name": "Pazaryolu"
+    },
+    {
+     "code": "25-senkaya",
+     "name": "Şenkaya"
+    },
+    {
+     "code": "25-tekman",
+     "name": "Tekman"
+    },
+    {
+     "code": "25-tortum",
+     "name": "Tortum"
+    },
+    {
+     "code": "25-uzundere",
+     "name": "Uzundere"
+    },
+    {
+     "code": "25-yakutiye",
+     "name": "Yakutiye"
+    }
+   ]
+  },
+  {
+   "code": "26",
+   "name": "Eskişehir",
+   "districts": [
+    {
+     "code": "26-alpu",
+     "name": "Alpu"
+    },
+    {
+     "code": "26-beylikova",
+     "name": "Beylikova"
+    },
+    {
+     "code": "26-cifteler",
+     "name": "Çifteler"
+    },
+    {
+     "code": "26-gunyuzu",
+     "name": "Günyüzü"
+    },
+    {
+     "code": "26-han",
+     "name": "Han"
+    },
+    {
+     "code": "26-inonu",
+     "name": "İnönü"
+    },
+    {
+     "code": "26-mahmudiye",
+     "name": "Mahmudiye"
+    },
+    {
+     "code": "26-mihalgazi",
+     "name": "Mihalgazi"
+    },
+    {
+     "code": "26-mihaliccik",
+     "name": "Mihalıççık"
+    },
+    {
+     "code": "26-odunpazari",
+     "name": "Odunpazarı"
+    },
+    {
+     "code": "26-saricakaya",
+     "name": "Sarıcakaya"
+    },
+    {
+     "code": "26-seyitgazi",
+     "name": "Seyitgazi"
+    },
+    {
+     "code": "26-sivrihisar",
+     "name": "Sivrihisar"
+    },
+    {
+     "code": "26-tepebasi",
+     "name": "Tepebaşı"
+    }
+   ]
+  },
+  {
+   "code": "27",
+   "name": "Gaziantep",
+   "districts": [
+    {
+     "code": "27-araban",
+     "name": "Araban"
+    },
+    {
+     "code": "27-islahiye",
+     "name": "İslahiye"
+    },
+    {
+     "code": "27-karkamis",
+     "name": "Karkamış"
+    },
+    {
+     "code": "27-nizip",
+     "name": "Nizip"
+    },
+    {
+     "code": "27-nurdagi",
+     "name": "Nurdağı"
+    },
+    {
+     "code": "27-oguzeli",
+     "name": "Oğuzeli"
+    },
+    {
+     "code": "27-sahinbey",
+     "name": "Şahinbey"
+    },
+    {
+     "code": "27-sehitkamil",
+     "name": "Şehitkamil"
+    },
+    {
+     "code": "27-yavuzeli",
+     "name": "Yavuzeli"
+    }
+   ]
+  },
+  {
+   "code": "28",
+   "name": "Giresun",
+   "districts": [
+    {
+     "code": "28-alucra",
+     "name": "Alucra"
+    },
+    {
+     "code": "28-bulancak",
+     "name": "Bulancak"
+    },
+    {
+     "code": "28-camoluk",
+     "name": "Çamoluk"
+    },
+    {
+     "code": "28-canakci",
+     "name": "Çanakçı"
+    },
+    {
+     "code": "28-dereli",
+     "name": "Dereli"
+    },
+    {
+     "code": "28-dogankent",
+     "name": "Doğankent"
+    },
+    {
+     "code": "28-espiye",
+     "name": "Espiye"
+    },
+    {
+     "code": "28-eynesil",
+     "name": "Eynesil"
+    },
+    {
+     "code": "28-gorele",
+     "name": "Görele"
+    },
+    {
+     "code": "28-guce",
+     "name": "Güce"
+    },
+    {
+     "code": "28-kesap",
+     "name": "Keşap"
+    },
+    {
+     "code": "28-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "28-piraziz",
+     "name": "Piraziz"
+    },
+    {
+     "code": "28-sebinkarahisar",
+     "name": "Şebinkarahisar"
+    },
+    {
+     "code": "28-tirebolu",
+     "name": "Tirebolu"
+    },
+    {
+     "code": "28-yaglidere",
+     "name": "Yağlıdere"
+    }
+   ]
+  },
+  {
+   "code": "29",
+   "name": "Gümüşhane",
+   "districts": [
+    {
+     "code": "29-kelkit",
+     "name": "Kelkit"
+    },
+    {
+     "code": "29-kose",
+     "name": "Köse"
+    },
+    {
+     "code": "29-kurtun",
+     "name": "Kürtün"
+    },
+    {
+     "code": "29-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "29-siran",
+     "name": "Şiran"
+    },
+    {
+     "code": "29-torul",
+     "name": "Torul"
+    }
+   ]
+  },
+  {
+   "code": "30",
+   "name": "Hakkari",
+   "districts": [
+    {
+     "code": "30-cukurca",
+     "name": "Çukurca"
+    },
+    {
+     "code": "30-derecik",
+     "name": "Derecik"
+    },
+    {
+     "code": "30-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "30-semdinli",
+     "name": "Şemdinli"
+    },
+    {
+     "code": "30-yuksekova",
+     "name": "Yüksekova"
+    }
+   ]
+  },
+  {
+   "code": "31",
+   "name": "Hatay",
+   "districts": [
+    {
+     "code": "31-altinozu",
+     "name": "Altınözü"
+    },
+    {
+     "code": "31-antakya",
+     "name": "Antakya"
+    },
+    {
+     "code": "31-arsuz",
+     "name": "Arsuz"
+    },
+    {
+     "code": "31-belen",
+     "name": "Belen"
+    },
+    {
+     "code": "31-defne",
+     "name": "Defne"
+    },
+    {
+     "code": "31-dortyol",
+     "name": "Dörtyol"
+    },
+    {
+     "code": "31-erzin",
+     "name": "Erzin"
+    },
+    {
+     "code": "31-hassa",
+     "name": "Hassa"
+    },
+    {
+     "code": "31-iskenderun",
+     "name": "İskenderun"
+    },
+    {
+     "code": "31-kirikhan",
+     "name": "Kırıkhan"
+    },
+    {
+     "code": "31-kumlu",
+     "name": "Kumlu"
+    },
+    {
+     "code": "31-payas",
+     "name": "Payas"
+    },
+    {
+     "code": "31-reyhanli",
+     "name": "Reyhanlı"
+    },
+    {
+     "code": "31-samandag",
+     "name": "Samandağ"
+    },
+    {
+     "code": "31-yayladagi",
+     "name": "Yayladağı"
+    }
+   ]
+  },
+  {
+   "code": "32",
+   "name": "Isparta",
+   "districts": [
+    {
+     "code": "32-aksu",
+     "name": "Aksu"
+    },
+    {
+     "code": "32-atabey",
+     "name": "Atabey"
+    },
+    {
+     "code": "32-egirdir",
+     "name": "Eğirdir"
+    },
+    {
+     "code": "32-gelendost",
+     "name": "Gelendost"
+    },
+    {
+     "code": "32-gonen",
+     "name": "Gönen"
+    },
+    {
+     "code": "32-keciborlu",
+     "name": "Keçiborlu"
+    },
+    {
+     "code": "32-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "32-senirkent",
+     "name": "Senirkent"
+    },
+    {
+     "code": "32-sutculer",
+     "name": "Sütçüler"
+    },
+    {
+     "code": "32-sarkikaraagac",
+     "name": "Şarkikaraağaç"
+    },
+    {
+     "code": "32-uluborlu",
+     "name": "Uluborlu"
+    },
+    {
+     "code": "32-yalvac",
+     "name": "Yalvaç"
+    },
+    {
+     "code": "32-yenisarbademli",
+     "name": "Yenişarbademli"
+    }
+   ]
+  },
+  {
+   "code": "33",
+   "name": "Mersin",
+   "districts": [
+    {
+     "code": "33-akdeniz",
+     "name": "Akdeniz"
+    },
+    {
+     "code": "33-anamur",
+     "name": "Anamur"
+    },
+    {
+     "code": "33-aydincik",
+     "name": "Aydıncık"
+    },
+    {
+     "code": "33-bozyazi",
+     "name": "Bozyazı"
+    },
+    {
+     "code": "33-camliyayla",
+     "name": "Çamlıyayla"
+    },
+    {
+     "code": "33-erdemli",
+     "name": "Erdemli"
+    },
+    {
+     "code": "33-gulnar",
+     "name": "Gülnar"
+    },
+    {
+     "code": "33-mezitli",
+     "name": "Mezitli"
+    },
+    {
+     "code": "33-mut",
+     "name": "Mut"
+    },
+    {
+     "code": "33-silifke",
+     "name": "Silifke"
+    },
+    {
+     "code": "33-tarsus",
+     "name": "Tarsus"
+    },
+    {
+     "code": "33-toroslar",
+     "name": "Toroslar"
+    },
+    {
+     "code": "33-yenisehir",
+     "name": "Yenişehir"
+    }
+   ]
+  },
+  {
+   "code": "34",
+   "name": "İstanbul",
+   "districts": [
+    {
+     "code": "34-adalar",
+     "name": "Adalar"
+    },
+    {
+     "code": "34-arnavutkoy",
+     "name": "Arnavutköy"
+    },
+    {
+     "code": "34-atasehir",
+     "name": "Ataşehir"
+    },
+    {
+     "code": "34-avcilar",
+     "name": "Avcılar"
+    },
+    {
+     "code": "34-bagcilar",
+     "name": "Bağcılar"
+    },
+    {
+     "code": "34-bahcelievler",
+     "name": "Bahçelievler"
+    },
+    {
+     "code": "34-bakirkoy",
+     "name": "Bakırköy"
+    },
+    {
+     "code": "34-basaksehir",
+     "name": "Başakşehir"
+    },
+    {
+     "code": "34-bayrampasa",
+     "name": "Bayrampaşa"
+    },
+    {
+     "code": "34-besiktas",
+     "name": "Beşiktaş"
+    },
+    {
+     "code": "34-beykoz",
+     "name": "Beykoz"
+    },
+    {
+     "code": "34-beylikduzu",
+     "name": "Beylikdüzü"
+    },
+    {
+     "code": "34-beyoglu",
+     "name": "Beyoğlu"
+    },
+    {
+     "code": "34-buyukcekmece",
+     "name": "Büyükçekmece"
+    },
+    {
+     "code": "34-catalca",
+     "name": "Çatalca"
+    },
+    {
+     "code": "34-cekmekoy",
+     "name": "Çekmeköy"
+    },
+    {
+     "code": "34-esenler",
+     "name": "Esenler"
+    },
+    {
+     "code": "34-esenyurt",
+     "name": "Esenyurt"
+    },
+    {
+     "code": "34-eyupsultan",
+     "name": "Eyüpsultan"
+    },
+    {
+     "code": "34-fatih",
+     "name": "Fatih"
+    },
+    {
+     "code": "34-gaziosmanpasa",
+     "name": "Gaziosmanpaşa"
+    },
+    {
+     "code": "34-gungoren",
+     "name": "Güngören"
+    },
+    {
+     "code": "34-kadikoy",
+     "name": "Kadıköy"
+    },
+    {
+     "code": "34-kagithane",
+     "name": "Kağıthane"
+    },
+    {
+     "code": "34-kartal",
+     "name": "Kartal"
+    },
+    {
+     "code": "34-kucukcekmece",
+     "name": "Küçükçekmece"
+    },
+    {
+     "code": "34-maltepe",
+     "name": "Maltepe"
+    },
+    {
+     "code": "34-pendik",
+     "name": "Pendik"
+    },
+    {
+     "code": "34-sancaktepe",
+     "name": "Sancaktepe"
+    },
+    {
+     "code": "34-sariyer",
+     "name": "Sarıyer"
+    },
+    {
+     "code": "34-silivri",
+     "name": "Silivri"
+    },
+    {
+     "code": "34-sultanbeyli",
+     "name": "Sultanbeyli"
+    },
+    {
+     "code": "34-sultangazi",
+     "name": "Sultangazi"
+    },
+    {
+     "code": "34-sile",
+     "name": "Şile"
+    },
+    {
+     "code": "34-sisli",
+     "name": "Şişli"
+    },
+    {
+     "code": "34-tuzla",
+     "name": "Tuzla"
+    },
+    {
+     "code": "34-umraniye",
+     "name": "Ümraniye"
+    },
+    {
+     "code": "34-uskudar",
+     "name": "Üsküdar"
+    },
+    {
+     "code": "34-zeytinburnu",
+     "name": "Zeytinburnu"
+    }
+   ]
+  },
+  {
+   "code": "35",
+   "name": "İzmir",
+   "districts": [
+    {
+     "code": "35-aliaga",
+     "name": "Aliağa"
+    },
+    {
+     "code": "35-balcova",
+     "name": "Balçova"
+    },
+    {
+     "code": "35-bayindir",
+     "name": "Bayındır"
+    },
+    {
+     "code": "35-bayrakli",
+     "name": "Bayraklı"
+    },
+    {
+     "code": "35-bergama",
+     "name": "Bergama"
+    },
+    {
+     "code": "35-beydag",
+     "name": "Beydağ"
+    },
+    {
+     "code": "35-bornova",
+     "name": "Bornova"
+    },
+    {
+     "code": "35-buca",
+     "name": "Buca"
+    },
+    {
+     "code": "35-cesme",
+     "name": "Çeşme"
+    },
+    {
+     "code": "35-cigli",
+     "name": "Çiğli"
+    },
+    {
+     "code": "35-dikili",
+     "name": "Dikili"
+    },
+    {
+     "code": "35-foca",
+     "name": "Foça"
+    },
+    {
+     "code": "35-gaziemir",
+     "name": "Gaziemir"
+    },
+    {
+     "code": "35-guzelbahce",
+     "name": "Güzelbahçe"
+    },
+    {
+     "code": "35-karabaglar",
+     "name": "Karabağlar"
+    },
+    {
+     "code": "35-karaburun",
+     "name": "Karaburun"
+    },
+    {
+     "code": "35-karsiyaka",
+     "name": "Karşıyaka"
+    },
+    {
+     "code": "35-kemalpasa",
+     "name": "Kemalpaşa"
+    },
+    {
+     "code": "35-kinik",
+     "name": "Kınık"
+    },
+    {
+     "code": "35-kiraz",
+     "name": "Kiraz"
+    },
+    {
+     "code": "35-konak",
+     "name": "Konak"
+    },
+    {
+     "code": "35-menderes",
+     "name": "Menderes"
+    },
+    {
+     "code": "35-menemen",
+     "name": "Menemen"
+    },
+    {
+     "code": "35-narlidere",
+     "name": "Narlıdere"
+    },
+    {
+     "code": "35-odemis",
+     "name": "Ödemiş"
+    },
+    {
+     "code": "35-seferihisar",
+     "name": "Seferihisar"
+    },
+    {
+     "code": "35-selcuk",
+     "name": "Selçuk"
+    },
+    {
+     "code": "35-tire",
+     "name": "Tire"
+    },
+    {
+     "code": "35-torbali",
+     "name": "Torbalı"
+    },
+    {
+     "code": "35-urla",
+     "name": "Urla"
+    }
+   ]
+  },
+  {
+   "code": "36",
+   "name": "Kars",
+   "districts": [
+    {
+     "code": "36-akyaka",
+     "name": "Akyaka"
+    },
+    {
+     "code": "36-arpacay",
+     "name": "Arpaçay"
+    },
+    {
+     "code": "36-digor",
+     "name": "Digor"
+    },
+    {
+     "code": "36-kagizman",
+     "name": "Kağızman"
+    },
+    {
+     "code": "36-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "36-sarikamis",
+     "name": "Sarıkamış"
+    },
+    {
+     "code": "36-selim",
+     "name": "Selim"
+    },
+    {
+     "code": "36-susuz",
+     "name": "Susuz"
+    }
+   ]
+  },
+  {
+   "code": "37",
+   "name": "Kastamonu",
+   "districts": [
+    {
+     "code": "37-abana",
+     "name": "Abana"
+    },
+    {
+     "code": "37-agli",
+     "name": "Ağlı"
+    },
+    {
+     "code": "37-arac",
+     "name": "Araç"
+    },
+    {
+     "code": "37-azdavay",
+     "name": "Azdavay"
+    },
+    {
+     "code": "37-bozkurt",
+     "name": "Bozkurt"
+    },
+    {
+     "code": "37-cide",
+     "name": "Cide"
+    },
+    {
+     "code": "37-catalzeytin",
+     "name": "Çatalzeytin"
+    },
+    {
+     "code": "37-daday",
+     "name": "Daday"
+    },
+    {
+     "code": "37-devrekani",
+     "name": "Devrekani"
+    },
+    {
+     "code": "37-doganyurt",
+     "name": "Doğanyurt"
+    },
+    {
+     "code": "37-hanonu",
+     "name": "Hanönü"
+    },
+    {
+     "code": "37-ihsangazi",
+     "name": "İhsangazi"
+    },
+    {
+     "code": "37-inebolu",
+     "name": "İnebolu"
+    },
+    {
+     "code": "37-kure",
+     "name": "Küre"
+    },
+    {
+     "code": "37-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "37-pinarbasi",
+     "name": "Pınarbaşı"
+    },
+    {
+     "code": "37-seydiler",
+     "name": "Seydiler"
+    },
+    {
+     "code": "37-senpazar",
+     "name": "Şenpazar"
+    },
+    {
+     "code": "37-taskopru",
+     "name": "Taşköprü"
+    },
+    {
+     "code": "37-tosya",
+     "name": "Tosya"
+    }
+   ]
+  },
+  {
+   "code": "38",
+   "name": "Kayseri",
+   "districts": [
+    {
+     "code": "38-akkisla",
+     "name": "Akkışla"
+    },
+    {
+     "code": "38-bunyan",
+     "name": "Bünyan"
+    },
+    {
+     "code": "38-develi",
+     "name": "Develi"
+    },
+    {
+     "code": "38-felahiye",
+     "name": "Felahiye"
+    },
+    {
+     "code": "38-hacilar",
+     "name": "Hacılar"
+    },
+    {
+     "code": "38-incesu",
+     "name": "İncesu"
+    },
+    {
+     "code": "38-kocasinan",
+     "name": "Kocasinan"
+    },
+    {
+     "code": "38-melikgazi",
+     "name": "Melikgazi"
+    },
+    {
+     "code": "38-ozvatan",
+     "name": "Özvatan"
+    },
+    {
+     "code": "38-pinarbasi",
+     "name": "Pınarbaşı"
+    },
+    {
+     "code": "38-sarioglan",
+     "name": "Sarıoğlan"
+    },
+    {
+     "code": "38-sariz",
+     "name": "Sarız"
+    },
+    {
+     "code": "38-talas",
+     "name": "Talas"
+    },
+    {
+     "code": "38-tomarza",
+     "name": "Tomarza"
+    },
+    {
+     "code": "38-yahyali",
+     "name": "Yahyalı"
+    },
+    {
+     "code": "38-yesilhisar",
+     "name": "Yeşilhisar"
+    }
+   ]
+  },
+  {
+   "code": "39",
+   "name": "Kırklareli",
+   "districts": [
+    {
+     "code": "39-babaeski",
+     "name": "Babaeski"
+    },
+    {
+     "code": "39-demirkoy",
+     "name": "Demirköy"
+    },
+    {
+     "code": "39-kofcaz",
+     "name": "Kofçaz"
+    },
+    {
+     "code": "39-luleburgaz",
+     "name": "Lüleburgaz"
+    },
+    {
+     "code": "39-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "39-pehlivankoy",
+     "name": "Pehlivanköy"
+    },
+    {
+     "code": "39-pinarhisar",
+     "name": "Pınarhisar"
+    },
+    {
+     "code": "39-vize",
+     "name": "Vize"
+    }
+   ]
+  },
+  {
+   "code": "40",
+   "name": "Kırşehir",
+   "districts": [
+    {
+     "code": "40-akcakent",
+     "name": "Akçakent"
+    },
+    {
+     "code": "40-akpinar",
+     "name": "Akpınar"
+    },
+    {
+     "code": "40-boztepe",
+     "name": "Boztepe"
+    },
+    {
+     "code": "40-cicekdagi",
+     "name": "Çiçekdağı"
+    },
+    {
+     "code": "40-kaman",
+     "name": "Kaman"
+    },
+    {
+     "code": "40-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "40-mucur",
+     "name": "Mucur"
+    }
+   ]
+  },
+  {
+   "code": "41",
+   "name": "Kocaeli",
+   "districts": [
+    {
+     "code": "41-basiskele",
+     "name": "Başiskele"
+    },
+    {
+     "code": "41-cayirova",
+     "name": "Çayırova"
+    },
+    {
+     "code": "41-darica",
+     "name": "Darıca"
+    },
+    {
+     "code": "41-derince",
+     "name": "Derince"
+    },
+    {
+     "code": "41-dilovasi",
+     "name": "Dilovası"
+    },
+    {
+     "code": "41-gebze",
+     "name": "Gebze"
+    },
+    {
+     "code": "41-golcuk",
+     "name": "Gölcük"
+    },
+    {
+     "code": "41-izmit",
+     "name": "İzmit"
+    },
+    {
+     "code": "41-kandira",
+     "name": "Kandıra"
+    },
+    {
+     "code": "41-karamursel",
+     "name": "Karamürsel"
+    },
+    {
+     "code": "41-kartepe",
+     "name": "Kartepe"
+    },
+    {
+     "code": "41-korfez",
+     "name": "Körfez"
+    }
+   ]
+  },
+  {
+   "code": "42",
+   "name": "Konya",
+   "districts": [
+    {
+     "code": "42-ahirli",
+     "name": "Ahırlı"
+    },
+    {
+     "code": "42-akoren",
+     "name": "Akören"
+    },
+    {
+     "code": "42-aksehir",
+     "name": "Akşehir"
+    },
+    {
+     "code": "42-altinekin",
+     "name": "Altınekin"
+    },
+    {
+     "code": "42-beysehir",
+     "name": "Beyşehir"
+    },
+    {
+     "code": "42-bozkir",
+     "name": "Bozkır"
+    },
+    {
+     "code": "42-cihanbeyli",
+     "name": "Cihanbeyli"
+    },
+    {
+     "code": "42-celtik",
+     "name": "Çeltik"
+    },
+    {
+     "code": "42-cumra",
+     "name": "Çumra"
+    },
+    {
+     "code": "42-derbent",
+     "name": "Derbent"
+    },
+    {
+     "code": "42-derebucak",
+     "name": "Derebucak"
+    },
+    {
+     "code": "42-doganhisar",
+     "name": "Doğanhisar"
+    },
+    {
+     "code": "42-emirgazi",
+     "name": "Emirgazi"
+    },
+    {
+     "code": "42-eregli",
+     "name": "Ereğli"
+    },
+    {
+     "code": "42-guneysinir",
+     "name": "Güneysınır"
+    },
+    {
+     "code": "42-hadim",
+     "name": "Hadim"
+    },
+    {
+     "code": "42-halkapinar",
+     "name": "Halkapınar"
+    },
+    {
+     "code": "42-huyuk",
+     "name": "Hüyük"
+    },
+    {
+     "code": "42-ilgin",
+     "name": "Ilgın"
+    },
+    {
+     "code": "42-kadinhani",
+     "name": "Kadınhanı"
+    },
+    {
+     "code": "42-karapinar",
+     "name": "Karapınar"
+    },
+    {
+     "code": "42-karatay",
+     "name": "Karatay"
+    },
+    {
+     "code": "42-kulu",
+     "name": "Kulu"
+    },
+    {
+     "code": "42-meram",
+     "name": "Meram"
+    },
+    {
+     "code": "42-sarayonu",
+     "name": "Sarayönü"
+    },
+    {
+     "code": "42-selcuklu",
+     "name": "Selçuklu"
+    },
+    {
+     "code": "42-seydisehir",
+     "name": "Seydişehir"
+    },
+    {
+     "code": "42-taskent",
+     "name": "Taşkent"
+    },
+    {
+     "code": "42-tuzlukcu",
+     "name": "Tuzlukçu"
+    },
+    {
+     "code": "42-yalihuyuk",
+     "name": "Yalıhüyük"
+    },
+    {
+     "code": "42-yunak",
+     "name": "Yunak"
+    }
+   ]
+  },
+  {
+   "code": "43",
+   "name": "Kütahya",
+   "districts": [
+    {
+     "code": "43-altintas",
+     "name": "Altıntaş"
+    },
+    {
+     "code": "43-aslanapa",
+     "name": "Aslanapa"
+    },
+    {
+     "code": "43-cavdarhisar",
+     "name": "Çavdarhisar"
+    },
+    {
+     "code": "43-domanic",
+     "name": "Domaniç"
+    },
+    {
+     "code": "43-dumlupinar",
+     "name": "Dumlupınar"
+    },
+    {
+     "code": "43-emet",
+     "name": "Emet"
+    },
+    {
+     "code": "43-gediz",
+     "name": "Gediz"
+    },
+    {
+     "code": "43-hisarcik",
+     "name": "Hisarcık"
+    },
+    {
+     "code": "43-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "43-pazarlar",
+     "name": "Pazarlar"
+    },
+    {
+     "code": "43-simav",
+     "name": "Simav"
+    },
+    {
+     "code": "43-saphane",
+     "name": "Şaphane"
+    },
+    {
+     "code": "43-tavsanli",
+     "name": "Tavşanlı"
+    }
+   ]
+  },
+  {
+   "code": "44",
+   "name": "Malatya",
+   "districts": [
+    {
+     "code": "44-akcadag",
+     "name": "Akçadağ"
+    },
+    {
+     "code": "44-arapgir",
+     "name": "Arapgir"
+    },
+    {
+     "code": "44-arguvan",
+     "name": "Arguvan"
+    },
+    {
+     "code": "44-battalgazi",
+     "name": "Battalgazi"
+    },
+    {
+     "code": "44-darende",
+     "name": "Darende"
+    },
+    {
+     "code": "44-dogansehir",
+     "name": "Doğanşehir"
+    },
+    {
+     "code": "44-doganyol",
+     "name": "Doğanyol"
+    },
+    {
+     "code": "44-hekimhan",
+     "name": "Hekimhan"
+    },
+    {
+     "code": "44-kale",
+     "name": "Kale"
+    },
+    {
+     "code": "44-kuluncak",
+     "name": "Kuluncak"
+    },
+    {
+     "code": "44-puturge",
+     "name": "Pütürge"
+    },
+    {
+     "code": "44-yazihan",
+     "name": "Yazıhan"
+    },
+    {
+     "code": "44-yesilyurt",
+     "name": "Yeşilyurt"
+    }
+   ]
+  },
+  {
+   "code": "45",
+   "name": "Manisa",
+   "districts": [
+    {
+     "code": "45-ahmetli",
+     "name": "Ahmetli"
+    },
+    {
+     "code": "45-akhisar",
+     "name": "Akhisar"
+    },
+    {
+     "code": "45-alasehir",
+     "name": "Alaşehir"
+    },
+    {
+     "code": "45-demirci",
+     "name": "Demirci"
+    },
+    {
+     "code": "45-golmarmara",
+     "name": "Gölmarmara"
+    },
+    {
+     "code": "45-gordes",
+     "name": "Gördes"
+    },
+    {
+     "code": "45-kirkagac",
+     "name": "Kırkağaç"
+    },
+    {
+     "code": "45-koprubasi",
+     "name": "Köprübaşı"
+    },
+    {
+     "code": "45-kula",
+     "name": "Kula"
+    },
+    {
+     "code": "45-salihli",
+     "name": "Salihli"
+    },
+    {
+     "code": "45-sarigol",
+     "name": "Sarıgöl"
+    },
+    {
+     "code": "45-saruhanli",
+     "name": "Saruhanlı"
+    },
+    {
+     "code": "45-selendi",
+     "name": "Selendi"
+    },
+    {
+     "code": "45-soma",
+     "name": "Soma"
+    },
+    {
+     "code": "45-sehzadeler",
+     "name": "Şehzadeler"
+    },
+    {
+     "code": "45-turgutlu",
+     "name": "Turgutlu"
+    },
+    {
+     "code": "45-yunusemre",
+     "name": "Yunusemre"
+    }
+   ]
+  },
+  {
+   "code": "46",
+   "name": "Kahramanmaraş",
+   "districts": [
+    {
+     "code": "46-afsin",
+     "name": "Afşin"
+    },
+    {
+     "code": "46-andirin",
+     "name": "Andırın"
+    },
+    {
+     "code": "46-caglayancerit",
+     "name": "Çağlayancerit"
+    },
+    {
+     "code": "46-dulkadiroglu",
+     "name": "Dulkadiroğlu"
+    },
+    {
+     "code": "46-ekinozu",
+     "name": "Ekinözü"
+    },
+    {
+     "code": "46-elbistan",
+     "name": "Elbistan"
+    },
+    {
+     "code": "46-goksun",
+     "name": "Göksun"
+    },
+    {
+     "code": "46-nurhak",
+     "name": "Nurhak"
+    },
+    {
+     "code": "46-onikisubat",
+     "name": "Onikişubat"
+    },
+    {
+     "code": "46-pazarcik",
+     "name": "Pazarcık"
+    },
+    {
+     "code": "46-turkoglu",
+     "name": "Türkoğlu"
+    }
+   ]
+  },
+  {
+   "code": "47",
+   "name": "Mardin",
+   "districts": [
+    {
+     "code": "47-artuklu",
+     "name": "Artuklu"
+    },
+    {
+     "code": "47-dargecit",
+     "name": "Dargeçit"
+    },
+    {
+     "code": "47-derik",
+     "name": "Derik"
+    },
+    {
+     "code": "47-kiziltepe",
+     "name": "Kızıltepe"
+    },
+    {
+     "code": "47-mazidagi",
+     "name": "Mazıdağı"
+    },
+    {
+     "code": "47-midyat",
+     "name": "Midyat"
+    },
+    {
+     "code": "47-nusaybin",
+     "name": "Nusaybin"
+    },
+    {
+     "code": "47-omerli",
+     "name": "Ömerli"
+    },
+    {
+     "code": "47-savur",
+     "name": "Savur"
+    },
+    {
+     "code": "47-yesilli",
+     "name": "Yeşilli"
+    }
+   ]
+  },
+  {
+   "code": "48",
+   "name": "Muğla",
+   "districts": [
+    {
+     "code": "48-bodrum",
+     "name": "Bodrum"
+    },
+    {
+     "code": "48-dalaman",
+     "name": "Dalaman"
+    },
+    {
+     "code": "48-datca",
+     "name": "Datça"
+    },
+    {
+     "code": "48-fethiye",
+     "name": "Fethiye"
+    },
+    {
+     "code": "48-kavaklidere",
+     "name": "Kavaklıdere"
+    },
+    {
+     "code": "48-koycegiz",
+     "name": "Köyceğiz"
+    },
+    {
+     "code": "48-marmaris",
+     "name": "Marmaris"
+    },
+    {
+     "code": "48-mentese",
+     "name": "Menteşe"
+    },
+    {
+     "code": "48-milas",
+     "name": "Milas"
+    },
+    {
+     "code": "48-ortaca",
+     "name": "Ortaca"
+    },
+    {
+     "code": "48-seydikemer",
+     "name": "Seydikemer"
+    },
+    {
+     "code": "48-ula",
+     "name": "Ula"
+    },
+    {
+     "code": "48-yatagan",
+     "name": "Yatağan"
+    }
+   ]
+  },
+  {
+   "code": "49",
+   "name": "Muş",
+   "districts": [
+    {
+     "code": "49-bulanik",
+     "name": "Bulanık"
+    },
+    {
+     "code": "49-haskoy",
+     "name": "Hasköy"
+    },
+    {
+     "code": "49-korkut",
+     "name": "Korkut"
+    },
+    {
+     "code": "49-malazgirt",
+     "name": "Malazgirt"
+    },
+    {
+     "code": "49-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "49-varto",
+     "name": "Varto"
+    }
+   ]
+  },
+  {
+   "code": "50",
+   "name": "Nevşehir",
+   "districts": [
+    {
+     "code": "50-acigol",
+     "name": "Acıgöl"
+    },
+    {
+     "code": "50-avanos",
+     "name": "Avanos"
+    },
+    {
+     "code": "50-derinkuyu",
+     "name": "Derinkuyu"
+    },
+    {
+     "code": "50-gulsehir",
+     "name": "Gülşehir"
+    },
+    {
+     "code": "50-hacibektas",
+     "name": "Hacıbektaş"
+    },
+    {
+     "code": "50-kozakli",
+     "name": "Kozaklı"
+    },
+    {
+     "code": "50-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "50-urgup",
+     "name": "Ürgüp"
+    }
+   ]
+  },
+  {
+   "code": "51",
+   "name": "Niğde",
+   "districts": [
+    {
+     "code": "51-altunhisar",
+     "name": "Altunhisar"
+    },
+    {
+     "code": "51-bor",
+     "name": "Bor"
+    },
+    {
+     "code": "51-camardi",
+     "name": "Çamardı"
+    },
+    {
+     "code": "51-ciftlik",
+     "name": "Çiftlik"
+    },
+    {
+     "code": "51-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "51-ulukisla",
+     "name": "Ulukışla"
+    }
+   ]
+  },
+  {
+   "code": "52",
+   "name": "Ordu",
+   "districts": [
+    {
+     "code": "52-akkus",
+     "name": "Akkuş"
+    },
+    {
+     "code": "52-altinordu",
+     "name": "Altınordu"
+    },
+    {
+     "code": "52-aybasti",
+     "name": "Aybastı"
+    },
+    {
+     "code": "52-camas",
+     "name": "Çamaş"
+    },
+    {
+     "code": "52-catalpinar",
+     "name": "Çatalpınar"
+    },
+    {
+     "code": "52-caybasi",
+     "name": "Çaybaşı"
+    },
+    {
+     "code": "52-fatsa",
+     "name": "Fatsa"
+    },
+    {
+     "code": "52-golkoy",
+     "name": "Gölköy"
+    },
+    {
+     "code": "52-gulyali",
+     "name": "Gülyalı"
+    },
+    {
+     "code": "52-gurgentepe",
+     "name": "Gürgentepe"
+    },
+    {
+     "code": "52-ikizce",
+     "name": "İkizce"
+    },
+    {
+     "code": "52-kabaduz",
+     "name": "Kabadüz"
+    },
+    {
+     "code": "52-kabatas",
+     "name": "Kabataş"
+    },
+    {
+     "code": "52-korgan",
+     "name": "Korgan"
+    },
+    {
+     "code": "52-kumru",
+     "name": "Kumru"
+    },
+    {
+     "code": "52-mesudiye",
+     "name": "Mesudiye"
+    },
+    {
+     "code": "52-persembe",
+     "name": "Perşembe"
+    },
+    {
+     "code": "52-ulubey",
+     "name": "Ulubey"
+    },
+    {
+     "code": "52-unye",
+     "name": "Ünye"
+    }
+   ]
+  },
+  {
+   "code": "53",
+   "name": "Rize",
+   "districts": [
+    {
+     "code": "53-ardesen",
+     "name": "Ardeşen"
+    },
+    {
+     "code": "53-camlihemsin",
+     "name": "Çamlıhemşin"
+    },
+    {
+     "code": "53-cayeli",
+     "name": "Çayeli"
+    },
+    {
+     "code": "53-derepazari",
+     "name": "Derepazarı"
+    },
+    {
+     "code": "53-findikli",
+     "name": "Fındıklı"
+    },
+    {
+     "code": "53-guneysu",
+     "name": "Güneysu"
+    },
+    {
+     "code": "53-hemsin",
+     "name": "Hemşin"
+    },
+    {
+     "code": "53-ikizdere",
+     "name": "İkizdere"
+    },
+    {
+     "code": "53-iyidere",
+     "name": "İyidere"
+    },
+    {
+     "code": "53-kalkandere",
+     "name": "Kalkandere"
+    },
+    {
+     "code": "53-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "53-pazar",
+     "name": "Pazar"
+    }
+   ]
+  },
+  {
+   "code": "54",
+   "name": "Sakarya",
+   "districts": [
+    {
+     "code": "54-adapazari",
+     "name": "Adapazarı"
+    },
+    {
+     "code": "54-akyazi",
+     "name": "Akyazı"
+    },
+    {
+     "code": "54-arifiye",
+     "name": "Arifiye"
+    },
+    {
+     "code": "54-erenler",
+     "name": "Erenler"
+    },
+    {
+     "code": "54-ferizli",
+     "name": "Ferizli"
+    },
+    {
+     "code": "54-geyve",
+     "name": "Geyve"
+    },
+    {
+     "code": "54-hendek",
+     "name": "Hendek"
+    },
+    {
+     "code": "54-karapurcek",
+     "name": "Karapürçek"
+    },
+    {
+     "code": "54-karasu",
+     "name": "Karasu"
+    },
+    {
+     "code": "54-kaynarca",
+     "name": "Kaynarca"
+    },
+    {
+     "code": "54-kocaali",
+     "name": "Kocaali"
+    },
+    {
+     "code": "54-pamukova",
+     "name": "Pamukova"
+    },
+    {
+     "code": "54-sapanca",
+     "name": "Sapanca"
+    },
+    {
+     "code": "54-serdivan",
+     "name": "Serdivan"
+    },
+    {
+     "code": "54-sogutlu",
+     "name": "Söğütlü"
+    },
+    {
+     "code": "54-tarakli",
+     "name": "Taraklı"
+    }
+   ]
+  },
+  {
+   "code": "55",
+   "name": "Samsun",
+   "districts": [
+    {
+     "code": "55-19-mayis",
+     "name": "19 Mayıs"
+    },
+    {
+     "code": "55-alacam",
+     "name": "Alaçam"
+    },
+    {
+     "code": "55-asarcik",
+     "name": "Asarcık"
+    },
+    {
+     "code": "55-atakum",
+     "name": "Atakum"
+    },
+    {
+     "code": "55-ayvacik",
+     "name": "Ayvacık"
+    },
+    {
+     "code": "55-bafra",
+     "name": "Bafra"
+    },
+    {
+     "code": "55-canik",
+     "name": "Canik"
+    },
+    {
+     "code": "55-carsamba",
+     "name": "Çarşamba"
+    },
+    {
+     "code": "55-havza",
+     "name": "Havza"
+    },
+    {
+     "code": "55-ilkadim",
+     "name": "İlkadım"
+    },
+    {
+     "code": "55-kavak",
+     "name": "Kavak"
+    },
+    {
+     "code": "55-ladik",
+     "name": "Ladik"
+    },
+    {
+     "code": "55-salipazari",
+     "name": "Salıpazarı"
+    },
+    {
+     "code": "55-tekkekoy",
+     "name": "Tekkeköy"
+    },
+    {
+     "code": "55-terme",
+     "name": "Terme"
+    },
+    {
+     "code": "55-vezirkopru",
+     "name": "Vezirköprü"
+    },
+    {
+     "code": "55-yakakent",
+     "name": "Yakakent"
+    }
+   ]
+  },
+  {
+   "code": "56",
+   "name": "Siirt",
+   "districts": [
+    {
+     "code": "56-baykan",
+     "name": "Baykan"
+    },
+    {
+     "code": "56-eruh",
+     "name": "Eruh"
+    },
+    {
+     "code": "56-kurtalan",
+     "name": "Kurtalan"
+    },
+    {
+     "code": "56-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "56-pervari",
+     "name": "Pervari"
+    },
+    {
+     "code": "56-sirvan",
+     "name": "Şirvan"
+    },
+    {
+     "code": "56-tillo",
+     "name": "Tillo"
+    }
+   ]
+  },
+  {
+   "code": "57",
+   "name": "Sinop",
+   "districts": [
+    {
+     "code": "57-ayancik",
+     "name": "Ayancık"
+    },
+    {
+     "code": "57-boyabat",
+     "name": "Boyabat"
+    },
+    {
+     "code": "57-dikmen",
+     "name": "Dikmen"
+    },
+    {
+     "code": "57-duragan",
+     "name": "Durağan"
+    },
+    {
+     "code": "57-erfelek",
+     "name": "Erfelek"
+    },
+    {
+     "code": "57-gerze",
+     "name": "Gerze"
+    },
+    {
+     "code": "57-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "57-sarayduzu",
+     "name": "Saraydüzü"
+    },
+    {
+     "code": "57-turkeli",
+     "name": "Türkeli"
+    }
+   ]
+  },
+  {
+   "code": "58",
+   "name": "Sivas",
+   "districts": [
+    {
+     "code": "58-akincilar",
+     "name": "Akıncılar"
+    },
+    {
+     "code": "58-altinyayla",
+     "name": "Altınyayla"
+    },
+    {
+     "code": "58-divrigi",
+     "name": "Divriği"
+    },
+    {
+     "code": "58-dogansar",
+     "name": "Doğanşar"
+    },
+    {
+     "code": "58-gemerek",
+     "name": "Gemerek"
+    },
+    {
+     "code": "58-golova",
+     "name": "Gölova"
+    },
+    {
+     "code": "58-gurun",
+     "name": "Gürün"
+    },
+    {
+     "code": "58-hafik",
+     "name": "Hafik"
+    },
+    {
+     "code": "58-imranli",
+     "name": "İmranlı"
+    },
+    {
+     "code": "58-kangal",
+     "name": "Kangal"
+    },
+    {
+     "code": "58-koyulhisar",
+     "name": "Koyulhisar"
+    },
+    {
+     "code": "58-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "58-susehri",
+     "name": "Suşehri"
+    },
+    {
+     "code": "58-sarkisla",
+     "name": "Şarkışla"
+    },
+    {
+     "code": "58-ulas",
+     "name": "Ulaş"
+    },
+    {
+     "code": "58-yildizeli",
+     "name": "Yıldızeli"
+    },
+    {
+     "code": "58-zara",
+     "name": "Zara"
+    }
+   ]
+  },
+  {
+   "code": "59",
+   "name": "Tekirdağ",
+   "districts": [
+    {
+     "code": "59-cerkezkoy",
+     "name": "Çerkezköy"
+    },
+    {
+     "code": "59-corlu",
+     "name": "Çorlu"
+    },
+    {
+     "code": "59-ergene",
+     "name": "Ergene"
+    },
+    {
+     "code": "59-hayrabolu",
+     "name": "Hayrabolu"
+    },
+    {
+     "code": "59-kapakli",
+     "name": "Kapaklı"
+    },
+    {
+     "code": "59-malkara",
+     "name": "Malkara"
+    },
+    {
+     "code": "59-marmaraereglisi",
+     "name": "Marmaraereğlisi"
+    },
+    {
+     "code": "59-muratli",
+     "name": "Muratlı"
+    },
+    {
+     "code": "59-saray",
+     "name": "Saray"
+    },
+    {
+     "code": "59-suleymanpasa",
+     "name": "Süleymanpaşa"
+    },
+    {
+     "code": "59-sarkoy",
+     "name": "Şarköy"
+    }
+   ]
+  },
+  {
+   "code": "60",
+   "name": "Tokat",
+   "districts": [
+    {
+     "code": "60-almus",
+     "name": "Almus"
+    },
+    {
+     "code": "60-artova",
+     "name": "Artova"
+    },
+    {
+     "code": "60-basciftlik",
+     "name": "Başçiftlik"
+    },
+    {
+     "code": "60-erbaa",
+     "name": "Erbaa"
+    },
+    {
+     "code": "60-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "60-niksar",
+     "name": "Niksar"
+    },
+    {
+     "code": "60-pazar",
+     "name": "Pazar"
+    },
+    {
+     "code": "60-resadiye",
+     "name": "Reşadiye"
+    },
+    {
+     "code": "60-sulusaray",
+     "name": "Sulusaray"
+    },
+    {
+     "code": "60-turhal",
+     "name": "Turhal"
+    },
+    {
+     "code": "60-yesilyurt",
+     "name": "Yeşilyurt"
+    },
+    {
+     "code": "60-zile",
+     "name": "Zile"
+    }
+   ]
+  },
+  {
+   "code": "61",
+   "name": "Trabzon",
+   "districts": [
+    {
+     "code": "61-akcaabat",
+     "name": "Akçaabat"
+    },
+    {
+     "code": "61-arakli",
+     "name": "Araklı"
+    },
+    {
+     "code": "61-arsin",
+     "name": "Arsin"
+    },
+    {
+     "code": "61-besikduzu",
+     "name": "Beşikdüzü"
+    },
+    {
+     "code": "61-carsibasi",
+     "name": "Çarşıbaşı"
+    },
+    {
+     "code": "61-caykara",
+     "name": "Çaykara"
+    },
+    {
+     "code": "61-dernekpazari",
+     "name": "Dernekpazarı"
+    },
+    {
+     "code": "61-duzkoy",
+     "name": "Düzköy"
+    },
+    {
+     "code": "61-hayrat",
+     "name": "Hayrat"
+    },
+    {
+     "code": "61-koprubasi",
+     "name": "Köprübaşı"
+    },
+    {
+     "code": "61-macka",
+     "name": "Maçka"
+    },
+    {
+     "code": "61-of",
+     "name": "Of"
+    },
+    {
+     "code": "61-ortahisar",
+     "name": "Ortahisar"
+    },
+    {
+     "code": "61-surmene",
+     "name": "Sürmene"
+    },
+    {
+     "code": "61-salpazari",
+     "name": "Şalpazarı"
+    },
+    {
+     "code": "61-tonya",
+     "name": "Tonya"
+    },
+    {
+     "code": "61-vakfikebir",
+     "name": "Vakfıkebir"
+    },
+    {
+     "code": "61-yomra",
+     "name": "Yomra"
+    }
+   ]
+  },
+  {
+   "code": "62",
+   "name": "Tunceli",
+   "districts": [
+    {
+     "code": "62-cemisgezek",
+     "name": "Çemişgezek"
+    },
+    {
+     "code": "62-hozat",
+     "name": "Hozat"
+    },
+    {
+     "code": "62-mazgirt",
+     "name": "Mazgirt"
+    },
+    {
+     "code": "62-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "62-nazimiye",
+     "name": "Nazımiye"
+    },
+    {
+     "code": "62-ovacik",
+     "name": "Ovacık"
+    },
+    {
+     "code": "62-pertek",
+     "name": "Pertek"
+    },
+    {
+     "code": "62-pulumur",
+     "name": "Pülümür"
+    }
+   ]
+  },
+  {
+   "code": "63",
+   "name": "Şanlıurfa",
+   "districts": [
+    {
+     "code": "63-akcakale",
+     "name": "Akçakale"
+    },
+    {
+     "code": "63-birecik",
+     "name": "Birecik"
+    },
+    {
+     "code": "63-bozova",
+     "name": "Bozova"
+    },
+    {
+     "code": "63-ceylanpinar",
+     "name": "Ceylanpınar"
+    },
+    {
+     "code": "63-eyyubiye",
+     "name": "Eyyübiye"
+    },
+    {
+     "code": "63-halfeti",
+     "name": "Halfeti"
+    },
+    {
+     "code": "63-haliliye",
+     "name": "Haliliye"
+    },
+    {
+     "code": "63-harran",
+     "name": "Harran"
+    },
+    {
+     "code": "63-hilvan",
+     "name": "Hilvan"
+    },
+    {
+     "code": "63-karakopru",
+     "name": "Karaköprü"
+    },
+    {
+     "code": "63-siverek",
+     "name": "Siverek"
+    },
+    {
+     "code": "63-suruc",
+     "name": "Suruç"
+    },
+    {
+     "code": "63-viransehir",
+     "name": "Viranşehir"
+    }
+   ]
+  },
+  {
+   "code": "64",
+   "name": "Uşak",
+   "districts": [
+    {
+     "code": "64-banaz",
+     "name": "Banaz"
+    },
+    {
+     "code": "64-esme",
+     "name": "Eşme"
+    },
+    {
+     "code": "64-karahalli",
+     "name": "Karahallı"
+    },
+    {
+     "code": "64-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "64-sivasli",
+     "name": "Sivaslı"
+    },
+    {
+     "code": "64-ulubey",
+     "name": "Ulubey"
+    }
+   ]
+  },
+  {
+   "code": "65",
+   "name": "Van",
+   "districts": [
+    {
+     "code": "65-bahcesaray",
+     "name": "Bahçesaray"
+    },
+    {
+     "code": "65-baskale",
+     "name": "Başkale"
+    },
+    {
+     "code": "65-caldiran",
+     "name": "Çaldıran"
+    },
+    {
+     "code": "65-catak",
+     "name": "Çatak"
+    },
+    {
+     "code": "65-edremit",
+     "name": "Edremit"
+    },
+    {
+     "code": "65-ercis",
+     "name": "Erciş"
+    },
+    {
+     "code": "65-gevas",
+     "name": "Gevaş"
+    },
+    {
+     "code": "65-gurpinar",
+     "name": "Gürpınar"
+    },
+    {
+     "code": "65-ipekyolu",
+     "name": "İpekyolu"
+    },
+    {
+     "code": "65-muradiye",
+     "name": "Muradiye"
+    },
+    {
+     "code": "65-ozalp",
+     "name": "Özalp"
+    },
+    {
+     "code": "65-saray",
+     "name": "Saray"
+    },
+    {
+     "code": "65-tusba",
+     "name": "Tuşba"
+    }
+   ]
+  },
+  {
+   "code": "66",
+   "name": "Yozgat",
+   "districts": [
+    {
+     "code": "66-akdagmadeni",
+     "name": "Akdağmadeni"
+    },
+    {
+     "code": "66-aydincik",
+     "name": "Aydıncık"
+    },
+    {
+     "code": "66-bogazliyan",
+     "name": "Boğazlıyan"
+    },
+    {
+     "code": "66-candir",
+     "name": "Çandır"
+    },
+    {
+     "code": "66-cayiralan",
+     "name": "Çayıralan"
+    },
+    {
+     "code": "66-cekerek",
+     "name": "Çekerek"
+    },
+    {
+     "code": "66-kadisehri",
+     "name": "Kadışehri"
+    },
+    {
+     "code": "66-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "66-saraykent",
+     "name": "Saraykent"
+    },
+    {
+     "code": "66-sarikaya",
+     "name": "Sarıkaya"
+    },
+    {
+     "code": "66-sorgun",
+     "name": "Sorgun"
+    },
+    {
+     "code": "66-sefaatli",
+     "name": "Şefaatli"
+    },
+    {
+     "code": "66-yenifakili",
+     "name": "Yenifakılı"
+    },
+    {
+     "code": "66-yerkoy",
+     "name": "Yerköy"
+    }
+   ]
+  },
+  {
+   "code": "67",
+   "name": "Zonguldak",
+   "districts": [
+    {
+     "code": "67-alapli",
+     "name": "Alaplı"
+    },
+    {
+     "code": "67-caycuma",
+     "name": "Çaycuma"
+    },
+    {
+     "code": "67-devrek",
+     "name": "Devrek"
+    },
+    {
+     "code": "67-eregli",
+     "name": "Ereğli"
+    },
+    {
+     "code": "67-gokcebey",
+     "name": "Gökçebey"
+    },
+    {
+     "code": "67-kilimli",
+     "name": "Kilimli"
+    },
+    {
+     "code": "67-kozlu",
+     "name": "Kozlu"
+    },
+    {
+     "code": "67-merkez",
+     "name": "Merkez"
+    }
+   ]
+  },
+  {
+   "code": "68",
+   "name": "Aksaray",
+   "districts": [
+    {
+     "code": "68-agacoren",
+     "name": "Ağaçören"
+    },
+    {
+     "code": "68-eskil",
+     "name": "Eskil"
+    },
+    {
+     "code": "68-gulagac",
+     "name": "Gülağaç"
+    },
+    {
+     "code": "68-guzelyurt",
+     "name": "Güzelyurt"
+    },
+    {
+     "code": "68-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "68-ortakoy",
+     "name": "Ortaköy"
+    },
+    {
+     "code": "68-sariyahsi",
+     "name": "Sarıyahşi"
+    },
+    {
+     "code": "68-sultanhani",
+     "name": "Sultanhanı"
+    }
+   ]
+  },
+  {
+   "code": "69",
+   "name": "Bayburt",
+   "districts": [
+    {
+     "code": "69-aydintepe",
+     "name": "Aydıntepe"
+    },
+    {
+     "code": "69-demirozu",
+     "name": "Demirözü"
+    },
+    {
+     "code": "69-merkez",
+     "name": "Merkez"
+    }
+   ]
+  },
+  {
+   "code": "70",
+   "name": "Karaman",
+   "districts": [
+    {
+     "code": "70-ayranci",
+     "name": "Ayrancı"
+    },
+    {
+     "code": "70-basyayla",
+     "name": "Başyayla"
+    },
+    {
+     "code": "70-ermenek",
+     "name": "Ermenek"
+    },
+    {
+     "code": "70-kazimkarabekir",
+     "name": "Kazımkarabekir"
+    },
+    {
+     "code": "70-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "70-sariveliler",
+     "name": "Sarıveliler"
+    }
+   ]
+  },
+  {
+   "code": "71",
+   "name": "Kırıkkale",
+   "districts": [
+    {
+     "code": "71-bahsili",
+     "name": "Bahşılı"
+    },
+    {
+     "code": "71-baliseyh",
+     "name": "Balışeyh"
+    },
+    {
+     "code": "71-celebi",
+     "name": "Çelebi"
+    },
+    {
+     "code": "71-delice",
+     "name": "Delice"
+    },
+    {
+     "code": "71-karakecili",
+     "name": "Karakeçili"
+    },
+    {
+     "code": "71-keskin",
+     "name": "Keskin"
+    },
+    {
+     "code": "71-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "71-sulakyurt",
+     "name": "Sulakyurt"
+    },
+    {
+     "code": "71-yahsihan",
+     "name": "Yahşihan"
+    }
+   ]
+  },
+  {
+   "code": "72",
+   "name": "Batman",
+   "districts": [
+    {
+     "code": "72-besiri",
+     "name": "Beşiri"
+    },
+    {
+     "code": "72-gercus",
+     "name": "Gercüş"
+    },
+    {
+     "code": "72-hasankeyf",
+     "name": "Hasankeyf"
+    },
+    {
+     "code": "72-kozluk",
+     "name": "Kozluk"
+    },
+    {
+     "code": "72-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "72-sason",
+     "name": "Sason"
+    }
+   ]
+  },
+  {
+   "code": "73",
+   "name": "Şırnak",
+   "districts": [
+    {
+     "code": "73-beytussebap",
+     "name": "Beytüşşebap"
+    },
+    {
+     "code": "73-cizre",
+     "name": "Cizre"
+    },
+    {
+     "code": "73-guclukonak",
+     "name": "Güçlükonak"
+    },
+    {
+     "code": "73-idil",
+     "name": "İdil"
+    },
+    {
+     "code": "73-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "73-silopi",
+     "name": "Silopi"
+    },
+    {
+     "code": "73-uludere",
+     "name": "Uludere"
+    }
+   ]
+  },
+  {
+   "code": "74",
+   "name": "Bartın",
+   "districts": [
+    {
+     "code": "74-amasra",
+     "name": "Amasra"
+    },
+    {
+     "code": "74-kurucasile",
+     "name": "Kurucaşile"
+    },
+    {
+     "code": "74-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "74-ulus",
+     "name": "Ulus"
+    }
+   ]
+  },
+  {
+   "code": "75",
+   "name": "Ardahan",
+   "districts": [
+    {
+     "code": "75-cildir",
+     "name": "Çıldır"
+    },
+    {
+     "code": "75-damal",
+     "name": "Damal"
+    },
+    {
+     "code": "75-gole",
+     "name": "Göle"
+    },
+    {
+     "code": "75-hanak",
+     "name": "Hanak"
+    },
+    {
+     "code": "75-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "75-posof",
+     "name": "Posof"
+    }
+   ]
+  },
+  {
+   "code": "76",
+   "name": "Iğdır",
+   "districts": [
+    {
+     "code": "76-aralik",
+     "name": "Aralık"
+    },
+    {
+     "code": "76-karakoyunlu",
+     "name": "Karakoyunlu"
+    },
+    {
+     "code": "76-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "76-tuzluca",
+     "name": "Tuzluca"
+    }
+   ]
+  },
+  {
+   "code": "77",
+   "name": "Yalova",
+   "districts": [
+    {
+     "code": "77-altinova",
+     "name": "Altınova"
+    },
+    {
+     "code": "77-armutlu",
+     "name": "Armutlu"
+    },
+    {
+     "code": "77-cinarcik",
+     "name": "Çınarcık"
+    },
+    {
+     "code": "77-ciftlikkoy",
+     "name": "Çiftlikköy"
+    },
+    {
+     "code": "77-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "77-termal",
+     "name": "Termal"
+    }
+   ]
+  },
+  {
+   "code": "78",
+   "name": "Karabük",
+   "districts": [
+    {
+     "code": "78-eflani",
+     "name": "Eflani"
+    },
+    {
+     "code": "78-eskipazar",
+     "name": "Eskipazar"
+    },
+    {
+     "code": "78-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "78-ovacik",
+     "name": "Ovacık"
+    },
+    {
+     "code": "78-safranbolu",
+     "name": "Safranbolu"
+    },
+    {
+     "code": "78-yenice",
+     "name": "Yenice"
+    }
+   ]
+  },
+  {
+   "code": "79",
+   "name": "Kilis",
+   "districts": [
+    {
+     "code": "79-elbeyli",
+     "name": "Elbeyli"
+    },
+    {
+     "code": "79-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "79-musabeyli",
+     "name": "Musabeyli"
+    },
+    {
+     "code": "79-polateli",
+     "name": "Polateli"
+    }
+   ]
+  },
+  {
+   "code": "80",
+   "name": "Osmaniye",
+   "districts": [
+    {
+     "code": "80-bahce",
+     "name": "Bahçe"
+    },
+    {
+     "code": "80-duzici",
+     "name": "Düziçi"
+    },
+    {
+     "code": "80-hasanbeyli",
+     "name": "Hasanbeyli"
+    },
+    {
+     "code": "80-kadirli",
+     "name": "Kadirli"
+    },
+    {
+     "code": "80-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "80-sumbas",
+     "name": "Sumbas"
+    },
+    {
+     "code": "80-toprakkale",
+     "name": "Toprakkale"
+    }
+   ]
+  },
+  {
+   "code": "81",
+   "name": "Düzce",
+   "districts": [
+    {
+     "code": "81-akcakoca",
+     "name": "Akçakoca"
+    },
+    {
+     "code": "81-cumayeri",
+     "name": "Cumayeri"
+    },
+    {
+     "code": "81-cilimli",
+     "name": "Çilimli"
+    },
+    {
+     "code": "81-golyaka",
+     "name": "Gölyaka"
+    },
+    {
+     "code": "81-gumusova",
+     "name": "Gümüşova"
+    },
+    {
+     "code": "81-kaynasli",
+     "name": "Kaynaşlı"
+    },
+    {
+     "code": "81-merkez",
+     "name": "Merkez"
+    },
+    {
+     "code": "81-yigilca",
+     "name": "Yığılca"
+    }
+   ]
+  }
+ ]
+}

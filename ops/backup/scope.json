@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "description": "Yedek kapsamının tek kaynağı. Rol yetkileri (tools/backup/backup-role.cjs) ve döküm (tools/backup/dump.cjs) buradan üretilir. Tekil tablolar (auth, storage) doğrudan okunmaz; yalnız 'export' alanındaki fonksiyonla (supabase/migrations/20261118000000_backup_export.sql) alınır. Değişiklik incelemeli PR ister.",
+  "full_schemas": ["public", "private"],
+  "tables": [
+    {"name": "auth.users", "required": true, "export": "private.nakgo_backup_auth_users", "why": "Hesaplar ve bcrypt parola özetleri"},
+    {"name": "auth.identities", "required": true, "export": "private.nakgo_backup_auth_identities", "why": "E-posta ve Google kimlikleri"},
+    {"name": "auth.mfa_factors", "required": false, "export": "private.nakgo_backup_auth_mfa_factors", "why": "MFA faktörleri; yeni projede gizli değer çözülemeyebilir, yeniden kayıt runbook'ta"},
+    {"name": "auth.schema_migrations", "required": false, "export": "private.nakgo_backup_auth_schema_migrations", "why": "Auth sürümü; geri yüklemede sürüm uyumu durdurma koşulu"},
+    {"name": "storage.buckets", "required": false, "export": "private.nakgo_backup_storage_buckets", "why": "Kova tanımları"},
+    {"name": "storage.objects", "required": false, "export": "private.nakgo_backup_storage_objects", "why": "Dosya meta verisi; dosyaların kendisi kapsam dışı"}
+  ],
+  "excluded": {
+    "transient": ["auth.sessions", "auth.refresh_tokens", "auth.mfa_amr_claims", "auth.mfa_challenges", "auth.one_time_tokens", "auth.flow_state", "auth.saml_relay_states", "auth.oauth_client_states", "auth.webauthn_challenges"],
+    "known_loss": ["auth.mfa_recovery_code_sets", "auth.mfa_recovery_codes", "auth.audit_log_entries"],
+    "guard_stop_if_rows": ["auth.webauthn_credentials", "auth.oauth_clients", "auth.oauth_authorizations", "auth.oauth_consents", "auth.saml_providers", "auth.sso_providers", "auth.sso_domains", "auth.custom_oauth_providers", "auth.scim_users", "auth.scim_tokens", "vault.secrets"]
+  },
+  "guard_exact_zero": ["storage.objects"],
+  "guard_counts_function": "private.nakgo_backup_guard_counts",
+  "export_token_columns": {
+    "auth.users": ["confirmation_token", "recovery_token", "email_change_token_new", "email_change_token_current", "reauthentication_token", "phone_change_token"]
+  },
+  "notes": {
+    "transient": "Taşıyıcı kimlik bilgileri ve kısa ömürlü akışlar. Yeni projede JWT anahtarı farklı olduğu için zaten geçersizdir; aynı yere geri yükleme, kapatılmış oturumları geri getirir.",
+    "known_loss": "Bilerek yedeklenmez; sayısı manifestoya yazılır. Kurtarmada kullanıcılar kurtarma kodlarını yeniden üretir; denetim kaydı yerine private.access_log yedeklenir (D6 kararı açık).",
+    "guard_stop_if_rows": "Uygulamanın kullanmadığı Auth özellikleri ve Vault. Satır görünürse kapsam yeniden değerlendirilmeden döküm başlamaz. Sayım kesindir: guard_counts_function içeriği değil yalnız sayıyı döndürür (liste fonksiyonda sabittir; test eşitliği denetler).",
+    "guard_exact_zero": "Storage dosyaları yedeklenmiyor; nesne görünürse döküm başlamaz ve dosya yedeği ayrıca tasarlanır.",
+    "export_token_columns": "Tek kullanımlık e-posta/parola sıfırlama belirteçleri yedeğe girmez (boş metin). Geri yüklemeden sonra bekleyen bu akışlar yeniden başlatılır."
+  }
+}

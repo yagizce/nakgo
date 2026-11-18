@@ -1,20 +1,19 @@
-/** Local PostgreSQL regression harness. Requires optional @electric-sql/pglite via NODE_PATH.
- * Uses synthetic auth/storage schemas; never connects to Supabase or a network database.
- * NAKGO_PG_SOCKET (a local Unix socket directory of an empty, throwaway PostgreSQL server; requires `pg` via NODE_PATH)
- * runs the same checks on a real server instead of PGlite. */
-const {PGlite}=process.env.NAKGO_PG_SOCKET?{PGlite:class{constructor(){const {Client}=require('pg');this.c=new Client({host:process.env.NAKGO_PG_SOCKET,port:Number(process.env.NAKGO_PG_PORT||5432),user:'postgres',database:'postgres'});this.ready=this.c.connect();}
- async query(sql,args=[]){await this.ready;return this.c.query(sql,args);} async exec(sql){await this.ready;return this.c.query(sql);} async close(){await this.c.end();}}}:require('@electric-sql/pglite');
+/** Local PostgreSQL regression harness. Engine: PGlite via NODE_PATH by default, or a local real PostgreSQL
+ * when NAKGO_PG_HOST is set (a throwaway database per run, see db-lib.cjs).
+ * Uses synthetic auth/storage schemas; never connects to Supabase or a network database. */
+const {openDb,finish,assertTestRoles}=require('./db-lib.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..');
 (async()=>{
- const db=new PGlite();let checks=0;
+ const db=await openDb();let checks=0,primary=null;
+ try{
  const check=(condition,label)=>{assert.ok(condition,label);checks++;};
  const query=async(sql,args=[])=> (await db.query(sql,args)).rows;
  const as=async(id,sql,args=[],role='authenticated')=>{await db.exec('reset role');await query("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);await db.exec('set role '+role);try{return await query(sql,args);}finally{await db.exec('reset role');}};
  const denied=async(fn,code,label)=>{try{await fn();assert.fail(label+' unexpectedly succeeded');}catch(error){assert.equal(error.code,code,label+': '+error.message);checks++;}};
  const ids=Array.from({length:5},(_,i)=>'00000000-0000-4000-8000-'+String(i+1).padStart(12,'0'));
  const [admin,partner,owner,carrier,unverified]=ids;
- await db.exec(`create role anon;create role authenticated;create schema auth;create schema storage;
+ await db.exec(`do $$ begin if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if; if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if; end $$;create schema auth;create schema storage;
  create table auth.users(id uuid primary key,email_confirmed_at timestamptz,email text unique,phone text unique,banned_until timestamptz,raw_user_meta_data jsonb not null default '{}');
  create table auth.identities(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users(id) on delete cascade,provider text);
  create table auth.refresh_tokens(id bigserial primary key,user_id varchar(255),token text);
@@ -23,7 +22,12 @@ const root=path.resolve(__dirname,'..');
  create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
  create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner_id text,metadata jsonb);
  alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;`);
+ await assertTestRoles(db);
+ // Production'daki depo dışı nesne: Supabase panelinin "RLS'yi otomatik aç" ayarı bu fonksiyonu misafir ve üyeye açık oluşturur.
+ await db.exec(`create function public.rls_auto_enable() returns event_trigger language plpgsql security definer set search_path='' as $$begin end$$;
+ grant execute on function public.rls_auto_enable() to public,anon,authenticated;`);
  for(const f of fs.readdirSync(path.join(root,'supabase/migrations')).sort())await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',f),'utf8'));
+ for(const r of ['public','anon','authenticated'])check(!(await query(`select has_function_privilege($1,'public.rls_auto_enable()','EXECUTE') x`,[r]))[0].x,'rls_auto_enable kapalı: '+r);
  for(const id of ids){await query('insert into auth.users values($1,$2)',[id,id===unverified?null:new Date().toISOString()]);await as(id,"insert into public.profiles(id,display_name,account_type) values($1,$2,'carrier')",[id,id===owner?'Test Owner':'Test User']);}
  await query('insert into private.admin_members(user_id,active) values($1,true),($2,false),($3,false)',[admin,partner,unverified]);
  const page=(id,section='users')=>as(id,'select public.nakgo_admin_page($1,0,\'\') data',[section]);
@@ -45,7 +49,7 @@ const root=path.resolve(__dirname,'..');
  const moderated=await moderate(admin,'listing',listing,'remove');check(moderated[0].data.revision===1,'listing removal advances revision');
  check((await as(carrier,'select id from public.listings where id=$1',[listing])).length===0,'removed listing hidden from other users');
  await denied(()=>as(owner,"update public.listings set status='active' where id=$1",[listing]),'42501','owner cannot republish removed listing');
- await denied(()=>moderate(admin,'listing',listing,'restore',0),'40001','stale partner rejected');
+ await denied(()=>moderate(admin,'listing',listing,'restore',0),'PT409','stale partner rejected (HTTP 409; 40001 PostgREST yeniden denemesine girer)');
  await moderate(admin,'listing',listing,'restore',1);
  check((await query('select status from public.listings where id=$1',[listing]))[0].status==='closed','restored listing stays closed');
  await as(owner,"update public.listings set status='active' where id=$1",[listing]);
@@ -53,7 +57,7 @@ const root=path.resolve(__dirname,'..');
  await denied(()=>createListing(carrier),'42501','suspended listing creation denied');
  await denied(()=>as(carrier,"update public.profiles set display_name='Changed' where id=$1",[carrier]),'42501','suspended profile mutation denied');
  await denied(()=>as(carrier,'select public.nakgo_set_favorite($1,true)',[listing]),'42501','suspended favorite insert denied');
- await denied(()=>moderate(admin,'user',carrier,'resume',0),'40001','stale account action rejected');
+ await denied(()=>moderate(admin,'user',carrier,'resume',0),'PT409','stale account action rejected');
  await moderate(admin,'user',carrier,'resume',1);
  await as(carrier,'select public.nakgo_set_favorite($1,true)',[listing]);
  check((await query('select count(*)::int n from public.listing_favorites where user_id=$1',[carrier]))[0].n===1,'resumed favorite succeeds');
@@ -86,9 +90,12 @@ const root=path.resolve(__dirname,'..');
   await db.exec('reset role');await query("select set_config('request.jwt.claim.sub','',false)");
   const before=await inventory();
   try{await db.exec(fs.readFileSync(path.join(root,'supabase/tests',fixture),'utf8'));}
-  catch(error){await db.exec('rollback;reset role');throw Error(fixture+': '+error.message,{cause:error});}
+  catch(error){await db.exec('rollback;reset role').catch(()=>{});throw Error(fixture+': '+error.message,{cause:error});}
   assert.equal(await inventory(),before,fixture+' must roll back its fixtures');
   console.log('SQL fixture PASS: '+fixture+'; rows unchanged after rollback');
  }
- console.log(checks+' PostgreSQL moderation checks passed (synthetic auth/storage; not live Supabase).');await db.close();await require('./storage-service-check.cjs');
+ console.log(checks+' PostgreSQL moderation checks passed ('+db.engine+'; synthetic auth/storage; not live Supabase).');
+ }catch(error){primary=error;throw error;}
+ finally{await finish(db,primary);}
+ await require('./storage-service-check.cjs');
 })().catch(error=>{console.error(error);process.exitCode=1;});

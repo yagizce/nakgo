@@ -779,6 +779,17 @@ header p {
   margin-bottom:10px;
 }
 
+.ph-wait {
+  min-height:120px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  background:var(--line);
+  color:var(--mute);
+  font-size:14px;
+}
+
 .itrow {
   display:flex;
   gap:6px;
@@ -1741,8 +1752,6 @@ body.admin-host .sheet>div::before { display:none; }
 .adm-nav-btn .l-long { display:none; }
 .adm-page { display:grid; gap:14px; padding:14px 12px calc(20px + env(safe-area-inset-bottom,0px)); min-width:0; align-content:start; }
 .adm-top { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; }
-.adm-crumb { margin:0; color:var(--mute); font-size:13px; }
-.adm-crumb b { color:var(--ink); }
 .adm-top-act { display:flex; gap:8px; }
 .adm-btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; height:38px; border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:10px; padding:0 12px; font:600 13px/1 inherit; cursor:pointer; white-space:nowrap; }
 .adm-btn:disabled { opacity:.45; cursor:default; }
@@ -1825,9 +1834,6 @@ body.admin-host .sheet>div::before { display:none; }
 .adm-legend { margin:0; display:flex; gap:14px; align-items:center; font-size:12.5px; color:var(--mute); }
 .adm-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:-8px; }
 .adm-days .adm-row { cursor:default; }
-.adm-side { display:grid; gap:14px; align-content:start; order:-1; min-width:0; }
-.adm-period .adm-grid small { color:var(--mute); font-size:11.5px; }
-.adm-period h4 { margin:2px 0 0; font-size:11.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--mute); }
 .adm-seg { display:inline-grid; grid-template-columns:repeat(3,1fr); background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:3px; gap:2px; }
 .adm-seg button { border:0; background:none; color:var(--mute); border-radius:7px; padding:6px 12px; font:600 12.5px/1 inherit; cursor:pointer; }
 .adm-seg button[aria-pressed="true"] { background:var(--card); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.12); }
@@ -1915,8 +1921,6 @@ body.admin-host .sheet>div::before { display:none; }
 }
 @container adm (min-width:1080px) {
   .adm-main.has-detail { grid-template-columns:minmax(0,1fr) 340px; }
-  .adm-side { order:0; position:sticky; top:16px; }
-  .adm-side .adm-detail { position:static; max-height:none; }
 }
 @container adm (min-width:720px) and (max-width:1079px) {
   .adm-main.has-detail .adm-detail.open { position:fixed; inset:0 0 0 auto; width:min(420px,100%); max-height:none; border-radius:0; top:0; z-index:6; box-shadow:-8px 0 24px rgba(0,0,0,.12); }
@@ -1954,8 +1958,6 @@ html.admin-host .splash,html.admin-host header { display:none !important; }
 /* Sayfa başı */
 .adm .adm-page { padding:14px 12px calc(24px + env(safe-area-inset-bottom,0px)); gap:12px; }
 .adm .adm-top { grid-template-columns:minmax(0,1fr) auto; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
-.adm .adm-crumb { font-size:13px; color:var(--mute); }
-.adm .adm-crumb b { color:var(--ink); font-size:14px; }
 .adm .adm-btn { border-radius:8px; border-color:var(--line); background:var(--card); }
 .adm .adm-btn:hover:not(:disabled) { border-color:var(--ink); }
 .adm .adm-btn.primary,.adm .btn { background:var(--black); border-color:var(--black); color:var(--on-black); border-radius:8px; box-shadow:none; background-image:none; }
@@ -2009,7 +2011,7 @@ html.admin-host .splash,html.admin-host header { display:none !important; }
 .adm .adm-summary { background:var(--black); color:var(--on-black); border:0; border-radius:12px; padding:14px 16px; }
 .adm .adm-summary span { display:inline-block; text-transform:none; letter-spacing:0; font-size:12px; font-weight:700; color:var(--on-black); background:color-mix(in srgb,var(--on-black) 14%,transparent); border-radius:6px; padding:3px 8px; }
 .adm .adm-summary p { color:color-mix(in srgb,var(--on-black) 88%,transparent); }
-.adm h4,.adm .adm-detail h4,.adm .adm-period h4 { text-transform:uppercase; letter-spacing:.6px; font-size:11.5px; font-weight:700; color:var(--mute); margin-top:6px; }
+.adm h4,.adm .adm-detail h4 { text-transform:uppercase; letter-spacing:.6px; font-size:11.5px; font-weight:700; color:var(--mute); margin-top:6px; }
 .adm .adm-grid div { border-radius:8px; background:var(--soft); }
 .adm .adm-steps li.done::before { background:var(--ok); border-color:var(--ok); }
 .adm .adm-steps li.now::before { background:var(--sel); border-color:var(--sel); box-shadow:0 0 0 4px color-mix(in srgb,var(--sel) 22%,transparent); }
@@ -2033,6 +2035,36 @@ html.admin-host .splash,html.admin-host header { display:none !important; }
   .adm .adm-kpi b { font-size:32px; }
 }
 @media (prefers-reduced-motion:reduce) { .adm * { transition:none !important; } }
+
+/* Bölüm yapısı: sayfa başı (başlık, açıklama, sekmeler), gruplu menü, Genel Bakış uyarıları, bölüm tabloları. */
+.adm .adm-top { grid-template-columns:minmax(0,1fr) auto; align-items:start; }
+.adm-head { min-width:0; }
+.adm-head h1 { margin:0; font-size:20px; letter-spacing:-.3px; line-height:1.2; }
+.adm-head p { margin:4px 0 0; color:var(--mute); font-size:13px; line-height:1.45; }
+.adm .adm-tabs { grid-column:1/-1; justify-self:start; max-width:100%; overflow-x:auto; }
+.adm .adm-tabs::-webkit-scrollbar { display:none; }
+.adm .adm-nav { display:flex; gap:6px; overflow-x:auto; overscroll-behavior-x:contain; }
+.adm .adm-nav>.adm-nav-btn,.adm .adm-nav-group .adm-nav-btn { flex:0 0 auto; min-width:78px; }
+.adm-nav-group { display:contents; }
+.adm-nav-label { display:none; }
+.adm-attn-list { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.adm-attn-list li { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; border-radius:8px; background:var(--soft); border-left:3px solid var(--line); font-size:14px; }
+.adm-attn-list li.bad { border-left-color:var(--bad); background:var(--bad-soft); }
+.adm-attn-list li.warn { border-left-color:var(--warn); background:var(--warn-soft); }
+.adm-warn { margin:0; color:var(--bad); font-weight:600; }
+@container adm (min-width:720px) { .adm-attn-list { grid-template-columns:repeat(2,minmax(0,1fr)); } .adm-attn .adm-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@container adm (min-width:720px) {
+  .adm .adm-nav { flex-direction:column; overflow:visible; }
+  .adm .adm-nav>.adm-nav-btn,.adm .adm-nav-group .adm-nav-btn { min-width:0; }
+  .adm-nav-group { display:flex; flex-direction:column; gap:4px; padding-top:6px; border-top:1px solid var(--line); }
+  .adm-t-security .adm-thead,.adm-t-security .adm-row { grid-template-columns:1.2fr 1.4fr 1fr .6fr; }
+  .adm-t-reports .adm-thead,.adm-t-reports .adm-row { grid-template-columns:1fr 1.1fr 1.4fr .8fr .9fr .6fr; }
+  .adm-t-jobs .adm-thead,.adm-t-jobs .adm-row { grid-template-columns:1.4fr 1fr 1fr .8fr; }
+}
+@container adm (min-width:1080px) {
+  .adm-nav-group { border-top:0; padding-top:8px; }
+  .adm-nav-label { display:block; padding:0 12px 2px; font-size:11px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--mute); }
+}
 
 /* Yönetici sitesi giriş ekranı: uygulama başlığı ve menüsü yok; panelle aynı renkler. */
 body.admin-host header,body.admin-host #off:not(.on) { display:none; }
@@ -3181,6 +3213,17 @@ const dateBucket = x => {
     return "İleri tarih";
 };
 const positiveAmount = value => Number.isFinite(+value) && +value > 0 && +value <= Number.MAX_SAFE_INTEGER;
+// B10: API v1 tonajı en fazla 3 ondalıkla kabul eder (sunucu da denetler; bu kontrol onun yerine geçmez). Girilen metin ve
+// gönderilecek sayı birlikte denetlenir; yuvarlama yapılmaz. Boş, sıfır ve geçersiz metin burada değil positiveAmount'ta.
+const tonDecimalsOK = raw => {
+    const text = String(raw ?? "").trim().replace(",", "."), n = Number(text);
+    if (!text || !Number.isFinite(n)) return true;
+    const decimals = s => (/\.(\d+)$/.exec(s) || ["", ""])[1].length;
+    return !/e/i.test(String(n)) && decimals(text) <= 3 && decimals(String(n)) <= 3;
+};
+const TON_DECIMALS_TEXT = "Tonaj en fazla 3 ondalık basamak içerebilir. Örnek: 18,250 ton.";
+// Yalnız v1 modunda; v0 modunda giriş davranışı değişmez.
+const v1TonError = raw => typeof nakgoAuth !== "undefined" && nakgoAuth.apiMode() === "v1" && !tonDecimalsOK(raw) ? TON_DECIMALS_TEXT : "";
 const postDateOK = value => ["Bugün", "Yarın", "Bu hafta"].includes(value) || validDay(value);
 const ITEM_UNITS = ["ton", "kg", "palet", "koli", "adet", "m³"];
 function postError(x, isTruck = false, step = 2) {
@@ -3618,6 +3661,8 @@ const nakgoAuth = (() => {
         weak_password:'Daha güçlü bir şifre seç.',
         same_password:'Önceki şifrenden farklı bir şifre seç.',
         password_too_short:'Şifre en az 10 karakter olmalı.',
+        conflict:'İlan başka bir yerde değişti; güncel hâli yüklendi, yeniden dene.',
+        create_uncertain:'Bağlantı kesildiği için ilanın yayınlanıp yayınlanmadığı doğrulanamadı. İlanlarım\'ı yenileyip kontrol et.',
         '54000':'Aynı anda en fazla 10 yayında ilanın olabilir. Birini kapatıp tekrar dene.',
         otp_expired:'Bağlantının süresi dolmuş veya daha önce kullanılmış. Yeni bağlantı iste.',
         flow_state_not_found:'Bağlantıyı isteği başlattığın tarayıcıda aç veya yeni bağlantı iste.',
@@ -3632,6 +3677,68 @@ const nakgoAuth = (() => {
     };
     const requireClient = () => { if (!client || !state.ready) throw Error('Auth unavailable'); return client; };
     const redirectTo = () => new URL('/', location.origin).href;
+
+    // ===== API sürümü (B3-d) =====
+    // Tek karar noktası. 'auto': sunucu api.status_v1 ile "açık" derse v1, aksi hâlde v0. 'v0': her zaman v0.
+    // /api/auth/config yanıtındaki isteğe bağlı "api":"v0" alanı 'auto'yu geçersiz kılar (acil geri dönüş).
+    // Sürüm oturum başına bir kez belirlenir; hesap değişince ve sayfa yenilenince yeniden. Yönetici çağrıları v0'da kalır.
+    const API_PREFERENCE = 'auto';
+    let apiPreference = API_PREFERENCE, apiMode = null, apiProbe = null;
+    const resetApi = () => { apiMode = null; apiProbe = null; };
+    const callV1 = (fn, args) => client.schema('api').rpc(fn, args);
+    const withTimeout = (work, ms) => { let t; return Promise.race([work, new Promise((_, fail) => { t = setTimeout(() => fail(Error('timeout')), ms); })]).finally(() => { if (typeof clearTimeout === 'function') clearTimeout(t); }); };
+    // 'v0' biliniyorsa eşzamanlı döner (v0 yolu bugünkü zamanlamayla çalışır); sorgu sürerken Promise.
+    function apiVersion() {
+        if (apiPreference !== 'auto' || !client || typeof client.schema !== 'function') return 'v0';
+        if (apiMode) return apiMode;
+        if (!apiProbe) {
+            // Şema açık değilse (son aşamaya kadar), fonksiyon yoksa, ağ hatası ya da 15 sn zaman aşımında v0.
+            const probe = apiProbe = withTimeout(callV1('status_v1', {}), 15000)
+                .then(r => !r.error && r.data?.data?.enabled === true ? 'v1' : 'v0', () => 'v0');
+            probe.then(mode => { if (apiProbe === probe) apiMode = mode; });
+        }
+        return apiProbe;
+    }
+    // v1 hata anahtarı → bugünkü (v0) hata kodu; ekran mesajları değişmez. v1'in hiç çalışmadığı kesin hatalar v1Absent.
+    const V1_CODES = {limit_reached:'54000', invalid_argument:'22023', invalid_cursor:'22023', not_found:'42501', auth_required:'42501', account_unverified:'42501',
+        account_suspended:'42501', not_allowed:'42501', conflict:'conflict', internal_error:'XX000'};
+    function v1Error(e) {
+        const key = e?.hint === 'nakgo.api' ? String(e.message || '') : '';
+        return Object.assign(Error(key || e?.message || 'API error'), {code:V1_CODES[key] || e?.code || '', apiKey:key,
+            v1Absent:key === 'api_disabled' || e?.code === 'PGRST106' || e?.code === 'PGRST202'});
+    }
+    // v1 çağrısı: yanıtın kendisini ({data} ya da {data,page}) döner; hesap değiştiyse sonuç kullanılmaz.
+    async function v1(fn, args, account = null) {
+        const r = await callV1(fn, args);
+        if (r.error) throw v1Error(r.error);
+        if (account && (account.revision !== revision || state.user?.id !== account.id)) throw Error('Account changed');
+        return r.data;
+    }
+    // v1 açıksa onu dener. v1'in hiç çalışmadığı kesin hatada (kapalı, şema ya da fonksiyon yok) aynı isteği bir kez v0 ile
+    // yapar ve oturumun kalanında v0'da kalır. Ağ hatası/zaman aşımı v0'a devredilmez: yazma iki kez yapılmasın.
+    function via(onV1, onV0) {
+        const mode = apiVersion();
+        if (mode === 'v0') return onV0();
+        return Promise.resolve(mode).then(m => m !== 'v1' ? onV0() : onV1().catch(e => {
+            if (!e?.v1Absent) throw e;
+            apiProbe = null; apiMode = 'v0';
+            return onV0();
+        }));
+    }
+    const cursorOf = before => before === null ? null : String(before);
+    const profileRow = (p, id) => p ? {id, ...p} : null;
+    // Aynı içerik yeniden gönderilirse (ör. ağ hatası sonrası) aynı istek kimliği: sunucu ikinci ilanı açmaz.
+    // uncertainKey: o içerikle yapılan bir v1 denemesinin sonucu belirsiz (yanıt alınamadı). Aynı içerik v0'a devredilmez
+    // (v0'da tekrar koruması yok, ilan iki kez açılabilirdi); yalnız v1 ile aynı kimlikle yeniden denenebilir.
+    let createKey = '', createId = '', uncertainKey = '';
+    function requestId() {
+        const c = typeof crypto !== 'undefined' ? crypto : null;
+        if (c?.randomUUID) return c.randomUUID();
+        const b = c?.getRandomValues ? c.getRandomValues(new Uint8Array(16)) : Uint8Array.from({length:16}, () => Math.floor(Math.random() * 256));
+        b[6] = (b[6] & 15) | 64; b[8] = (b[8] & 63) | 128;
+        const h = [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+        return h.slice(0,8) + '-' + h.slice(8,12) + '-' + h.slice(12,16) + '-' + h.slice(16,20) + '-' + h.slice(20);
+    }
 
     // A network failure is not a sign-out: keep the stored session and verify again later.
     const retryable = e => !!e && (e.name === 'AuthRetryableFetchError' || e.status === 0 || e.status >= 500 || e instanceof TypeError);
@@ -3659,17 +3766,25 @@ const nakgoAuth = (() => {
         if (current !== revision) return;
         retryCount = 0; clearTimeout(retryTimer); retryTimer = null;
         const user = data.user;
+        if (state.user?.id !== user.id) resetApi();
         state.user = {id:user.id, email:user.email || ''};
         state.profile = null; state.checked=true; changed();
         // Password recovery needs a verified identity, not a successful profile query.
         if (state.recovery) { state.error=''; changed(); return; }
-        let result = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).maybeSingle();
+        let result = await via(async () => ({data:profileRow((await v1('profile_v1',{})).data, user.id)}),
+            () => client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).maybeSingle());
         if (result.error) throw result.error;
         if (!result.data) {
             const metadata = user.user_metadata || {};
             const profile = {id:user.id, display_name:String(metadata.display_name || metadata.full_name || '').trim().slice(0,60), account_type:['carrier','owner'].includes(metadata.account_type) ? metadata.account_type : null};
-            result = await client.from('profiles').insert(profile).select('id,display_name,account_type,city,about,phone').single();
-            if (result.error?.code === '23505') result = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).single();
+            result = await via(async () => {
+                const changes = {display_name:profile.display_name, ...(profile.account_type ? {account_type:profile.account_type} : {})};
+                return {data:profileRow((await v1('profile_update_v1',{p_changes:changes})).data, user.id)};
+            }, async () => {
+                let r = await client.from('profiles').insert(profile).select('id,display_name,account_type,city,about,phone').single();
+                if (r.error?.code === '23505') r = await client.from('profiles').select('id,display_name,account_type,city,about,phone').eq('id',user.id).single();
+                return r;
+            });
             if (result.error) throw result.error;
         }
         if (current !== revision) return;
@@ -3724,6 +3839,7 @@ const nakgoAuth = (() => {
             if (!response?.ok) return endBoot();
             const config = await response.json();
             if (!configOK(config)) return endBoot();
+            if (config.api === 'v0') apiPreference = 'v0';
             booting = false; state.enabled = true; state.marketplace = config.marketplaceEnabled === true; changed();
             await loadSDK();
             client = window.supabase.createClient(config.url,config.publishableKey, {auth:{
@@ -3733,7 +3849,7 @@ const nakgoAuth = (() => {
             }});
             client.auth.onAuthStateChange((event) => {
                 if (event === 'SIGNED_OUT') {
-                    revision++; state.user=null; state.profile=null; state.recovery=false; state.error=''; changed();
+                    resetApi(); revision++; state.user=null; state.profile=null; state.recovery=false; state.error=''; changed();
                 }
                 if (event === 'PASSWORD_RECOVERY') state.recovery = true;
                 // SDK callbacks must not await another SDK auth operation (lock deadlock).
@@ -3828,7 +3944,9 @@ const nakgoAuth = (() => {
     }
     async function saveProfile(displayName,accountType) {
         if(!state.user)throw Error('Sign in required');
-        const {error} = await requireClient().from('profiles').update({display_name:displayName.trim().slice(0,60),account_type:accountType}).eq('id',state.user.id);
+        const values={display_name:displayName.trim().slice(0,60),account_type:accountType};
+        const {error} = await via(async()=>{await v1('profile_update_v1',{p_changes:values});return {error:null};},
+            ()=>requireClient().from('profiles').update(values).eq('id',state.user.id));
         if(error)throw error;
         await sync();
     }
@@ -3841,7 +3959,8 @@ const nakgoAuth = (() => {
             values[key]=patch[key].trim();
         }
         if(!Object.keys(values).length || (values.phone && !/^05[0-9]{9}$/.test(values.phone)))throw Error('Invalid profile');
-        const result=await requireClient().from('profiles').update(values).eq('id',id).select('id,display_name,account_type,city,about,phone').single();
+        const result=await via(async()=>({data:profileRow((await v1('profile_update_v1',{p_changes:values})).data,id)}),
+            ()=>requireClient().from('profiles').update(values).eq('id',id).select('id,display_name,account_type,city,about,phone').single());
         if(result.error)throw result.error;
         if(current!==revision || state.user?.id!==id)throw Error('Account changed');
         state.profile=result.data; state.error=''; changed();
@@ -3852,6 +3971,16 @@ const nakgoAuth = (() => {
         if(!state.user || !state.profile || state.recovery)throw Error('Sign in required');
         return {id:state.user.id, revision};
     }
+    // v1 ilan öğesi → v0 satır biçimi; ekranlar aynı alanları okur. v1 sahip kimliği vermez: yalnız kendi ilanında bilinir.
+    // Liste fotoğraf taşımaz (has_photo); fotoğraf ayrıntıda listingPhoto ile alınır.
+    const v0Listing=(x,owner)=>x?{id:x.id,owner_id:x.mine===true?owner:null,kind:x.kind,from_city:x.from?.city,to_city:x.to?.city,
+        from_district:x.from?.district??null,to_district:x.to?.district??null,expires_at:x.expires_at,vehicle:x.vehicle,body:x.body,amount:x.amount,cargo:x.cargo,
+        note:x.note??'',owner_label:x.owner_label,available_on:x.date?.on??null,available_until:x.date?.until??null,available_time:x.date?.time??'',
+        loading_text:x.date?.text??null,items:x.items||[],image_data:x.photo||'',has_photo:x.has_photo===true,status:x.status,created_at:x.created_at,
+        updated_at:x.updated_at,revision:Number.isSafeInteger(x.revision)?x.revision:null,contact_consent:x.contact_allowed===true}:null;
+    // B10: v1 tonajı yalnız birimiyle kabul eder; uygulamadaki tonaj her zaman ton (formlar "ton" der). v0 birim almaz.
+    const withUnit=x=>Object.prototype.hasOwnProperty.call(x,'amount')?{...x,amount_unit:'ton'}:x;
+    const v0Alert=a=>({id:a.id,kind:a.kind,from_city:a.from,to_city:a.to,vehicle:a.vehicle,body:a.body,active:a.active,seen_at:a.seen_at,created_at:a.created_at});
     function listingResult(result,account) {
         if(result.error)throw result.error;
         if(account.revision!==revision || state.user?.id!==account.id)throw Error('Account changed');
@@ -3861,7 +3990,8 @@ const nakgoAuth = (() => {
     async function publicListings({before=null}={}) {
         if(before!==null&&(!Number.isSafeInteger(before)||before<1))throw Error('Invalid cursor');
         // Not account data: a sign-out racing this read is harmless; the market discards it if the mode changed.
-        const result=await requireClient().rpc('nakgo_public_listings',{p_before:before});
+        const result=await via(async()=>({data:(await v1('listings_v1',{p_cursor:cursorOf(before)})).data.map(x=>v0Listing(x,null))}),
+            ()=>requireClient().rpc('nakgo_public_listings',{p_before:before}));
         if(result.error)throw result.error;
         if(state.user)throw Error('Account changed');
         if(!Array.isArray(result.data))throw Error('Invalid listings');
@@ -3869,6 +3999,8 @@ const nakgoAuth = (() => {
     }
     async function listListings({own=false,before=null}={}) {
         const account=listingAccount();
+        if(before!==null&&(!Number.isSafeInteger(before)||before<1))throw Error('Invalid cursor');
+        if(apiVersion()!=='v0')return via(async()=>(own?await v1('my_listings_v1',{p_cursor:cursorOf(before)},account):await v1('listings_v1',{p_cursor:cursorOf(before)},account)).data.map(x=>v0Listing(x,account.id)),()=>listListings({own,before}));
         let query=requireClient().from('listings').select(listingColumns).order('id',{ascending:false}).limit(50);
         if(own)query=query.eq('owner_id',account.id);
         else query=query.eq('status','active');
@@ -3883,20 +4015,63 @@ const nakgoAuth = (() => {
         if(!['load','truck'].includes(input?.kind))throw Error('Invalid kind');
         const values={kind:input.kind,owner_label:String(state.profile.display_name||'NakGo kullanıcısı').trim().slice(0,60)};
         for(const key of listingFields)if(Object.prototype.hasOwnProperty.call(input,key))values[key]=input[key];
-        return listingResult(await requireClient().from('listings').insert(values).select(listingColumns).single(),account);
+        // owner_label sunucuda profilden konur; v1 göndermeyi kabul etmez.
+        const {owner_label,...listing}=values,key=account.id+'\n'+JSON.stringify(listing);
+        return via(async()=>{
+            if(key!==createKey){createKey=key;createId=requestId();}
+            try{
+                const r=await v1('listing_create_v1',{p_request_id:createId,p_listing:withUnit(listing)},account);
+                createKey=uncertainKey='';
+                return v0Listing(r.data.listing,account.id);
+            }catch(e){
+                // Fonksiyon çalışıp iş hatası verdiyse (ör. limit_reached) aynı istek kimliğiyle daha önce ilan açılmadığı da
+                // kesindir (sunucu önce kimliğe bakar, varsa o ilanı döner): belirsizlik kalkar. api_disabled ve şema/fonksiyon
+                // yok yanıtları bu denemenin yazmadığını kanıtlar, önceki belirsiz denemeyi değil: belirsizlik sürer.
+                if(e?.apiKey&&!e.v1Absent)uncertainKey='';
+                else if(!e?.apiKey&&!e?.v1Absent)uncertainKey=key;
+                throw e;
+            }
+        },async()=>{
+            if(key===uncertainKey)throw Object.assign(Error('Create outcome unknown'),{code:'create_uncertain'});
+            return listingResult(await requireClient().from('listings').insert(values).select(listingColumns).single(),account);
+        });
     }
-    async function updateListing(id,input) {
+    // revision: ilanın son okunan tamsayı revision değeri (v1, B3-c2). Çakışmada güncel ilan hatayla birlikte döner (e.current).
+    async function updateListing(id,input,revision=null) {
         const account=listingAccount();
         if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
         const values={};
         for(const key of [...listingFields,'status'])if(Object.prototype.hasOwnProperty.call(input,key))values[key]=input[key];
         if(!Object.keys(values).length)throw Error('No editable fields');
-        return listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account);
+        return via(async()=>{
+            try{
+                const r=values.status==='closed'&&Object.keys(values).length===1?await v1('listing_close_v1',{p_id:id},account)
+                    :await v1('listing_update_v1',{p_id:id,p_revision:Number.isSafeInteger(revision)?revision:null,p_changes:withUnit(values)},account);
+                return v0Listing(r.data.listing,account.id);
+            }catch(e){
+                if(e?.apiKey==='conflict')try{e.current=v0Listing((await v1('listing_v1',{p_id:id},account)).data,account.id);}catch(ignored){}
+                throw e;
+            }
+        },async()=>listingResult(await requireClient().from('listings').update(values).eq('id',id).eq('owner_id',account.id).select(listingColumns).single(),account));
+    }
+    // İlan fotoğrafı: v1 listesi yalnız has_photo taşır; ayrıntı açılınca alınır. Boş metin = fotoğraf yok.
+    async function listingPhoto(id) {
+        const account=listingAccount();
+        if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
+        return via(async()=>(await v1('listing_v1',{p_id:id},account)).data?.photo||'',
+            async()=>listingResult(await requireClient().from('listings').select(listingColumns).eq('id',id).maybeSingle(),account)?.image_data||'');
     }
     // channel: 'call' veya 'whatsapp'; yalnız sayım içindir, sunucu kişi bilgisi tutmaz.
-    async function listingContact(id,channel){const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');const counted=channel==='call'||channel==='whatsapp';return listingResult(await (counted?requireClient().rpc('nakgo_listing_contact',{p_id:id,p_channel:channel}):requireClient().rpc('nakgo_listing_contact',{p_id:id})),account);}
+    // v1: sınır aşımında {phone:null,limited:true}; v0 gibi null döner (ekran aynı uyarıyı gösterir).
+    async function listingContact(id,channel){const account=listingAccount();if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');const counted=channel==='call'||channel==='whatsapp';
+        return via(async()=>{const d=(await v1('listing_contact_v1',{p_id:id,p_channel:counted?channel:null},account)).data;return d.limited?null:d.phone;},
+            async()=>listingResult(await (counted?requireClient().rpc('nakgo_listing_contact',{p_id:id,p_channel:channel}):requireClient().rpc('nakgo_listing_contact',{p_id:id})),account));}
     async function listFavorites({before=null,details=false}={}) {
         const account=listingAccount();
+        if(before!==null&&(!Number.isSafeInteger(before)||before<1))throw Error('Invalid cursor');
+        if(apiVersion()!=='v0')return via(async()=>details
+            ?(await v1('favorites_v1',{p_cursor:cursorOf(before)},account)).data.map(f=>({listing_id:f.listing_id,listing:v0Listing(f.listing,account.id)}))
+            :(await v1('favorite_ids_v1',{p_cursor:cursorOf(before)},account)).data.map(listing_id=>({listing_id})),()=>listFavorites({before,details}));
         let q=requireClient().from('listing_favorites').select(details?'listing_id,listing:listings('+listingColumns+')':'listing_id')
             .order('listing_id',{ascending:false}).limit(details?50:200);
         if(before!==null){if(!Number.isSafeInteger(before)||before<1)throw Error('Invalid cursor');q=q.lt('listing_id',before);}
@@ -3905,33 +4080,47 @@ const nakgoAuth = (() => {
     async function setFavorite(id,saved) {
         const account=listingAccount();
         if(!Number.isSafeInteger(id)||id<1||typeof saved!=='boolean')throw Error('Invalid favorite');
-        return listingResult(await requireClient().rpc('nakgo_set_favorite',{p_listing_id:id,p_saved:saved}),account);
+        return via(async()=>(saved?await v1('favorite_add_v1',{p_listing_id:id},account):await v1('favorite_remove_v1',{p_listing_id:id},account)).data,
+            async()=>listingResult(await requireClient().rpc('nakgo_set_favorite',{p_listing_id:id,p_saved:saved}),account));
     }
     // Rota alarmları: yazma yalnız sunucu fonksiyonlarıyla; sınır ve tekrar kontrolü orada.
     const alertColumns='id,kind,from_city,to_city,vehicle,body,active,seen_at,created_at';
     const alertText=v=>typeof v==='string'&&v.trim()?v.trim().slice(0,60):null;
     async function listRouteAlerts() {
         const account=listingAccount();
-        return listingResult(await requireClient().from('route_alerts').select(alertColumns).order('id',{ascending:false}).limit(20),account);
+        return via(async()=>(await v1('route_alerts_v1',{p_cursor:null},account)).data.map(v0Alert),
+            async()=>listingResult(await requireClient().from('route_alerts').select(alertColumns).order('id',{ascending:false}).limit(20),account));
     }
     async function saveRouteAlert(input) {
         const account=listingAccount();
         if(!['load','truck'].includes(input?.kind)||(!alertText(input.from)&&!alertText(input.to)))throw Error('Invalid route alert');
-        return listingResult(await requireClient().rpc('nakgo_save_route_alert',{p_kind:input.kind,p_from:alertText(input.from),p_to:alertText(input.to),p_vehicle:alertText(input.veh),p_body:alertText(input.body)}),account);
+        return via(async()=>{
+            const d=(await v1('route_alert_create_v1',{p_kind:input.kind,p_from:alertText(input.from),p_to:alertText(input.to),p_vehicle:alertText(input.veh),p_body:alertText(input.body)},account)).data;
+            // v0 davranışı: aynı alarm varsa "zaten kurulu" uyarısı.
+            if(!d.created)throw Object.assign(Error('Route alert exists'),{code:'23505'});
+            return v0Alert(d.alert);
+        },async()=>listingResult(await requireClient().rpc('nakgo_save_route_alert',{p_kind:input.kind,p_from:alertText(input.from),p_to:alertText(input.to),p_vehicle:alertText(input.veh),p_body:alertText(input.body)}),account));
     }
     async function setRouteAlert(id,active) {
         const account=listingAccount();
         if(!Number.isSafeInteger(id)||id<1||typeof active!=='boolean')throw Error('Invalid route alert');
-        return listingResult(await requireClient().rpc('nakgo_set_route_alert',{p_id:id,p_active:active}),account);
+        return via(async()=>v0Alert((await v1('route_alert_update_v1',{p_id:id,p_active:active},account)).data.alert),
+            async()=>listingResult(await requireClient().rpc('nakgo_set_route_alert',{p_id:id,p_active:active}),account));
     }
     async function removeRouteAlert(id) {
         const account=listingAccount();
         if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid route alert');
-        return listingResult(await requireClient().rpc('nakgo_remove_route_alert',{p_id:id}),account);
+        return via(async()=>{
+            const d=(await v1('route_alert_delete_v1',{p_id:id},account)).data;
+            // v0 davranışı: olmayan ya da başkasının alarmı hata.
+            if(!d.removed)throw Object.assign(Error('Route alert unavailable'),{code:'42501'});
+            return d;
+        },async()=>listingResult(await requireClient().rpc('nakgo_remove_route_alert',{p_id:id}),account));
     }
     async function routeAlertsSeen() {
         const account=listingAccount();
-        return listingResult(await requireClient().rpc('nakgo_route_alerts_seen'),account);
+        return via(async()=>(await v1('route_alerts_seen_v1',{},account)).data.updated,
+            async()=>listingResult(await requireClient().rpc('nakgo_route_alerts_seen'),account));
     }
     const messageResult=async(q,account)=>listingResult(await (typeof q.abortSignal==='function'&&typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function'?q.abortSignal(AbortSignal.timeout(15000)):q),account);
     async function adminRole(){const account=listingAccount();return messageResult(requireClient().rpc('nakgo_admin_role'),account);}
@@ -3940,7 +4129,7 @@ const nakgoAuth = (() => {
     // Hesap silme: sunucu kişisel bilgileri hemen siler; ardından bu cihazdaki oturum kapatılır.
     async function deleteMyAccount(){
         if(!state.user||state.recovery)throw Error('Sign in required');
-        const {error}=await requireClient().rpc('nakgo_delete_my_account');
+        const {error}=await via(async()=>{await v1('account_delete_v1',{});return {error:null};},()=>requireClient().rpc('nakgo_delete_my_account'));
         if(error)throw error;
         try{await signOut();}catch{revision++;state.user=null;state.profile=null;state.recovery=false;state.error='';changed();}
     }
@@ -3949,7 +4138,24 @@ const nakgoAuth = (() => {
         if(!['user','listing'].includes(kind)||typeof target!=='string'||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
         return messageResult(requireClient().rpc('nakgo_admin_moderate',{p_kind:kind,p_target:target,p_action:action,p_reason:reason.trim(),p_revision:expectedRevision}),account);
     }
-    return {adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen};
+    // Şikâyet: ilan ya da ilanın sahibi (hesap). Kimlik, bağ, tekrar ve sınır sunucuda; yanıt {report,created}.
+    const REPORT_REASONS=['fake','fraud','inappropriate','wrong_info','other'];
+    async function reportListing(listingId,subject,reason,note=''){
+        const account=listingAccount();
+        if(!Number.isSafeInteger(listingId)||listingId<1||!['listing','account'].includes(subject)||!REPORT_REASONS.includes(reason)||typeof note!=='string'||note.trim().length>200)throw Error('Invalid report');
+        const text=note.trim();
+        return via(async()=>(await v1('report_create_v1',{p_listing_id:listingId,p_subject:subject,p_reason:reason,p_note:text},account)).data,
+            async()=>listingResult(await requireClient().rpc('nakgo_report_listing',{p_listing_id:listingId,p_subject:subject,p_reason:reason,p_note:text}),account));
+    }
+    async function adminReports(status='',offset=0){const account=listingAccount();if(!['','open','reviewing','resolved','rejected'].includes(status)||!Number.isSafeInteger(offset)||offset<0)throw Error('Invalid query');return messageResult(requireClient().rpc('nakgo_admin_reports',{p_status:status,p_offset:offset}),account);}
+    async function adminReportSet(id,status,reason,expectedRevision){
+        const account=listingAccount();
+        if(!Number.isSafeInteger(id)||id<1||!['open','reviewing','resolved','rejected'].includes(status)||typeof reason!=='string'||reason.trim().length<3||reason.trim().length>500||!Number.isSafeInteger(expectedRevision)||expectedRevision<0)throw Error('Invalid moderation');
+        return messageResult(requireClient().rpc('nakgo_admin_report_set',{p_id:id,p_status:status,p_reason:reason.trim(),p_revision:expectedRevision}),account);
+    }
+    // Şu an bilinen API sürümü (sorgu sürüyorsa 'v0'): yalnız v1'e özgü form kontrolleri için.
+    const currentApi=()=>apiPreference==='auto'&&apiMode==='v1'?'v1':'v0';
+    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,listingPhoto,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -3991,7 +4197,7 @@ const nakgoMarket = (() => {
             from:r.from_city,to:r.to_city,fromD:r.from_district||'',toD:r.to_district||'',veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
             owner:r.owner_label||'NakGo üyesi',who:r.owner_label||'NakGo üyesi',date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note||'',
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active'||Date.parse(r.expires_at)<=Date.now(),shut:r.status!=='active',expiresAt:Date.parse(r.expires_at),archived:r.status==='archived',
-            ts:Date.parse(r.created_at),rate:'Yeni'};
+            ts:Date.parse(r.created_at),rate:'Yeni',rev:Number.isSafeInteger(r.revision)?r.revision:null,hasPhoto:r.has_photo===true||imgOk(r.image_data)};
     }
     function put(rows,replace=false) {
         const records=new Map((replace?[]:[...loads,...trucks]).map(x=>[x.remoteId,x]));
@@ -4041,7 +4247,13 @@ const nakgoMarket = (() => {
         if('dateText' in patch){values.loading_text=patch.dateText;values.available_on=null;values.available_until=null;values.available_time='';}
         if('closed' in patch)values.status=patch.closed?'closed':'active';
         if(patch.archived)values.status='archived';
-        const row=await nakgoAuth.updateListing(x.remoteId,values);
+        let row;
+        try{row=await nakgoAuth.updateListing(x.remoteId,values,x.rev);}
+        catch(e){
+            // Eşzamanlı düzenleme (v1): ilanın güncel hâli yüklenir, kullanıcı yeniden dener.
+            if(e?.code==='conflict'&&e.current&&owner===token()){writes++;put([e.current]);nakgoFavorites.updateListing(e.current);render();}
+            throw e;
+        }
         if(owner!==token())throw Error('Account changed'); writes++; put([row]); nakgoFavorites.updateListing(row); render(); return true;
     }
     function controls() {
@@ -4280,7 +4492,7 @@ const cardTop = (x, label, km, today) => `<div class="card-top">${label ? `<span
 
 const lCard = l => `<article class="load ${isF(l) ? "feat" : ""}" data-id="${esc(l.id)}" role="button" tabindex="0" aria-label="${esc(l.from)} → ${esc(l.to)}, ${esc(l.ton)} ton yük, ilanı aç">
     ${cardTop(l, isF(l) ? "Öne çıkan" + (isDemoFeature(l) ? " · Örnek" : "") : "", l.km ? esc(l.km) + " km" : "", loadsToday(l))}<div class="card-main contact-card">${cardRoute(l)}<div class="card-contact"><span>${l._remote?"İlan detayları":"Doğrudan görüş"}</span><b>${l._remote?"Yük bilgilerini incele":"Ara veya mesajlaş"}</b></div></div>
-    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : ""}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
+    <div class="cargo-line">${imgOk(l.img) ? `<img class="th" src="${l.img}" alt="Yük fotoğrafı">` : l.hasPhoto ? `<span class="tag">Fotoğraflı</span>` : ""}<span><b>${esc(l.cargo)}</b>${Array.isArray(l.items) && l.items.length ? " · +" + l.items.length + " kalem" : ""}</span><span class="cargo-ton"><b>${esc(l.ton)}</b> ton</span></div>
     <div class="listing-spec"><span>${TRUCK_ICON}${esc(l.veh)} · ${esc(l.body || "Kasa belirtilmedi")}</span><span class="load-date">${CAL_ICON}<span class="sr-only">Yükleme: </span>${esc(dateLabel(l))}</span>${favBtn(l)}</div>
     </article>`;
 
@@ -4420,6 +4632,8 @@ function openEdit(k, id, reopen=false) {
         const v = L ? 0 : +$("#ep").value;
         if (!L && !positiveAmount(v))
             return toast("Geçerli bir değer gir");
+        if (!L && nakgoMarket.active() && v1TonError($("#ep").value))
+            return toast(v1TonError($("#ep").value));
         const patch = L ? { date: $("#ed").value, note: $("#en").value.trim().slice(0, 1000) } : { cap: v, date: $("#ed").value };
         const selectedDate=$("#ed").value;
         if (L && 'dateText' in it) {
@@ -4874,7 +5088,7 @@ function openProfile(o) {
     const n2 = o.name || "Kullanıcı";
     B.innerHTML = `<div class="u-flex-g14-aic"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b class="u-fs18">${esc(n2)}</b><div class="u-mute-fs14">${act} aktif ilan</div></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}<div class="chips u-mt14">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
     if ($("#pr"))
-        $("#pr").onclick = () => openReport("u", o.uid);
+        $("#pr").onclick = () => openReport("u", o.uid, o.listingId);
     if ($("#pb2"))
         $("#pb2").onclick = () => blockUser(o.uid);
     $("#close").onclick = closeSheet;
@@ -4957,12 +5171,39 @@ function setCar(patch) {
 // ===== Güven ve destek =====
 // Şikayet, engelleme, yardım ve sık sorulan sorular.
 
-function openReport(kind, id) {
-    if(nakgoMarket.locked())return nakgoMarket.pending();
+// Gerçek hesapta şikâyet sunucuya gider (ilan ya da ilanın sahibi); demo modunda yalnız bu cihazda kalır.
+const REPORT_CODES = { "Sahte ilan": "fake", "Dolandırıcılık şüphesi": "fraud", "Uygunsuz içerik": "inappropriate", "Yanlış bilgi": "wrong_info", "Diğer": "other" };
+const reportError = e => e?.code === "54000" ? "Çok fazla şikayet gönderdin. Biraz sonra yeniden dene."
+    : e?.apiKey === "not_found" || e?.message === "Listing unavailable" ? "Bu ilan artık yayında değil; şikayet gönderilemedi."
+    : e?.apiKey === "not_allowed" || e?.message === "Own listing" ? "Kendi ilanını şikayet edemezsin."
+    : e?.apiKey === "account_suspended" || e?.message === "Account suspended" ? "Hesabın askıda olduğu için şikayet gönderemezsin."
+    : "Şikayet gönderilemedi. Bağlantını kontrol edip yeniden dene.";
+async function sendReport(kind, listingId, label, note) {
+    const btn = $("#rg");
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const account = nakgoMarket.token();
+    try {
+        const r = await nakgoAuth.reportListing(listingId, kind === "u" ? "account" : "listing", REPORT_CODES[label] || "other", note);
+        if (!Number.isSafeInteger(r?.report?.id) || typeof r.created !== "boolean") throw Error("Invalid report response");
+        if (account !== nakgoMarket.token()) return;
+        closeSheet();
+        toast(r.created ? "Şikayetin ekibimize iletildi. Teşekkürler." : "Bu kayıt için açık bir şikayetin zaten var; ekibimiz inceliyor.");
+    } catch (e) {
+        if (account !== nakgoMarket.token()) return;
+        btn.disabled = false;
+        toast(reportError(e));
+    }
+}
+
+function openReport(kind, id, listingId) {
+    const market = nakgoMarket.locked();
+    if (market && (!nakgoMarket.active() || !Number.isSafeInteger(listingId))) return nakgoMarket.pending();
     const B = $("#sheetBody");
     B.dataset.k = "";
     B.innerHTML = `<b class="u-fs19">Şikayet et</b><label>Sebep</label><select id="rr">${["Sahte ilan", "Dolandırıcılık şüphesi", "Uygunsuz içerik", "Yanlış bilgi", "Diğer"].map(x => `<option>${x}</option>`).join("")}</select><label>Açıklama (isteğe bağlı)</label><input id="rn" maxlength="200" placeholder="Ne oldu?"><button class="btn" id="rg">Gönder</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#rg").onclick = () => {
+        if (market) return sendReport(kind, listingId, $("#rr").value, $("#rn").value.trim().slice(0, 200));
         const rec = { kind, tid: String(id), reason: $("#rr").value, note: $("#rn").value.trim().slice(0, 200), by: me || "local", ts: Date.now() }, key = (me || "local") + "_" + kind + "_" + id;
         if (cloud)
             dbw(db.doc("reports/" + key).set(rec));
@@ -6064,7 +6305,7 @@ function renderPost(m) {
                 if (tab !== "post" || $("#go") !== publishButton) return;
                 if(publishButton.disabled)return;
                 if(nakgoMarket.active()) {
-                    const value=postValues(), error=postError(value,true); if(error)return toast(error);
+                    const value=postValues(), error=postError(value,true)||v1TonError($("#w").value); if(error)return toast(error);
                     publishButton.disabled=true;
                     try {await nakgoMarket.create(value,true);} catch(e){publishButton.disabled=false;toast(nakgoAuth.message(e));return;}
                 } else if (!postTruck({ ...postValues(), id: "t" + Date.now(), who: myCar.displayName || myName || "Ben", rate: "Yeni" })) return;
@@ -6106,7 +6347,7 @@ function renderPost(m) {
             const its = [...document.querySelectorAll("#its .itrow")].map(w => ({ n: w.querySelector("[data-in]").value.trim().slice(0, 40), q: +w.querySelector("[data-iq]").value, u: w.querySelector("[data-iu]").value })).filter(x => x.n).slice(0, 6);
             if (its.length)
                 l.items = its;
-            const error = postError(l);
+            const error = postError(l) || (nakgoMarket.active() ? v1TonError($("#w").value) : "");
             if (error) return toast(error);
             if(publishButton.disabled)return;
             if(nakgoMarket.active()) {
@@ -6339,20 +6580,36 @@ function renderAdminHost(m){
 const adminIcons={overview:'<path d="M4 11.5 12 5l8 6.5V20h-5v-5H9v5H4z"/>',live:'<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>',listings:'<path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="17" r="1.6"/><circle cx="17" cy="17" r="1.6"/>',
     users:'<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.7-3.2 2.9-5 5.5-5s4.8 1.8 5.5 5"/><path d="M15.5 5.2a3 3 0 0 1 0 5.6M17.5 14.4c1.6.6 2.6 2.1 3 4.6"/>',
     moderation:'<path d="M12 4 5 7v5c0 4 3 6.7 7 8 4-1.3 7-4 7-8V7z"/><path d="m9 12 2 2 4-4"/>',archive:'<path d="M4 5h16v4H4zM5.5 9v10h13V9"/><path d="M10 13h4"/>',stats:'<path d="M5 20V10M12 20V4M19 20v-7"/>',
-    refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'};
+    refresh:'<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',reports:'<path d="M5 21V4h11l-1.5 4L16 12H5"/>',
+    security:'<path d="M12 3 2.5 20h19z"/><path d="M12 10v4.5M12 17.5v.01"/>',health:'<rect x="4" y="4" width="16" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="16" height="6.5" rx="1.5"/><path d="M8 7.25h.01M8 16.75h.01"/>'};
+// Menü: sekiz bölümün bu sürümde arka ucu olanlar. Birden çok sayfası olan bölümde başlık ve alt sayfalar görünür.
+// WhatsApp ilan onayları ve Yasal Kayıtlar arka uçları hazır olmadığı için menüde yok (docs/admin-panel.md).
+const adminNav=[['Genel Bakış',[['overview','Özet'],['live','Canlı'],['stats','İstatistikler']]],['İlan Yönetimi',[['listings','İlan Yönetimi']]],
+    ['İlan Arşivi',[['archive','İlan Arşivi']]],['Şikâyet Yönetimi',[['reports','Şikâyet Yönetimi']]],
+    ['Güvenlik ve Denetim',[['security','Limit ihlalleri'],['moderation','Yönetici işlemleri'],['users','Kullanıcılar']]],['Sistem Sağlığı',[['health','Sistem Sağlığı']]]];
+const adminPageInfo={overview:'Bekleyen işler ve uyarılar. Sayılar sunucudan o anda okunur.',live:'Bugünün ilanları ve iletişim tıklamaları; 30 saniyede bir yenilenir.',
+    stats:'Günlük ilan ve kullanıcı sayıları. Temizlenen ilanlar günlük toplamlarda kalır.',
+    listings:'İlan ara, filtrele ve incele. Yayından kaldırma ve yasal saklama gerekçeyle yapılır ve işlem kaydına yazılır.',
+    archive:'Kişisel bilgileri temizlenmiş ilanlar, saklama süreleri ve gece temizliğinin son çalışmaları.',
+    reports:'Kullanıcı şikâyetleri. Her karar gerekçeyle verilir ve yönetici işlem kaydına yazılır.',
+    security:'Telefon görüntüleme sınırını aşan hesaplar (60 dakikada 30, 24 saatte 100 farklı ilan). Kayıtlar değiştirilemez ve 1 yıl saklanır.',
+    moderation:'Yöneticilerin yaptığı bütün işlemler: hedef, gerekçe, yönetici ve zaman.',
+    users:'Hesap ara; askıya alma, engelleme, silme ve yönetici yetkisi gerekçeyle yapılır.',
+    health:'Veritabanı, API ve zamanlanmış görevlerin durumu. Yalnız veritabanında kayıtlı bilgiler gösterilir.'};
 const adminIcon=name=>'<svg class="adm-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+adminIcons[name]+'</svg>';
 async function openAdminPanel() {
     if(!nakgoMarket.active())return;
     const generation=++adminPanelGeneration,account=nakgoMarket.token(), body=$('#sheetBody');
     const host=typeof ADMIN_HOST!=='undefined'&&ADMIN_HOST;
-    let section='overview',offset=0,search='',filter='',request=0,stats=null,rows=[],more=false,selected=0,panel=null,period='day';
+    let section='overview',offset=0,search='',filter='',request=0,stats=null,health=null,rows=[],more=false,selected=0,panel=null;
     // query: birleşik filtreler (sunucuda doğrulanır). checked: toplu işlem için seçili ilanlar (yalnız bu sayfa).
     let retention=null,query={},checked=new Map(),filtersOpen=false,range={days:30,from:'',to:''},insights=null,dayPage=0,tip=-1;
     // Canlı sayfa: 30 sn'de bir kendini yeniler; sekme gizliyken istek atmaz. Koyu görünüm yalnız bu sayfada ve isteğe bağlıdır.
     let live=null,liveKind='',liveSide='from',liveTimer=0,liveStale=false,liveDark=false;
     try{liveDark=localStorage.getItem('nakgo-admin-live-dark')==='1';}catch{}
     const history=new Map();
-    const titles={overview:'Genel bakış',live:'Canlı',listings:'İlanlar',users:'Kullanıcılar',moderation:'İşlem geçmişi',archive:'Arşiv ve saklama',stats:'İstatistikler'};
+    const titles=Object.fromEntries(adminNav.flatMap(([,items])=>items));
+    const groupOf=key=>adminNav.find(([,items])=>items.some(([k])=>k===key));
     const valid=()=>generation===adminPanelGeneration&&account===nakgoMarket.token()&&body.dataset.k==='admin';
     // Tüm saatler Türkiye saatiyle gösterilir; cihazın saat dilimi sonucu değiştirmez.
     const TZ='Europe/Istanbul';
@@ -6376,7 +6633,12 @@ async function openAdminPanel() {
     const statusText={active:'Yayında',closed:'Kapalı',archived:'Arşiv'};
     const pill=(text,tone)=>'<span class="adm-pill '+tone+'">'+esc(text)+'</span>';
     const actionText={suspend:'Faaliyetler askıya alındı',resume:'Askı kaldırıldı',remove:'İlan kaldırıldı',restore:'İlan engeli açıldı',ban:'Kalıcı engellendi',unban:'Engel kaldırıldı',
-        delete:'Hesap silindi',self_delete:'Kullanıcı hesabını sildi',grant_admin:'Yönetici yapıldı',revoke_admin:'Yöneticilik alındı',hold:'Yasal saklamaya alındı',release:'Yasal saklama kaldırıldı'};
+        delete:'Hesap silindi',self_delete:'Kullanıcı hesabını sildi',grant_admin:'Yönetici yapıldı',revoke_admin:'Yöneticilik alındı',hold:'Yasal saklamaya alındı',release:'Yasal saklama kaldırıldı',
+        report_open:'Şikâyet yeniden açıldı',report_reviewing:'Şikâyet incelemeye alındı',report_resolved:'Şikâyet çözüldü',report_rejected:'Şikâyet reddedildi'};
+    const targetText=t=>/^report:\d+$/.test(String(t))?'Şikâyet #'+String(t).slice(7):/^\d+$/.test(String(t))?'İlan #'+t:String(t);
+    const eventText={contact_limit_hour:'60 dakika sınırı aşıldı',contact_limit_day:'24 saat sınırı aşıldı'};
+    const reasonText={fake:'Sahte ilan',fraud:'Dolandırıcılık şüphesi',inappropriate:'Uygunsuz içerik',wrong_info:'Yanlış bilgi',other:'Diğer'};
+    const reportState={open:['Açık','bad'],reviewing:['İnceleniyor','warn'],resolved:['Çözüldü','ok'],rejected:['Reddedildi','mute']};
     // Hesap durumu: ana yönetici, yönetici, silindi, engelli, askıda veya aktif.
     const userState=row=>row.owner?['Ana yönetici','brand']:row.protected?['Yönetici','brand']:row.deleted_at?['Silindi','mute']:row.banned?['Engelli','bad']:row.suspended?['Askıda','bad']:['Aktif','ok'];
     const option=(value,label,current)=>'<option value="'+esc(value)+'"'+(current===value?' selected':'')+'>'+esc(label)+'</option>';
@@ -6392,16 +6654,19 @@ async function openAdminPanel() {
                 '<button class="adm-login-google" id="admin-close" type="button">'+(host?'Çıkış yap':'Kapat')+'</button></section></div>';
             $('#admin-close').onclick=host?()=>{closeSheet();adminHostOpened=false;nakgoAuth.signOut();}:closeSheet;return;
         }
-        body.innerHTML='<div class="adm'+(section==='live'&&liveDark?' adm-dark':'')+'"><div class="adm-shell"><div class="adm-nav" role="navigation" aria-label="Yönetim bölümleri"><span class="adm-brand">NakGo</span>'+
-            Object.entries(titles).map(([key,label])=>'<button class="adm-nav-btn" data-admin-section="'+key+'" aria-label="'+label+'" aria-pressed="'+(section===key)+'">'+adminIcon(key)+'<span class="l-long">'+label+'</span></button>').join('')+
-            '</div><div class="adm-page"><div class="adm-top"><p class="adm-crumb"><span>Yönetici paneli</span> › <b>'+titles[section]+'</b></p><div class="adm-top-act">'+
-            '<button class="adm-btn" id="admin-refresh" type="button">'+adminIcon('refresh')+'Yenile</button><button class="adm-btn" id="admin-close" type="button">'+(host?'Çıkış yap':'Kapat ×')+'</button></div></div>'+content+'</div></div></div>';
+        const navBtn=([key,label])=>'<button class="adm-nav-btn" data-admin-section="'+key+'" aria-label="'+label+'" aria-pressed="'+(section===key)+'">'+adminIcon(key)+'<span class="l-long">'+label+'</span></button>';
+        const nav=adminNav.map(([group,items])=>items.length>1?'<div class="adm-nav-group" role="group" aria-label="'+group+'"><span class="adm-nav-label">'+group+'</span>'+items.map(navBtn).join('')+'</div>':navBtn(items[0])).join('');
+        // Sayfa başı: bölüm adı, açıklama; çok sayfalı bölümde sayfa sekmeleri (menüdekiyle aynı sayfalar).
+        const [group,items]=groupOf(section)||[titles[section],[]];
+        const tabs=items.length>1?'<div class="adm-seg adm-tabs" role="group" aria-label="'+group+' sayfaları">'+items.map(([k,l])=>'<button type="button" data-admin-tab="'+k+'" aria-pressed="'+(section===k)+'">'+l+'</button>').join('')+'</div>':'';
+        body.innerHTML='<div class="adm'+(section==='live'&&liveDark?' adm-dark':'')+'"><div class="adm-shell"><nav class="adm-nav" aria-label="Yönetim bölümleri"><span class="adm-brand">NakGo</span>'+nav+
+            '</nav><div class="adm-page"><div class="adm-top"><div class="adm-head"><h1>'+group+'</h1><p>'+(adminPageInfo[section]||'')+'</p></div><div class="adm-top-act">'+
+            '<button class="adm-btn" id="admin-refresh" type="button">'+adminIcon('refresh')+'Yenile</button><button class="adm-btn" id="admin-close" type="button">'+(host?'Çıkış yap':'Kapat ×')+'</button></div>'+tabs+'</div>'+content+'</div></div></div>';
         $('#admin-close').onclick=host?()=>{closeSheet();adminHostOpened=false;nakgoAuth.signOut();}:closeSheet;
         $('#admin-refresh').onclick=load;
         if(typeof applyDims==='function')applyDims(body);
         const on=(selector,fn)=>body.querySelectorAll(selector).forEach(fn);
-        on('[data-admin-section],[data-admin-go]',button=>button.onclick=()=>{section=button.dataset.adminSection||button.dataset.adminGo;search='';filter='';query={};reset();load();});
-        on('[data-admin-period]',button=>button.onclick=()=>{period=button.dataset.adminPeriod;render();});
+        on('[data-admin-section],[data-admin-go],[data-admin-tab]',button=>button.onclick=()=>{section=button.dataset.adminSection||button.dataset.adminGo||button.dataset.adminTab;search='';filter=button.dataset.adminGoFilter||'';query={};reset();load();});
         on('[data-admin-filter]',button=>button.onclick=()=>{filter=button.dataset.adminFilter;reset();load();});
         // İlan durum ve tür çipleri diğer filtrelerle birleşir.
         on('[data-admin-state]',button=>button.onclick=()=>{const v=button.dataset.adminState;if(v==='')delete query.state;else query.state=v;reset();load();});
@@ -6444,42 +6709,39 @@ async function openAdminPanel() {
         if(section==='stats'&&tip>=0)showTip();
     }
     function kpis(){
-        // İlanlar sayfasında üst kartlar yok; durum çipleri sayıları zaten gösterir.
-        if(section==='listings')return '';
+        // Üst kartlar yalnız arşiv ve istatistikte. Diğer sayfalarda aynı sayılar çiplerde ya da Genel Bakış'ta var.
+        if(section!=='archive'&&section!=='stats')return '';
         const s=stats||{},st=s.listing_states||{},t=s.totals||{},ty=s.user_types||{},month=(s.periods&&s.periods.month)||{};
         // Her kart: değer ve yüzde açıklaması.
         const tile=(label,value,note,tone)=>'<div class="adm-kpi '+tone+'"><span>'+label+'</span><b>'+value+'</b><small>'+note+'</small></div>';
-        const removed=Number(s.listings_removed)||0,dayChange=change(s.listings_today,s.yesterday);
         const sets={
-            overview:[['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','brand'],
-                ['Bugün eklenen',num(s.listings_today),dayChange===null?'dün kayıt yok':'Düne göre '+changeText(dayChange),'ok'],
-                ['Kullanıcı',num(s.users),pctText(pct(s.users_week,s.users))+' bu hafta yeni','accent'],
-                ['Kaldırılan / askıda',num(removed),pctText(pct(removed,st.all))+' ilanların · '+num(s.accounts_suspended)+' hesap askıda','bad']],
-            users:[['Toplam kullanıcı',num(s.users),pctText(pct(ty.carrier,s.users))+' taşıyıcı','brand'],['Bu hafta yeni',num(s.users_week),pctText(pct(s.users_week,s.users))+' toplamın','ok'],
-                ['Taşıyıcı',num(ty.carrier),pctText(pct(ty.owner,s.users))+' yük sahibi ('+num(ty.owner)+')','accent'],['Askıda',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','bad']],
-            moderation:[['Son 30 gün',num(s.actions_month),'yönetici işlemi','brand'],['Kaldırılan ilan',num(s.listings_removed),pctText(pct(removed,st.all))+' ilanların','bad'],
-                ['Askıdaki hesap',num(s.accounts_suspended),pctText(pct(s.accounts_suspended,s.users))+' kullanıcıların','accent'],['Aktif ilan',num(s.listings),pctText(pct(s.listings,st.all))+' kayıtlı ilanların','ok']],
             archive:(r=>[['Arşivde',num(r.archived),'kişisel bilgisi temizlenmiş ilan','brand'],['30 gün içinde silinecek',num(r.purge_30),'1 yıllık süresi dolan','bad'],
                 ['Temizlik bekleyen',num(r.pending_cleanup),'bitişten 8 gün sonra temizlenir','accent'],['Yasal saklamada',num(r.held),'otomatik silinmez','mute']])(retention||{}),
             stats:[['Toplam ilan',num(t.listings),pctText(pct(month.listings,t.listings))+' son 30 günde','brand'],['Yük ilanı',num(t.loads),pctText(pct(t.loads,t.listings))+' tüm ilanların','ok'],
                 ['Boş araç ilanı',num(t.trucks),pctText(pct(t.trucks,t.listings))+' tüm ilanların','accent'],['Toplam kullanıcı',num(s.users),pctText(pct(month.users,s.users))+' son 30 günde katıldı','mute']]};
         return '<section class="adm-kpis" aria-label="Özet">'+sets[section].map(x=>tile(...x)).join('')+'</section>';
     }
-    // Gün/Hafta/Ay özeti: sunucudaki sayılardan kural tabanlı metin (yapay zekâ değil).
-    function summaryCard(){
-        const p=stats&&stats.periods&&stats.periods[period];if(!p)return '';
-        const names={day:['Bugün','dün'],week:['Son 7 gün','önceki 7 gün'],month:['Son 30 gün','önceki 30 gün']}[period];
-        const c=change(p.listings,p.prev_listings),u=change(p.users,p.prev_users),routes=Array.isArray(p.routes)?p.routes:[];
-        const loadShare=pct(p.loads,p.listings);
-        const text=names[0]+' '+num(p.listings)+' ilan verildi'+(c===null?'':', '+names[1]+'e göre '+changeText(c))+'. '+
-            (Number(p.listings)>0?'İlanların '+pctText(loadShare)+' yük, '+pctText(pct(p.trucks,p.listings))+' boş araç. ':'')+
-            (routes[0]?'En yoğun hat '+esc(routes[0].route)+' ('+num(routes[0].count)+' ilan). ':'')+num(p.users)+' yeni kayıt.';
-        return '<section class="adm-card adm-period" aria-label="Dönem özeti"><div class="adm-card-head"><h2>Özet</h2><div class="adm-seg" role="group" aria-label="Dönem">'+
-            [['day','Gün'],['week','Hafta'],['month','Ay']].map(([k,l])=>'<button type="button" data-admin-period="'+k+'" aria-pressed="'+(period===k)+'">'+l+'</button>').join('')+'</div></div>'+
-            '<div class="adm-summary"><span>Otomatik özet</span><p>'+text+'</p></div>'+
-            '<div class="adm-grid"><div><span>İlan</span><b>'+num(p.listings)+'</b><small>'+changeText(c)+'</small></div><div><span>Yeni kayıt</span><b>'+num(p.users)+'</b><small>'+changeText(u)+'</small></div>'+
-            '<div><span>Yük</span><b>'+num(p.loads)+'</b><small>'+pctText(loadShare)+'</small></div><div><span>Boş araç</span><b>'+num(p.trucks)+'</b><small>'+pctText(pct(p.trucks,p.listings))+'</small></div></div>'+
-            (routes.length?'<h4>En yoğun hatlar</h4><ol class="adm-routes">'+routes.map(r=>'<li><span>'+esc(r.route)+'</span><b>'+num(r.count)+'</b></li>').join('')+'</ol>':'')+'</section>';
+    // Genel Bakış: önce dikkat gerektirenler (sunucudaki gerçek sayılar), sonra birkaç temel sayı. Sağlık bilgisi
+    // alınamadıysa uyarılar "bilinmiyor" görünür; sorun yokmuş gibi gösterilmez.
+    function attentionCard(){
+        const s=stats||{},h=health&&typeof health==='object'&&!Array.isArray(health)?health:null;
+        const item=(tone,text,go,filterTo,label)=>'<li class="'+tone+'"><span>'+text+'</span>'+(go?'<button class="adm-link" type="button" data-admin-go="'+go+'"'+(filterTo?' data-admin-go-filter="'+filterTo+'"':'')+'>'+label+'</button>':'')+'</li>';
+        const items=[];
+        if(!h)items.push(item('warn','Sistem durumu alınamadı; uyarılar bilinmiyor.','health','','Sistem Sağlığı'));
+        else{
+            const r=h.reports||{},open=Number(r.open)||0,reviewing=Number(r.reviewing)||0,sec=Number(h.security&&h.security.events_24h)||0,ret=h.retention;
+            if(open||reviewing)items.push(item('bad',num(open)+' açık, '+num(reviewing)+' incelenen şikâyet','reports',open?'open':'reviewing','Şikâyetlere git'));
+            if(sec)items.push(item('warn','Son 24 saatte '+num(sec)+' telefon görüntüleme sınırı ihlali','security','','İncele'));
+            if(!ret)items.push(item('warn','Gece temizliği bu veritabanında henüz hiç çalışmadı','health','','Ayrıntı'));
+            else if(ret.stale)items.push(item('bad','Gece temizliği 26 saatten uzun süredir çalışmadı (son: '+date(ret.last_run)+')','health','','Ayrıntı'));
+            if(Array.isArray(h.jobs)&&h.jobs.some(j=>j.last_status==='failed'))items.push(item('bad','Başarısız zamanlanmış görev var','health','','Ayrıntı'));
+            if(Number(h.held))items.push(item('mute',num(h.held)+' ilan yasal saklamada','archive','hold','Arşivde gör'));
+        }
+        if(Number(s.accounts_suspended))items.push(item('mute',num(s.accounts_suspended)+' hesap askıda','users','suspended','Kullanıcılara git'));
+        const basics=[['Yayında ilan',num(s.listings)],['Bugün eklenen',num(s.listings_today)],['Kullanıcı',num(s.users)],['Kaldırılan ilan',num(s.listings_removed)]];
+        return '<section class="adm-card adm-attn" aria-label="Dikkat gerektirenler"><div class="adm-card-head"><h2>Dikkat gerektirenler</h2></div>'+
+            (items.length?'<ul class="adm-attn-list">'+items.join('')+'</ul>':'<p class="adm-note">Bekleyen iş ya da uyarı yok.</p>')+
+            '<h4>Şu an</h4><div class="adm-grid">'+basics.map(([k,v])=>'<div><span>'+k+'</span><b>'+v+'</b></div>').join('')+'</div></section>';
     }
     function chips(){
         const st=(stats&&stats.listing_states)||{},ty=(stats&&stats.user_types)||{},vu=(stats&&stats.vehicle_users)||{};
@@ -6492,7 +6754,9 @@ async function openAdminPanel() {
         const sets={users:[['','Tümü',stats&&stats.users],['new','Bu hafta',stats&&stats.users_week],['carrier','Taşıyıcı',ty.carrier],['owner','Yük sahibi',ty.owner],['tir','Tır',vu.tir],['kamyon','Kamyon',vu.kamyon],['kamyonet','Kamyonet',vu.kamyonet],['suspended','Askıda',stats&&stats.accounts_suspended],
                 ['banned','Engelli',stats&&stats.accounts_banned],['admins','Yöneticiler',stats&&stats.admins],['deleted','Silinen',stats&&stats.accounts_deleted]],
             moderation:[['','Tümü'],['listing','İlan işlemleri'],['user','Hesap işlemleri']],
-            archive:[['','Tümü',retention&&retention.archived],['soon','30 gün içinde silinecek',retention&&retention.purge_30],['hold','Yasal saklamada',retention&&retention.held]]}[section];
+            archive:[['','Tümü',retention&&retention.archived],['soon','30 gün içinde silinecek',retention&&retention.purge_30],['hold','Yasal saklamada',retention&&retention.held]],
+            security:[['','Tümü'],['contact_limit_hour','60 dakika sınırı'],['contact_limit_day','24 saat sınırı']],
+            reports:[['','Tümü'],['open','Açık'],['reviewing','İnceleniyor'],['resolved','Çözüldü'],['rejected','Reddedildi']]}[section];
         return sets?'<div class="adm-chips" role="group" aria-label="Filtre">'+sets.map(([key,label,count])=>chip('data-admin-filter',key,label,count,filter===key)).join('')+'</div>':'';
     }
     // Birleşik ilan filtreleri: dar ekranda katlanır, geniş ekranda açık başlar.
@@ -6519,8 +6783,14 @@ async function openAdminPanel() {
         if(section==='archive'){
             return '<div class="adm-row'+on+'"'+open+'><b class="c-main">#'+esc(String(row.id))+(row.hold?' '+pill('Yasal saklama','warn'):'')+'</b><span>'+place(row.from_city,row.from_district)+'</span><span>→ '+place(row.to_city,row.to_district)+'</span><span>'+esc(row.vehicle||'—')+' <small>'+kindText(row.kind)+'</small></span><span>'+day(row.redacted_at)+'</span><span>'+(row.hold?'Silinmez':day(row.purge_at))+'</span><span class="c-act">'+view+'</span></div>';
         }
+        if(section==='security'){
+            return '<div class="adm-row'+on+'"'+open+'><b class="c-main">'+esc(eventText[row.kind]||row.kind)+'</b><span>'+esc(row.display_name||'Silinmiş ya da isimsiz hesap')+'</span><span>'+date(row.at)+'</span><span class="c-act">'+view+'</span></div>';
+        }
+        if(section==='reports'){
+            return '<div class="adm-row'+on+'"'+open+'><b class="c-main">Şikâyet #'+esc(String(row.id))+' <small>'+(row.subject==='account'?'Hesap':'İlan')+'</small></b><span>'+esc(reasonText[row.reason]||row.reason)+'</span><span>İlan #'+esc(String(row.listing_id))+(row.from_city?' <small>'+esc(row.from_city)+' → '+esc(row.to_city||'?')+'</small>':'')+'</span><span>'+pill(...(reportState[row.status]||[row.status,'mute']))+'</span><span>'+date(row.created_at)+'</span><span class="c-act">'+view+'</span></div>';
+        }
         if(section==='moderation'){
-            return '<div class="adm-row'+on+'"'+open+'><b class="c-main">'+esc(actionText[row.action]||row.action)+'</b><span>'+esc(row.target)+'</span><span class="c-wide">'+esc(row.reason)+'</span><span>'+esc(row.actor_label)+'</span><span>'+date(row.created_at)+'</span><span class="c-act">'+view+'</span></div>';
+            return '<div class="adm-row'+on+'"'+open+'><b class="c-main">'+esc(actionText[row.action]||row.action)+'</b><span>'+esc(targetText(row.target))+'</span><span class="c-wide">'+esc(row.reason)+'</span><span>'+esc(row.actor_label)+'</span><span>'+date(row.created_at)+'</span><span class="c-act">'+view+'</span></div>';
         }
         const [label,tone]=states[stateOf(row)]||states.closed;
         const act='<button class="adm-act" type="button" data-admin-action="'+index+'">'+(row.removed?'Kaldırma engelini aç':'İlanı yayından kaldır')+'</button>';
@@ -6528,9 +6798,10 @@ async function openAdminPanel() {
         const owner=row.owner_name||row.owner_label;
         return '<div class="adm-row'+on+'"'+open+'><b class="c-main">'+box+'#'+esc(String(row.id))+(owner?' <small>'+esc(owner)+'</small>':'')+'</b><span>'+place(row.from_city,row.from_district)+'</span><span>→ '+place(row.to_city,row.to_district)+'</span><span>'+esc(row.vehicle||'—')+' <small>'+kindText(row.kind)+'</small></span><span>'+pill(label,tone)+'</span><span>'+date(row.created_at)+'</span><span class="c-act">'+act+view+'</span></div>';
     }
-    const heads={listings:['İlan','Çıkış','Varış','Araç · tür','Durum','Oluşturma',''],overview:['İlan','Çıkış','Varış','Araç · tür','Durum','Oluşturma',''],users:['Ad','Şehir','Tür','Kayıt','İlan','Durum',''],archive:['İlan','Çıkış','Varış','Araç · tür','Temizlendi','Silinecek',''],moderation:['İşlem','Hedef','Gerekçe','Yönetici','Tarih','']};
+    const heads={listings:['İlan','Çıkış','Varış','Araç · tür','Durum','Oluşturma',''],overview:['İlan','Çıkış','Varış','Araç · tür','Durum','Oluşturma',''],users:['Ad','Şehir','Tür','Kayıt','İlan','Durum',''],archive:['İlan','Çıkış','Varış','Araç · tür','Temizlendi','Silinecek',''],moderation:['İşlem','Hedef','Gerekçe','Yönetici','Tarih',''],
+        security:['Olay','Hesap','Saat',''],reports:['Şikâyet','Sebep','İlan','Durum','Tarih','']};
     function listCard(){
-        const listTitle=section==='overview'?'Son ilanlar · son 24 saat':section==='archive'?'Arşiv kayıtları':titles[section];
+        const listTitle=section==='overview'?'Son ilanlar · son 24 saat':section==='archive'?'Arşiv kayıtları':({listings:'İlanlar',reports:'Şikâyetler',security:'Limit ihlalleri'})[section]||titles[section];
         const searchForm=section==='users'?'<form id="admin-search" class="adm-search" role="search"><label for="admin-term">Ada göre ara</label><input id="admin-term" maxlength="100" value="'+esc(search)+'" placeholder="Örn. Ahmet Yılmaz"><button class="adm-btn" type="submit">Ara</button></form>':section==='listings'?filterForm():'';
         const userNote=section==='users'&&query.user?'<p class="adm-filter-note">Tek kullanıcı gösteriliyor (ilan sahibinden). <button class="adm-link" id="admin-user-clear" type="button">Tüm kullanıcılar</button></p>':'';
         const pager=section==='overview'?'<div class="adm-pager"><button class="adm-btn" type="button" data-admin-go="listings">Tüm ilanlar →</button></div>':
@@ -6541,7 +6812,7 @@ async function openAdminPanel() {
         const bulk=section==='listings'&&selectable.length?'<div class="adm-bulk"><label><input type="checkbox" id="admin-check-all"'+(selectable.every(r=>checked.has(String(r.id)))?' checked':'')+'> Sayfadakileri seç</label>'+
             (checked.size?'<b>'+checked.size+' ilan seçildi</b><button class="adm-btn danger" id="admin-bulk" type="button">Seçilenleri kaldır</button><button class="adm-link" id="admin-bulk-clear" type="button">Seçimi temizle</button>':'')+'</div>':'';
         return '<section class="adm-card adm-list"><div class="adm-card-head"><h2>'+listTitle+'</h2><small id="admin-count">'+countText+'</small></div>'+searchForm+userNote+chips()+bulk+
-            (rows.length?'<div class="adm-table"><div class="adm-thead" aria-hidden="true">'+heads[section].map(h=>'<span>'+h+'</span>').join('')+'</div>'+rows.map(rowHTML).join('')+'</div>':'<p class="adm-empty">Kayıt bulunamadı.</p>')+pager+'</section>';
+            (rows.length?'<div class="adm-table adm-t-'+section+'"><div class="adm-thead" aria-hidden="true">'+heads[section].map(h=>'<span>'+h+'</span>').join('')+'</div>'+rows.map(rowHTML).join('')+'</div>':'<p class="adm-empty">Kayıt bulunamadı.</p>')+pager+'</section>';
     }
     // Saklama kuralları ve gece temizliğinin son çalışmaları (her gün 03:00, Türkiye saati).
     function retentionCard(){
@@ -6605,8 +6876,27 @@ async function openAdminPanel() {
                 '<h4>Zaman çizelgesi</h4>'+timeline([['Oluşturuldu',date(row.created_at),'done'],['Yayın bitti',date(ended),'done'],['Kişisel bilgiler temizlendi',date(row.redacted_at),'done'],['Kayıt silinir',row.hold?'Yasal saklamada':day(row.purge_at),'']])+
                 '<h4>İşlem geçmişi</h4>'+historyHTML(String(row.id))+'<div class="adm-d-act">'+act+'</div>';
         }
+        if(section==='security'){
+            const owner=row.user_id?'<button class="adm-btn" type="button" data-admin-owner="'+esc(String(row.user_id))+'">Hesaba git</button>':'';
+            return back+'<div class="adm-d-head"><h3>'+esc(eventText[row.kind]||row.kind)+'</h3><p>'+date(row.at)+'</p></div>'+
+                '<div class="adm-summary"><span>Ne oldu?</span><p>Hesap '+(row.kind==='contact_limit_day'?'24 saatte 100':'60 dakikada 30')+' farklı ilanın telefonunu görüntüleme sınırına ulaştı; sunucu yeni numara vermedi. Telefon, ilan ve IP kaydedilmez.</p></div>'+
+                '<h4>Olay bilgileri</h4>'+grid([['Hesap',esc(row.display_name||'Silinmiş ya da isimsiz hesap')],['Saat',date(row.at)]])+'<div class="adm-d-act">'+owner+'</div>';
+        }
+        if(section==='reports'){
+            const st=reportState[row.status]||[row.status,'mute'];
+            const next={open:[['reviewing','İncelemeye al',''],['resolved','Çözüldü olarak kapat','primary'],['rejected','Reddet','']],reviewing:[['resolved','Çözüldü olarak kapat','primary'],['rejected','Reddet','']],
+                resolved:[['open','Yeniden aç','']],rejected:[['open','Yeniden aç','']]}[row.status]||[];
+            const acts=next.map(([a,l,tone])=>'<button class="adm-btn'+(tone?' '+tone:'')+'" type="button" data-admin-do="'+a+'" data-admin-index="'+index+'">'+l+'</button>').join('');
+            const links=(row.kind?'<button class="adm-btn" type="button" data-admin-live-open="'+esc(String(row.listing_id))+'">İlanı aç</button>':'')+
+                (row.account_id?'<button class="adm-btn" type="button" data-admin-owner="'+esc(String(row.account_id))+'">Şikâyet edilen hesap</button>':'');
+            return back+'<div class="adm-d-head"><h3>Şikâyet #'+esc(String(row.id))+' '+pill(...st)+'</h3><p>'+(row.subject==='account'?'Hesap şikâyeti':'İlan şikâyeti')+' · '+date(row.created_at)+'</p></div>'+
+                '<h4>Şikâyet</h4>'+grid([['Sebep',esc(reasonText[row.reason]||row.reason)],['Şikâyet eden',esc(row.reporter_label||'Silinmiş hesap')],['Şikâyet edilen',esc(row.account_label||'—')],['Bu ilanda açık',num(row.open_on_listing)]])+
+                (row.note?'<h4>Açıklama</h4><p class="adm-reason">'+esc(row.note)+'</p>':'')+
+                '<h4>İlan</h4>'+(row.kind?grid([['İlan',esc('#'+row.listing_id)],['Güzergâh',esc((row.from_city||'?')+' → '+(row.to_city||'?'))],['Tür',kindText(row.kind)],['Durum',esc(statusText[row.listing_status]||row.listing_status||'—')]]):'<p class="adm-note">İlan #'+esc(String(row.listing_id))+' artık veritabanında yok (temizlendi); şikâyet kaydı korunur.</p>')+
+                (row.reviewed_at?'<p class="adm-note">Son karar: '+date(row.reviewed_at)+'</p>':'')+'<div class="adm-d-act">'+acts+links+'</div>';
+        }
         if(section==='moderation'){
-            return back+'<div class="adm-d-head"><h3>'+esc(actionText[row.action]||row.action)+'</h3><p>'+date(row.created_at)+'</p></div><h4>İşlem bilgileri</h4>'+grid([['Hedef',esc(row.target)],['Yönetici',esc(row.actor_label)]])+'<h4>Gerekçe</h4><p class="adm-reason">'+esc(row.reason)+'</p>';
+            return back+'<div class="adm-d-head"><h3>'+esc(actionText[row.action]||row.action)+'</h3><p>'+date(row.created_at)+'</p></div><h4>İşlem bilgileri</h4>'+grid([['Hedef',esc(targetText(row.target))],['Yönetici',esc(row.actor_label)]])+'<h4>Gerekçe</h4><p class="adm-reason">'+esc(row.reason)+'</p>';
         }
         const state=stateOf(row),[label,tone]=states[state]||states.closed;
         const end=state==='closed'&&row.updated_at&&row.expires_at?(Date.parse(row.updated_at)<Date.parse(row.expires_at)?row.updated_at:row.expires_at):row.expires_at;
@@ -6667,6 +6957,26 @@ async function openAdminPanel() {
             '<div class="adm-duo"><section class="adm-card"><div class="adm-card-head"><h2>Günlük yeni kullanıcı</h2><small>'+num(sum('users'))+' kişi</small></div>'+(days.length?chartSVG(days,{key:'users',label:'yeni kullanıcı',h:150,stack:false}):'')+'</section>'+
             '<section class="adm-card"><div class="adm-card-head"><h2>Ortalama yayında kalma</h2><small>Biten '+num(ins.ended)+' ilan üzerinden</small></div><p class="adm-big">'+avg+'</p><p class="adm-note">İlanın açılışından süresinin dolmasına, sahibinin kapatmasına ya da kaldırılmasına kadar geçen süre. Kişisel bilgileri temizlenen ilanlar da hesaba katılır.</p></section></div>'+
             '<section class="adm-card"><div class="adm-card-head"><h2>Günlük kayıt</h2><small>'+rangeLabel()+' · en yeni gün üstte</small></div>'+table+'</section>';
+    }
+    // Sistem Sağlığı: yalnız veritabanında kayıtlı bilgiler. Yedekleme durumu veritabanına yazılmadığı için burada üretilmez.
+    function healthHTML(){
+        const h=health||{},api=h.api||{},ret=h.retention,jobs=h.jobs,sec=h.security||{};
+        const size=v=>v===undefined||v===null?'—':esc((Number(v)/1048576).toLocaleString('tr-TR',{maximumFractionDigits:1}))+' MB';
+        const card=(title,note,inner)=>'<section class="adm-card"><div class="adm-card-head"><h2>'+title+'</h2>'+(note?'<small>'+note+'</small>':'')+'</div>'+inner+'</section>';
+        const grid=items=>'<div class="adm-grid">'+items.map(([k,v])=>'<div><span>'+k+'</span><b>'+v+'</b></div>').join('')+'</div>';
+        const top=Array.isArray(api.top)?api.top:[];
+        const db=card('Veritabanı','Sayfa açıldığında okundu',grid([['Sunucu saati',date(h.server_time)],['Veritabanı boyutu',size(h.db_size)]]));
+        const apiCard=card('API','Son 24 saat',grid([['API v1',api.v1_enabled===true?pill('Açık','ok'):api.v1_enabled===false?pill('Kapalı (uygulama v0 kullanır)','warn'):'—'],['Çağrı',num(api.calls_24h)]])+
+            (top.length?'<h4>En çok çağrılan</h4><ol class="adm-routes">'+top.map(x=>'<li><span>'+esc(x.fn)+'</span><b>'+num(x.calls)+'</b></li>').join('')+'</ol>':'<p class="adm-note">Son 24 saatte v1 çağrısı yok. API v1 canlıda henüz açılmadı.</p>'));
+        const retCard=card('Gece temizliği','Her gece çalışır',!ret?'<p class="adm-note">Bu veritabanında hiç çalışmadı.</p>':
+            (ret.stale?'<p role="alert" class="adm-warn">Son çalışma 26 saatten eski.</p>':'')+grid([['Son çalışma',date(ret.last_run)],['Temizlenen ilan',num(ret.counts&&ret.counts.listings_redacted)],['Silinen ilan',num(ret.counts&&ret.counts.listings_deleted)]]));
+        const jobsCard=card('Zamanlanmış görevler','pg_cron',jobs===null||jobs===undefined?'<p class="adm-note">Zamanlanmış görev servisi (pg_cron) bu veritabanında kurulu değil; görev durumu okunamıyor.</p>':
+            !jobs.length?'<p class="adm-note">Kayıtlı NakGo görevi yok.</p>':'<div class="adm-table adm-t-jobs"><div class="adm-thead" aria-hidden="true"><span>Görev</span><span>Zaman (UTC)</span><span>Son çalışma</span><span>Sonuç</span></div>'+
+            jobs.map(j=>'<div class="adm-row"><b class="c-main">'+esc(j.name)+(j.active===false?' '+pill('Kapalı','mute'):'')+'</b><span>'+esc(j.schedule||'—')+'</span><span>'+date(j.last_start)+'</span><span>'+
+                (j.last_status==='succeeded'?pill('Başarılı','ok'):j.last_status==='failed'?pill('Başarısız','bad'):j.last_status?pill(j.last_status,'warn'):pill('Hiç çalışmadı','mute'))+'</span></div>').join('')+'</div>');
+        const secCard=card('Güvenlik olayları','Telefon görüntüleme sınırı',grid([['Son 24 saat',num(sec.events_24h)],['Son 7 gün',num(sec.events_7d)]])+'<button class="adm-link" type="button" data-admin-go="security">Limit ihlallerine git</button>');
+        const backup=card('Yedekleme','',"<p class=\"adm-note\">Yedek ve geri yükleme durumu veritabanına yazılmıyor; bu panelde izlenmiyor. Durum, yedek hattının kendi raporundan izlenir.</p>");
+        return '<div class="adm-duo">'+db+apiCard+'</div><div class="adm-duo">'+retCard+secCard+'</div>'+jobsCard+backup;
     }
     // Canlı sayfa: bugünün (Türkiye saati) ilanları, Ara/WhatsApp tıklamaları, il haritası ve son ilanlar.
     // Sunucu yalnız sayıları ve isimsiz ilan özetini döndürür; kişi, telefon veya ilan sahibi gelmez.
@@ -6738,13 +7048,15 @@ async function openAdminPanel() {
         if(!valid())return;
         if(section==='live'){frame(liveHTML(),true);return;}
         if(section==='stats'){frame(kpis()+'<div class="adm-main">'+statsCard()+'</div>',true);return;}
+        if(section==='health'){frame(healthHTML(),true);return;}
         // Ayrıntı yalnız gösterilecekse sayfaya girer: açıldığında ya da yan yana sığacak genişlikte.
         const row=rows[selected],wide=(body.clientWidth||0)>=1080;
         let side='';
         if(panel&&panel.mode==='confirm')side=panel.html;
         else if(row&&(panel||wide))side=detail(row,selected);
-        const summary=section==='overview'?summaryCard():'',detailHTML=side?'<aside class="adm-detail'+(panel?' open':'')+'" aria-label="Kayıt ayrıntısı">'+side+'</aside>':'';
-        frame(kpis()+(section==='archive'?retentionCard():'')+'<div class="adm-main'+(side||summary?' has-detail':'')+'">'+listCard()+(summary?'<div class="adm-side">'+summary+detailHTML+'</div>':detailHTML)+'</div>',true);
+        // Genel Bakış'ta uyarılar listenin üstünde, tam genişlikte: bekleyen işler ilk bakışta görünür.
+        const detailHTML=side?'<aside class="adm-detail'+(panel?' open':'')+'" aria-label="Kayıt ayrıntısı">'+side+'</aside>':'';
+        frame(kpis()+(section==='overview'?attentionCard():'')+(section==='archive'?retentionCard():'')+'<div class="adm-main'+(side?' has-detail':'')+'">'+listCard()+detailHTML+'</div>',true);
     }
     function statsQuery(){return range.days?{from:addDays(isoToday(),-(range.days-1)),to:isoToday()}:{from:range.from,to:range.to||isoToday()};}
     async function load(){
@@ -6763,8 +7075,16 @@ async function openAdminPanel() {
             const overview=await nakgoAuth.adminPage('overview',0,'','');
             if(!valid()||ticket!==request)return;
             const listSection=section==='overview'?'listings':section,listQuery=section==='stats'?statsQuery():section==='overview'?{recent:'24h'}:section==='archive'?null:query;
-            const list=await nakgoAuth.adminPage(listSection,section==='overview'||section==='stats'?0:offset,section==='users'||section==='listings'?search:'',section==='users'||section==='moderation'||section==='archive'?filter:'',listQuery);
+            const list=section==='health'?[]:section==='reports'?await nakgoAuth.adminReports(filter,offset):
+                await nakgoAuth.adminPage(listSection,section==='overview'||section==='stats'?0:offset,section==='users'||section==='listings'?search:'',['users','moderation','archive','security'].includes(section)?filter:'',listQuery);
             if(!valid()||ticket!==request)return;
+            // Sağlık bilgisi: Sistem Sağlığı'nda zorunlu; Genel Bakış'ta alınamazsa yalnız uyarılar "bilinmiyor" görünür.
+            if(section==='health'||section==='overview'){
+                let h=null;
+                try{h=await nakgoAuth.adminPage('health',0,'','');}catch(error){if(section==='health')throw error;}
+                if(!valid()||ticket!==request)return;
+                health=h&&typeof h==='object'&&!Array.isArray(h)?h:null;
+            }
             let extra=null;
             if(section==='stats'){extra=await nakgoAuth.adminPage('insights',0,'','',listQuery);if(!valid()||ticket!==request)return;}
             if(section==='archive'){const r=await nakgoAuth.adminPage('retention',0,'');if(!valid()||ticket!==request)return;retention=r&&typeof r==='object'&&!Array.isArray(r)?r:{};}
@@ -6797,7 +7117,7 @@ async function openAdminPanel() {
                 if(!valid())return;
                 $('#admin-bulk-status').textContent=(done+failed.length+1)+' / '+items.length+' işleniyor…';
                 try{await nakgoAuth.adminModerate('listing',String(row.id),'remove',reason,Number(row.revision));done++;}
-                catch(error){failed.push([row,error?.code==='40001'?'başka bir yönetici değiştirdi':'doğrulanamadı']);}
+                catch(error){failed.push([row,conflict(error)?'başka bir yönetici ya da işlem değiştirdi; güncel durumu yükle':'doğrulanamadı']);}
             }
             if(!valid())return;
             checked=new Map();
@@ -6806,9 +7126,12 @@ async function openAdminPanel() {
             $('#admin-reload').onclick=load;
         };
     }
+    // Eşzamanlı işlem: sunucu HTTP 409 (PT409) döner; eski sunucu 40001. İkisinde de istek tekrar gönderilmez.
+    const conflict=error=>error?.code==='PT409'||error?.code==='40001';
     function confirmAction(row,forced){
         if(!valid()||!row)return;
         ++request;
+        if(section==='reports')return confirmReport(row,forced);
         const kind=section==='users'?'user':'listing',action=forced||(kind==='user'?(row.suspended?'resume':'suspend'):(row.removed?'restore':'remove'));
         const label=({suspend:'Faaliyetleri askıya al',resume:'Askıyı kaldır',remove:'İlanı yayından kaldır',restore:'Kaldırma engelini aç',ban:'Kalıcı engelle',unban:'Engeli kaldır',delete:'Hesabı sil',grant_admin:'Yönetici yap',revoke_admin:'Yöneticiliği al',hold:'Yasal saklamaya al',release:'Yasal saklamayı kaldır'})[action];
         const explanation=({suspend:'Yeni ilan verme durdurulur. Hesaba giriş devam eder. Mevcut ilanlar otomatik kaldırılmaz.',resume:'Hesabın yeni işlem yapmasına yeniden izin verilir.',remove:'İlan yayından kalkar ve sahibi yeniden yayımlayamaz. Kayıt 1 yıl bekletilir.',restore:'İlan kapalı duruma alınır. Sahibi tarihini kontrol ederek yeniden yayımlayabilir.',
@@ -6828,7 +7151,31 @@ async function openAdminPanel() {
             sending=true;$('#admin-submit').disabled=true;$('#admin-cancel').disabled=true;
             try{await nakgoAuth.adminModerate(kind,String(row.id),action,reason,Number(row.revision));if(valid())await load();}
             catch(error){if(!valid())return;
-                show('<div class="adm-d-head"><h3>'+label+'</h3></div><p role="alert">'+(error?.code==='40001'?'Bu kayıt başka bir yönetici tarafından değiştirildi. Güncel durumu yükle.':'İşlem sonucu doğrulanamadı. Yeniden işlem yapmadan önce güncel durumu yükle.')+'</p><button class="btn" id="admin-reload" type="button">Güncel durumu yükle</button>');
+                show('<div class="adm-d-head"><h3>'+label+'</h3></div><p role="alert">'+(conflict(error)?'Bu kayıt başka bir yönetici tarafından değiştirildi ya da şu an başka bir işlemde. İşlem yapılmadı; güncel durumu yükle.':'İşlem sonucu doğrulanamadı. Yeniden işlem yapmadan önce güncel durumu yükle.')+'</p><button class="btn" id="admin-reload" type="button">Güncel durumu yükle</button>');
+                $('#admin-reload').onclick=load;
+            }
+        };
+    }
+    // Şikâyet kararı: gerekçe zorunlu; sunucu revision denetler (eşzamanlı karar PT409) ve yönetici işlem kaydı yazar.
+    function confirmReport(row,status){
+        const label={open:'Şikâyeti yeniden aç',reviewing:'İncelemeye al',resolved:'Çözüldü olarak kapat',rejected:'Şikâyeti reddet'}[status];
+        if(!valid()||!row||!label)return;
+        ++request;
+        const explanation={open:'Şikâyet yeniden açık duruma döner. Şikâyet eden aynı kayıt için yeni şikâyet açamaz.',reviewing:'Şikâyet incelemede görünür; şikâyet eden aynı kayıt için yeni şikâyet açamaz.',
+            resolved:'Şikâyet kapanır. İlan ya da hesap için işlem gerekiyorsa ayrıca İlan Yönetimi veya Kullanıcılar sayfasından yapılır.',rejected:'Şikâyet kapanır; işlem yapılmaz.'}[status];
+        const show=html=>{panel={mode:'confirm',html};render();};
+        show('<button class="adm-back" id="admin-back" type="button">‹ Vazgeç</button><div class="adm-d-head"><h3>'+label+'</h3></div><p id="admin-target">Şikâyet #'+esc(String(row.id))+' · İlan #'+esc(String(row.listing_id))+'</p>'+
+            '<div class="adm-summary"><span>Ne olur?</span><p>'+explanation+'</p></div><form id="admin-confirm" class="adm-form"><label for="admin-reason">Karar gerekçesi (zorunlu)</label><textarea id="admin-reason" minlength="3" maxlength="500" required></textarea>'+
+            '<p id="admin-action-error" role="alert"></p><button class="btn" id="admin-submit" type="submit">'+label+'</button><button class="chip" id="admin-cancel" type="button">Vazgeç</button></form>');
+        $('#admin-cancel').onclick=()=>{panel=null;render();};
+        let sending=false;
+        $('#admin-confirm').onsubmit=async event=>{
+            event.preventDefault();if(sending||!valid())return;
+            const reason=$('#admin-reason').value.trim();if(reason.length<3){$('#admin-action-error').textContent='En az 3 karakterlik bir gerekçe yaz.';return;}
+            sending=true;$('#admin-submit').disabled=true;$('#admin-cancel').disabled=true;
+            try{await nakgoAuth.adminReportSet(Number(row.id),status,reason,Number(row.revision));if(valid())await load();}
+            catch(error){if(!valid())return;
+                show('<div class="adm-d-head"><h3>'+label+'</h3></div><p role="alert">'+(error?.code==='PT409'?'Bu şikâyet başka bir yönetici tarafından değiştirildi. Güncel durumu yükle.':'İşlem sonucu doğrulanamadı. Yeniden işlem yapmadan önce güncel durumu yükle.')+'</p><button class="btn" id="admin-reload" type="button">Güncel durumu yükle</button>');
                 $('#admin-reload').onclick=load;
             }
         };
@@ -6953,6 +7300,33 @@ function syncDetailViewport() {
     app.dataset.keyboard = window.innerHeight - v.height - v.offsetTop > 120 ? "true" : "false";
 }
 
+// API v1 listesi fotoğraf taşımaz (yalnız has_photo); fotoğraf ayrıntı açılınca alınır. Yüklenene kadar yer tutucu;
+// boş yanıtta yer tutucu kalkar, hata, ağ kesintisi ya da 15 sn zaman aşımında "Yeniden dene" gösterilir.
+let detailPhotoFor = null;
+const detailPhotoHTML = l => imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">`
+    : l.hasPhoto && l._remote && nakgoMarket.active() ? '<div class="ph ph-wait" id="detail-photo" role="status">Fotoğraf yükleniyor…</div>' : "";
+function loadDetailPhoto(l) {
+    detailPhotoFor = null;
+    if (imgOk(l.img) || !l.hasPhoto || !l._remote || !nakgoMarket.active() || !$("#detail-photo")) return;
+    const id = l.remoteId, owner = nakgoMarket.token();
+    detailPhotoFor = id;
+    // Başka ilan açıldıysa, oturum değiştiyse ya da yer tutucu yoksa sonuç ekrana yazılmaz.
+    const slot = () => detailPhotoFor === id && owner === nakgoMarket.token() ? $("#detail-photo") : null;
+    let timer;
+    const late = new Promise((_, fail) => { timer = setTimeout(() => fail(Error("timeout")), 15000); });
+    Promise.race([nakgoAuth.listingPhoto(id), late]).then(photo => {
+        const s = slot();
+        if (imgOk(photo)) { l.img = photo; if (s) s.outerHTML = `<img class="ph" src="${photo}" alt="Yük fotoğrafı">`; }
+        else { l.hasPhoto = false; if (s && s.remove) s.remove(); }
+    }, () => {
+        const s = slot();
+        if (!s) return;
+        s.innerHTML = 'Fotoğraf yüklenemedi. <button class="chip" type="button" id="detail-photo-retry">Yeniden dene</button>';
+        const retry = $("#detail-photo-retry");
+        if (retry) retry.onclick = () => { s.textContent = "Fotoğraf yükleniyor…"; loadDetailPhoto(l); };
+    }).finally(() => { if (typeof clearTimeout === "function") clearTimeout(timer); });
+}
+
 function openLoad(id) {
     roadMapDispose(true);
     const l = findIt("l",id);
@@ -6967,7 +7341,7 @@ function openLoad(id) {
       <div class="detail-scroll" tabindex="0" aria-label="İlan bilgileri">
         <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${esc(dateLabel(l))}</span>${isF(l) ? `<span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span>` : ""}</div></section>
         ${!cloud && !nakgoMarket.locked() ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
-        ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
+        ${detailPhotoHTML(l)}
         <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", esc(l.cargo)], ["Tonaj", esc(l.ton) + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", esc(dateLabel(l))], ...(postedAt(l,true) ? [["İlan yayın zamanı", esc(postedAt(l,true))]] : [])])}${l.note ? `<p class="detail-note">${esc(l.note)}</p>` : ""}</section>
         <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefonda veya WhatsApp'ta görüşebilirsin.</p></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
@@ -6980,6 +7354,7 @@ function openLoad(id) {
     syncDetailViewport();
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openLoad(id));
+    loadDetailPhoto(l);
     $("#close").onclick = closeSheet;
     $("#sh").onclick = () => shareLoad(l);
     $("#call").onclick = () => {
@@ -6987,9 +7362,9 @@ function openLoad(id) {
         track("c", l.id);
         callTo(phoneOf(l));
     };
-    $("#pf").onclick = () => openProfile({ uid: l.uid, name: l.owner || (l.uid ? nm(l.uid) : "Yük sahibi") });
+    $("#pf").onclick = () => openProfile({ uid: l.uid, name: l.owner || (l.uid ? nm(l.uid) : "Yük sahibi"), listingId: l.remoteId });
     bindPhoneContact(l, false);
-    $("#rp").onclick = () => openReport("l", l.id);
+    $("#rp").onclick = () => openReport("l", l.id, l.remoteId);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(l.uid);
     if ($("#mg")) $("#mg").onclick = () => {
@@ -7011,9 +7386,9 @@ function openTruck(id) {
     $("#close").onclick = closeSheet;
     if ($("#mg")) $("#mg").onclick = () => { if(t._remote)return; if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
     $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
-    $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid) });
+    $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid), listingId: t.remoteId });
     bindPhoneContact(t, true);
-    $("#rp").onclick = () => openReport("t", t.id);
+    $("#rp").onclick = () => openReport("t", t.id, t.remoteId);
     if ($("#bk2"))
         $("#bk2").onclick = () => blockUser(t.uid);
 }
@@ -7026,8 +7401,11 @@ function bindPhoneContact(item, isTruck) {
         if (!availableListing(item, isTruck)) return toast("İlanın süresi doldu");
         const account = nakgoMarket.token();
         try {
-            const n = normalizeListingPhone(await nakgoAuth.listingContact(item.remoteId, channel));
+            const raw = await nakgoAuth.listingContact(item.remoteId, channel);
             if (account !== nakgoMarket.token()) return;
+            // Sunucu, hesap başına telefon görüntüleme sınırı aşılınca numara yerine boş (null) döner.
+            if (raw === null) return toast("Telefon görüntüleme sınırına ulaştın. Biraz sonra tekrar dene.");
+            const n = normalizeListingPhone(raw);
             if (!n) return toast("Bu ilanda paylaşılan bir telefon numarası yok.");
             if (!isTruck) track("c", item.id);
             window.location.href = channel === "call" ? "tel:" + n : "https://wa.me/" + n.slice(1);

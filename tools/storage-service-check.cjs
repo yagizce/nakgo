@@ -1,19 +1,21 @@
-const {PGlite}=require('@electric-sql/pglite');
+const {openDb,finish,assertTestRoles}=require('./db-lib.cjs');
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 module.exports=(async()=>{
- const db=new PGlite();let checks=0;
+ const db=await openDb();let checks=0,primary=null;
+ try{
  const owner='00000000-0000-4000-8000-000000000001',other='00000000-0000-4000-8000-000000000002';
  const q=async(sql,args=[])=>(await db.query(sql,args)).rows;
  const check=(v,msg)=>{assert.ok(v,msg);checks++;};
  const denied=async(fn,msg)=>{try{await fn();assert.fail(msg+' unexpectedly allowed');}catch(e){assert.equal(e.code,'42501',msg+': '+e.message);checks++;}};
  const as=async(role,id,sql,args=[])=>{await db.exec('reset role');await q("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);await db.exec('set role '+role);try{return await q(sql,args);}finally{await db.exec('reset role');}};
- await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
+ await db.exec(`do $$ begin if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if; if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if; if not exists(select 1 from pg_roles where rolname='service_role') then create role service_role bypassrls; end if; end $$;
  create schema auth;create schema storage;create table auth.users(id uuid primary key,email_confirmed_at timestamptz,email text,phone text,banned_until timestamptz,raw_user_meta_data jsonb not null default '{}');
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  grant usage on schema auth,storage to authenticated,anon,service_role;grant execute on function auth.uid() to authenticated,anon,service_role;
  create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
  create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,owner_id text,metadata jsonb);
  alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated,service_role;`);
+ await assertTestRoles(db,{serviceRole:true});
  const root=path.resolve(__dirname,'..');
  for(const f of fs.readdirSync(path.join(root,'supabase/migrations')).sort()){
   if(process.argv.includes('--legacy')&&(f==='20261027010000_storage_service_activity.sql'||f==='20261115181551_document_storage_cleanup.sql'))continue;
@@ -28,7 +30,7 @@ module.exports=(async()=>{
   return (await q("insert into public.carrier_document_files(id,application_id,owner_id,kind,object_path) values($1::uuid,$2::bigint,$3::uuid,$4,$3::text||'/'||$2::text||'/'||$1::text||'.jpg') returning *",[id,app,owner,kind]))[0];};
  const file=await reserve('src');
  const insert=(role,id,ownerID=owner,name=file.object_path)=>as(role,id,"insert into storage.objects(bucket_id,name,owner_id,metadata) values('carrier-documents',$1,$2,'{\"mimetype\":\"image/jpeg\",\"size\":100}') returning id",[name,ownerID]);
- if(process.argv.includes('--legacy')){await denied(()=>insert('service_role',null),'legacy trusted completion rejected with no JWT sub');console.log('REPRODUCED: legacy guard rejects internal Storage completion');await db.close();return;}
+ if(process.argv.includes('--legacy')){await denied(()=>insert('service_role',null),'legacy trusted completion rejected with no JWT sub');console.log('REPRODUCED: legacy guard rejects internal Storage completion');return;}
  await denied(()=>insert('authenticated',null),'missing caller rejected');
  await denied(()=>insert('authenticated',other),'other caller denied by unchanged RLS');
  await denied(()=>insert('service_role',null,other),'trusted completion owner mismatch');
@@ -68,5 +70,7 @@ module.exports=(async()=>{
  check((await q('select count(*)::int n from storage.objects where name=$1',[kept.object_path]))[0].n===0,'queued file removed by trusted role');
  check(!(await as('service_role',null,'select * from public.nakgo_storage_cleanup_pending(10)')).some(r=>r.object_path===kept.object_path),'cleaned file leaves the queue');
  await denied(()=>as('service_role',null,"insert into storage.objects(bucket_id,name,owner_id) values('carrier-documents',$1,$2)",[kept.object_path,owner]),'done entry does not allow re-upload');
- console.log('PASS: '+checks+' Storage service-context checks');await db.close();
+ console.log('PASS: '+checks+' Storage service-context checks');
+ }catch(error){primary=error;throw error;}
+ finally{await finish(db,primary);}
 })().catch(e=>{console.error(e.message);process.exit(1);});

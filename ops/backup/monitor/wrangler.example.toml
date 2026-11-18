@@ -1,0 +1,20 @@
+# B7-A4: ÖRNEK yapılandırma. Gerçek hesap/kova kimliği içermez ve DAĞITILMADI.
+# Dağıtım B7-B/C'de ayrı onayla, yedek kovasının bulunduğu ayrı Cloudflare hesabında yapılır.
+name = "nakgo-backup-monitor"
+main = "worker.mjs"
+compatibility_date = "2026-11-01"
+
+[triggers]
+crons = ["17 * * * *"]
+
+[[r2_buckets]]
+binding = "BACKUP_BUCKET"
+bucket_name = "DOLDURULACAK-yedek-kovasi"
+# Worker yalnız list/get kullanır. Kova tarafında yazma/silme yetkisi bu Worker'a verilmez.
+
+[vars]
+GITHUB_REPO = "yagizce/nakgo"
+DELETION_ENABLED = "false"
+TRUSTED_K1 = "{}"
+
+# Gizliler (wrangler secret put ile, ayrı onayla): GITHUB_TOKEN (yalnız actions:read), NOTIFY_WEBHOOK, HEARTBEAT_URL

@@ -39,3 +39,16 @@ PGlite testi fiziksel dosya servisi veya çok bağlantılı eşzamanlılık kan�
 On SQL grubu, gerçek DEV şemasında da tek tek BEGIN/ROLLBACK sınırlarıyla
 çalıştırıldı. Test öncesi/sonrası toplamlar aynı, mevcut tek yönetici korunmuştu.
 Yeni rol, migration veya ürün davranışı bu test bakımıyla devreye alınmaz.
+
+## Veritabanı sözleşmesi ve gerçek PostgreSQL — B1
+
+`npm run test:db` şunları çalıştırır:
+
+- `admin-db-check`;
+- şema kayma kontrolü (`schema-check`);
+- API sözleşmesi v0 (`api-contract`);
+- kasıtlı bozma testi (`contract-mutations`).
+
+Varsayılan motor PGlite'tır (`NODE_PATH` ile `@electric-sql/pglite`). `NAKGO_PG_HOST` (soket klasörü veya localhost), `NAKGO_PG_PORT` ve gerekirse `NAKGO_PG_PASSWORD` verilirse aynı testler gerçek PostgreSQL sunucusunda koşar. Bunun için `pg` modülü `NODE_PATH`'te bulunmalıdır. Her çalışma için geçici bir veritabanı açılır ve sonunda silinir. Uzak host reddedilir.
+
+CI'da `db-contract.yml` iki motoru da PostgreSQL 17 ile çalıştırır. Ayrıntılar [API sözleşmesi](api/contract-v0.md) ve [migration güvenliği](migration-safety.md) belgelerindedir.
