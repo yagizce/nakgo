@@ -45,7 +45,7 @@ test('API v1 araç verileri (B10)',async t=>{
       assert.deepEqual(catalog.bodies,clientList('bodies'),'istemci kasa listesi');
       const amountDef=(await db.query(`select pg_get_constraintdef(oid) d from pg_constraint where conname='listings_amount_check'`)).rows[0].d;
       assert.match(amountDef,/amount > \(0\)::numeric/);assert.match(amountDef,new RegExp(String(catalog.amount.max)));
-      assert.deepEqual(catalog.amount,{unit:'ton',min_exclusive:0,max:9007199254740991});
+      assert.deepEqual(catalog.amount,{unit:'ton',min_exclusive:0,max:9007199254740991,max_decimals:3});
       assert.deepEqual(await call(db,A,'listing_catalog_v1'),{data:catalog},'üye de aynı kataloğu alır');
       assert.equal((await db.query(`select col_description('public.listings'::regclass,(select attnum from pg_attribute where attrelid='public.listings'::regclass and attname='amount')) d`)).rows[0].d.startsWith('Ton.'),true,'birim tabloda belgeli');
     });
@@ -95,6 +95,32 @@ test('API v1 araç verileri (B10)',async t=>{
       assert.ok((await call(db,A,'listing_update_v1',[l.id,1,{vehicle:'Kamyonet'}])).data,'tonaj olmadan araç değişikliği birim istemez');
       await db.query(`update private.api_requests set created_at=created_at`);
       await call(db,A,'listing_close_v1',[l.id]);
+    });
+    await t.test('hassasiyet: en fazla 3 ondalık (yazıldığı biçimiyle); v0 değişmez, v0 ile girilmiş değer v1\'de korunur',async()=>{
+      // Ham JSON: JavaScript 18.250'yi 18.25 yazar; sunucuya giden metin burada birebir denetlenir.
+      const raw=amount=>`{"kind":"truck","from_city":"İzmir","to_city":"Bursa","vehicle":"Kamyon","body":"Tenteli","amount":${amount},"amount_unit":"ton","available_on":"${today()}"}`;
+      for(const [amount,want] of [['18.5',18.5],['18.250',18.25],['18.25',18.25],['0.001',0.001],['1e-3',0.001],['1.5e1',15],['40',40],['9007199254740991',9007199254740991]]){
+        const r=await call(db,A,'listing_create_v1',[crypto.randomUUID(),raw(amount)]);
+        assert.ok(r.data,amount+' '+JSON.stringify(r.error));assert.equal(Number(r.data.listing.amount),want,amount);
+        await call(db,A,'listing_close_v1',[r.data.listing.id]);
+      }
+      const before=Number((await db.query(`select count(*) n from public.listings`)).rows[0].n);
+      for(const amount of ['18.2501','18.2500','0.0001','1e-4','12.0000','40.12345'])
+        assert.equal(key(await call(db,A,'listing_create_v1',[crypto.randomUUID(),raw(amount)])),'invalid_argument',amount);
+      assert.equal(Number((await db.query(`select count(*) n from public.listings`)).rows[0].n),before,'hiçbir satır yazılmadı');
+      // v0 değişmedi: aynı değer v0 yolunda kabul edilir; v1 okur, tonaja dokunmayan düzenlemeye izin verir, tonajı değiştirirken kuralı uygular.
+      const v0=await as(db,{user:A},`insert into public.listings(kind,from_city,to_city,vehicle,body,amount,owner_label,available_on) values('truck','İzmir','Bursa','Kamyon','Tenteli',18.2501,'Ayşe',$1) returning id`,[today()]);
+      assert.ok(!v0.error,'v0 18.2501 kabul eder (değişmedi)');
+      const id=Number(v0.rows[0].id);
+      assert.equal((await call(db,A,'listing_v1',[id])).data.amount,18.2501,'v1 okur, yuvarlamaz');
+      assert.ok((await call(db,A,'listing_update_v1',[id,0,{note:'not'}])).data,'tonaja dokunmayan v1 düzenlemesi');
+      assert.equal(Number((await db.query(`select amount from public.listings where id=$1`,[id])).rows[0].amount),18.2501,'tonaj olduğu gibi');
+      assert.equal(key(await call(db,A,'listing_update_v1',[id,1,`{"amount":18.2501,"amount_unit":"ton"}`])),'invalid_argument','v1 ile aynı hassas değer yeniden yazılamaz');
+      assert.equal(Number((await call(db,A,'listing_update_v1',[id,1,`{"amount":18.250,"amount_unit":"ton"}`])).data.listing.amount),18.25);
+      assert.ok(!(await as(db,{user:A},`update public.listings set amount=7.12345 where id=$1`,[id])).error,'v0 güncellemesi de değişmedi');
+      await call(db,A,'listing_close_v1',[id]);
+      // Filtreler tonaj hassasiyetinden etkilenmez (arama değeri saklanmaz).
+      assert.ok(!(await call(db,A,'listings_v1',[null,null,null,null,18.2501,null])).error);
     });
     await t.test('yetkisiz değişiklik: başka hesap, askıdaki hesap, misafir; v0 RLS de engeller',async()=>{
       const l=(await call(db,A,'listing_create_v1',[crypto.randomUUID(),truck()])).data.listing;

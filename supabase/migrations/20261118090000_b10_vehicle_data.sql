@@ -4,7 +4,8 @@
 --  * Birim ve anlam belgesi: amount her zaman TON (yük ilanında yük ağırlığı, boş araç ilanında boş kapasite).
 --  * Katalog (private.listing_catalog, api.listing_catalog_v1): izin verilen araç ve kasa tipleri ile tonaj sınırları. Tablo
 --    kısıtları ve istemci listeleriyle aynı olduğu testle denetlenir (tests/db/api-v1-vehicle.test.cjs).
---  * v1 girdisi: tonaj yalnız JSON sayı ve yanında amount_unit='ton' ile kabul edilir (birimsiz/belirsiz tonaj reddedilir);
+--  * v1 girdisi: tonaj yalnız JSON sayı, en fazla 3 ondalık ve yanında amount_unit='ton' ile kabul edilir (birimsiz/belirsiz
+--    tonaj reddedilir). v0 ve tablo kısıtı değişmez: v0 ile girilmiş daha hassas tonaj okunur ve olduğu gibi kalır;
 --    araç/kasa değer listesi ve tonaj sınırları tablo kısıtında (tek kaynak); ihlal invalid_argument döner.
 --  * v1 akışında isteğe bağlı araç, kasa ve tonaj aralığı filtreleri (eski çağrılar aynen çalışır).
 --  * v1 rota alarmında araç/kasa yalnız katalogdaki değerler (v0 serbest metni değişmez).
@@ -18,14 +19,16 @@ create function private.listing_catalog() returns jsonb language sql immutable a
  select jsonb_build_object(
   'vehicles',jsonb_build_array('Tır','Kırkayak','Kamyon','Kamyonet','Panelvan','Tanker','Lowbed','Konteyner'),
   'bodies',jsonb_build_array('Tenteli','Kapalı kasa','Açık kasa','Frigorifik','Damperli','Tanker','Lowbed','Konteyner'),
-  'amount',jsonb_build_object('unit','ton','min_exclusive',0,'max',9007199254740991)) $$;
+  'amount',jsonb_build_object('unit','ton','min_exclusive',0,'max',9007199254740991,'max_decimals',3)) $$;
 
--- v1 ilan girdisinde tonajın türü ve birimi: amount yalnız JSON sayı ve yanında amount_unit='ton'; tonajsız birim de
--- reddedilir. Araç ve kasa değerleri tablo kısıtında (metin olmayan değer de orada reddedilir). Dönüşte amount_unit yok.
+-- v1 ilan girdisinde tonajın türü, birimi ve hassasiyeti: amount yalnız JSON sayı, en fazla 3 ondalık ve yanında
+-- amount_unit='ton'; tonajsız birim de reddedilir. Araç ve kasa değerleri tablo kısıtında (metin olmayan değer de orada reddedilir). Dönüşte amount_unit yok.
 create function private.api_vehicle_input(p jsonb) returns jsonb language plpgsql immutable set search_path='' as $$
 begin
  if (p ? 'amount_unit' and not p ? 'amount')
-  or (p ? 'amount' and (jsonb_typeof(p->'amount')<>'number' or jsonb_typeof(p->'amount_unit') is distinct from 'string' or p->>'amount_unit'<>'ton')) then
+  or (p ? 'amount' and (jsonb_typeof(p->'amount')<>'number' or jsonb_typeof(p->'amount_unit') is distinct from 'string' or p->>'amount_unit'<>'ton'))
+  -- Hassasiyet: yazıldığı biçimiyle en fazla 3 ondalık (18.5, 18.250 geçerli; 18.2501 ve 18.2500 değil). Yalnız v1.
+  or (p ? 'amount' and case when jsonb_typeof(p->'amount')='number' then scale((p->>'amount')::numeric)>3 else false end) then
   perform private.api_raise('invalid_argument');
  end if;
  return p-'amount_unit';

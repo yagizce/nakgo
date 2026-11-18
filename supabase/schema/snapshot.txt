@@ -481,7 +481,7 @@ function private.api_rethrow(p_state text, p_msg text, p_hint text) returns void
 function private.api_route_alert_json(a route_alerts) returns jsonb invoker vol=s cfg= body=43a9a2201622864a184ae6134af4622d
 function private.api_ts(p timestamp with time zone) returns text invoker vol=s cfg= body=e73980aaab4c5857996c4865c1e4f798
 function private.api_usage_retention() returns bigint definer vol=v cfg=search_path="" body=70ddb771060645538baf72ec5cc75ed3
-function private.api_vehicle_input(p jsonb) returns jsonb invoker vol=i cfg=search_path="" body=1b1d05bab27209c82947cdab592e1466
+function private.api_vehicle_input(p jsonb) returns jsonb invoker vol=i cfg=search_path="" body=14edfd4f1e9c2adff34972aee8cfa048
 function private.api_viewer() returns uuid invoker vol=v cfg=search_path="" body=6aa3cbc6f8e11fd7d23dffc3cd3f0fbc
 function private.auth_lock(p_user uuid, p_lock boolean) returns void definer vol=v cfg=search_path="" body=6ea41fdd41d26e06514771e5640d171f
 function private.contact_retention() returns jsonb definer vol=v cfg=search_path="" body=f424919b56b666c38afbfe1956e8e706
@@ -491,7 +491,7 @@ function private.erase_account(p_user uuid) returns void definer vol=v cfg=searc
 function private.is_document_reviewer() returns boolean definer vol=s cfg=search_path="" body=e9554843a57c57274d77f3bcfbfc72eb
 function private.is_nakgo_admin() returns boolean definer vol=s cfg=search_path="" body=532dedf4099ad1b97b84d11b36257cb0
 function private.job_activity_guard() returns trigger definer vol=v cfg=search_path="" body=607e0b4e0dd5532ddf9f1f93ba672db8
-function private.listing_catalog() returns jsonb invoker vol=i cfg= body=9d1faa492f1b0aa2e8df54c5f80d9d86
+function private.listing_catalog() returns jsonb invoker vol=i cfg= body=ca2ab18fad712464d48bd936d63985ba
 function private.listing_quota() returns trigger definer vol=v cfg=search_path="" body=eb33b4a25067963dd75cd660e6ab8f9f
 function private.listing_revision() returns trigger invoker vol=v cfg=search_path="" body=74416aee7b4046f6b3d95f39a26712d2
 function private.log_listing_write() returns trigger definer vol=v cfg=search_path="" body=bba4c453dce05c6b521f4aa51fdbd84a

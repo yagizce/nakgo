@@ -217,7 +217,7 @@
         "created"
       ],
       "listing": "listing_item (member+photo)",
-      "input": "kind (zorunlu) + yazılabilir ilan alanları; amount JSON sayı ve amount_unit=\"ton\" zorunlu; vehicle/body katalogdan; bilinmeyen alan invalid_argument",
+      "input": "kind (zorunlu) + yazılabilir ilan alanları; amount JSON sayı, en fazla 3 ondalık (yazıldığı biçimiyle) ve amount_unit=\"ton\" zorunlu; vehicle/body katalogdan; bilinmeyen alan invalid_argument",
       "idempotent": "aynı p_request_id 24 saat içinde aynı ilanı döner (created=false); farklı gövde conflict",
       "errors": [
         "invalid_argument",
@@ -259,7 +259,7 @@
         "not_allowed",
         "account_suspended"
       ],
-      "input": "yazılabilir alanlar + status; amount verilirse JSON sayı ve amount_unit=\"ton\" zorunlu"
+      "input": "yazılabilir alanlar + status; amount verilirse JSON sayı, en fazla 3 ondalık ve amount_unit=\"ton\" zorunlu"
     },
     "listing_close_v1": {
       "args": [
@@ -501,7 +501,7 @@
         "bodies",
         "amount"
       ],
-      "amount": "{unit:\"ton\", min_exclusive:0, max:9007199254740991}"
+      "amount": "{unit:\"ton\", min_exclusive:0, max:9007199254740991, max_decimals:3}"
     }
   },
   "errors": {
