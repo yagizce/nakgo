@@ -76,3 +76,27 @@ tarafındadır (istemciye kapalı).
 - Supabase "Exposed schemas" ayarına `api` eklenmesi.
 - Supabase'in PostgREST sürümünde hata kodlarının ve HTTP durumlarının bir kez doğrulanması.
 - `pg_cron` işi `nakgo-api-usage-retention`.
+
+## İlan okuma uçları (B3-b1)
+
+Migration: `supabase/migrations/20261118050000_b3b1_api_listings.sql`. Testler: `tests/db/api-v1-listings.test.cjs`,
+`tests/db/api-v1-listings-http.test.cjs`. Kasıtlı bozma: `node tools/api-v1-listings-mutations.cjs`. Ölçüm: `node tools/api-bench.cjs`.
+
+| Uç | Kim | Ne döner |
+|---|---|---|
+| `listings_v1(p_cursor, p_kind)` | misafir, üye | Herkese görünen ilanlar; 50'şer, kimliğe göre azalan; `p_kind`: `load`/`truck` |
+| `listing_v1(p_id)` | misafir, üye | Tek ilan; üyeye ayrıca kendi ilanı (karartılmamışsa, durumu ne olursa olsun). Görünmeyen → `not_found` |
+| `my_listings_v1(p_cursor)` | üye | Kendi ilanları (bütün durumlar, karartılmışlar hariç) |
+
+Görünürlük: misafir ve üye için tek kural, `private.api_visible_listings` (v0 `nakgo_public_listings` kuralı: aktif,
+süresi dolmamış, tarihi geçmemiş, moderasyonla kaldırılmamış, sahibi askıda değil).
+
+İlan alanları (`listing_item` sözleşmede): misafir için kimlik, tür, nereden/nereye (il, ilçe), araç, kasa, tutar, yük,
+kalemler, tarih (gün, bitiş, saat, metin), durum, oluşturma zamanı, `has_photo`. Üyeye ayrıca sahip etiketi, not,
+`mine`, bitiş ve güncelleme zamanı, `contact_allowed`. Fotoğraf (`photo`) yalnız üyeye ve yalnız ayrıntıda. Telefon,
+sahip kimliği, karartma zamanı hiçbir yanıtta yok. Zamanlar UTC, `YYYY-MM-DDTHH:MM:SS.mmmZ`.
+
+v0 ile bilinen fark (onaylı karar 1): v0 üye listesi sahibin kendi süresi geçmiş ama henüz kapanmamış aktif ilanlarını da
+gösterir (RLS sahip kuralı); v1 akışı göstermez, bu ilanlar `my_listings_v1`'de. Moderasyonla kaldırılan ve askıdaki
+sahibin ilanları v0'da durum alanıyla gizlenir (gerçek akışlarda `archived`/`closed` olurlar); v1 bunu ayrıca açıkça
+denetler.

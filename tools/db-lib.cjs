@@ -158,6 +158,8 @@ select line from (
  union all select 'execute api.'||p.proname||'('||pg_get_function_identity_arguments(p.oid)||') '||r.rolname
   from pg_proc p join pg_namespace n on n.oid=p.pronamespace cross join (values('anon'),('authenticated')) r(rolname)
   where n.nspname='api' and has_function_privilege(r.rolname,p.oid,'execute')
+ union all select 'apiview private.'||c.relname||' body='||md5(regexp_replace(pg_get_viewdef(c.oid),'\\s+','','g'))
+  from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relkind='v' and c.relname like 'api\\_%'
 ) a`;
 const FULL_SNAPSHOT_SQL='select line from ('+SNAPSHOT_SQL+') s union all '+API_SNAPSHOT_SQL+' order by 1';
 
