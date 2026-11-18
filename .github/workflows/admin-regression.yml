@@ -36,3 +36,4 @@ jobs:
           python tests/admin_tools_browser.py
           python tests/admin_accounts_browser.py
           python tests/admin_archive_browser.py
+          python tests/admin_sections_browser.py
