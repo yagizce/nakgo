@@ -1,9 +1,9 @@
-# CI otomasyon önerisi: HTTP, supabase-js ve Workers testleri
+# CI: HTTP, supabase-js ve Workers testleri
 
-**Durum:** öneri. `.github/workflows/` değişmedi; etkinleştirmek için `docs/ci/db-http.workflow.yml` dosyasının
-`.github/workflows/db-http.yml` olarak taşınması **ayrı onay** ister.
+İş akışı: `.github/workflows/db-http.yml` (`NakGo HTTP and Workers`). Mevcut iş akışları değişmedi; bu ayrı bir iştir.
+Dal koruma kurallarına zorunlu kontrol olarak eklenmesi GitHub ayarıdır ve ayrı onay ister.
 
-## Bugün CI'da koşmayanlar
+## Bu işle CI'a eklenenler
 | Test | Neden koşmuyor | Önerideki çözüm |
 |---|---|---|
 | `tests/db/*-http.test.cjs` (PostgREST üzerinden v1 uçları) | CI'da PostgREST yok | PostgREST 12.2.3 sabit sürüm, SHA-256 doğrulamalı indirme |
@@ -22,9 +22,6 @@
 - Miniflare, workerd ikili dosyasını npm'in platform paketinden alır; `--ignore-scripts` kullanılmadı. İlk koşuda kurulum
   süresi ve ikilinin doğru indirildiği görülmeli.
 
-## Onay gerektirenler
-1. `.github/workflows/db-http.yml` eklenmesi (bu dosyanın taşınması).
-2. İsterseniz bu işin dal koruma kurallarına zorunlu kontrol olarak eklenmesi (GitHub ayarı; ayrı onay).
 
 ## Yerelde aynı koşu
 ```
