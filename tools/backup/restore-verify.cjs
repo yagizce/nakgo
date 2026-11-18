@@ -117,7 +117,8 @@ async function restoreAndVerify({bundleDir,pgBin,contractCheck=true,hooks={}}){
     // Sözleşme
     if(contractCheck){
       const {check}=require('../api-contract.cjs');
-      const r=await check({client:false,db});
+      // Yedek kapsamı public/private: api şeması (v1, yalnız kod) dökümde yok; v1 sözleşmesi burada denetlenmez.
+      const r=await check({client:false,db,checkV1:false});
       r.fails.length?fail('contract',r.fails.slice(0,10)):pass('contract',r.checks+' kontrol');
     }
     for(const [name,fn] of Object.entries(hooks)){

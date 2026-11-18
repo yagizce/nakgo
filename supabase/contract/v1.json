@@ -1,0 +1,26 @@
+{
+  "version": "v1",
+  "description": "Sürümlü istemci API'si. Uçlar yalnız api şemasında fonksiyon; istemci tabloya dokunmaz. v1 içinde yalnız geriye uyumlu değişiklik (yeni isteğe bağlı argüman, yeni alan, yeni fonksiyon). Alan silme, yeniden adlandırma ya da anlam değişikliği v2 gerektirir. Ayrıntı: docs/api/contract-v1.md",
+  "schema": "api",
+  "naming": "^[a-z][a-z0-9_]*_v1$",
+  "function_rules": {"returns": "jsonb", "security_definer": true, "search_path": "", "volatility": "v", "begin": "private.api_begin('<name>'"},
+  "response": {
+    "single": {"keys": ["data"]},
+    "list": {"keys": ["data", "page"], "page": ["next"], "next": "opak metin imleç ya da null; sayfa boyutu sunucuda sabit"}
+  },
+  "functions": {
+    "status_v1": {"args": [], "roles": ["anon", "authenticated"], "kind": "single", "data": ["api", "enabled", "server_time"], "works_when_disabled": true}
+  },
+  "errors": {
+    "auth_required": {"sqlstate": "42501", "http": 401},
+    "account_unverified": {"sqlstate": "42501", "http": 403},
+    "account_suspended": {"sqlstate": "42501", "http": 403},
+    "admin_required": {"sqlstate": "42501", "http": 403},
+    "invalid_argument": {"sqlstate": "22023", "http": 400},
+    "invalid_cursor": {"sqlstate": "22023", "http": 400},
+    "not_found": {"sqlstate": "PT404", "http": 404},
+    "conflict": {"sqlstate": "PT409", "http": 409},
+    "api_disabled": {"sqlstate": "PT503", "http": 503}
+  },
+  "usage_columns": ["hour", "version", "fn", "shard", "calls"]
+}

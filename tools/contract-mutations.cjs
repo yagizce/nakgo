@@ -45,6 +45,23 @@ const db_mutations=[
   ['okuma politikası silinir',`drop policy listings_read on public.listings;`,[S,F]],
   ['istemcinin okuduğu kolon silinir',`alter table public.listings drop column contact_consent cascade;`,[S,C,F]],
   ['yalnız şema değişir (indeks)',`create index mutation_note on public.listings(note);`,[S]],
+  // v1 (api şeması)
+  ['v1 fonksiyonu SECURITY DEFINER değil',`alter function api.status_v1() security invoker;`,[S,C]],
+  ['v1 fonksiyonunun search_path\'i boş değil',`alter function api.status_v1() set search_path=public;`,[S,C]],
+  ['v1 fonksiyonu PUBLIC\'e açılır',`grant execute on function api.status_v1() to public;`,[C]],
+  ['v1 fonksiyonu anon\'dan kapatılır',`revoke execute on function api.status_v1() from anon;`,[S,C]],
+  ['sözleşme dışı v1 fonksiyonu eklenir',`create function api.debug_v1() returns jsonb language plpgsql volatile security definer set search_path='' as $f$begin perform private.api_begin('debug_v1'); return '{}'; end$f$;
+    revoke all on function api.debug_v1() from public; grant execute on function api.debug_v1() to authenticated;`,[S,C]],
+  ['v1 fonksiyonu api_begin\'i atlar',rewrite('api.status_v1()',"perform private.api_begin('status_v1',true);","perform pg_catalog.now();"),[S,C]],
+  ['v1 fonksiyonu jsonb dışında döner',`drop function api.status_v1(); create function api.status_v1() returns text language plpgsql volatile security definer set search_path='' as $f$begin perform private.api_begin('status_v1',true); return 'x'; end$f$;
+    revoke all on function api.status_v1() from public; grant execute on function api.status_v1() to anon,authenticated;`,[S,C]],
+  ['v1 fonksiyonu STABLE yapılır (sayım yazamaz)',`alter function api.status_v1() stable;`,[S,C]],
+  ['api şemasına tablo eklenir',`create table api.listings(id bigint); grant select on api.listings to authenticated;`,[C]],
+  ['api şemasında authenticated nesne oluşturabilir',`grant create on schema api to authenticated;`,[C]],
+  ['api yardımcısı istemciye açılır',`grant execute on function private.api_actor(boolean) to authenticated;`,[S,C]],
+  ['kullanım tablosuna kişisel veri sütunu eklenir',`alter table private.api_usage add column user_id uuid;`,[S,C]],
+  ['hata anahtarının SQLSTATE\'i değişir',`update private.api_errors set sqlstate='P0001' where key='auth_required';`,[C]],
+  ['sözleşmede olmayan hata anahtarı eklenir',`insert into private.api_errors values('debug_error','P0001','Test');`,[C]],
 ];
 const client_mutations=[
   ['istemci yeni kolon okur',['listingColumns=\'id,','listingColumns=\'contact_phone,id,']],
