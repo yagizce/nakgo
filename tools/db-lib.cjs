@@ -107,10 +107,10 @@ async function build(db,{list=migrations()}={}){
 const SNAPSHOT_SQL=`
 with ns as (select oid,nspname from pg_namespace where nspname in('public','private')),
 fn as (
- select n.nspname,p.oid,p.proname,pg_get_function_identity_arguments(p.oid) args,pg_get_function_result(p.oid) result,
+ select n.nspname,p.oid,p.proname,pg_get_function_identity_arguments(p.oid) args,coalesce(pg_get_function_result(p.oid),'procedure') result,
   p.prosecdef,p.provolatile,coalesce(array_to_string(p.proconfig,';'),'') cfg,
   md5(regexp_replace(regexp_replace(pg_get_functiondef(p.oid),'--[^\\n]*|\\r','','g'),'\\s+','','g')) body
- from pg_proc p join ns n on n.oid=p.pronamespace where p.prokind='f')
+ from pg_proc p join ns n on n.oid=p.pronamespace where p.prokind in('f','p'))
 select regexp_replace(line,'\\s+',' ','g') line from (
  select 'table '||n.nspname||'.'||c.relname||' rls='||c.relrowsecurity||' force='||c.relforcerowsecurity line
   from pg_class c join ns n on n.oid=c.relnamespace where c.relkind='r'
