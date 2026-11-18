@@ -22,15 +22,7 @@ const M=[
   [" insert into private.api_requests(user_id,request_id,fn,body_md5) values(actor,p_request_id,'listing_create_v1',h) on conflict do nothing;\n if not found then"," if false then"],
   [" update private.api_requests set ref=r.id where user_id=actor and request_id=p_request_id;\n",""],
   ["begin delete from private.api_requests where created_at<now()-interval '24 hours';","begin delete from private.api_requests where created_at<now()-interval '24 days';"],
-  // Güncelleme: sahiplik, karartma, revision, kilit, beyaz liste
-  [" select * into r from public.listings l where l.id=p_id and l.owner_id=actor and l.redacted_at is null for update;\n if not found then perform private.api_raise('not_found'); end if;\n if private.api_ts",
-   " select * into r from public.listings l where l.id=p_id and l.redacted_at is null for update;\n if not found then perform private.api_raise('not_found'); end if;\n if private.api_ts"],
-  [" select * into r from public.listings l where l.id=p_id and l.owner_id=actor and l.redacted_at is null for update;\n if not found then perform private.api_raise('not_found'); end if;\n if private.api_ts",
-   " select * into r from public.listings l where l.id=p_id and l.owner_id=actor for update;\n if not found then perform private.api_raise('not_found'); end if;\n if private.api_ts"],
-  [" if private.api_ts(r.updated_at)<>p_revision then perform private.api_raise('conflict'); end if;\n",""],
-  ...(real?[[" select * into r from public.listings l where l.id=p_id and l.owner_id=actor and l.redacted_at is null for update;\n if not found then perform private.api_raise('not_found'); end if;\n if private.api_ts",
-   " select * into r from public.listings l where l.id=p_id and l.owner_id=actor and l.redacted_at is null;\n if not found then perform private.api_raise('not_found'); end if;\n if private.api_ts"]]:[]),
-  ["not keys <@ (private.api_listing_fields()||'status'::text)","not keys <@ (private.api_listing_fields()||'status'::text||'owner_label'::text||'kind'::text)"],
+  // Güncelleme (listing_update_v1) B3-c2 migration'ında yeniden tanımlandı: bozmaları tools/api-v1-revision-mutations.cjs'te.
   // Kapatma
   [" if r.status<>'active' then return private.api_ok(jsonb_build_object('listing',private.api_listing_json(r,true,actor,true),'changed',false)); end if;\n",""],
   ["select * into r from public.listings l where l.id=p_id and l.owner_id=actor and l.redacted_at is null for update;\n if not found then perform private.api_raise('not_found'); end if;\n if r.status",

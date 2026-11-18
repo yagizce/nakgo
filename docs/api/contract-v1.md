@@ -129,7 +129,7 @@ kullanıcı kimliği hiçbir uçta argüman değildir, her zaman oturumdan (`aut
 | Uç | Yanıt `data` | Not |
 |---|---|---|
 | `listing_create_v1(p_request_id uuid, p_listing jsonb)` | `{listing, created}` | `kind` zorunlu + yazılabilir alanlar. Aynı istek kimliği 24 saat içinde aynı ilanı döner (`created:false`); aynı kimlik farklı gövdeyle `conflict` |
-| `listing_update_v1(p_id, p_revision, p_changes jsonb)` | `{listing}` | `p_revision` = ilanın son okunan `updated_at` değeri; farklıysa `conflict` ve hiçbir şey yazılmaz. Yazılabilir alanlar + `status` |
+| `listing_update_v1(p_id, p_revision bigint, p_changes jsonb)` | `{listing}` | `p_revision` = ilanın son okunan tamsayı `revision` değeri (B3-c2); farklıysa `conflict` ve hiçbir şey yazılmaz. Yazılabilir alanlar + `status` |
 | `listing_close_v1(p_id)` | `{listing, changed}` | Tekrar güvenli |
 | `profile_update_v1(p_changes jsonb)` | profil (`profile_v1` biçimi) | Profil yoksa oluşturur. `display_name` ≤60, `city` ≤40, `about` ≤200, `phone` `05XXXXXXXXX` ya da boş, `account_type` carrier/owner; metin, kırpılır |
 | `favorite_add_v1(p_listing_id)` / `favorite_remove_v1(p_listing_id)` | `{listing_id, saved}` | Tekrar güvenli. Ekleme yalnız görünen ilana (okuma uçlarıyla aynı kural) ve v0 kuralına (etkin ilan) |
@@ -151,9 +151,12 @@ denetim kaydı orada. İlan ve profil yazımı tabloya yapılır; SECURITY DEFIN
 karartma ve alan beyaz listesi açıkça yazılır. Tetikleyiciler (yazma koruması, ilan kotası, moderasyon/askı, erişim
 kaydı) `auth.uid()` okuduğu için v1 içinden de çalışır; testler her birini v1 üzerinden tetikler.
 
-**Revision.** Ayrı bir sütun eklenmedi (v0 tablosu değişmesin diye). Satır kilitlenir ve `updated_at` (yazma koruması
-tetikleyicisi her güncellemede yeniler) son okunan değerle karşılaştırılır. Değer milisaniyeye yuvarlıdır; kayıp güncelleme
-için iki istemcinin aynı milisaniye içinde okuyup yazması gerekir, ağ üzerinden pratikte oluşmaz.
+**Revision (B3-c2).** `public.listings.revision` tamsayıdır; oluşturmada 0, her güncellemede (v0 ve v1, yönetici ve hesap
+silme dahil) tetikleyiciyle tam 1 artar ve elle atanamaz. `listing_update_v1` satırı kilitler ve revision'ı kilit altında
+karşılaştırır: aynı revision'ı okuyan istemcilerden yalnız biri yazar, diğerleri `conflict` alır. Zaman damgası kullanılmaz
+(aynı milisaniyedeki iki sürüm, geride kalan işlem saati ya da geri alınan saat karışmasın). Üye yanıtında `revision` yalnız
+kendi ilanında dolu, başkasınınkinde `null`; misafirde yok. v0 istemcisi sütunu göremez ve yazamaz. Tetikleyicileri
+kapatan bakım yazmaları (replica modu) artırmaz; bunlar ilanı karartır ve karartılmış ilan v1'de güncellenemez.
 
 **Tekrar koruması.** `private.api_requests`: hesap, istek kimliği, fonksiyon, gövdenin md5 özeti, oluşan ilan. Gövde
 (telefon, metin) saklanmaz. 24 saatten eskiler saatlik işle (`private.api_requests_retention`, pg_cron) ve aynı hesabın

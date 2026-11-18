@@ -214,7 +214,7 @@
         ],
         [
           "p_revision",
-          "text"
+          "bigint"
         ],
         [
           "p_changes",
@@ -229,7 +229,7 @@
         "listing"
       ],
       "listing": "listing_item (member+photo)",
-      "revision": "ilanın son okunan updated_at değeri; farklıysa conflict",
+      "revision": "ilanın son okunan revision değeri (tamsayı, yalnız sahibine döner); farklıysa conflict, hiçbir şey yazılmaz",
       "errors": [
         "invalid_argument",
         "not_found",
@@ -559,7 +559,8 @@
       "mine",
       "expires_at",
       "updated_at",
-      "contact_allowed"
+      "contact_allowed",
+      "revision"
     ],
     "detail_member_extra": [
       "photo"
@@ -580,6 +581,7 @@
       "owner_id",
       "redacted_at",
       "image_data"
-    ]
+    ],
+    "revision": "yalnız kendi ilanında tamsayı, diğerlerinde null; her güncellemede 1 artar"
   }
 }

@@ -236,6 +236,7 @@ column public.listings.note text not null default ''::text
 column public.listings.owner_id uuid not null default auth.uid()
 column public.listings.owner_label text not null
 column public.listings.redacted_at timestamp with time zone
+column public.listings.revision bigint not null default 0
 column public.listings.status text not null default 'active'::text
 column public.listings.to_city text not null
 column public.listings.to_district text
@@ -371,6 +372,7 @@ constraint public.listings.listings_note_check CHECK ((char_length(note) <= 1000
 constraint public.listings.listings_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES auth.users(id) ON DELETE CASCADE
 constraint public.listings.listings_owner_label_check CHECK (((char_length(TRIM(BOTH FROM owner_label)) >= 1) AND (char_length(TRIM(BOTH FROM owner_label)) <= 60)))
 constraint public.listings.listings_pkey PRIMARY KEY (id)
+constraint public.listings.listings_revision_check CHECK ((revision >= 0))
 constraint public.listings.listings_status_check CHECK ((status = ANY (ARRAY['active'::text, 'closed'::text, 'archived'::text])))
 constraint public.listings.listings_to_city_check CHECK ((to_city = ANY (ARRAY['Adana'::text, 'Adıyaman'::text, 'Afyonkarahisar'::text, 'Ağrı'::text, 'Aksaray'::text, 'Amasya'::text, 'Ankara'::text, 'Antalya'::text, 'Ardahan'::text, 'Artvin'::text, 'Aydın'::text, 'Balıkesir'::text, 'Bartın'::text, 'Batman'::text, 'Bayburt'::text, 'Bilecik'::text, 'Bingöl'::text, 'Bitlis'::text, 'Bolu'::text, 'Burdur'::text, 'Bursa'::text, 'Çanakkale'::text, 'Çankırı'::text, 'Çorum'::text, 'Denizli'::text, 'Diyarbakır'::text, 'Düzce'::text, 'Edirne'::text, 'Elazığ'::text, 'Erzincan'::text, 'Erzurum'::text, 'Eskişehir'::text, 'Gaziantep'::text, 'Giresun'::text, 'Gümüşhane'::text, 'Hakkari'::text, 'Hatay'::text, 'Iğdır'::text, 'Isparta'::text, 'İstanbul'::text, 'İzmir'::text, 'Kahramanmaraş'::text, 'Karabük'::text, 'Karaman'::text, 'Kars'::text, 'Kastamonu'::text, 'Kayseri'::text, 'Kırıkkale'::text, 'Kırklareli'::text, 'Kırşehir'::text, 'Kilis'::text, 'Kocaeli'::text, 'Konya'::text, 'Kütahya'::text, 'Malatya'::text, 'Manisa'::text, 'Mardin'::text, 'Mersin'::text, 'Muğla'::text, 'Muş'::text, 'Nevşehir'::text, 'Niğde'::text, 'Ordu'::text, 'Osmaniye'::text, 'Rize'::text, 'Sakarya'::text, 'Samsun'::text, 'Siirt'::text, 'Sinop'::text, 'Sivas'::text, 'Şanlıurfa'::text, 'Şırnak'::text, 'Tekirdağ'::text, 'Tokat'::text, 'Trabzon'::text, 'Tunceli'::text, 'Uşak'::text, 'Van'::text, 'Yalova'::text, 'Yozgat'::text, 'Zonguldak'::text])))
 constraint public.listings.listings_to_district_check CHECK (((to_district IS NULL) OR ((char_length(to_district) >= 1) AND (char_length(to_district) <= 40))))
@@ -416,7 +418,7 @@ execute api.favorites_v1(p_cursor text) authenticated
 execute api.listing_close_v1(p_id bigint) authenticated
 execute api.listing_contact_v1(p_id bigint, p_channel text) authenticated
 execute api.listing_create_v1(p_request_id uuid, p_listing jsonb) authenticated
-execute api.listing_update_v1(p_id bigint, p_revision text, p_changes jsonb) authenticated
+execute api.listing_update_v1(p_id bigint, p_revision bigint, p_changes jsonb) authenticated
 execute api.listing_v1(p_id bigint) anon
 execute api.listing_v1(p_id bigint) authenticated
 execute api.listings_v1(p_cursor text, p_kind text) anon
@@ -456,7 +458,7 @@ function api.favorites_v1(p_cursor text) returns jsonb definer vol=v cfg=search_
 function api.listing_close_v1(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=ea5dc2d871aa2425b0da6b4591b8ef7b
 function api.listing_contact_v1(p_id bigint, p_channel text) returns jsonb definer vol=v cfg=search_path="" body=fe2520927909d4faf18b109424533ef1
 function api.listing_create_v1(p_request_id uuid, p_listing jsonb) returns jsonb definer vol=v cfg=search_path="" body=e16584d905bb5b9f20ae7e35aab95f32
-function api.listing_update_v1(p_id bigint, p_revision text, p_changes jsonb) returns jsonb definer vol=v cfg=search_path="" body=0ba9a4fa215e032dc4b723ae5ade5df3
+function api.listing_update_v1(p_id bigint, p_revision bigint, p_changes jsonb) returns jsonb definer vol=v cfg=search_path="" body=6ad1fc28ecbf167ac1365cad82821302
 function api.listing_v1(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=e3655a04573929ce7e481c8c38703be7
 function api.listings_v1(p_cursor text, p_kind text) returns jsonb definer vol=v cfg=search_path="" body=9f3145533732f4d4ec132d61986c6655
 function api.my_listings_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=72799cc72ebbc189f6bf6114fc22fd2b
@@ -476,7 +478,7 @@ function private.api_admin() returns uuid invoker vol=v cfg=search_path="" body=
 function private.api_begin(p_fn text, p_allow_disabled boolean) returns void invoker vol=v cfg=search_path="" body=d71fd85112d72557ee1ba2c7cd37c3ac
 function private.api_cursor(p_cursor text) returns bigint invoker vol=i cfg=search_path="" body=62dedb28478fc19af7c7e6cccc88321c
 function private.api_listing_fields() returns text[] invoker vol=i cfg= body=788bdcb4a87c5e94754c9c045a5d6ef8
-function private.api_listing_json(l listings, p_member boolean, p_actor uuid, p_detail boolean) returns jsonb invoker vol=s cfg= body=098aaffd52bc6f85b08e0ce99f5153ce
+function private.api_listing_json(l listings, p_member boolean, p_actor uuid, p_detail boolean) returns jsonb invoker vol=s cfg= body=2688c932a2af2f8c1f586c43e9e82d96
 function private.api_ok(p_data jsonb) returns jsonb invoker vol=i cfg=search_path="" body=29fca8ebd7103d59922ed29229384aa6
 function private.api_page(p_items jsonb, p_next bigint) returns jsonb invoker vol=i cfg=search_path="" body=dc9acd4df67355dd1b34665d7fd902f9
 function private.api_profile_json(p profiles) returns jsonb invoker vol=s cfg= body=acf6db8b0def96a754da3ba4fa093f35
@@ -496,6 +498,7 @@ function private.is_document_reviewer() returns boolean definer vol=s cfg=search
 function private.is_nakgo_admin() returns boolean definer vol=s cfg=search_path="" body=532dedf4099ad1b97b84d11b36257cb0
 function private.job_activity_guard() returns trigger definer vol=v cfg=search_path="" body=607e0b4e0dd5532ddf9f1f93ba672db8
 function private.listing_quota() returns trigger definer vol=v cfg=search_path="" body=eb33b4a25067963dd75cd660e6ab8f9f
+function private.listing_revision() returns trigger invoker vol=v cfg=search_path="" body=74416aee7b4046f6b3d95f39a26712d2
 function private.log_listing_write() returns trigger definer vol=v cfg=search_path="" body=bba4c453dce05c6b521f4aa51fdbd84a
 function private.log_login() returns trigger definer vol=v cfg=search_path="" body=9a72a368cb13548209f929d932282ac8
 function private.nakgo_backup_auth_identities() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=84a5b1ec4a92c6dff0df1354abc3a3b9
@@ -643,6 +646,7 @@ table public.transport_jobs rls=true force=false
 trigger CREATE TRIGGER carrier_file_cleanup AFTER DELETE ON public.carrier_document_files FOR EACH ROW EXECUTE FUNCTION private.queue_document_cleanup()
 trigger CREATE TRIGGER listings_access_log AFTER INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.log_listing_write()
 trigger CREATE TRIGGER listings_quota BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_quota()
+trigger CREATE TRIGGER listings_revision BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_revision()
 trigger CREATE TRIGGER listings_write_guard BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION nakgo_listing_write_guard()
 trigger CREATE TRIGGER moderation_application BEFORE INSERT OR UPDATE ON public.carrier_applications FOR EACH ROW EXECUTE FUNCTION private.activity_write_guard()
 trigger CREATE TRIGGER moderation_conversation BEFORE INSERT ON public.listing_conversations FOR EACH ROW EXECUTE FUNCTION private.activity_write_guard()
