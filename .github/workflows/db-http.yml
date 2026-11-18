@@ -52,5 +52,5 @@ jobs:
           # Yönetici çakışması testinin PostgREST bölümü (#148 ile gelir; dosya yoksa eklenmez).
           extra=$(ls tests/db/admin-moderate-conflict.test.cjs 2>/dev/null || true)
           # Dosyalar sırayla: her biri küme genelindeki rolleri (authenticator) "yoksa oluştur" ile kurar; paralel koşu yarışır.
-          node --test --test-concurrency=1 tests/db/*-http.test.cjs tests/db/worker-role.test.cjs $extra tests/server/*.test.mjs | tee "$RUNNER_TEMP/http.tap"
+          node --test --test-reporter=tap --test-concurrency=1 tests/db/*-http.test.cjs tests/db/worker-role.test.cjs $extra tests/server/*.test.mjs | tee "$RUNNER_TEMP/http.tap"
           grep -qx '# skipped 0' "$RUNNER_TEMP/http.tap" || { echo "Atlanan test var: PostgREST, supabase-js ya da Miniflare kurulamadı"; exit 1; }
