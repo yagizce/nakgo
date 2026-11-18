@@ -398,11 +398,15 @@ defacl public r anon TRUNCATE
 defacl public r authenticated REFERENCES
 defacl public r authenticated TRIGGER
 defacl public r authenticated TRUNCATE
+execute api.favorite_ids_v1(p_cursor text) authenticated
+execute api.favorites_v1(p_cursor text) authenticated
 execute api.listing_v1(p_id bigint) anon
 execute api.listing_v1(p_id bigint) authenticated
 execute api.listings_v1(p_cursor text, p_kind text) anon
 execute api.listings_v1(p_cursor text, p_kind text) authenticated
 execute api.my_listings_v1(p_cursor text) authenticated
+execute api.profile_v1() authenticated
+execute api.route_alerts_v1(p_cursor text) authenticated
 execute api.status_v1() anon
 execute api.status_v1() authenticated
 execute private.document_account_verified() authenticated
@@ -422,9 +426,13 @@ execute public.nakgo_route_alerts_seen() authenticated
 execute public.nakgo_save_route_alert(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) authenticated
 execute public.nakgo_set_favorite(p_listing_id bigint, p_saved boolean) authenticated
 execute public.nakgo_set_route_alert(p_id bigint, p_active boolean) authenticated
+function api.favorite_ids_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=72e722fbbc040f26bb1aaf97e863624b
+function api.favorites_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=8a22bc8ec6f4e350b0ea9544667e7354
 function api.listing_v1(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=e3655a04573929ce7e481c8c38703be7
 function api.listings_v1(p_cursor text, p_kind text) returns jsonb definer vol=v cfg=search_path="" body=9f3145533732f4d4ec132d61986c6655
 function api.my_listings_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=72799cc72ebbc189f6bf6114fc22fd2b
+function api.profile_v1() returns jsonb definer vol=v cfg=search_path="" body=7587cd8bca339f678363101e60113e6b
+function api.route_alerts_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=d6835fe1cc52ba29490d2cbb23515062
 function api.status_v1() returns jsonb definer vol=v cfg=search_path="" body=2523637b93b591a6fd280ebebebe6833
 function private.account_deleted(p_user uuid) returns boolean definer vol=s cfg=search_path="" body=71c686aff64786a7b3af1d6b37a7435b
 function private.account_suspended(p_user uuid) returns boolean definer vol=s cfg=search_path="" body=6f81a36ee8d611cee6c5778b2e9f6497

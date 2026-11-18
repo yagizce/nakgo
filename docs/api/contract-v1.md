@@ -100,3 +100,19 @@ v0 ile bilinen fark (onaylı karar 1): v0 üye listesi sahibin kendi süresi ge�
 gösterir (RLS sahip kuralı); v1 akışı göstermez, bu ilanlar `my_listings_v1`'de. Moderasyonla kaldırılan ve askıdaki
 sahibin ilanları v0'da durum alanıyla gizlenir (gerçek akışlarda `archived`/`closed` olurlar); v1 bunu ayrıca açıkça
 denetler.
+
+## Hesap okuma uçları (B3-b2)
+
+Migration: `supabase/migrations/20261118060000_b3b2_api_account.sql`. Testler: `tests/db/api-v1-account.test.cjs`,
+`tests/db/api-v1-account-http.test.cjs`. Kasıtlı bozma: `node tools/api-v1-account-mutations.cjs`. Hepsi yalnız üye ve yalnız
+kendi verisi; misafire kapalı.
+
+| Uç | Ne döner |
+|---|---|
+| `profile_v1()` | `{data:{display_name, account_type, city, about, phone}}`; profil satırı yoksa `{data:null}` |
+| `favorites_v1(p_cursor)` | Liste, 50'şer, ilan kimliğine göre azalan: `{listing_id, available, listing}`. İlan görünmüyorsa (başkasının kapalı ilanı, karartılmış, kaldırılmış, süresi geçmiş) `available:false`, `listing:null`. `listing` üye alanlarıyla, fotoğrafsız |
+| `favorite_ids_v1(p_cursor)` | Yalnız kimlikler, 200'er (v0'daki kalp işaretleme okuması) |
+| `route_alerts_v1(p_cursor)` | `{id, kind, from, to, vehicle, body, active, seen_at, created_at}`, 20'şer (yazma ucu hesap başına 20 ile sınırlar) |
+
+Favori ilanın görünürlüğü ayrıntı ucuyla aynıdır: herkese görünen ilan ya da kendi karartılmamış ilanı. Bu, v0'daki
+gömülü ilan okumasıyla (RLS) testte birebir aynı çıktı.

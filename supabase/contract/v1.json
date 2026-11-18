@@ -97,6 +97,84 @@
       "page_size": 50,
       "order": "id desc",
       "item": "listing_item (member)"
+    },
+    "profile_v1": {
+      "args": [],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "display_name",
+        "account_type",
+        "city",
+        "about",
+        "phone"
+      ],
+      "null_when": "profil satırı yok"
+    },
+    "favorites_v1": {
+      "args": [
+        [
+          "p_cursor",
+          "text",
+          "optional"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "list",
+      "page_size": 50,
+      "order": "listing_id desc",
+      "item": [
+        "listing_id",
+        "available",
+        "listing"
+      ],
+      "listing": "listing_item (member) ya da null"
+    },
+    "favorite_ids_v1": {
+      "args": [
+        [
+          "p_cursor",
+          "text",
+          "optional"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "list",
+      "page_size": 200,
+      "order": "listing_id desc",
+      "item": "listing_id (sayı)"
+    },
+    "route_alerts_v1": {
+      "args": [
+        [
+          "p_cursor",
+          "text",
+          "optional"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "list",
+      "page_size": 20,
+      "order": "id desc",
+      "item": [
+        "id",
+        "kind",
+        "from",
+        "to",
+        "vehicle",
+        "body",
+        "active",
+        "seen_at",
+        "created_at"
+      ]
     }
   },
   "errors": {
