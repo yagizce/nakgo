@@ -41,6 +41,33 @@ Var olan işler/görüşmeler silinmez. İstemci audit tablosuna doğrudan yazam
 - Migration (`20261115075953_admin_live.sql`) istemciden önce uygulanmalıdır;
   yeni istemci `p_channel` gönderir.
 
+## Bölümler (Kasım 2026 sadeleştirmesi)
+
+Menü yalnız arka ucu çalışan bölümleri gösterir. Her sayfada başlık, kısa açıklama ve gerekli süzgeçler vardır.
+
+| Bölüm | Sayfalar | Sunucu |
+|---|---|---|
+| Genel Bakış | Özet (dikkat gerektirenler + 4 temel sayı + son 24 saat ilanları), Canlı, İstatistikler | `nakgo_admin_page('overview'/'health'/'listings'/'stats'/'insights')`, `nakgo_admin_live` |
+| İlan Yönetimi | arama, birleşik süzgeç, ayrıntı, geçmiş, kaldırma/engel açma, toplu kaldırma, yasal saklama | `nakgo_admin_page('listings'/'history')`, `nakgo_admin_moderate` |
+| İlan Arşivi | arşiv, saklama kuralları, gece temizliği çalışmaları | `nakgo_admin_page('archive'/'retention')` |
+| Şikâyet Yönetimi | durum süzgeci, ayrıntı, karar (incelemeye al, çözüldü, reddet, yeniden aç) | `nakgo_admin_reports`, `nakgo_admin_report_set` (#146) |
+| Güvenlik ve Denetim | Limit ihlalleri, Yönetici işlemleri, Kullanıcılar | `nakgo_admin_page('security'/'moderation'/'users')`, `nakgo_admin_moderate` |
+| Sistem Sağlığı | veritabanı, API v1, gece temizliği, zamanlanmış görevler, güvenlik olayları | `nakgo_admin_page('health')` |
+
+- **Sistem Sağlığı** (`20261118110000_admin_panel_health.sql`): yalnız veritabanında kayıtlı bilgiler. pg_cron kurulu değilse
+  görev durumu "okunamıyor" yazar; yedek ve geri yükleme durumu veritabanına yazılmadığı için panelde izlenmez ve üretilmez.
+  Görevlerin hata metni döndürülmez.
+- **Genel Bakış uyarıları:** açık/incelenen şikâyet, son 24 saatin limit ihlalleri, gecikmiş ya da hiç çalışmamış gece
+  temizliği, başarısız zamanlanmış görev, yasal saklamadaki ilan, askıdaki hesap. Sağlık bilgisi alınamazsa "bilinmiyor"
+  yazar; sorun yokmuş gibi gösterilmez.
+- **Kaldırılanlar:** Genel Bakış'taki yüzdeli özet kartları ve otomatik dönem özeti; Kullanıcılar ve İşlem geçmişi
+  sayfalarındaki üst kartlar (aynı sayılar süzgeç çiplerinde var). Sunucu fonksiyonları değişmedi.
+- **Menüde olmayanlar:** WhatsApp ilan onayları (taslaklar saklanmıyor; arka uç yok) ve Yasal Kayıtlar (#125, B8; MFA ve
+  ayrı yetki ile kendi arayüzü gelecek). Panel bu kayıtların deposu değildir.
+- **Şikâyet kararı çakışması** `PT409` ile döner. `nakgo_admin_moderate` hâlâ `40001` döndürür; PostgREST bunu yeniden
+  dener ve yanıt gelmez (istemci 15 sn sonra "doğrulanamadı" der). Düzeltme #125 ile birlikte ayrı karar gerektirir.
+- Doğrulama: `tests/admin_sections_browser.py` (Chromium, 1280 ve 390 px), `tests/db/admin-health.test.cjs`.
+
 ## DEV kurulumu
 
 Sırayla 20261026010000_admin_panel.sql ve 20261026020000_admin_moderation.sql
