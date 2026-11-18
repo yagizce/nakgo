@@ -45,7 +45,7 @@ const client=f=>[C,A,D,T].includes(f);
 const run=f=>client(f)?(spawnSync(process.execPath,['tools/bundle.js']).status!==0||spawnSync(process.execPath,['tests/run.js'],{encoding:'utf8'}).status!==0)
   :(()=>{const r=spawnSync(process.execPath,DB,{encoding:'utf8',env:process.env});
     // Zaman aşımında (ör. 40001 → PostgREST'in sonsuz yeniden denemesi) test süreci biter ama PostgREST kalabilir.
-    if(process.env.NAKGO_POSTGREST_BIN)spawnSync('pkill',['-f',process.env.NAKGO_POSTGREST_BIN]);
+    if(process.env.NAKGO_POSTGREST_BIN)spawnSync('pkill',['-x','postgrest']);
     return r.status!==0;})();
 let escaped=0;
 for(const [file,from,to] of M){
