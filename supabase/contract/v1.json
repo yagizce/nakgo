@@ -175,6 +175,296 @@
         "seen_at",
         "created_at"
       ]
+    },
+    "listing_create_v1": {
+      "args": [
+        [
+          "p_request_id",
+          "uuid"
+        ],
+        [
+          "p_listing",
+          "jsonb"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "listing",
+        "created"
+      ],
+      "listing": "listing_item (member+photo)",
+      "input": "kind (zorunlu) + yazılabilir ilan alanları; bilinmeyen alan invalid_argument",
+      "idempotent": "aynı p_request_id 24 saat içinde aynı ilanı döner (created=false); farklı gövde conflict",
+      "errors": [
+        "invalid_argument",
+        "limit_reached",
+        "conflict",
+        "not_found",
+        "account_suspended"
+      ]
+    },
+    "listing_update_v1": {
+      "args": [
+        [
+          "p_id",
+          "bigint"
+        ],
+        [
+          "p_revision",
+          "text"
+        ],
+        [
+          "p_changes",
+          "jsonb"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "listing"
+      ],
+      "listing": "listing_item (member+photo)",
+      "revision": "ilanın son okunan updated_at değeri; farklıysa conflict",
+      "errors": [
+        "invalid_argument",
+        "not_found",
+        "conflict",
+        "limit_reached",
+        "not_allowed",
+        "account_suspended"
+      ]
+    },
+    "listing_close_v1": {
+      "args": [
+        [
+          "p_id",
+          "bigint"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "listing",
+        "changed"
+      ],
+      "idempotent": "zaten kapalıysa changed=false",
+      "errors": [
+        "invalid_argument",
+        "not_found",
+        "account_suspended"
+      ]
+    },
+    "profile_update_v1": {
+      "args": [
+        [
+          "p_changes",
+          "jsonb"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "display_name",
+        "account_type",
+        "city",
+        "about",
+        "phone"
+      ],
+      "input": "display_name (≤60), account_type (carrier|owner), city (≤40), about (≤200), phone (05XXXXXXXXX ya da boş); metin, kırpılır",
+      "errors": [
+        "invalid_argument",
+        "account_suspended"
+      ]
+    },
+    "favorite_add_v1": {
+      "args": [
+        [
+          "p_listing_id",
+          "bigint"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "listing_id",
+        "saved"
+      ],
+      "idempotent": true,
+      "errors": [
+        "invalid_argument",
+        "not_found",
+        "account_suspended"
+      ]
+    },
+    "favorite_remove_v1": {
+      "args": [
+        [
+          "p_listing_id",
+          "bigint"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "listing_id",
+        "saved"
+      ],
+      "idempotent": true,
+      "errors": [
+        "invalid_argument"
+      ]
+    },
+    "route_alert_create_v1": {
+      "args": [
+        [
+          "p_kind",
+          "text"
+        ],
+        [
+          "p_from",
+          "text",
+          "optional"
+        ],
+        [
+          "p_to",
+          "text",
+          "optional"
+        ],
+        [
+          "p_vehicle",
+          "text",
+          "optional"
+        ],
+        [
+          "p_body",
+          "text",
+          "optional"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "alert",
+        "created"
+      ],
+      "alert": "route_alerts_v1 öğesi",
+      "idempotent": "aynı uyarı varsa onu döner (created=false)",
+      "errors": [
+        "invalid_argument",
+        "limit_reached",
+        "account_suspended"
+      ]
+    },
+    "route_alert_update_v1": {
+      "args": [
+        [
+          "p_id",
+          "bigint"
+        ],
+        [
+          "p_active",
+          "boolean"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "alert"
+      ],
+      "idempotent": true,
+      "errors": [
+        "invalid_argument",
+        "not_found",
+        "account_suspended"
+      ]
+    },
+    "route_alert_delete_v1": {
+      "args": [
+        [
+          "p_id",
+          "bigint"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "id",
+        "removed"
+      ],
+      "idempotent": "yoksa removed=false",
+      "errors": [
+        "invalid_argument"
+      ]
+    },
+    "route_alerts_seen_v1": {
+      "args": [],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "updated"
+      ]
+    },
+    "listing_contact_v1": {
+      "args": [
+        [
+          "p_id",
+          "bigint"
+        ],
+        [
+          "p_channel",
+          "text",
+          "optional"
+        ]
+      ],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "phone",
+        "limited"
+      ],
+      "limit": "30 farklı ilan/60 dk, 100/24 saat (v0 nakgo_listing_contact); aşımda phone=null, limited=true",
+      "errors": [
+        "invalid_argument",
+        "not_found",
+        "account_suspended"
+      ]
+    },
+    "account_delete_v1": {
+      "args": [],
+      "roles": [
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "deleted"
+      ],
+      "idempotent": true,
+      "errors": [
+        "not_allowed"
+      ]
     }
   },
   "errors": {
@@ -213,6 +503,18 @@
     "api_disabled": {
       "sqlstate": "PT503",
       "http": 503
+    },
+    "limit_reached": {
+      "sqlstate": "PT429",
+      "http": 429
+    },
+    "not_allowed": {
+      "sqlstate": "42501",
+      "http": 403
+    },
+    "internal_error": {
+      "sqlstate": "XX000",
+      "http": 500
     }
   },
   "usage_columns": [

@@ -101,6 +101,12 @@ column private.admin_members.user_id uuid not null
 column private.api_errors.detail text not null
 column private.api_errors.key text not null
 column private.api_errors.sqlstate text not null
+column private.api_requests.body_md5 text not null
+column private.api_requests.created_at timestamp with time zone not null default now()
+column private.api_requests.fn text not null
+column private.api_requests.ref bigint
+column private.api_requests.request_id uuid not null
+column private.api_requests.user_id uuid not null
 column private.api_settings.id integer not null
 column private.api_settings.updated_at timestamp with time zone not null default now()
 column private.api_settings.v1_enabled boolean not null default true
@@ -271,6 +277,10 @@ constraint private.api_errors.api_errors_detail_check CHECK (((char_length(detai
 constraint private.api_errors.api_errors_key_check CHECK ((key ~ '^[a-z][a-z0-9_]{2,40}$'::text))
 constraint private.api_errors.api_errors_pkey PRIMARY KEY (key)
 constraint private.api_errors.api_errors_sqlstate_check CHECK ((sqlstate ~ '^[0-9A-Z]{5}$'::text))
+constraint private.api_requests.api_requests_body_md5_check CHECK ((body_md5 ~ '^[0-9a-f]{32}$'::text))
+constraint private.api_requests.api_requests_fn_check CHECK ((fn ~ '^[a-z][a-z0-9_]*_v[1-9][0-9]*$'::text))
+constraint private.api_requests.api_requests_pkey PRIMARY KEY (user_id, request_id)
+constraint private.api_requests.api_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 constraint private.api_settings.api_settings_id_check CHECK ((id = 1))
 constraint private.api_settings.api_settings_pkey PRIMARY KEY (id)
 constraint private.api_usage.api_usage_calls_check CHECK ((calls > 0))
@@ -388,14 +398,26 @@ defacl public r anon TRUNCATE
 defacl public r authenticated REFERENCES
 defacl public r authenticated TRIGGER
 defacl public r authenticated TRUNCATE
+execute api.account_delete_v1() authenticated
+execute api.favorite_add_v1(p_listing_id bigint) authenticated
 execute api.favorite_ids_v1(p_cursor text) authenticated
+execute api.favorite_remove_v1(p_listing_id bigint) authenticated
 execute api.favorites_v1(p_cursor text) authenticated
+execute api.listing_close_v1(p_id bigint) authenticated
+execute api.listing_contact_v1(p_id bigint, p_channel text) authenticated
+execute api.listing_create_v1(p_request_id uuid, p_listing jsonb) authenticated
+execute api.listing_update_v1(p_id bigint, p_revision text, p_changes jsonb) authenticated
 execute api.listing_v1(p_id bigint) anon
 execute api.listing_v1(p_id bigint) authenticated
 execute api.listings_v1(p_cursor text, p_kind text) anon
 execute api.listings_v1(p_cursor text, p_kind text) authenticated
 execute api.my_listings_v1(p_cursor text) authenticated
+execute api.profile_update_v1(p_changes jsonb) authenticated
 execute api.profile_v1() authenticated
+execute api.route_alert_create_v1(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) authenticated
+execute api.route_alert_delete_v1(p_id bigint) authenticated
+execute api.route_alert_update_v1(p_id bigint, p_active boolean) authenticated
+execute api.route_alerts_seen_v1() authenticated
 execute api.route_alerts_v1(p_cursor text) authenticated
 execute api.status_v1() anon
 execute api.status_v1() authenticated
@@ -416,12 +438,24 @@ execute public.nakgo_route_alerts_seen() authenticated
 execute public.nakgo_save_route_alert(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) authenticated
 execute public.nakgo_set_favorite(p_listing_id bigint, p_saved boolean) authenticated
 execute public.nakgo_set_route_alert(p_id bigint, p_active boolean) authenticated
+function api.account_delete_v1() returns jsonb definer vol=v cfg=search_path="" body=b8927e40f6a5b545003fd4d4c003f55e
+function api.favorite_add_v1(p_listing_id bigint) returns jsonb definer vol=v cfg=search_path="" body=bace82fd02b5d463026d0a555e75b871
 function api.favorite_ids_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=72e722fbbc040f26bb1aaf97e863624b
+function api.favorite_remove_v1(p_listing_id bigint) returns jsonb definer vol=v cfg=search_path="" body=c012fdc543ec5ddf00f4661b910515ce
 function api.favorites_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=8a22bc8ec6f4e350b0ea9544667e7354
+function api.listing_close_v1(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=ea5dc2d871aa2425b0da6b4591b8ef7b
+function api.listing_contact_v1(p_id bigint, p_channel text) returns jsonb definer vol=v cfg=search_path="" body=fe2520927909d4faf18b109424533ef1
+function api.listing_create_v1(p_request_id uuid, p_listing jsonb) returns jsonb definer vol=v cfg=search_path="" body=e16584d905bb5b9f20ae7e35aab95f32
+function api.listing_update_v1(p_id bigint, p_revision text, p_changes jsonb) returns jsonb definer vol=v cfg=search_path="" body=0ba9a4fa215e032dc4b723ae5ade5df3
 function api.listing_v1(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=e3655a04573929ce7e481c8c38703be7
 function api.listings_v1(p_cursor text, p_kind text) returns jsonb definer vol=v cfg=search_path="" body=9f3145533732f4d4ec132d61986c6655
 function api.my_listings_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=72799cc72ebbc189f6bf6114fc22fd2b
+function api.profile_update_v1(p_changes jsonb) returns jsonb definer vol=v cfg=search_path="" body=cefaadce6c461e3035b72cf14f566319
 function api.profile_v1() returns jsonb definer vol=v cfg=search_path="" body=7587cd8bca339f678363101e60113e6b
+function api.route_alert_create_v1(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) returns jsonb definer vol=v cfg=search_path="" body=5f452ea5f344a9b350a97e9581b238ca
+function api.route_alert_delete_v1(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=f145ebf0a7b05beb4b99cfeb00c27262
+function api.route_alert_update_v1(p_id bigint, p_active boolean) returns jsonb definer vol=v cfg=search_path="" body=cf2d6e9bd956ef1a2ecf5ba0a05fd946
+function api.route_alerts_seen_v1() returns jsonb definer vol=v cfg=search_path="" body=3fead0b5a86241b59804c0b6f6f09835
 function api.route_alerts_v1(p_cursor text) returns jsonb definer vol=v cfg=search_path="" body=d6835fe1cc52ba29490d2cbb23515062
 function api.status_v1() returns jsonb definer vol=v cfg=search_path="" body=2523637b93b591a6fd280ebebebe6833
 function private.account_deleted(p_user uuid) returns boolean definer vol=s cfg=search_path="" body=71c686aff64786a7b3af1d6b37a7435b
@@ -431,10 +465,15 @@ function private.api_actor(p_write boolean) returns uuid invoker vol=v cfg=searc
 function private.api_admin() returns uuid invoker vol=v cfg=search_path="" body=4b1f9524567b012ced32ac1ed0676693
 function private.api_begin(p_fn text, p_allow_disabled boolean) returns void invoker vol=v cfg=search_path="" body=d71fd85112d72557ee1ba2c7cd37c3ac
 function private.api_cursor(p_cursor text) returns bigint invoker vol=i cfg=search_path="" body=62dedb28478fc19af7c7e6cccc88321c
+function private.api_listing_fields() returns text[] invoker vol=i cfg= body=788bdcb4a87c5e94754c9c045a5d6ef8
 function private.api_listing_json(l listings, p_member boolean, p_actor uuid, p_detail boolean) returns jsonb invoker vol=s cfg= body=098aaffd52bc6f85b08e0ce99f5153ce
 function private.api_ok(p_data jsonb) returns jsonb invoker vol=i cfg=search_path="" body=29fca8ebd7103d59922ed29229384aa6
 function private.api_page(p_items jsonb, p_next bigint) returns jsonb invoker vol=i cfg=search_path="" body=dc9acd4df67355dd1b34665d7fd902f9
+function private.api_profile_json(p profiles) returns jsonb invoker vol=s cfg= body=acf6db8b0def96a754da3ba4fa093f35
 function private.api_raise(p_key text) returns void invoker vol=v cfg=search_path="" body=1376ba8d37ab797550e71bdd4670d32f
+function private.api_requests_retention() returns bigint definer vol=v cfg=search_path="" body=07193e958742e2462f5a977d1aafe1d6
+function private.api_rethrow(p_state text, p_msg text, p_hint text) returns void invoker vol=v cfg=search_path="" body=3f04c057115cfdf9d333ab5ae04c5ad1
+function private.api_route_alert_json(a route_alerts) returns jsonb invoker vol=s cfg= body=43a9a2201622864a184ae6134af4622d
 function private.api_ts(p timestamp with time zone) returns text invoker vol=s cfg= body=e73980aaab4c5857996c4865c1e4f798
 function private.api_usage_retention() returns bigint definer vol=v cfg=search_path="" body=70ddb771060645538baf72ec5cc75ed3
 function private.api_viewer() returns uuid invoker vol=v cfg=search_path="" body=6aa3cbc6f8e11fd7d23dffc3cd3f0fbc
@@ -492,6 +531,8 @@ index private.admin_audit_pkey CREATE UNIQUE INDEX admin_audit_pkey ON private.a
 index private.admin_members_one_owner CREATE UNIQUE INDEX admin_members_one_owner ON private.admin_members USING btree (owner) WHERE owner
 index private.admin_members_pkey CREATE UNIQUE INDEX admin_members_pkey ON private.admin_members USING btree (user_id)
 index private.api_errors_pkey CREATE UNIQUE INDEX api_errors_pkey ON private.api_errors USING btree (key)
+index private.api_requests_created CREATE INDEX api_requests_created ON private.api_requests USING btree (created_at)
+index private.api_requests_pkey CREATE UNIQUE INDEX api_requests_pkey ON private.api_requests USING btree (user_id, request_id)
 index private.api_settings_pkey CREATE UNIQUE INDEX api_settings_pkey ON private.api_settings USING btree (id)
 index private.api_usage_pkey CREATE UNIQUE INDEX api_usage_pkey ON private.api_usage USING btree (hour, version, fn, shard)
 index private.contact_clicks_pkey CREATE UNIQUE INDEX contact_clicks_pkey ON private.contact_clicks USING btree (hour, kind, channel)
@@ -560,6 +601,7 @@ table private.account_moderation rls=true force=false
 table private.admin_audit rls=true force=false
 table private.admin_members rls=true force=false
 table private.api_errors rls=true force=false
+table private.api_requests rls=true force=false
 table private.api_settings rls=true force=false
 table private.api_usage rls=true force=false
 table private.contact_clicks rls=true force=false
