@@ -32,7 +32,7 @@ async function putVerified(store,key,doc){
   const bytes=Buffer.from(canonical(doc));
   let r;
   try{r=await store.put(key,bytes,{ifNoneMatch:true});}catch(e){return {ok:false,error:'yazma hatası: '+e.message};}
-  if(!r.ok)return {ok:false,error:'yazılamadı: '+r.status,conflict:r.status===412};
+  if(!r.ok&&!(r.status===412&&r.ambiguous))return {ok:false,error:'yazılamadı: '+r.status,conflict:r.status===412};// belirsiz 412: geri okuma karar verir
   let back;
   try{back=await store.get(key);}catch(e){return {ok:false,error:'geri okunamadı: '+e.message};}
   if(!back||!back.equals(bytes))return {ok:false,error:'geri okunan kayıt farklı'};
