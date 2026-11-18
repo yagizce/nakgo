@@ -8,7 +8,7 @@ module.exports=({test,fs,path,ROOT})=>{
  const ME='00000000-0000-4000-8000-000000000001';
  const item=(id,o={})=>({id,kind:'load',from:{city:'İstanbul',district:'Tuzla'},to:{city:'Ankara',district:null},vehicle:'Tır',body:'Tenteli',amount:20,cargo:'Palet',items:[],
   date:{on:null,until:null,time:'',text:'bugün'},status:'active',created_at:'2026-11-18T08:00:00.000Z',has_photo:true,owner_label:'Ayşe',note:'Not',mine:false,
-  expires_at:'2026-11-18T14:00:00.000Z',updated_at:'2026-11-18T08:00:00.123Z',contact_allowed:true,...o});
+  expires_at:'2026-11-18T14:00:00.000Z',updated_at:'2026-11-18T08:00:00.123Z',contact_allowed:true,revision:o.mine?3:null,...o});
  // Sahte SDK: v1 çağrıları (schema('api').rpc) ve v0 çağrıları (rpc/from) ayrı kaydedilir.
  function harness({status={data:{data:{enabled:true}},error:null},v1={},config={},schema=true}={}){
   const calls={v1:[],v0:[]};let callback;const who={id:ME};
@@ -78,9 +78,10 @@ module.exports=({test,fs,path,ROOT})=>{
   const c=h.calls.v1.at(-1);
   ok(c.fn==='listing_create_v1'&&/^[0-9a-f-]{36}$/.test(c.args.p_request_id)&&JSON.stringify(c.args.p_listing)==='{"kind":"load","from_city":"Ankara","to_city":"İzmir","amount":12}','oluşturma: istek kimliği + beyaz liste, sahip/ad/durum gönderilmez');
   ok(created.id===10&&created.image_data.startsWith('data:image/jpeg'),'oluşturma yanıtı v0 satırı');
-  await a.updateListing(8,{note:'Yeni',owner_id:'x'},'2026-11-18T08:00:00.123Z');
-  ok(JSON.stringify(h.calls.v1.at(-1).args)==='{"p_id":8,"p_revision":"2026-11-18T08:00:00.123Z","p_changes":{"note":"Yeni"}}','güncelleme revision ile');
-  const closed=await a.updateListing(8,{status:'closed'},'r');
+  ok(feed[1].revision===3&&feed[0].revision===null,'revision yalnız kendi ilanında (tamsayı)');
+  await a.updateListing(8,{note:'Yeni',owner_id:'x'},3);
+  ok(JSON.stringify(h.calls.v1.at(-1).args)==='{"p_id":8,"p_revision":3,"p_changes":{"note":"Yeni"}}','güncelleme tamsayı revision ile');
+  const closed=await a.updateListing(8,{status:'closed'},3);
   ok(h.calls.v1.at(-1).fn==='listing_close_v1'&&closed.status==='closed','yalnız kapatma listing_close_v1');
   ok(await a.listingPhoto(9)==='data:image/jpeg;base64,/9j/AA==','fotoğraf ayrıntı ucundan');
   ok(await a.listingContact(9,'call')==='+905321234567'&&JSON.stringify(h.calls.v1.at(-1).args)==='{"p_id":9,"p_channel":"call"}','telefon + kanal');
@@ -106,16 +107,16 @@ module.exports=({test,fs,path,ROOT})=>{
   const out=[],ok=(v,m)=>out.push([!!v,m]);
   const err=key=>({data:null,error:{code:'PT409',message:key,details:'x',hint:'nakgo.api'}});
   const h=harness({v1:{profile_v1:{data:{data:{display_name:'A',account_type:'owner',city:'',about:'',phone:''}},error:null},
-   listing_update_v1:err('conflict'),listing_v1:{data:{data:item(8,{mine:true,note:'Başka cihaz',updated_at:'2026-11-18T09:00:00.000Z'})},error:null},
+   listing_update_v1:err('conflict'),listing_v1:{data:{data:item(8,{mine:true,note:'Başka cihaz',revision:4})},error:null},
    listing_create_v1:{data:null,error:{code:'PT429',message:'limit_reached',hint:'nakgo.api'}},
    route_alert_create_v1:{data:{data:{alert:{id:3,kind:'load',from:'A'},created:false}},error:null},
    route_alert_delete_v1:{data:{data:{id:3,removed:false}},error:null},
    favorite_add_v1:{data:null,error:{code:'PT404',message:'not_found',hint:'nakgo.api'}},
    route_alert_update_v1:{data:null,error:{code:'42501',message:'account_suspended',hint:'nakgo.api'}}}});
   const a=h.auth();await a.init();
-  let e=null;try{await a.updateListing(8,{note:'Benim'},'eski');}catch(x){e=x;}
+  let e=null;try{await a.updateListing(8,{note:'Benim'},2);}catch(x){e=x;}
   ok(e&&e.code==='conflict'&&a.message(e)==='İlan başka bir yerde değişti; güncel hâli yüklendi, yeniden dene.','çakışma mesajı (onaylı metin)');
-  ok(e&&e.current&&e.current.note==='Başka cihaz'&&e.current.updated_at==='2026-11-18T09:00:00.000Z','çakışmada güncel ilan yüklenir');
+  ok(e&&e.current&&e.current.note==='Başka cihaz'&&e.current.revision===4,'çakışmada güncel ilan ve yeni revision yüklenir');
   e=null;try{await a.createListing({kind:'truck'});}catch(x){e=x;}
   ok(e&&e.code==='54000'&&a.message(e).startsWith('Aynı anda en fazla 10'),'ilan sınırı bugünkü mesaj');
   e=null;try{await a.saveRouteAlert({kind:'load',from:'A'});}catch(x){e=x;}ok(e&&e.code==='23505','aynı alarm: bugünkü "zaten kurulu" davranışı');
@@ -169,6 +170,22 @@ module.exports=({test,fs,path,ROOT})=>{
   ok(ids.length===2&&ids[0]===ids[1],'yeniden gönderim aynı istek kimliğiyle (sunucu ikinci ilanı açmaz)');
   await h.auth().createListing(input);ok(ids.length===3&&ids[2]!==ids[1],'başarıdan sonra yeni ilan yeni kimlik');
   await h.auth().createListing({...input,amount:4});ok(ids[3]!==ids[2],'farklı içerik farklı kimlik');
+  // 7b) Belirsiz oluşturmadan sonra v1 kapatılırsa aynı içerik v0'a devredilmez (v0'da tekrar koruması yok).
+  let mode='network';
+  h=harness({v1:{profile_v1:{data:{data:{display_name:'A',account_type:'owner',city:'',about:'',phone:''}},error:null},
+   listing_create_v1:()=>mode==='network'?{data:null,error:{code:'',message:'TypeError: fetch failed'}}:mode==='limit'?{data:null,error:{code:'PT429',message:'limit_reached',hint:'nakgo.api'}}
+    :{data:null,error:{code:'PT503',message:'api_disabled',hint:'nakgo.api'}}}});
+  await h.auth().init();
+  e=null;try{await h.auth().createListing(input);}catch(x){e=x;}ok(e&&e.code!=='create_uncertain','ilk deneme ağ hatası');
+  mode='disabled';e=null;try{await h.auth().createListing(input);}catch(x){e=x;}
+  ok(e&&e.code==='create_uncertain'&&!h.calls.v0.some(x=>x.table==='listings'),'belirsizken v0 ile ikinci yazma yok');
+  ok(h.auth().message(e).includes('doğrulanamadı'),'kullanıcıya kontrol etmesi söylenir');
+  await h.auth().createListing({...input,amount:9});ok(h.calls.v0.some(x=>x.table==='listings'&&x.insert),'farklı içerik v0 ile yazılır');
+  // Sunucu yanıt verdiyse (iş hatası) belirsizlik yok: sonraki v0 denemesi serbest.
+  h=harness({v1:{profile_v1:{data:{data:{display_name:'A',account_type:'owner',city:'',about:'',phone:''}},error:null},
+   listing_create_v1:()=>mode==='limit'?{data:null,error:{code:'PT429',message:'limit_reached',hint:'nakgo.api'}}:{data:null,error:{code:'PT503',message:'api_disabled',hint:'nakgo.api'}}}});
+  await h.auth().init();mode='limit';try{await h.auth().createListing(input);}catch(x){}
+  mode='disabled';await h.auth().createListing(input);ok(h.calls.v0.some(x=>x.table==='listings'&&x.insert),'iş hatasından sonra v0 tekrarı serbest');
   // 8) Hesap değişince sürüm yeniden sorulur (ör. v1 bu arada kapatılmış).
   let enabled=true;
   h=harness({status:()=>({data:{data:{enabled}},error:null}),v1:{profile_v1:{data:{data:{display_name:'A',account_type:'owner',city:'',about:'',phone:''}},error:null},

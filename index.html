@@ -3630,6 +3630,7 @@ const nakgoAuth = (() => {
         same_password:'Önceki şifrenden farklı bir şifre seç.',
         password_too_short:'Şifre en az 10 karakter olmalı.',
         conflict:'İlan başka bir yerde değişti; güncel hâli yüklendi, yeniden dene.',
+        create_uncertain:'Bağlantı kesildiği için ilanın yayınlanıp yayınlanmadığı doğrulanamadı. İlanlarım\'ı yenileyip kontrol et.',
         '54000':'Aynı anda en fazla 10 yayında ilanın olabilir. Birini kapatıp tekrar dene.',
         otp_expired:'Bağlantının süresi dolmuş veya daha önce kullanılmış. Yeni bağlantı iste.',
         flow_state_not_found:'Bağlantıyı isteği başlattığın tarayıcıda aç veya yeni bağlantı iste.',
@@ -3695,7 +3696,9 @@ const nakgoAuth = (() => {
     const cursorOf = before => before === null ? null : String(before);
     const profileRow = (p, id) => p ? {id, ...p} : null;
     // Aynı içerik yeniden gönderilirse (ör. ağ hatası sonrası) aynı istek kimliği: sunucu ikinci ilanı açmaz.
-    let createKey = '', createId = '';
+    // uncertainKey: o içerikle yapılan bir v1 denemesinin sonucu belirsiz (yanıt alınamadı). Aynı içerik v0'a devredilmez
+    // (v0'da tekrar koruması yok, ilan iki kez açılabilirdi); yalnız v1 ile aynı kimlikle yeniden denenebilir.
+    let createKey = '', createId = '', uncertainKey = '';
     function requestId() {
         const c = typeof crypto !== 'undefined' ? crypto : null;
         if (c?.randomUUID) return c.randomUUID();
@@ -3942,7 +3945,7 @@ const nakgoAuth = (() => {
         from_district:x.from?.district??null,to_district:x.to?.district??null,expires_at:x.expires_at,vehicle:x.vehicle,body:x.body,amount:x.amount,cargo:x.cargo,
         note:x.note??'',owner_label:x.owner_label,available_on:x.date?.on??null,available_until:x.date?.until??null,available_time:x.date?.time??'',
         loading_text:x.date?.text??null,items:x.items||[],image_data:x.photo||'',has_photo:x.has_photo===true,status:x.status,created_at:x.created_at,
-        updated_at:x.updated_at,contact_consent:x.contact_allowed===true}:null;
+        updated_at:x.updated_at,revision:Number.isSafeInteger(x.revision)?x.revision:null,contact_consent:x.contact_allowed===true}:null;
     const v0Alert=a=>({id:a.id,kind:a.kind,from_city:a.from,to_city:a.to,vehicle:a.vehicle,body:a.body,active:a.active,seen_at:a.seen_at,created_at:a.created_at});
     function listingResult(result,account) {
         if(result.error)throw result.error;
@@ -3978,17 +3981,29 @@ const nakgoAuth = (() => {
         if(!['load','truck'].includes(input?.kind))throw Error('Invalid kind');
         const values={kind:input.kind,owner_label:String(state.profile.display_name||'NakGo kullanıcısı').trim().slice(0,60)};
         for(const key of listingFields)if(Object.prototype.hasOwnProperty.call(input,key))values[key]=input[key];
+        // owner_label sunucuda profilden konur; v1 göndermeyi kabul etmez.
+        const {owner_label,...listing}=values,key=account.id+'\n'+JSON.stringify(listing);
         return via(async()=>{
-            // owner_label sunucuda profilden konur; v1 göndermeyi kabul etmez.
-            const {owner_label,...listing}=values,key=account.id+'\n'+JSON.stringify(listing);
             if(key!==createKey){createKey=key;createId=requestId();}
-            const r=await v1('listing_create_v1',{p_request_id:createId,p_listing:listing},account);
-            createKey='';
-            return v0Listing(r.data.listing,account.id);
-        },async()=>listingResult(await requireClient().from('listings').insert(values).select(listingColumns).single(),account));
+            try{
+                const r=await v1('listing_create_v1',{p_request_id:createId,p_listing:listing},account);
+                createKey=uncertainKey='';
+                return v0Listing(r.data.listing,account.id);
+            }catch(e){
+                // Fonksiyon çalışıp iş hatası verdiyse (ör. limit_reached) aynı istek kimliğiyle daha önce ilan açılmadığı da
+                // kesindir (sunucu önce kimliğe bakar, varsa o ilanı döner): belirsizlik kalkar. api_disabled ve şema/fonksiyon
+                // yok yanıtları bu denemenin yazmadığını kanıtlar, önceki belirsiz denemeyi değil: belirsizlik sürer.
+                if(e?.apiKey&&!e.v1Absent)uncertainKey='';
+                else if(!e?.apiKey&&!e?.v1Absent)uncertainKey=key;
+                throw e;
+            }
+        },async()=>{
+            if(key===uncertainKey)throw Object.assign(Error('Create outcome unknown'),{code:'create_uncertain'});
+            return listingResult(await requireClient().from('listings').insert(values).select(listingColumns).single(),account);
+        });
     }
-    // revision: ilanın son okunan updated_at değeri (v1). Çakışmada güncel ilan hatayla birlikte döner (e.current).
-    async function updateListing(id,input,revision='') {
+    // revision: ilanın son okunan tamsayı revision değeri (v1, B3-c2). Çakışmada güncel ilan hatayla birlikte döner (e.current).
+    async function updateListing(id,input,revision=null) {
         const account=listingAccount();
         if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
         const values={};
@@ -3997,7 +4012,7 @@ const nakgoAuth = (() => {
         return via(async()=>{
             try{
                 const r=values.status==='closed'&&Object.keys(values).length===1?await v1('listing_close_v1',{p_id:id},account)
-                    :await v1('listing_update_v1',{p_id:id,p_revision:String(revision||''),p_changes:values},account);
+                    :await v1('listing_update_v1',{p_id:id,p_revision:Number.isSafeInteger(revision)?revision:null,p_changes:values},account);
                 return v0Listing(r.data.listing,account.id);
             }catch(e){
                 if(e?.apiKey==='conflict')try{e.current=v0Listing((await v1('listing_v1',{p_id:id},account)).data,account.id);}catch(ignored){}
@@ -4131,7 +4146,7 @@ const nakgoMarket = (() => {
             from:r.from_city,to:r.to_city,fromD:r.from_district||'',toD:r.to_district||'',veh:r.vehicle,body:r.body,ton:Number(r.amount),cap:Number(r.amount),cargo:r.cargo,
             owner:r.owner_label||'NakGo üyesi',who:r.owner_label||'NakGo üyesi',date:r.available_on||'',dateEnd:r.available_until||'',time:r.available_time||'',...(r.loading_text!=null?{dateText:r.loading_text}:{}),note:r.note||'',
             items:r.items||[],img:imgOk(r.image_data)?r.image_data:'',closed:r.status!=='active'||Date.parse(r.expires_at)<=Date.now(),shut:r.status!=='active',expiresAt:Date.parse(r.expires_at),archived:r.status==='archived',
-            ts:Date.parse(r.created_at),rate:'Yeni',rev:r.updated_at||'',hasPhoto:r.has_photo===true||imgOk(r.image_data)};
+            ts:Date.parse(r.created_at),rate:'Yeni',rev:Number.isSafeInteger(r.revision)?r.revision:null,hasPhoto:r.has_photo===true||imgOk(r.image_data)};
     }
     function put(rows,replace=false) {
         const records=new Map((replace?[]:[...loads,...trucks]).map(x=>[x.remoteId,x]));
