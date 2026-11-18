@@ -27,18 +27,19 @@ const key=r=>r.error&&r.error.key;
 const istanbulToday=()=>new Date(Date.now()+3*3600e3).toISOString().slice(0,10);
 const PHONE='+905321234567';
 const JPEG='data:image/jpeg;base64,/9j/4AAQSkZJRg==';
-const loadPayload=()=>({kind:'load',from_city:'İstanbul',to_city:'Ankara',from_district:'Tuzla',vehicle:'Tır',body:'Tenteli',amount:20,cargo:'Palet',note:'Not',
+const loadPayload=()=>({kind:'load',from_city:'İstanbul',to_city:'Ankara',from_district:'Tuzla',vehicle:'Tır',body:'Tenteli',amount:20,amount_unit:'ton',cargo:'Palet',note:'Not',
   loading_text:'bugün',items:[],image_data:JPEG,contact_phone:PHONE,contact_consent:true});
-const truckPayload=()=>({kind:'truck',from_city:'İzmir',to_city:'Bursa',vehicle:'Kamyon',body:'Kapalı kasa',amount:12,available_on:istanbulToday(),available_time:'09:30',contact_consent:false});
+const truckPayload=()=>({kind:'truck',from_city:'İzmir',to_city:'Bursa',vehicle:'Kamyon',body:'Kapalı kasa',amount:12,amount_unit:'ton',available_on:istanbulToday(),available_time:'09:30',contact_consent:false});
 const COLS=['kind','from_city','to_city','from_district','to_district','vehicle','body','amount','cargo','note','available_on','available_until','available_time',
   'loading_text','items','image_data','contact_phone','contact_consent','status','owner_label','redacted_at'];
 const row=async(db,id)=>(await db.query(`select * from public.listings where id=$1`,[id])).rows[0];
 const pick=r=>JSON.parse(JSON.stringify(Object.fromEntries(COLS.map(c=>[c,r[c]]))));
 const count=async(db,sql,args=[])=>Number((await db.query(sql,args)).rows[0].n);
 // v0 yolu: authenticated rolü, RLS ve sütun yetkileriyle doğrudan tablo (cloud.js createListing/updateListing gibi).
-const v0Insert=(db,user,label,p)=>{const k=Object.keys(p);return as(db,{user},`insert into public.listings(owner_label,${k.join(',')})
+// v0 istemcisi birim göndermez (tonaj her zaman ton).
+const v0Insert=(db,user,label,{amount_unit,...p})=>{const k=Object.keys(p);return as(db,{user},`insert into public.listings(owner_label,${k.join(',')})
   select $1,${k.map(c=>'x.'+c).join(',')} from jsonb_populate_record(null::public.listings,$2) x returning id`,[label,JSON.stringify(p)]);};
-const v0Update=(db,user,id,p)=>{const k=Object.keys(p);return as(db,{user},`update public.listings l set ${k.map(c=>c+'=x.'+c).join(',')}
+const v0Update=(db,user,id,{amount_unit,...p})=>{const k=Object.keys(p);return as(db,{user},`update public.listings l set ${k.map(c=>c+'=x.'+c).join(',')}
   from jsonb_populate_record(null::public.listings,$1) x where l.id=$2 and l.owner_id=$3 returning l.id`,[JSON.stringify(p),id,user]);};
 
 test('API v1 yazma uçları',async t=>{
@@ -127,7 +128,7 @@ test('API v1 yazma uçları',async t=>{
 
     await t.test('güncelleme: revision ile; eski revision conflict ve satır değişmez; v0 ile aynı sonuç; sahip/karartma koşulu',async()=>{
       const a=(await v0Insert(db,A,'Ayşe',truckPayload())).rows[0],b=(await call(db,B,'listing_create_v1',[rid(),truckPayload()])).data.listing;
-      const change={note:'Yeni not',amount:14,available_time:''};
+      const change={note:'Yeni not',amount:14,amount_unit:'ton',available_time:''};
       const va=await v0Update(db,A,a.id,change);assert.ok(!va.error);
       const vb=await call(db,B,'listing_update_v1',[b.id,b.revision,change]);assert.ok(vb.data,JSON.stringify(vb));
       assert.deepEqual(pick(await row(db,b.id)),pick(await row(db,a.id)));
@@ -376,7 +377,7 @@ test('API v1 yazma uçları',async t=>{
         await t2.test('aynı revision ile iki güncelleme: biri yazar, diğeri conflict; kayıp güncelleme yok',async()=>{
           const l=(await call(db,B,'listing_create_v1',[rid(),truckPayload()])).data.listing;
           const [a,b]=await Promise.all([on(x,B,'listing_update_v1',[l.id,l.revision,{note:'birinci'}],0.3),
-            new Promise(r=>setTimeout(r,100)).then(()=>on(y,B,'listing_update_v1',[l.id,l.revision,{amount:30}]))]);
+            new Promise(r=>setTimeout(r,100)).then(()=>on(y,B,'listing_update_v1',[l.id,l.revision,{amount:30,amount_unit:'ton'}]))]);
           assert.ok(a.data,JSON.stringify(a));assert.equal(b.error.key,'conflict');
           const r=await row(db,l.id);assert.equal(r.note,'birinci');assert.equal(Number(r.amount),12);
         });

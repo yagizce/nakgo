@@ -20,7 +20,7 @@ const call=async(db,user,fn,args=[])=>{
   return r.error?{error:r.error}:r.rows[0].r;
 };
 const today=()=>new Date(Date.now()+3*3600e3).toISOString().slice(0,10);
-const truck=()=>({kind:'truck',from_city:'İzmir',to_city:'Bursa',vehicle:'Kamyon',body:'Tenteli',amount:12,available_on:today()});
+const truck=()=>({kind:'truck',from_city:'İzmir',to_city:'Bursa',vehicle:'Kamyon',body:'Tenteli',amount:12,amount_unit:'ton',available_on:today()});
 const rev=async(db,id)=>Number((await db.query(`select revision from public.listings where id=$1`,[id])).rows[0].revision);
 
 test('API v1 tamsayı revision',async t=>{

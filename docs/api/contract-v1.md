@@ -221,3 +221,62 @@ davranış değişmez.
 Testler: `tests/unit/api-v1-client.test.js`, `tests/unit/listing-photo-v1.test.js`, `tests/unit/listing-revision-v1.test.js`,
 `tests/db/api-v1-client-http.test.cjs` (gerçek supabase-js + yerel PostgREST; CI'da atlanır). Kasıtlı bozma:
 `node tools/api-v1-client-mutations.cjs`.
+
+## Araç verileri (B10)
+
+Araç tipi, kasa tipi ve tonaj ilan tablosunda zaten vardı ve ilk migration'dan beri tablo kısıtıyla doğrulanıyor; yeni sütun
+açılmadı, v0 tablosu, kısıtları, RLS, kotalar ve moderasyon değişmedi. Migration: `20261118090000_b10_vehicle_data.sql`.
+
+| Alan | Sütun | İzin verilen değerler | Kural |
+|---|---|---|---|
+| Araç tipi | `vehicle` | Tır, Kırkayak, Kamyon, Kamyonet, Panelvan, Tanker, Lowbed, Konteyner | Zorunlu; tam eşleşme (büyük/küçük harf, boşluk dahil) |
+| Kasa tipi | `body` | Tenteli, Kapalı kasa, Açık kasa, Frigorifik, Damperli, Tanker, Lowbed, Konteyner | Zorunlu; tam eşleşme |
+| Tonaj | `amount` | 0 < değer ≤ 9007199254740991; v1'de en fazla 3 ondalık | **Birim: ton.** Yük ilanında yük ağırlığı, boş araç ilanında boş kapasite |
+
+- **Katalog:** `listing_catalog_v1()` (misafir ve üye) `{vehicles, bodies, amount:{unit:"ton", min_exclusive:0, max, max_decimals:3}}` döner.
+  Katalog, tablo kısıtları ve istemci listeleri (`src/js/config.js`) aynıdır; `tests/db/api-v1-vehicle.test.cjs` denetler.
+- **Girdi (v1):** `amount` yalnız JSON sayı, en fazla 3 ondalık ve yanında `amount_unit:"ton"` ile kabul edilir; birimsiz,
+  başka birimli, metin, 3'ten fazla ondalıklı tonaj ve tonajsız birim `invalid_argument`. Ondalık sayısı sayının yazıldığı
+  biçimle ölçülür: `18.5`, `18.250`, `0.001`, `1e-3` geçerli; `18.2501`, `18.2500`, `0.0001` geçersiz. Araç/kasa listede
+  olmalı. Yanıt biçimi değişmedi (`amount` ton).
+- **Form (istemci):** v1 modunda ilan formu (yük ağırlığı, boş kapasite) ve düzenleme formu girilen metni ve gönderilecek
+  sayıyı denetler; 3'ten fazla ondalıkta form gönderilmez ve "Tonaj en fazla 3 ondalık basamak içerebilir. Örnek: 18,250
+  ton." gösterilir. Yuvarlama yapılmaz. Boş, sıfır ve geçersiz karakter bugünkü mesajlarla reddedilir. v0 modunda (oturum
+  ortasında v0'a dönüldüğünde de) form davranışı değişmez. Kontrol sunucu doğrulamasının yerine geçmez. Mod, istemcinin o an
+  bildiği sürümdür (`nakgoAuth.apiMode()`); sürüm sorgusu sürerken v0 sayılır ve sunucu yine reddeder.
+- **v0 ve eski veri:** hassasiyet kuralı yalnız v1 girdisinde; tablo kısıtı ve v0 değişmedi. v0 ile girilmiş daha hassas
+  tonaj (ör. 18.2501) v1'de olduğu gibi okunur; tonaja dokunmayan v1 düzenlemesi serbesttir, tonaj v1 ile yeniden yazılırken
+  kural uygulanır.
+- **Akış filtreleri:** `listings_v1` isteğe bağlı `p_vehicle`, `p_body`, `p_min_amount`, `p_max_amount` (ton, uçlar dahil)
+  alır; eski çağrılar aynen çalışır. Geçersiz değer ya da alt sınırın üst sınırı geçmesi `invalid_argument`.
+- **Rota alarmı (v1):** araç/kasa verilirse katalogdan olmalı. v0'ın serbest metni ve eski alarmlar değişmez; eski
+  alarmlar v1'de okunur, açılıp kapatılır, silinir.
+- **v0:** değişmedi; v0 istemcisi birim göndermez, tonaj her zaman ton. Uygulama (B3-d) v1'e tonajı `amount_unit:"ton"` ile
+  gönderir; filtreleme uygulamada yerel olarak sürer.
+
+### B10 iş kuralları kararları (18 Kasım 2026)
+
+1. **Tonaj üst sınırı:** yeni ticari sınır yok; teknik güvenli sayı sınırı (9007199254740991) ve mevcut veritabanı
+   doğrulamaları korunur. Gerçekçi üst sınır, araç sınıfları ve sektör gereksinimleri incelenerek ileride kararlaştırılacak.
+2. **Araç–kasa uyumu:** bütün geçerli araç/kasa birleşimleri kabul edilir; uyumluluk matrisi ya da otomatik ret kuralı yok.
+   Ayrıca değerlendirilecek.
+3. **Kapasite eşleştirmesi:** B10 kapsamında değil (aşağıdaki gereksinim).
+4. **Birim ve hassasiyet:** yalnız ton; v1'de en fazla 3 ondalık. Birimsiz ya da başka birimli v1 istekleri reddedilir.
+   v0 değişmez.
+
+### Sonraki eşleştirme aşaması için teknik gereksinim: kapasite eşleştirmesi
+
+Bir yük ilanı ile bir boş araç ilanı ancak aşağıdakilerin hepsi sağlanıyorsa uygun eşleşme sayılır:
+- **Tür ve yön:** biri yük (`kind='load'`), diğeri boş araç (`kind='truck'`) ilanıdır; yükün çıkış ve varış ili aracın çıkış ve
+  varış iliyle uyumludur (yön ters değil). İlçe ve ara güzergâh kuralları o aşamada ayrıca belirlenir.
+- **Kapasite:** aracın boş kapasitesi (`amount`, ton) yükün ağırlığından (`amount`, ton) **küçük olamaz**. Kapasitesi yetersiz
+  araç uygun eşleşme sayılmaz. Karşılaştırma ton ve en fazla 3 ondalıkla yapılır; v0'dan gelen daha hassas eski değerler
+  yuvarlanmadan karşılaştırılır.
+- **Araç ve kasa:** yük ilanında istenen araç/kasa ile aracın araç/kasası; uyumluluk matrisi kararı (madde 2) verilene kadar
+  birebir eşitlik.
+- **Uygunluk:** iki ilan da herkese görünür olmalıdır (etkin, süresi dolmamış, tarihi geçmemiş, moderasyonla kaldırılmamış,
+  sahibi askıda değil: `private.api_visible_listings`); tarihler örtüşmelidir; kişi kendi ilanıyla eşleşmez.
+- **Gizlilik:** eşleşme yanıtı karşı tarafın kimliğini ya da telefonunu açmaz; telefon yalnız mevcut telefon görüntüleme
+  ucu ve sınırıyla (30/saat, 100/gün) alınır.
+- **Test:** sınır değerleri (kapasite = ağırlık eşleşir, 0,001 ton eksik eşleşmez), ters yön, görünmeyen ilan, kendi ilanı ve
+  v0 ile girilmiş hassas eski değerler otomatik testle sınanır.

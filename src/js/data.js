@@ -63,6 +63,17 @@ const dateBucket = x => {
     return "İleri tarih";
 };
 const positiveAmount = value => Number.isFinite(+value) && +value > 0 && +value <= Number.MAX_SAFE_INTEGER;
+// B10: API v1 tonajı en fazla 3 ondalıkla kabul eder (sunucu da denetler; bu kontrol onun yerine geçmez). Girilen metin ve
+// gönderilecek sayı birlikte denetlenir; yuvarlama yapılmaz. Boş, sıfır ve geçersiz metin burada değil positiveAmount'ta.
+const tonDecimalsOK = raw => {
+    const text = String(raw ?? "").trim().replace(",", "."), n = Number(text);
+    if (!text || !Number.isFinite(n)) return true;
+    const decimals = s => (/\.(\d+)$/.exec(s) || ["", ""])[1].length;
+    return !/e/i.test(String(n)) && decimals(text) <= 3 && decimals(String(n)) <= 3;
+};
+const TON_DECIMALS_TEXT = "Tonaj en fazla 3 ondalık basamak içerebilir. Örnek: 18,250 ton.";
+// Yalnız v1 modunda; v0 modunda giriş davranışı değişmez.
+const v1TonError = raw => typeof nakgoAuth !== "undefined" && nakgoAuth.apiMode() === "v1" && !tonDecimalsOK(raw) ? TON_DECIMALS_TEXT : "";
 const postDateOK = value => ["Bugün", "Yarın", "Bu hafta"].includes(value) || validDay(value);
 const ITEM_UNITS = ["ton", "kg", "palet", "koli", "adet", "m³"];
 function postError(x, isTruck = false, step = 2) {
