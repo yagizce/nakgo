@@ -176,3 +176,48 @@ v0 ile bilinen farklar (hiçbiri kuralı gevşetmez):
 - Yukarıdaki genel maddeler (Exposed schemas, Supabase PostgREST üzerinde bir kez deneme).
 - `nakgo-api-requests-retention` pg_cron işinin Supabase'de çalıştığının görülmesi.
 - Supabase günlük ayarında hata ifadesi parametrelerinin yazılmadığının (`log_parameter_max_length_on_error=0`) görülmesi.
+
+## İstemci geçişi (B3-d)
+
+`src/js/cloud.js` (`nakgoAuth`) bütün kullanıcı çağrılarını v1'e taşır; yönetici çağrıları B8'e kadar v0'da kalır. Ekran kodu
+değişmez: v1 yanıtı `v0Listing`/`v0Alert` ile bugünkü satır biçimine çevrilir, v1 hata anahtarı bugünkü hata koduna
+(`V1_CODES`) eşlenir, böylece bugünkü uyarı metinleri aynen görünür.
+
+**Sürüm seçimi (tek yer):** `API_PREFERENCE` (`'auto'` | `'v0'`). `'auto'`: oturumda bir kez `api.status_v1` sorulur;
+yalnız `enabled:true` dönerse v1. Şema açık değil (`PGRST106`), fonksiyon yok, ağ hatası, 15 sn zaman aşımı ya da SDK'da
+`schema()` yoksa v0. `/api/auth/config` yanıtındaki isteğe bağlı `"api":"v0"` alanı v1'i istemci tarafında kapatır.
+Hesap değişince yeniden sorulur.
+
+**v0'a dönüş (kalıcı):** yalnız sunucunun o isteği hiç çalıştırmadığı kesin olan üç yanıtta otomatik v0 tekrarı yapılır ve
+oturumun kalanı v0'dadır:
+- `api_disabled` (PT503): `private.api_begin` her uçta ilk adımdır ve kapatma anahtarını hiçbir yazmadan önce denetler;
+  hata işlemi geri alır.
+- `PGRST106` (şema açık değil) ve `PGRST202` (fonksiyon yok): PostgREST isteği veritabanına göndermeden reddeder.
+
+Bunların dışında hiçbir hata v0'a devredilmez: ağ hatası, zaman aşımı, ağ geçidi 5xx yanıtı, `PGRST001/002` gibi bağlantı
+hataları ve iş hataları (`conflict`, `limit_reached`, `not_found`…). Sonucu belirsiz bir **ilan oluşturma** denemesinden
+sonra v1 kapatılsa bile aynı içerik v0'a gönderilmez (v0'da tekrar koruması yok); kullanıcıya "Bağlantı kesildiği için
+ilanın yayınlanıp yayınlanmadığı doğrulanamadı. İlanlarım'ı yenileyip kontrol et." gösterilir. Diğer yazmalar v0'da da
+tekrar güvenlidir (favori, profil, alarm açma/kapatma, hesap silme; aynı alarm "zaten kurulu" döner; aynı telefon
+görüntülemesi sayılmaz).
+
+**İstek kimliği:** ilan oluşturmada içerik + hesap aynı kaldıkça aynı kimlik kullanılır (ağ hatası sonrası yeniden gönderim
+ikinci ilan açmaz); başarıdan sonra sıfırlanır.
+
+**Revision:** kayıtta `rev` (= tamsayı `revision`, B3-c2); düzenleme onu gönderir. Çakışmada ilanın güncel hâli yüklenir ve
+"İlan başka bir yerde değişti; güncel hâli yüklendi, yeniden dene." gösterilir.
+
+**Fotoğraf:** v1 listesi yalnız `has_photo` taşır; kartta "Fotoğraflı" etiketi, ayrıntıda yer tutucu ve `listing_v1` ile
+sonradan yükleme. Boş yanıtta yer tutucu kalkar; hata, ağ kesintisi ve 15 sn zaman aşımında "Yeniden dene". Başka ilan
+açıldıysa ya da oturum değiştiyse geç gelen fotoğraf yazılmaz. Misafire fotoğraf verilmez (v0'da da yok).
+
+**v1'de bilinçli fark (onaylı karar, 18 Kasım 2026):** v1 başkasının ilanında sahip kimliği vermez (veri minimizasyonu,
+B3-b); sahip kimliği v1'e eklenmeyecek. Arayüzdeki sonuç (`tests/unit/owner-hidden-v1.test.js` ile doğrulanır): v1
+modunda başkasının ilan ayrıntısında cihaz içi "Engelle" düğmesi görünmez ve engellenen hesap filtresi v1 ilanlarına
+uygulanmaz. İlan sahibinin adı, "Profili gör", "Şikayet et", iletişim ve kendi ilanının tanınması (`mine`) sürer. Bu
+engelleme zaten yalnız o oturumda geçerliydi (hesaba geçişte sıfırlanır); v1 etkinleştiğinde kaldırılabilir. v0 modunda
+davranış değişmez.
+
+Testler: `tests/unit/api-v1-client.test.js`, `tests/unit/listing-photo-v1.test.js`, `tests/unit/listing-revision-v1.test.js`,
+`tests/db/api-v1-client-http.test.cjs` (gerçek supabase-js + yerel PostgREST; CI'da atlanır). Kasıtlı bozma:
+`node tools/api-v1-client-mutations.cjs`.

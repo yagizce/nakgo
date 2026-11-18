@@ -4,16 +4,21 @@
 const crypto=require('node:crypto'),{spawn}=require('node:child_process');
 const b64=x=>Buffer.from(typeof x==='string'?x:JSON.stringify(x)).toString('base64url');
 
-async function startPostgrest(db){
-  const SECRET=crypto.randomBytes(32).toString('hex'),PW=crypto.randomBytes(16).toString('hex');
-  const PORT=3900+Math.floor(Math.random()*90),ADMIN=PORT+100;
+/** schemas: PostgREST'in açtığı şemalar (varsayılan public,api; 'public' = api açılmamış Supabase gibi). */
+async function startPostgrest(db,{schemas='public,api'}={}){
+  // Aynı veritabanında ikinci sunucu aynı parola ve sırrı kullanır (parola değişirse ilk sunucunun yeni bağlantıları düşer).
+  const keys=db.__postgrest??=(db.__postgrest={SECRET:crypto.randomBytes(32).toString('hex'),PW:crypto.randomBytes(16).toString('hex')});
+  const {SECRET,PW}=keys;
+  // Boş portlar işletim sisteminden alınır (testler paralel çalışır; rastgele port çakışıp başka sunucuya bağlanmasın).
+  const free=()=>new Promise((ok,fail)=>{const srv=require('node:net').createServer();srv.on('error',fail);srv.listen(0,'127.0.0.1',()=>{const {port}=srv.address();srv.close(()=>ok(port));});});
+  const PORT=await free(),ADMIN=await free();
   await db.exec(`create or replace function auth.uid() returns uuid language sql stable as $$
     select coalesce(nullif(current_setting('request.jwt.claim.sub',true),''),(nullif(current_setting('request.jwt.claims',true),'')::jsonb->>'sub'))::uuid $$;
     do $$ begin if not exists(select 1 from pg_roles where rolname='authenticator') then create role authenticator login noinherit; end if; end $$;
     alter role authenticator password '${PW}'; grant anon,authenticated to authenticator;`);
   const host=process.env.NAKGO_PG_HOST,port=process.env.NAKGO_PG_PORT||5432;
   const uri=host.startsWith('/')?`postgres://authenticator:${PW}@/${db.name}?host=${host}&port=${port}`:`postgres://authenticator:${PW}@${host}:${port}/${db.name}`;
-  const proc=spawn(process.env.NAKGO_POSTGREST_BIN,[],{env:{PGRST_DB_URI:uri,PGRST_DB_SCHEMAS:'public,api',PGRST_DB_ANON_ROLE:'anon',PGRST_JWT_SECRET:SECRET,
+  const proc=spawn(process.env.NAKGO_POSTGREST_BIN,[],{env:{PGRST_DB_URI:uri,PGRST_DB_SCHEMAS:schemas,PGRST_DB_ANON_ROLE:'anon',PGRST_JWT_SECRET:SECRET,
     PGRST_SERVER_HOST:'127.0.0.1',PGRST_SERVER_PORT:String(PORT),PGRST_ADMIN_SERVER_PORT:String(ADMIN),PGRST_LOG_LEVEL:'crit'},stdio:'ignore'});
   let ready=false;for(let i=0;i<100&&!ready;i++){try{ready=(await fetch(`http://127.0.0.1:${ADMIN}/ready`)).ok;}catch{}if(!ready)await new Promise(r=>setTimeout(r,150));}
   if(!ready){proc.kill();throw Error('PostgREST hazır değil');}
@@ -28,6 +33,6 @@ async function startPostgrest(db){
     const text=await r.text();return {status:r.status,body:text?JSON.parse(text):null,raw:text};
   };
   const get=(path,token)=>fetch(`http://127.0.0.1:${PORT}${path}`,{headers:token?{authorization:'Bearer '+token}:{}});
-  return {jwt,rpc,get,stop:()=>proc.kill()};
+  return {jwt,rpc,get,base:`http://127.0.0.1:${PORT}`,stop:()=>proc.kill()};
 }
 module.exports={startPostgrest};

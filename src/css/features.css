@@ -66,6 +66,17 @@
   margin-bottom:10px;
 }
 
+.ph-wait {
+  min-height:120px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  background:var(--line);
+  color:var(--mute);
+  font-size:14px;
+}
+
 .itrow {
   display:flex;
   gap:6px;
