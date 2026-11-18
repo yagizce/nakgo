@@ -21,7 +21,7 @@ Production karşılaştırması salt okunurdur: `node tools/schema-check.cjs --f
 | RPC | Argümanlar | Dönüş | Çağırabilen |
 |---|---|---|---|
 | `nakgo_public_listings` | `p_before bigint` (isteğe bağlı) | İlan satırları; sahip, telefon, not ve fotoğraf yok | anon, authenticated |
-| `nakgo_listing_contact` | `p_id bigint`, `p_channel text` (isteğe bağlı: `call`/`whatsapp`) | `text` telefon | authenticated |
+| `nakgo_listing_contact` | `p_id bigint`, `p_channel text` (isteğe bağlı: `call`/`whatsapp`) | `text` telefon; hesap başına görüntüleme sınırı aşıldıysa `null` (60 dk'da 30, 24 saatte 100 farklı ilan; daha önce görülen ilan sayılmaz) | authenticated |
 | `nakgo_set_favorite` | `p_listing_id bigint`, `p_saved boolean` | `{listing_id, saved}` | authenticated |
 | `nakgo_save_route_alert` | `p_kind`, `p_from`, `p_to`, `p_vehicle`, `p_body` (text) | `route_alerts` satırı | authenticated |
 | `nakgo_set_route_alert` | `p_id bigint`, `p_active boolean` | `route_alerts` satırı | authenticated |
@@ -29,7 +29,7 @@ Production karşılaştırması salt okunurdur: `node tools/schema-check.cjs --f
 | `nakgo_route_alerts_seen` | — | `integer` | authenticated |
 | `nakgo_delete_my_account` | — | `{deleted}` | authenticated |
 | `nakgo_admin_role` | — | `boolean` | authenticated |
-| `nakgo_admin_page` | `p_section text`; isteğe bağlı `p_offset`, `p_search`, `p_filter`, `p_query jsonb` | `jsonb` | authenticated (sunucu yönetici denetler) |
+| `nakgo_admin_page` | `p_section text`; isteğe bağlı `p_offset`, `p_search`, `p_filter`, `p_query jsonb`. `security` bölümü güvenlik olaylarını verir (`p_filter`: boş, `contact_limit_hour`, `contact_limit_day`) | `jsonb` | authenticated (sunucu yönetici denetler) |
 | `nakgo_admin_live` | `p_kind text` (isteğe bağlı) | `jsonb` | authenticated (sunucu yönetici denetler) |
 | `nakgo_admin_moderate` | `p_kind`, `p_target`, `p_action`, `p_reason` (text), `p_revision bigint` | `jsonb` | authenticated (sunucu yönetici denetler) |
 
