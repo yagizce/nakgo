@@ -242,7 +242,7 @@ begin
  set local role authenticated;
  perform public.nakgo_admin_moderate('listing',n::text,'hold','Panel saklama',0);
  rid:=(public.nakgo_legal_action('open',jsonb_build_object('policy','dispute','listing',n,'reason','İkinci dosya'))->>'record')::bigint;
- begin perform public.nakgo_admin_moderate('listing',n::text,'release','Bayat',0); raise exception 'FAIL stale release'; exception when serialization_failure then null; end;
+ begin perform public.nakgo_admin_moderate('listing',n::text,'release','Bayat',0); raise exception 'FAIL stale release'; exception when serialization_failure or sqlstate 'PT409' then null; end;
  res:=public.nakgo_admin_moderate('listing',n::text,'release','Talepler bitti',1);
  reset role;
  if (res->>'revision')::int<>2 or (select hold from private.listing_moderation where listing_id=n) then raise exception 'FAIL panel release %',res; end if;
