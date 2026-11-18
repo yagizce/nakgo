@@ -115,6 +115,9 @@ column private.contact_clicks.channel text not null
 column private.contact_clicks.clicks integer not null default 0
 column private.contact_clicks.hour timestamp with time zone not null
 column private.contact_clicks.kind text not null
+column private.contact_views.listing_id bigint not null
+column private.contact_views.user_id uuid not null
+column private.contact_views.viewed_at timestamp with time zone not null
 column private.daily_stats.day date not null
 column private.daily_stats.listings integer not null default 0
 column private.daily_stats.loads integer not null default 0
@@ -131,9 +134,21 @@ column private.listing_moderation.reason text not null default ''::text
 column private.listing_moderation.removed boolean not null default false
 column private.listing_moderation.revision bigint not null default 0
 column private.listing_moderation.updated_at timestamp with time zone not null default now()
+column private.retention_jobs.batches integer not null default 0
+column private.retention_jobs.counts jsonb not null default '{}'::jsonb
+column private.retention_jobs.error text
+column private.retention_jobs.finished_at timestamp with time zone
+column private.retention_jobs.id bigint not null
+column private.retention_jobs.started_at timestamp with time zone not null default clock_timestamp()
+column private.retention_jobs.status text not null
 column private.retention_runs.counts jsonb not null
 column private.retention_runs.id bigint not null
 column private.retention_runs.ran_at timestamp with time zone not null default now()
+column private.security_events.at timestamp with time zone not null default statement_timestamp()
+column private.security_events.hour timestamp with time zone not null
+column private.security_events.id bigint not null
+column private.security_events.kind text not null
+column private.security_events.user_id uuid not null
 column private.storage_cleanup.attempts integer not null default 0
 column private.storage_cleanup.bucket_id text not null
 column private.storage_cleanup.done_at timestamp with time zone
@@ -274,6 +289,8 @@ constraint private.contact_clicks.contact_clicks_channel_check CHECK ((channel =
 constraint private.contact_clicks.contact_clicks_clicks_check CHECK ((clicks >= 0))
 constraint private.contact_clicks.contact_clicks_kind_check CHECK ((kind = ANY (ARRAY['load'::text, 'truck'::text])))
 constraint private.contact_clicks.contact_clicks_pkey PRIMARY KEY (hour, kind, channel)
+constraint private.contact_views.contact_views_pkey PRIMARY KEY (user_id, listing_id)
+constraint private.contact_views.contact_views_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
 constraint private.daily_stats.daily_stats_listings_check CHECK ((listings >= 0))
 constraint private.daily_stats.daily_stats_loads_check CHECK ((loads >= 0))
 constraint private.daily_stats.daily_stats_pkey PRIMARY KEY (day)
@@ -284,7 +301,13 @@ constraint private.document_reviewers.document_reviewers_user_id_fkey FOREIGN KE
 constraint private.listing_moderation.listing_moderation_hold_reason_check CHECK ((char_length(hold_reason) <= 500))
 constraint private.listing_moderation.listing_moderation_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
 constraint private.listing_moderation.listing_moderation_pkey PRIMARY KEY (listing_id)
+constraint private.retention_jobs.retention_jobs_error_check CHECK ((char_length(error) <= 300))
+constraint private.retention_jobs.retention_jobs_pkey PRIMARY KEY (id)
+constraint private.retention_jobs.retention_jobs_status_check CHECK ((status = ANY (ARRAY['running'::text, 'done'::text, 'failed'::text, 'stopped'::text, 'skipped'::text, 'interrupted'::text])))
 constraint private.retention_runs.retention_runs_pkey PRIMARY KEY (id)
+constraint private.security_events.security_events_kind_check CHECK ((kind = ANY (ARRAY['contact_limit_hour'::text, 'contact_limit_day'::text])))
+constraint private.security_events.security_events_pkey PRIMARY KEY (id)
+constraint private.security_events.security_events_user_id_kind_hour_key UNIQUE (user_id, kind, hour)
 constraint private.storage_cleanup.storage_cleanup_pkey PRIMARY KEY (bucket_id, object_path)
 constraint public.carrier_applications.carrier_applications_id_check CHECK ((id <= '9007199254740991'::bigint))
 constraint public.carrier_applications.carrier_applications_license_class_check CHECK ((license_class = ANY (ARRAY['B'::text, 'C'::text, 'CE'::text, 'D'::text])))
@@ -418,6 +441,7 @@ function private.api_ts(p timestamp with time zone) returns text invoker vol=s c
 function private.api_usage_retention() returns bigint definer vol=v cfg=search_path="" body=70ddb771060645538baf72ec5cc75ed3
 function private.api_viewer() returns uuid invoker vol=v cfg=search_path="" body=6aa3cbc6f8e11fd7d23dffc3cd3f0fbc
 function private.auth_lock(p_user uuid, p_lock boolean) returns void definer vol=v cfg=search_path="" body=6ea41fdd41d26e06514771e5640d171f
+function private.contact_retention() returns jsonb definer vol=v cfg=search_path="" body=f424919b56b666c38afbfe1956e8e706
 function private.document_account_verified() returns boolean definer vol=s cfg=search_path="" body=ddac92d92e14a35c8050a0531361d37d
 function private.document_object_access(p_path text, p_action text) returns boolean definer vol=v cfg=search_path="" body=3605adecbfeecee2758f1eba869326c1
 function private.erase_account(p_user uuid) returns void definer vol=v cfg=search_path="" body=5ea87f4c87d5c12b1ffa61f3411fa370
@@ -438,15 +462,19 @@ function private.queue_document_cleanup() returns trigger definer vol=v cfg=sear
 function private.record_daily_stats(p_day date) returns void definer vol=v cfg=search_path="" body=99870024791054f1392497f216da1865
 function private.request_ip() returns inet invoker vol=s cfg=search_path="" body=c62e37d479aa5be286b5043923e19ecf
 function private.require_activity(p_user uuid) returns void definer vol=v cfg=search_path="" body=17f1187e5fadf401964fce8083eb4c17
+function private.retention_batch(p_step text, p_limit integer) returns integer definer vol=v cfg=search_path="" body=138970efd113e1ae1426cc784a0919fd
+function private.retention_batches(IN p_batch integer, IN p_max_batches integer) returns procedure invoker vol=v cfg= body=5fd6a3c83197700bb22e971ab74d5dcc
+function private.retention_job_close(p_job bigint, p_status text, p_error text) returns void definer vol=v cfg=search_path="" body=8c80d98c41d77c938d414318cdc05319
 function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=f5fd96f991fa1c5bfe49415f8b8eae37
 function private.route_alert_actor() returns uuid definer vol=v cfg=search_path="" body=2910e7045346bdce544ebee0dc3c4dc5
+function private.security_events_immutable() returns trigger invoker vol=v cfg=search_path="" body=7a670d33106d0452910608dbdee48585
 function private.storage_activity_guard() returns trigger definer vol=v cfg=search_path="" body=5b01313fa3de9834b54927d935980fa2
 function public.nakgo_admin_live(p_kind text) returns jsonb definer vol=s cfg=search_path="" body=3e701ba4a3b8e7c04a8046116a4369a5
 function public.nakgo_admin_moderate(p_kind text, p_target text, p_action text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="" body=b74ee8f30986a8c33c92279ccd024e8e
-function public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) returns jsonb definer vol=s cfg=search_path="" body=7656a43e48df162abc2438d141143024
+function public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) returns jsonb definer vol=s cfg=search_path="" body=7cec573e1bed08cacd9a1ae767965516
 function public.nakgo_admin_role() returns boolean definer vol=s cfg=search_path="" body=3484c96cb778dbff7bb4b0b2710f574e
 function public.nakgo_delete_my_account() returns jsonb definer vol=v cfg=search_path="" body=fc782511c235263fe82efc297e67effa
-function public.nakgo_listing_contact(p_id bigint, p_channel text) returns text definer vol=v cfg=search_path="" body=d52cd4d51b180ae7c773eb043a9ee8b5
+function public.nakgo_listing_contact(p_id bigint, p_channel text) returns text definer vol=v cfg=search_path="" body=4d23889c59861ea6cd3dca7af1e3be9f
 function public.nakgo_listing_items_valid(items jsonb) returns boolean invoker vol=i cfg=search_path="" body=7e921d4beda13a6780a0f057f3a61e2d
 function public.nakgo_listing_write_guard() returns trigger invoker vol=v cfg=search_path="" body=f6b1be0b3b0cee54bdc9ffcc32f6cd7e
 function public.nakgo_public_listings(p_before bigint) returns TABLE(id bigint, kind text, from_city text, to_city text, from_district text, to_district text, vehicle text, body text, amount numeric, cargo text, items jsonb, available_on date, available_until date, available_time text, loading_text text, status text, created_at timestamp with time zone) definer vol=s cfg=search_path="" body=679af752965f132840bdcac78f4ee33e
@@ -472,11 +500,19 @@ index private.api_errors_pkey CREATE UNIQUE INDEX api_errors_pkey ON private.api
 index private.api_settings_pkey CREATE UNIQUE INDEX api_settings_pkey ON private.api_settings USING btree (id)
 index private.api_usage_pkey CREATE UNIQUE INDEX api_usage_pkey ON private.api_usage USING btree (hour, version, fn, shard)
 index private.contact_clicks_pkey CREATE UNIQUE INDEX contact_clicks_pkey ON private.contact_clicks USING btree (hour, kind, channel)
+index private.contact_views_pkey CREATE UNIQUE INDEX contact_views_pkey ON private.contact_views USING btree (user_id, listing_id)
+index private.contact_views_time CREATE INDEX contact_views_time ON private.contact_views USING btree (viewed_at)
+index private.contact_views_user_time CREATE INDEX contact_views_user_time ON private.contact_views USING btree (user_id, viewed_at)
 index private.daily_stats_pkey CREATE UNIQUE INDEX daily_stats_pkey ON private.daily_stats USING btree (day)
 index private.document_reviewers_pkey CREATE UNIQUE INDEX document_reviewers_pkey ON private.document_reviewers USING btree (user_id)
 index private.listing_moderation_pkey CREATE UNIQUE INDEX listing_moderation_pkey ON private.listing_moderation USING btree (listing_id)
+index private.retention_jobs_pkey CREATE UNIQUE INDEX retention_jobs_pkey ON private.retention_jobs USING btree (id)
+index private.retention_jobs_started CREATE INDEX retention_jobs_started ON private.retention_jobs USING btree (started_at)
 index private.retention_runs_at CREATE INDEX retention_runs_at ON private.retention_runs USING btree (ran_at)
 index private.retention_runs_pkey CREATE UNIQUE INDEX retention_runs_pkey ON private.retention_runs USING btree (id)
+index private.security_events_at CREATE INDEX security_events_at ON private.security_events USING btree (at)
+index private.security_events_pkey CREATE UNIQUE INDEX security_events_pkey ON private.security_events USING btree (id)
+index private.security_events_user_id_kind_hour_key CREATE UNIQUE INDEX security_events_user_id_kind_hour_key ON private.security_events USING btree (user_id, kind, hour)
 index private.storage_cleanup_pkey CREATE UNIQUE INDEX storage_cleanup_pkey ON private.storage_cleanup USING btree (bucket_id, object_path)
 index public.carrier_application_active_owner CREATE UNIQUE INDEX carrier_application_active_owner ON public.carrier_applications USING btree (owner_id) WHERE (status = ANY (ARRAY['draft'::text, 'submitted'::text, 'approved'::text]))
 index public.carrier_application_queue CREATE INDEX carrier_application_queue ON public.carrier_applications USING btree (status, id DESC)
@@ -495,9 +531,11 @@ index public.listing_conversations_listing_id_guest_id_key CREATE UNIQUE INDEX l
 index public.listing_conversations_pkey CREATE UNIQUE INDEX listing_conversations_pkey ON public.listing_conversations USING btree (id)
 index public.listing_favorites_listing CREATE INDEX listing_favorites_listing ON public.listing_favorites USING btree (listing_id)
 index public.listing_favorites_pkey CREATE UNIQUE INDEX listing_favorites_pkey ON public.listing_favorites USING btree (user_id, listing_id)
+index public.listings_active_expires CREATE INDEX listings_active_expires ON public.listings USING btree (expires_at) WHERE (status = 'active'::text)
 index public.listings_active_route CREATE INDEX listings_active_route ON public.listings USING btree (kind, from_city, to_city, available_on) WHERE (status = 'active'::text)
 index public.listings_owner_created CREATE INDEX listings_owner_created ON public.listings USING btree (owner_id, created_at DESC)
 index public.listings_pkey CREATE UNIQUE INDEX listings_pkey ON public.listings USING btree (id)
+index public.listings_unredacted CREATE INDEX listings_unredacted ON public.listings USING btree (id) WHERE (redacted_at IS NULL)
 index public.messages_conversation CREATE INDEX messages_conversation ON public.conversation_messages USING btree (conversation_id, id DESC)
 index public.profiles_pkey CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)
 index public.route_alerts_pkey CREATE UNIQUE INDEX route_alerts_pkey ON public.route_alerts USING btree (id)
@@ -534,10 +572,13 @@ table private.api_errors rls=true force=false
 table private.api_settings rls=true force=false
 table private.api_usage rls=true force=false
 table private.contact_clicks rls=true force=false
+table private.contact_views rls=true force=false
 table private.daily_stats rls=true force=false
 table private.document_reviewers rls=true force=false
 table private.listing_moderation rls=true force=false
+table private.retention_jobs rls=true force=false
 table private.retention_runs rls=true force=false
+table private.security_events rls=true force=false
 table private.storage_cleanup rls=true force=false
 table public.carrier_applications rls=true force=false
 table public.carrier_document_audit rls=true force=false
@@ -563,4 +604,6 @@ trigger CREATE TRIGGER moderation_message BEFORE INSERT ON public.conversation_m
 trigger CREATE TRIGGER moderation_profile BEFORE INSERT OR UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.activity_write_guard()
 trigger CREATE TRIGGER moderation_storage BEFORE INSERT OR DELETE OR UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION private.storage_activity_guard()
 trigger CREATE TRIGGER nakgo_access_log AFTER INSERT ON auth.sessions FOR EACH ROW EXECUTE FUNCTION private.log_login()
+trigger CREATE TRIGGER security_events_immutable BEFORE DELETE OR UPDATE ON private.security_events FOR EACH ROW EXECUTE FUNCTION private.security_events_immutable()
+trigger CREATE TRIGGER security_events_no_truncate BEFORE TRUNCATE ON private.security_events FOR EACH STATEMENT EXECUTE FUNCTION private.security_events_immutable()
 view private.api_visible_listings

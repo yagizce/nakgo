@@ -32,39 +32,77 @@ function signV4({method,url,headers,body,accessKeyId,secretAccessKey,region='aut
   return {...h,authorization:`AWS4-HMAC-SHA256 Credential=${accessKeyId}/${scope}, SignedHeaders=${names.join(';')}, Signature=${signature}`};
 }
 
+/* Geçici hatalar: her istek timeoutMs ile sınırlı; ağ hatası, zaman aşımı, yarım gövde, 5xx ve 429 en çok `retries` kez
+ * artan beklemeyle yeniden denenir. 4xx (403 kilit, 412 koşul) asla yeniden denenmez. Hata mesajlarına URL, imza ya da
+ * gizli değer yazılmaz. Koşullu PUT yeniden denendiğinde 412 dönerse ilk deneme yerine ulaşmış olabilir: sonuç
+ * {ambiguous:true} ile işaretlenir; çağıran içeriği geri okuyup karşılaştırmadan bunu başarı saymamalıdır. */
+const nonRetryable=e=>Object.assign(e,{nonRetryable:true});
 class S3Store{
-  constructor({endpoint,bucket,accessKeyId,secretAccessKey,region='auto',fetchImpl=globalThis.fetch,capabilities={verified:false}}){
+  constructor({endpoint,bucket,accessKeyId,secretAccessKey,region='auto',fetchImpl=globalThis.fetch,capabilities={verified:false},
+    timeoutMs=120000,retries=3,backoffMs=500,sleep=ms=>new Promise(r=>setTimeout(r,ms))}){
     if(!/^https:\/\//.test(endpoint)&&!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(endpoint))throw Error('Depo uç noktası HTTPS olmalı (yalnız testlerde yerel http)');
-    Object.assign(this,{endpoint:endpoint.replace(/\/$/,''),bucket,accessKeyId,secretAccessKey,region,fetchImpl,capabilities});
+    Object.assign(this,{endpoint:endpoint.replace(/\/$/,''),bucket,accessKeyId,secretAccessKey,region,fetchImpl,capabilities,timeoutMs,retries,backoffMs,sleep});
   }
   async req(method,key,{body,headers={},query}={}){
     const url=new URL(this.endpoint+'/'+encSeg(this.bucket)+(key!==undefined?'/'+encPath(key):''));
     if(query)for(const [k,v] of Object.entries(query))url.searchParams.set(k,v);
     const signed=signV4({method,url:url.toString(),headers,body,accessKeyId:this.accessKeyId,secretAccessKey:this.secretAccessKey,region:this.region});
     delete signed.host;
-    return this.fetchImpl(url,{method,headers:signed,body:body??undefined});
+    return this.fetchImpl(url,{method,headers:signed,body:body??undefined,signal:AbortSignal.timeout(this.timeoutMs)});
+  }
+  /** İsteği ve gövde okumasını (handle) birlikte yeniden dener. handle(r, attempt) sonucu döner. */
+  async call(method,key,opts,handle){
+    const label=method+' '+(key??(opts&&opts.query&&opts.query.prefix)??'');
+    let last;
+    for(let attempt=0;attempt<=this.retries;attempt++){
+      if(attempt)await this.sleep(this.backoffMs*2**(attempt-1));
+      try{
+        const r=await this.req(method,key,opts);
+        if(r.status>=500||r.status===429){await r.arrayBuffer().catch(()=>{});last=Error(label+': '+r.status);continue;}
+        return await handle(r,attempt);
+      }catch(e){
+        if(e.nonRetryable)throw e;
+        last=Error(label+': '+(e.name==='TimeoutError'||e.name==='AbortError'?'zaman aşımı':'ağ hatası'));
+      }
+    }
+    throw last;
   }
   /** Hesap düzeyinde kova listeleme (ListBuckets). Yalnız yetki ölçümü için: kovaya bağlı belirteçte reddedilmelidir. */
   async listBucketsStatus(){
     const url=new URL(this.endpoint+'/');
     const signed=signV4({method:'GET',url:url.toString(),headers:{},body:'',accessKeyId:this.accessKeyId,secretAccessKey:this.secretAccessKey,region:this.region});
     delete signed.host;
-    const r=await this.fetchImpl(url,{method:'GET',headers:signed});
+    const r=await this.fetchImpl(url,{method:'GET',headers:signed,signal:AbortSignal.timeout(this.timeoutMs)});
     return r.status;
   }
   async put(key,body,{ifNoneMatch=false}={}){
-    const r=await this.req('PUT',key,{body,headers:ifNoneMatch?{'if-none-match':'*'}:{}});
-    return {ok:r.ok,status:r.status,etag:r.headers.get('etag')};
+    return this.call('PUT',key,{body,headers:ifNoneMatch?{'if-none-match':'*'}:{}},async(r,attempt)=>{
+      await r.arrayBuffer().catch(()=>{});
+      return {ok:r.ok,status:r.status,etag:r.headers.get('etag'),...(ifNoneMatch&&r.status===412&&attempt>0?{ambiguous:true}:{})};
+    });
   }
-  async get(key){const r=await this.req('GET',key);if(r.status===404)return null;if(!r.ok)throw Error('GET '+key+': '+r.status);return Buffer.from(await r.arrayBuffer());}
-  async head(key){const r=await this.req('HEAD',key);if(r.status===404)return null;if(!r.ok)throw Error('HEAD '+key+': '+r.status);return {size:Number(r.headers.get('content-length')),last_modified:r.headers.get('last-modified')};}
+  async get(key){
+    return this.call('GET',key,{},async r=>{
+      if(r.status===404)return null;
+      if(!r.ok)throw nonRetryable(Error('GET '+key+': '+r.status));
+      return Buffer.from(await r.arrayBuffer());// yarım gövde burada hata fırlatır ve yeniden denenir
+    });
+  }
+  async head(key){
+    return this.call('HEAD',key,{},async r=>{
+      if(r.status===404)return null;
+      if(!r.ok)throw nonRetryable(Error('HEAD '+key+': '+r.status));
+      return {size:Number(r.headers.get('content-length')),last_modified:r.headers.get('last-modified')};
+    });
+  }
   async list(prefix){
     const out=[];let token;
     do{
       const q={'list-type':'2',prefix};if(token)q['continuation-token']=token;
-      const r=await this.req('GET',undefined,{query:q});
-      if(!r.ok)throw Error('LIST '+prefix+': '+r.status);
-      const xml=await r.text();
+      const xml=await this.call('GET',undefined,{query:q},async r=>{
+        if(!r.ok)throw nonRetryable(Error('LIST '+prefix+': '+r.status));
+        return r.text();
+      });
       for(const m of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)){
         const g=t=>(m[1].match(new RegExp('<'+t+'>([\\s\\S]*?)</'+t+'>'))||[])[1];
         out.push({key:g('Key').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'),size:Number(g('Size')),last_modified:g('LastModified')});
@@ -73,7 +111,7 @@ class S3Store{
     }while(token);
     return out;
   }
-  async delete(key){const r=await this.req('DELETE',key);return {ok:r.ok||r.status===404,status:r.status};}
+  async delete(key){return this.call('DELETE',key,{},async r=>{await r.arrayBuffer().catch(()=>{});return {ok:r.ok||r.status===404,status:r.status};});}
 }
 
 /** Bellek içi depo; kilit ve koşullu yazma simülasyonu. clock() testte zamanı ilerletmek için. */
@@ -85,14 +123,6 @@ class MemoryStore{
     const o=this.objects.get(key);if(!o)return false;
     if(!this.lockPrefixes.some(p=>key.startsWith(p)))return false;
     return this.clock().getTime()-o.created.getTime()<this.lockDays*86400000;
-  }
-  /** Hesap düzeyinde kova listeleme (ListBuckets). Yalnız yetki ölçümü için: kovaya bağlı belirteçte reddedilmelidir. */
-  async listBucketsStatus(){
-    const url=new URL(this.endpoint+'/');
-    const signed=signV4({method:'GET',url:url.toString(),headers:{},body:'',accessKeyId:this.accessKeyId,secretAccessKey:this.secretAccessKey,region:this.region});
-    delete signed.host;
-    const r=await this.fetchImpl(url,{method:'GET',headers:signed});
-    return r.status;
   }
   async put(key,body,{ifNoneMatch=false}={}){
     if(this.failNext.put){this.failNext.put--;throw Error('simüle edilmiş yazma hatası');}
