@@ -7,7 +7,7 @@
     "start": "node tools/serve.js",
     "dev": "node tools/serve.js",
     "bundle": "node tools/bundle.js",
-    "test": "node tools/bundle.js --check && node tools/dev.js lint && node tests/run.js",
+    "test": "node tools/bundle.js --check && node tools/dev.js lint && node tests/run.js && node --test tests/server/*.test.mjs",
     "test:e2e": "python tests/e2e.py",
     "test:shots": "python tests/e2e.py --shots",
     "test:all": "npm test && npm run test:e2e",
