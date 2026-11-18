@@ -81,6 +81,7 @@ async function readInbox(store,prefix){
 /** A1 denetimini kaynak veritabanına yedek rolüyle bağlanarak yapar. */
 async function preflightAudit({conn,Client,allowlist}){
   const c=new Client(clientConfig(conn));
+  c.on('error',()=>{});// kopan bağlantı süreci çökertmez; sorgu hatası denetim hatası sayılır
   await c.connect();
   try{return PA.evaluate(await PA.audit({query:(s,a)=>c.query(s,a)},{role:conn.user}),{allowlist});}
   finally{await c.end();}

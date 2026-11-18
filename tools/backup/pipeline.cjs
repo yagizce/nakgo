@@ -35,7 +35,9 @@ async function runBackup({conn,scope,store,recipientsFile,pinnedRecipientsSha256
     stages.preflight=pf;
     if(pf.status!=='ok'){skipRest('preflight');return await finish();}
     const bundle=path.join(work,'bundle');
-    const d=await snapshotDump({conn,scope,outDir:bundle,pgBin,allowLocal,...dumpOptions});
+    let d;
+    try{d=await snapshotDump({conn,scope,outDir:bundle,pgBin,allowLocal,...dumpOptions});}
+    catch(e){d={status:'failed',stage:'exception',reasons:[e.message]};}// ör. bağlantı kurulamadı
     stages.dump=d.status==='ok'?{status:'ok'}:{status:'failed',code:d.stage,reason:(d.reasons||[]).join('; ')};
     if(d.status!=='ok'){skipRest('dump');return await finish();}
     source=d.source;
@@ -54,10 +56,11 @@ async function runBackup({conn,scope,store,recipientsFile,pinnedRecipientsSha256
     try{
       const body=fs.readFileSync(ct);
       const put=await store.put(keys.data,body,{ifNoneMatch:true});
-      if(!put.ok)stages.upload={status:'failed',code:'put_'+put.status,reason:put.status===412?'aynı adla nesne var':'yazma reddedildi'};
+      // 412 yalnız yeniden denemede ilk yazım yerine ulaşmışsa (ambiguous) ve geri okunan içerik bizimkiyse kabul edilir.
+      if(!put.ok&&!(put.status===412&&put.ambiguous))stages.upload={status:'failed',code:'put_'+put.status,reason:put.status===412?'aynı adla nesne var':'yazma reddedildi'};
       else{
         const back=await store.get(keys.data);
-        stages.upload=back&&sha256(back)===enc.ciphertext_sha256?{status:'ok'}:{status:'failed',code:'roundtrip',reason:'geri okunan nesnenin hash\'i farklı'};
+        stages.upload=back&&sha256(back)===enc.ciphertext_sha256?{status:'ok'}:{status:'failed',code:put.ok?'roundtrip':'put_412',reason:put.ok?'geri okunan nesnenin hash\'i farklı':'aynı adla başka nesne var'};
       }
     }catch(e){stages.upload={status:'failed',code:'exception',reason:e.message};}
     return await finish();
@@ -70,8 +73,12 @@ async function runBackup({conn,scope,store,recipientsFile,pinnedRecipientsSha256
     let signed=null;
     try{signed=signManifest(manifest,k1);extra.manifest_signature={status:'ok'};}catch(e){extra.manifest_signature={status:'failed',reason:e.message};}
     if(signed){
-      try{const p=await store.put(keys.manifest,Buffer.from(JSON.stringify(signed)),{ifNoneMatch:true});extra.manifest_upload=p.ok?{status:'ok',key:keys.manifest}:{status:'failed',code:'put_'+p.status};}
-      catch(e){extra.manifest_upload={status:'failed',reason:e.message};}
+      try{
+        const body=Buffer.from(JSON.stringify(signed));
+        const p=await store.put(keys.manifest,body,{ifNoneMatch:true});
+        const landed=p.ok||(p.status===412&&p.ambiguous&&(await store.get(keys.manifest)||Buffer.alloc(0)).equals(body));
+        extra.manifest_upload=landed?{status:'ok',key:keys.manifest}:{status:'failed',code:'put_'+p.status};
+      }catch(e){extra.manifest_upload={status:'failed',reason:e.message};}
     }
     return {verified:manifest.verified,stages,extra,manifest:signed||manifest,keys,restore_checks:restoreChecks,source_summary:manifest.source};
   }

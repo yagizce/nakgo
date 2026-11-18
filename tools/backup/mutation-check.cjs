@@ -101,18 +101,35 @@ const MUTATIONS=[
   ["tools/backup/b7b/verify.cjs", "if(g.terminate!==true)return", "if(false)return"],
   ["tools/backup/b7b/verify.cjs", "if(net.length)status='stop';", ""],
   ["tools/backup/b7b/verify.cjs", "const readOk=Object.values(reads).every(v=>v==='42501'||v==='yok');", "const readOk=true;"],
-  ["tools/backup/b7b/verify.cjs", "if(done.get(m.name)!==sha)throw", "if(false)throw"]
+  ["tools/backup/b7b/verify.cjs", "if(done.get(m.name)!==sha)throw", "if(false)throw"],
+  ["tools/backup/dr-fetch.cjs", "if(!v.ok)return {ok:false,code:'signature'", "if(false)return {ok:false,code:'signature'"],
+  ["tools/backup/dr-fetch.cjs", "if(doc.verified!==true)return", "if(false)return"],
+  ["tools/backup/dr-fetch.cjs", "if(doc.recipients_sha256!==pinnedRecipientsSha256)return", "if(false)return"],
+  ["tools/backup/dr-fetch.cjs", "if(doc.object_key!=='db/'+m[1]+'.tar.age'||doc.run_id!==m[2])return", "if(false)return"],
+  ["tools/backup/dr-fetch.cjs", "if(body.length!==doc.size)return", "if(false)return"],
+  ["tools/backup/dr-fetch.cjs", "if(sha256(body)!==doc.ciphertext_sha256)return", "if(false)return"],
+  ["tools/backup/dr-fetch.cjs", "if(!r.benign)return {ok:false,code:'integrity'", "if(false)return {ok:false,code:'integrity'"],
+  ["tools/backup/dr-fetch.cjs", "const fd=fs.openSync(outFile,'wx',0o600);", "const fd=fs.openSync(outFile,'w',0o600);"],
+  ["tools/backup/store.cjs", "if(r.status>=500||r.status===429){", "if(false){"],
+  ["tools/backup/store.cjs", "if(e.nonRetryable)throw e;", "if(e.nonRetryable)throw e;throw e;"],
+  ["tools/backup/store.cjs", "...(ifNoneMatch&&r.status===412&&attempt>0?{ambiguous:true}:{})", "...(ifNoneMatch&&r.status===412?{ambiguous:true}:{})"],
+  ["tools/backup/pipeline.cjs", "if(!put.ok&&!(put.status===412&&put.ambiguous))", "if(!put.ok)"],
+  ["tools/backup/checkpoint.cjs", "if(!b.ok){const bb=await store.get(header.body_key);if(!bb||!bb.equals(bodyBytes))return", "if(!b.ok){const bb=await store.get(header.body_key);if(false)return"],
+  ["tools/backup/checkpoint.cjs", "if(!b.ok&&!(b.status===412&&b.ambiguous))return", "if(!b.ok)return"],
+  ["tools/backup/deletion-journal.cjs", "if(!r.ok&&!(r.status===412&&r.ambiguous))return", "if(!r.ok)return"],
+  ["tools/backup/pipeline.cjs", "catch(e){d={status:'failed',stage:'exception',reasons:[e.message]};}", "catch(e){throw e;}"]
 ];
 // Her mutasyon yalnız o dosyayı sınayan test dosyalarıyla denenir (gerçek migration'lı testler uzun sürer).
-const T={b7b:'tests/backup/b7b.test.cjs',a1:'tests/backup/a1-privilege.test.cjs',a2:'tests/backup/a2-core.test.cjs',a3:'tests/backup/a3-legal.test.cjs',a4:'tests/backup/a4-orchestrator.test.cjs',mon:'tests/backup/a4-monitor.test.cjs'};
+const T={flt:'tests/backup/b7-faults.test.cjs',b7b:'tests/backup/b7b.test.cjs',a1:'tests/backup/a1-privilege.test.cjs',a2:'tests/backup/a2-core.test.cjs',a3:'tests/backup/a3-legal.test.cjs',a4:'tests/backup/a4-orchestrator.test.cjs',mon:'tests/backup/a4-monitor.test.cjs'};
 function testsFor(file){
   if(file.includes('/monitor/'))return [T.mon];
   if(/privilege-audit\.cjs$|backup-role\.cjs$/.test(file))return [T.a1,T.a4];
   if(/scope-export\.cjs$|dump\.cjs$/.test(file))return [T.a2];
   if(file.includes('/b7b/'))return [T.b7b];
-  if(/(^|\/)run\.cjs$|deletion-journal\.cjs$/.test(file))return [T.a4];
+  if(/dr-fetch\.cjs$|store\.cjs$|pipeline\.cjs$/.test(file))return [T.flt,T.a2];
+  if(/(^|\/)run\.cjs$|deletion-journal\.cjs$/.test(file))return [T.a4,T.flt];
   if(/deletion\.cjs$/.test(file))return [T.a2,T.a3,T.a4];
-  if(/legal-run\.cjs$|state-machine\.cjs$|checkpoint\.cjs$/.test(file))return [T.a3,T.a4];
+  if(/legal-run\.cjs$|state-machine\.cjs$|checkpoint\.cjs$/.test(file))return [T.a3,T.a4,T.flt];
   return [T.a3];
 }
 let escaped=0;
