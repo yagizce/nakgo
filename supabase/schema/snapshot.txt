@@ -466,6 +466,7 @@ index public.listing_conversations_listing_id_guest_id_key CREATE UNIQUE INDEX l
 index public.listing_conversations_pkey CREATE UNIQUE INDEX listing_conversations_pkey ON public.listing_conversations USING btree (id)
 index public.listing_favorites_listing CREATE INDEX listing_favorites_listing ON public.listing_favorites USING btree (listing_id)
 index public.listing_favorites_pkey CREATE UNIQUE INDEX listing_favorites_pkey ON public.listing_favorites USING btree (user_id, listing_id)
+index public.listings_active_expires CREATE INDEX listings_active_expires ON public.listings USING btree (expires_at) WHERE (status = 'active'::text)
 index public.listings_active_route CREATE INDEX listings_active_route ON public.listings USING btree (kind, from_city, to_city, available_on) WHERE (status = 'active'::text)
 index public.listings_owner_created CREATE INDEX listings_owner_created ON public.listings USING btree (owner_id, created_at DESC)
 index public.listings_pkey CREATE UNIQUE INDEX listings_pkey ON public.listings USING btree (id)
