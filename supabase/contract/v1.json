@@ -53,6 +53,26 @@
           "p_kind",
           "text",
           "optional"
+        ],
+        [
+          "p_vehicle",
+          "text",
+          "optional"
+        ],
+        [
+          "p_body",
+          "text",
+          "optional"
+        ],
+        [
+          "p_min_amount",
+          "numeric",
+          "optional"
+        ],
+        [
+          "p_max_amount",
+          "numeric",
+          "optional"
         ]
       ],
       "roles": [
@@ -62,7 +82,8 @@
       "kind": "list",
       "page_size": 50,
       "order": "id desc",
-      "item": "listing_item (guest|member)"
+      "item": "listing_item (guest|member)",
+      "filters": "tür; araç ve kasa (listing_catalog_v1 değerleri); tonaj aralığı (ton, uçlar dahil). Geçersiz değer invalid_argument"
     },
     "listing_v1": {
       "args": [
@@ -196,7 +217,7 @@
         "created"
       ],
       "listing": "listing_item (member+photo)",
-      "input": "kind (zorunlu) + yazılabilir ilan alanları; bilinmeyen alan invalid_argument",
+      "input": "kind (zorunlu) + yazılabilir ilan alanları; amount JSON sayı ve amount_unit=\"ton\" zorunlu; vehicle/body katalogdan; bilinmeyen alan invalid_argument",
       "idempotent": "aynı p_request_id 24 saat içinde aynı ilanı döner (created=false); farklı gövde conflict",
       "errors": [
         "invalid_argument",
@@ -237,7 +258,8 @@
         "limit_reached",
         "not_allowed",
         "account_suspended"
-      ]
+      ],
+      "input": "yazılabilir alanlar + status; amount verilirse JSON sayı ve amount_unit=\"ton\" zorunlu"
     },
     "listing_close_v1": {
       "args": [
@@ -368,7 +390,8 @@
         "invalid_argument",
         "limit_reached",
         "account_suspended"
-      ]
+      ],
+      "vehicle": "p_vehicle ve p_body verilirse katalogdaki değerlerden biri"
     },
     "route_alert_update_v1": {
       "args": [
@@ -465,6 +488,20 @@
       "errors": [
         "not_allowed"
       ]
+    },
+    "listing_catalog_v1": {
+      "args": [],
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "kind": "single",
+      "data": [
+        "vehicles",
+        "bodies",
+        "amount"
+      ],
+      "amount": "{unit:\"ton\", min_exclusive:0, max:9007199254740991}"
     }
   },
   "errors": {
@@ -582,6 +619,7 @@
       "redacted_at",
       "image_data"
     ],
-    "revision": "yalnız kendi ilanında tamsayı, diğerlerinde null; her güncellemede 1 artar"
+    "revision": "yalnız kendi ilanında tamsayı, diğerlerinde null; her güncellemede 1 artar",
+    "amount": "ton (yük ilanında ağırlık, boş araç ilanında boş kapasite)"
   }
 }

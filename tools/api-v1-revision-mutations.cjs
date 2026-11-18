@@ -4,7 +4,11 @@
 'use strict';
 const fs=require('node:fs');
 const {spawnSync}=require('node:child_process');
-const F='supabase/migrations/20261118080000_b3c2_listing_revision.sql';
+const BASE='supabase/migrations/20261118080000_b3c2_listing_revision.sql';
+// Sonraki bir migration aynı fonksiyonu yeniden tanımlıyorsa (ör. B3-c2, B10) bozma geçerli olan en son tanıma uygulanır.
+const latest=from=>{const dir='supabase/migrations';
+  for(const f of fs.readdirSync(dir).filter(f=>f.endsWith('.sql')&&dir+'/'+f>=BASE).sort().reverse()){const p=dir+'/'+f;if(fs.readFileSync(p,'utf8').split(from).length===2)return p;}
+  return BASE;};
 const TESTS=['--test','tests/db/api-v1-revision.test.cjs','tests/db/api-v1-write.test.cjs',...(process.env.NAKGO_POSTGREST_BIN?['tests/db/api-v1-write-http.test.cjs']:[])];
 const real=Boolean(process.env.NAKGO_PG_HOST);
 const M=[
@@ -23,6 +27,7 @@ const M=[
 ];
 let escaped=0;
 for(const [from,to] of M){
+  const F=latest(from);
   const src=fs.readFileSync(F,'utf8');
   if(src.split(from).length!==2)throw Error('bozma noktası tekil değil: '+from.slice(0,70));
   fs.writeFileSync(F,src.replace(from,to));

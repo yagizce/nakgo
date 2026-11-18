@@ -221,3 +221,25 @@ davranış değişmez.
 Testler: `tests/unit/api-v1-client.test.js`, `tests/unit/listing-photo-v1.test.js`, `tests/unit/listing-revision-v1.test.js`,
 `tests/db/api-v1-client-http.test.cjs` (gerçek supabase-js + yerel PostgREST; CI'da atlanır). Kasıtlı bozma:
 `node tools/api-v1-client-mutations.cjs`.
+
+## Araç verileri (B10)
+
+Araç tipi, kasa tipi ve tonaj ilan tablosunda zaten vardı ve ilk migration'dan beri tablo kısıtıyla doğrulanıyor; yeni sütun
+açılmadı, v0 tablosu, kısıtları, RLS, kotalar ve moderasyon değişmedi. Migration: `20261118090000_b10_vehicle_data.sql`.
+
+| Alan | Sütun | İzin verilen değerler | Kural |
+|---|---|---|---|
+| Araç tipi | `vehicle` | Tır, Kırkayak, Kamyon, Kamyonet, Panelvan, Tanker, Lowbed, Konteyner | Zorunlu; tam eşleşme (büyük/küçük harf, boşluk dahil) |
+| Kasa tipi | `body` | Tenteli, Kapalı kasa, Açık kasa, Frigorifik, Damperli, Tanker, Lowbed, Konteyner | Zorunlu; tam eşleşme |
+| Tonaj | `amount` | 0 < değer ≤ 9007199254740991 | **Birim: ton.** Yük ilanında yük ağırlığı, boş araç ilanında boş kapasite |
+
+- **Katalog:** `listing_catalog_v1()` (misafir ve üye) `{vehicles, bodies, amount:{unit:"ton", min_exclusive:0, max}}` döner.
+  Katalog, tablo kısıtları ve istemci listeleri (`src/js/config.js`) aynıdır; `tests/db/api-v1-vehicle.test.cjs` denetler.
+- **Girdi (v1):** `amount` yalnız JSON sayı ve yanında `amount_unit:"ton"` ile kabul edilir; birimsiz, başka birimli ya da
+  metin tonaj ve tonajsız birim `invalid_argument`. Araç/kasa listede olmalı. Yanıt biçimi değişmedi (`amount` ton).
+- **Akış filtreleri:** `listings_v1` isteğe bağlı `p_vehicle`, `p_body`, `p_min_amount`, `p_max_amount` (ton, uçlar dahil)
+  alır; eski çağrılar aynen çalışır. Geçersiz değer ya da alt sınırın üst sınırı geçmesi `invalid_argument`.
+- **Rota alarmı (v1):** araç/kasa verilirse katalogdan olmalı. v0'ın serbest metni ve eski alarmlar değişmez; eski
+  alarmlar v1'de okunur, açılıp kapatılır, silinir.
+- **v0:** değişmedi; v0 istemcisi birim göndermez, tonaj her zaman ton. Uygulama (B3-d) v1'e tonajı `amount_unit:"ton"` ile
+  gönderir; filtreleme uygulamada yerel olarak sürer.

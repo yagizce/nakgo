@@ -20,7 +20,7 @@ test('API v1 yazma uçları HTTP (yerel PostgREST)',async t=>{
     pg=await startPostgrest(db);
     const TA=pg.jwt({sub:A}),TB=pg.jwt({sub:B}),TS=pg.jwt({sub:S});
     const today=new Date(Date.now()+3*3600e3).toISOString().slice(0,10);
-    const truck={kind:'truck',from_city:'İzmir',to_city:'Bursa',vehicle:'Kamyon',body:'Tenteli',amount:12,available_on:today,contact_phone:'+905321234567',contact_consent:true};
+    const truck={kind:'truck',from_city:'İzmir',to_city:'Bursa',vehicle:'Kamyon',body:'Tenteli',amount:12,amount_unit:'ton',available_on:today,contact_phone:'+905321234567',contact_consent:true};
     let listing;
     await t.test('oluşturma 200; tekrar aynı ilan; JWT dışı kimlik kabul edilmez; geçersiz girdi 400 (telefon yok)',async()=>{
       const req=crypto.randomUUID();

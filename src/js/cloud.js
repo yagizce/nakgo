@@ -498,6 +498,8 @@ const nakgoAuth = (() => {
         note:x.note??'',owner_label:x.owner_label,available_on:x.date?.on??null,available_until:x.date?.until??null,available_time:x.date?.time??'',
         loading_text:x.date?.text??null,items:x.items||[],image_data:x.photo||'',has_photo:x.has_photo===true,status:x.status,created_at:x.created_at,
         updated_at:x.updated_at,revision:Number.isSafeInteger(x.revision)?x.revision:null,contact_consent:x.contact_allowed===true}:null;
+    // B10: v1 tonajı yalnız birimiyle kabul eder; uygulamadaki tonaj her zaman ton (formlar "ton" der). v0 birim almaz.
+    const withUnit=x=>Object.prototype.hasOwnProperty.call(x,'amount')?{...x,amount_unit:'ton'}:x;
     const v0Alert=a=>({id:a.id,kind:a.kind,from_city:a.from,to_city:a.to,vehicle:a.vehicle,body:a.body,active:a.active,seen_at:a.seen_at,created_at:a.created_at});
     function listingResult(result,account) {
         if(result.error)throw result.error;
@@ -538,7 +540,7 @@ const nakgoAuth = (() => {
         return via(async()=>{
             if(key!==createKey){createKey=key;createId=requestId();}
             try{
-                const r=await v1('listing_create_v1',{p_request_id:createId,p_listing:listing},account);
+                const r=await v1('listing_create_v1',{p_request_id:createId,p_listing:withUnit(listing)},account);
                 createKey=uncertainKey='';
                 return v0Listing(r.data.listing,account.id);
             }catch(e){
@@ -564,7 +566,7 @@ const nakgoAuth = (() => {
         return via(async()=>{
             try{
                 const r=values.status==='closed'&&Object.keys(values).length===1?await v1('listing_close_v1',{p_id:id},account)
-                    :await v1('listing_update_v1',{p_id:id,p_revision:Number.isSafeInteger(revision)?revision:null,p_changes:values},account);
+                    :await v1('listing_update_v1',{p_id:id,p_revision:Number.isSafeInteger(revision)?revision:null,p_changes:withUnit(values)},account);
                 return v0Listing(r.data.listing,account.id);
             }catch(e){
                 if(e?.apiKey==='conflict')try{e.current=v0Listing((await v1('listing_v1',{p_id:id},account)).data,account.id);}catch(ignored){}

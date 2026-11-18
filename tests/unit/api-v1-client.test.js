@@ -38,7 +38,9 @@ module.exports=({test,fs,path,ROOT})=>{
    for(const [a,,opt] of spec.args)if(!opt)ok(given.includes(a),fn+': zorunlu argüman yok '+a);
   }
   // status_v1 yalnız sürüm sorgusunda; yönetici uçları yok (B8'e kadar v0).
-  const all=Object.keys(v1spec.functions).filter(f=>f!=='status_v1');
+  // listing_catalog_v1 (B10) diğer istemciler içindir; bu istemci listeleri config.js'te taşır ve test bunların katalogla
+  // aynı olduğunu denetler (tests/db/api-v1-vehicle.test.cjs).
+  const all=Object.keys(v1spec.functions).filter(f=>!['status_v1','listing_catalog_v1'].includes(f));
   for(const f of all)ok(used.has(f),'istemci '+f+' kullanıyor');
   ok(/callV1\('status_v1',\s*\{\}\)/.test(source),'sürüm sorgusu status_v1');
   ok(!/\.rpc\('[a-z_]+_v1'/.test(source),'v1 uçları v0 RPC listesine karışmıyor');
@@ -76,7 +78,8 @@ module.exports=({test,fs,path,ROOT})=>{
   ok(JSON.stringify(h.calls.v1.at(-1))===JSON.stringify({schema:'api',fn:'my_listings_v1',args:{p_cursor:'50'}}),'kendi ilanlarım, imleç metin');
   const created=await a.createListing({kind:'load',from_city:'Ankara',to_city:'İzmir',amount:12,owner_id:'x',status:'closed',premium:true});
   const c=h.calls.v1.at(-1);
-  ok(c.fn==='listing_create_v1'&&/^[0-9a-f-]{36}$/.test(c.args.p_request_id)&&JSON.stringify(c.args.p_listing)==='{"kind":"load","from_city":"Ankara","to_city":"İzmir","amount":12}','oluşturma: istek kimliği + beyaz liste, sahip/ad/durum gönderilmez');
+  ok(c.fn==='listing_create_v1'&&/^[0-9a-f-]{36}$/.test(c.args.p_request_id)&&JSON.stringify(c.args.p_listing)==='{"kind":"load","from_city":"Ankara","to_city":"İzmir","amount":12,"amount_unit":"ton"}','oluşturma: istek kimliği + beyaz liste + tonaj birimi (B10), sahip/ad/durum gönderilmez');
+  await a.updateListing(8,{amount:14},3);ok(JSON.stringify(h.calls.v1.at(-1).args.p_changes)==='{"amount":14,"amount_unit":"ton"}','tonaj güncellemesinde birim');
   ok(created.id===10&&created.image_data.startsWith('data:image/jpeg'),'oluşturma yanıtı v0 satırı');
   ok(feed[1].revision===3&&feed[0].revision===null,'revision yalnız kendi ilanında (tamsayı)');
   await a.updateListing(8,{note:'Yeni',owner_id:'x'},3);
