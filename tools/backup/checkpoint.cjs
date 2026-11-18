@@ -124,10 +124,12 @@ async function writeCheckpoint(store,{seq,prevHeader,body,k1,k7,createdAt,runId,
   const header=sign(NAMESPACE,makeHeader({seq,prevHeader,body,bodyBytes,createdAt,runId,flags}),k1.privateKey,k1.keyId);
   const hb=Buffer.from(canonical(header));
   try{
+    // Belirsiz 412 (yanıtı kaybolan yazmanın yeniden denemesi): yalnız geri okunan içerik bizimkiyse sürer.
     const b=await store.put(header.body_key,bodyBytes,{ifNoneMatch:true});
-    if(!b.ok)return {ok:false,conflict:b.status===412,error:'gövde yazılamadı: '+b.status};
+    if(!b.ok&&!(b.status===412&&b.ambiguous))return {ok:false,conflict:b.status===412,error:'gövde yazılamadı: '+b.status};
+    if(!b.ok){const bb=await store.get(header.body_key);if(!bb||!bb.equals(bodyBytes))return {ok:false,conflict:true,error:'gövde yazılamadı: 412'};}
     const h=await store.put(headerKey(seq),hb,{ifNoneMatch:true});
-    if(!h.ok)return {ok:false,conflict:h.status===412,error:'başlık yazılamadı: '+h.status};
+    if(!h.ok&&!(h.status===412&&h.ambiguous))return {ok:false,conflict:h.status===412,error:'başlık yazılamadı: '+h.status};
     const back=await store.get(headerKey(seq));
     if(!back||!back.equals(hb))return {ok:false,conflict:true,error:'geri okunan başlık farklı (eşzamanlı yazıcı ya da tutarsız okuma)'};
   }catch(e){return {ok:false,error:'yazma hatası: '+e.message};}
