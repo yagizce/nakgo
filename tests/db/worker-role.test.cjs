@@ -22,7 +22,9 @@ test('B4 worker rolü',async t=>{
     // Yerel PostgREST için authenticator önce oluşur; worker.sql üyeliği verir.
     await db.exec(`do $$ begin if not exists(select 1 from pg_roles where rolname='authenticator') then create role authenticator login noinherit; end if; end $$;`);
     await db.exec(SQL);
-    await db.exec(SQL);  // tekrar uygulanabilir
+    // Önceden kalmış fazla üyelik (rol küme düzeyindedir) yeniden uygulamada kaldırılmalı.
+    await db.exec(`do $$ begin if exists(select 1 from pg_roles where rolname='authenticated') then grant authenticated to worker; end if; end $$;`);
+    await db.exec(SQL);  // tekrar uygulanabilir ve en az yetkiyi geri kurar
 
     await t.test('rol özellikleri: giriş yok, süper kullanıcı değil, RLS atlamaz, hiçbir role üye değil',async()=>{
       const r=(await db.query(`select rolcanlogin,rolsuper,rolbypassrls,rolcreatedb,rolcreaterole,rolinherit,rolreplication from pg_roles where rolname='worker'`)).rows[0];

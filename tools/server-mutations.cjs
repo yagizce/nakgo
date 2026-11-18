@@ -29,6 +29,7 @@ const M=[
   ['server/worker.mjs',"!Number.isInteger(hours) || hours < 1 || hours > 168","!Number.isFinite(hours)"],
   ['supabase/local/worker.sql',"alter role worker nologin nosuperuser nocreatedb nocreaterole noinherit nobypassrls","alter role worker nologin nosuperuser nocreatedb nocreaterole noinherit bypassrls"],
   ['supabase/local/worker.sql',"revoke all on function worker.health(),worker.api_usage(integer) from public,anon,authenticated;","revoke all on function worker.health() from public,anon,authenticated;"],
+  ['supabase/local/worker.sql',"loop execute format('revoke %I from worker',r); end loop;","loop null; end loop;"],
   ['supabase/local/worker.sql',"grant usage on schema worker to worker;","grant usage on schema worker to worker; grant usage on schema private to worker;"],
   ['supabase/local/worker.sql',"grant execute on function worker.health(),worker.api_usage(integer) to worker;","grant execute on function worker.health(),worker.api_usage(integer) to worker; grant select on public.listings to worker;"],
   ['supabase/local/worker.sql',"grant execute on function worker.health(),worker.api_usage(integer) to worker;","grant execute on function worker.health(),worker.api_usage(integer) to worker; grant authenticated to worker;"],

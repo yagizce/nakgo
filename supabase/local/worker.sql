@@ -13,6 +13,11 @@ do $$ begin
  if not exists(select 1 from pg_roles where rolname='worker') then create role worker nologin noinherit; end if;
 end $$;
 alter role worker nologin nosuperuser nocreatedb nocreaterole noinherit nobypassrls noreplication connection limit 0;
+-- Yeniden uygulama en az yetkiyi geri kurar: worker'ın üye olduğu her rol üyeliği kaldırılır.
+do $$ declare r text; begin
+ for r in select g.rolname from pg_auth_members m join pg_roles g on g.oid=m.roleid join pg_roles w on w.oid=m.member where w.rolname='worker'
+ loop execute format('revoke %I from worker',r); end loop;
+end $$;
 
 create schema if not exists worker;
 revoke all on schema worker from public,anon,authenticated;
