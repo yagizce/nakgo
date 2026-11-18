@@ -52,8 +52,8 @@
   "errors": {
     "23505": "profiles: aynı anda iki ilk giriş; istemci profili yeniden okur",
     "54000": "listings: yayındaki ilan sınırı aşıldı; istemci kullanıcıya özel mesaj gösterir. nakgo_report_listing: şikâyet sınırı (10/saat, 30/24 saat)",
-    "40001": "nakgo_admin_moderate: kayıt başka yönetici tarafından değişti (revision çakışması)",
-    "PT409": "nakgo_admin_report_set: şikâyet başka yönetici tarafından değişti (revision çakışması; HTTP 409)",
+    "40001": "eski sunucu: nakgo_admin_moderate revision çakışması (artık PT409); istemci PT409 ile aynı karşılar",
+    "PT409": "nakgo_admin_moderate, nakgo_admin_report_set: kayıt başka yönetici tarafından değişti ya da 5 sn'den uzun kilitli (HTTP 409)",
     "42501": "yetkisiz/oturumsuz/doğrulanmamış hesap; mesaj metinleri: 'Sign in required', 'Verified account required', 'Owner account', 'Last administrator'",
     "22023": "geçersiz argüman"
   }

@@ -27,7 +27,7 @@ do $$begin
  if not public.nakgo_admin_role() then raise exception 'FAIL administrator role';end if;
  begin perform public.nakgo_admin_moderate('user',auth.uid()::text,'suspend','Synthetic self suspension',0);raise exception 'FAIL self suspension';exception when insufficient_privilege then null;end;
  perform public.nakgo_admin_moderate('user',current_setting('nakgo.mod_carrier'),'suspend','Synthetic rollback suspension',0);
- begin perform public.nakgo_admin_moderate('user',current_setting('nakgo.mod_carrier'),'resume','Synthetic stale revision',0);raise exception 'FAIL stale account revision';exception when serialization_failure then null;end;
+ begin perform public.nakgo_admin_moderate('user',current_setting('nakgo.mod_carrier'),'resume','Synthetic stale revision',0);raise exception 'FAIL stale account revision';exception when sqlstate 'PT409' then null;end;
 end $$;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_carrier'),true);
 do $$begin
@@ -39,7 +39,7 @@ select public.nakgo_admin_moderate('user',current_setting('nakgo.mod_carrier'),'
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_admin'),true);
 select public.nakgo_admin_moderate('listing',current_setting('nakgo.mod_pending_load'),'remove','Synthetic rollback removal',0);
 do $$begin
- begin perform public.nakgo_admin_moderate('listing',current_setting('nakgo.mod_pending_load'),'restore','Synthetic stale listing revision',0);raise exception 'FAIL stale listing revision';exception when serialization_failure then null;end;
+ begin perform public.nakgo_admin_moderate('listing',current_setting('nakgo.mod_pending_load'),'restore','Synthetic stale listing revision',0);raise exception 'FAIL stale listing revision';exception when sqlstate 'PT409' then null;end;
 end $$;
 select set_config('request.jwt.claim.sub',current_setting('nakgo.mod_owner'),true);
 do $$begin

@@ -64,8 +64,12 @@ Menü yalnız arka ucu çalışan bölümleri gösterir. Her sayfada başlık, k
   sayfalarındaki üst kartlar (aynı sayılar süzgeç çiplerinde var). Sunucu fonksiyonları değişmedi.
 - **Menüde olmayanlar:** WhatsApp ilan onayları (taslaklar saklanmıyor; arka uç yok) ve Yasal Kayıtlar (#125, B8; MFA ve
   ayrı yetki ile kendi arayüzü gelecek). Panel bu kayıtların deposu değildir.
-- **Şikâyet kararı çakışması** `PT409` ile döner. `nakgo_admin_moderate` hâlâ `40001` döndürür; PostgREST bunu yeniden
-  dener ve yanıt gelmez (istemci 15 sn sonra "doğrulanamadı" der). Düzeltme #125 ile birlikte ayrı karar gerektirir.
+- **Eşzamanlı yönetici işlemi** (`20261118120000_admin_moderate_conflict.sql`): `nakgo_admin_moderate` ve şikâyet kararı
+  eski revision'da `PT409` (HTTP 409) döner; önceki `40001` PostgREST'te sonsuz yeniden denemeye giriyordu. İşlem kaydı başka
+  bir işlemde 5 saniyeden uzun kilitliyse beklemek yerine `PT409` "Moderation busy; refresh" döner. Çakışmada hiçbir şey
+  ve denetim kaydı yazılmaz; panel isteği tekrar göndermez, "güncel durumu yükle" der. Düzeltme fonksiyonun geçerli
+  tanımına (mevcut ya da #125 sürümü) metin olarak uygulanır; #125 bu migration'dan sonra çalışacak bir zaman damgasına
+  taşınırsa `tests/db/admin-moderate-conflict.test.cjs` 40001'in geri geldiğini yakalar.
 - Doğrulama: `tests/admin_sections_browser.py` (Chromium, 1280 ve 390 px), `tests/db/admin-health.test.cjs`.
 
 ## DEV kurulumu
