@@ -280,3 +280,61 @@ Bir yük ilanı ile bir boş araç ilanı ancak aşağıdakilerin hepsi sağlan�
   ucu ve sınırıyla (30/saat, 100/gün) alınır.
 - **Test:** sınır değerleri (kapasite = ağırlık eşleşir, 0,001 ton eksik eşleşmez), ters yön, görünmeyen ilan, kendi ilanı ve
   v0 ile girilmiş hassas eski değerler otomatik testle sınanır.
+
+## Şikâyet (mobil hazırlık)
+
+Migration: `20261118100000_listing_reports.sql`. Testler: `tests/db/reports.test.cjs` (PGlite, PG16, PG17),
+`tests/db/reports-http.test.cjs` (yerel PostgREST), `tests/unit/report-api.test.js`; kasıtlı bozma: `tools/report-mutations.cjs`.
+
+| Uç | Argümanlar | Yanıt |
+|---|---|---|
+| `report_create_v1` (authenticated) | `p_listing_id`, `p_subject` (`listing` ya da `account`), `p_reason` (`fake`, `fraud`, `inappropriate`, `wrong_info`, `other`), `p_note` (isteğe bağlı, ≤200) | `{data:{report:{id,subject,listing_id,reason,status,created_at}, created}}` |
+
+- **Kimlik:** şikâyet eden oturumdan; argüman olarak alınmaz. Misafir, anonim oturum, doğrulanmamış ve askıdaki hesap
+  gönderemez (`auth_required`, `account_unverified`, `account_suspended`).
+- **Bağ:** ilan bugün herkese görünür olmalı (`private.api_visible_listings`); değilse `not_found`. Kendi ilanı ya da kendi
+  hesabı `not_allowed`. Hesap şikâyeti (`account`) bir ilan üzerinden yapılır; hesap kimliği istemciden alınmaz, ilanın
+  sahibinden sunucuda okunur (v1 sahip kimliği vermez).
+- **Tekrar:** aynı kişinin aynı ilan (ya da aynı hesap) için açık/incelenen tek şikâyeti olur; ikinci gönderim aynı kaydı
+  döner (`created:false`), sebep ya da not değişmez. Karar verilen (çözüldü/reddedildi) şikâyetten sonra yeni kayıt açılır.
+- **Sınır:** kişi başına 10 yeni şikâyet/saat ve 30/24 saat (`limit_reached`); tekrar gönderimler sayılmaz. Aynı kişinin
+  eşzamanlı istekleri kişi kilidiyle sıraya girer.
+- **Gizlilik:** kayıtlar `private.listing_reports` tablosunda; istemci rollerine kapalı, hiçbir ilan/profil ucu döndürmez.
+  İlan sahibi şikâyeti göremez. Yanıt yalnız şikâyet edenin kendi kaydının kimliği ve durumu; not ve hesap kimliği dönmez.
+  Not kırpılır, kontrol karakterleri boşluk olur.
+- **Yönetici (v0, mevcut yönetici modeli):** `nakgo_admin_reports(p_status,p_offset)` ve
+  `nakgo_admin_report_set(p_id,p_status,p_reason,p_revision)`; yetki `private.is_nakgo_admin()`, gerekçe 3–500 karakter,
+  her karar `private.admin_audit` kaydı (`target='report:<id>'`, `action='report_<durum>'`), eşzamanlı karar `PT409`.
+- **Saklama:** şikâyetler otomatik silinmez. İlan silinse de kayıt ve ilan numarası kalır; şikâyet eden ya da şikâyet edilen
+  hesap silinince yalnız o hesap kimliği boşaltılır.
+- **v0:** `nakgo_report_listing` aynı çekirdeği (`private.report_create`) çağırır; api şeması canlıda açılana kadar uygulama
+  bunu kullanır (`via()`). Uygulama demo modunda şikâyeti eskisi gibi yalnız cihazda tutar; gerçek hesapta sunucuya gönderir ve
+  başarı/tekrar/sınır/hata mesajını gösterir.
+
+### Şikâyet kararları (onay bekleyen, değiştirilebilir)
+
+1. Sınır değerleri (10/saat, 30/24 saat).
+2. Yalnız bugün görünür ilan şikâyet edilebilir; kapanmış ilan için şikâyet yolu yok.
+3. Saklama süresi: şimdilik süresiz. KVKK saklama süresi ve şikâyet notunun hesap silmede ne olacağı #125 (yasal arşiv)
+   ile birlikte kararlaştırılmalı.
+4. Yönetici paneli ekranı bu aşamada yok; uçlar ve istemci fonksiyonları (`adminReports`, `adminReportSet`) hazır.
+
+## İl/ilçe kataloğu
+
+`catalog/locations-v1.json`, `tools/location-catalog.cjs` ile `src/js/config.js`'ten (LL: 81 il, DISTRICTS: 973 ilçe)
+üretilir; elle düzenlenmez. `tests/unit/location-catalog.test.js` dosyanın kaynakla, veritabanı il kısıtıyla
+(`listings.from_city/to_city`), uygulama filtreleriyle ve WhatsApp kataloğuyla aynı olduğunu denetler.
+
+```json
+{"version":"<içerik özeti, 16 hane>","schema":1,"source":"src/js/config.js",
+ "cities":[{"code":"34","name":"İstanbul","districts":[{"code":"34-kadikoy","name":"Kadıköy"}]}]}
+```
+
+- **Kodlar:** il = plaka kodu (`01`–`81`); ilçe = il kodu + Türkçe karaktersiz ad (`34-kadikoy`). `name` veritabanına yazılan
+  ve filtrelerde kullanılan değerin kendisidir; istemci API'ye `name` gönderir.
+- **Sürüm:** içerik değişmeden `version` değişmez; mobil istemci önbelleğini bununla yeniler. Biçim değişirse `schema` artar
+  ve dosya `locations-v2.json` olur.
+- **Veritabanı:** yeni tablo yok. İl, ilan tablosu kısıtıyla doğrulanır (değişmedi); ilçe serbest metin kalır (1–40
+  karakter). v0 filtreleri değişmedi.
+- **Yayın (onay bekliyor):** dosya şu an yalnız depoda. Web çıktısına (`/catalog/locations-v1.json`) eklenmesi canlı
+  yayını değiştirir ve statik çıktı testinin güncellenmesini gerektirir; ayrı onayla yapılacak.

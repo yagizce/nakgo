@@ -155,7 +155,7 @@ function openProfile(o) {
     const n2 = o.name || "Kullanıcı";
     B.innerHTML = `<div class="u-flex-g14-aic"><div class="avatar">${esc((String(n2)[0] || "?").toUpperCase())}</div><div><b class="u-fs18">${esc(n2)}</b><div class="u-mute-fs14">${act} aktif ilan</div></div></div>${info.city || info.about || info.displayName ? `<section class="detail-group"><h2>Hakkında</h2>${info.displayName ? `<p>${esc(info.displayName)}</p>` : ""}${info.city ? `<p>${esc(info.city)}</p>` : ""}${info.about ? `<p class="detail-note">${esc(info.about)}</p>` : ""}</section>` : ""}<div class="chips u-mt14">${o.uid && o.uid !== me ? `<button class="chip" id="pr">Şikayet et</button><button class="chip" id="pb2">Engelle</button>` : ""}</div><button class="btn alt" id="close">Kapat</button>`;
     if ($("#pr"))
-        $("#pr").onclick = () => openReport("u", o.uid);
+        $("#pr").onclick = () => openReport("u", o.uid, o.listingId);
     if ($("#pb2"))
         $("#pb2").onclick = () => blockUser(o.uid);
     $("#close").onclick = closeSheet;
@@ -238,12 +238,39 @@ function setCar(patch) {
 // ===== Güven ve destek =====
 // Şikayet, engelleme, yardım ve sık sorulan sorular.
 
-function openReport(kind, id) {
-    if(nakgoMarket.locked())return nakgoMarket.pending();
+// Gerçek hesapta şikâyet sunucuya gider (ilan ya da ilanın sahibi); demo modunda yalnız bu cihazda kalır.
+const REPORT_CODES = { "Sahte ilan": "fake", "Dolandırıcılık şüphesi": "fraud", "Uygunsuz içerik": "inappropriate", "Yanlış bilgi": "wrong_info", "Diğer": "other" };
+const reportError = e => e?.code === "54000" ? "Çok fazla şikayet gönderdin. Biraz sonra yeniden dene."
+    : e?.apiKey === "not_found" || e?.message === "Listing unavailable" ? "Bu ilan artık yayında değil; şikayet gönderilemedi."
+    : e?.apiKey === "not_allowed" || e?.message === "Own listing" ? "Kendi ilanını şikayet edemezsin."
+    : e?.apiKey === "account_suspended" || e?.message === "Account suspended" ? "Hesabın askıda olduğu için şikayet gönderemezsin."
+    : "Şikayet gönderilemedi. Bağlantını kontrol edip yeniden dene.";
+async function sendReport(kind, listingId, label, note) {
+    const btn = $("#rg");
+    if (btn.disabled) return;
+    btn.disabled = true;
+    const account = nakgoMarket.token();
+    try {
+        const r = await nakgoAuth.reportListing(listingId, kind === "u" ? "account" : "listing", REPORT_CODES[label] || "other", note);
+        if (!Number.isSafeInteger(r?.report?.id) || typeof r.created !== "boolean") throw Error("Invalid report response");
+        if (account !== nakgoMarket.token()) return;
+        closeSheet();
+        toast(r.created ? "Şikayetin ekibimize iletildi. Teşekkürler." : "Bu kayıt için açık bir şikayetin zaten var; ekibimiz inceliyor.");
+    } catch (e) {
+        if (account !== nakgoMarket.token()) return;
+        btn.disabled = false;
+        toast(reportError(e));
+    }
+}
+
+function openReport(kind, id, listingId) {
+    const market = nakgoMarket.locked();
+    if (market && (!nakgoMarket.active() || !Number.isSafeInteger(listingId))) return nakgoMarket.pending();
     const B = $("#sheetBody");
     B.dataset.k = "";
     B.innerHTML = `<b class="u-fs19">Şikayet et</b><label>Sebep</label><select id="rr">${["Sahte ilan", "Dolandırıcılık şüphesi", "Uygunsuz içerik", "Yanlış bilgi", "Diğer"].map(x => `<option>${x}</option>`).join("")}</select><label>Açıklama (isteğe bağlı)</label><input id="rn" maxlength="200" placeholder="Ne oldu?"><button class="btn" id="rg">Gönder</button><button class="btn alt" id="close">Vazgeç</button>`;
     $("#rg").onclick = () => {
+        if (market) return sendReport(kind, listingId, $("#rr").value, $("#rn").value.trim().slice(0, 200));
         const rec = { kind, tid: String(id), reason: $("#rr").value, note: $("#rn").value.trim().slice(0, 200), by: me || "local", ts: Date.now() }, key = (me || "local") + "_" + kind + "_" + id;
         if (cloud)
             dbw(db.doc("reports/" + key).set(rec));
