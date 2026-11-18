@@ -14,7 +14,9 @@
 
 1. **Karar ve onay.** Olayı yazılı kaydet (tarih, neden, kim onayladı). Production'a dokunma.
 2. **Yedeği seç.** İmzalı manifesti `verified=true` olan en yeni yedek. Manifest imzası ve şifreli dosyanın SHA-256'sı
-   doğrulanır; kontrol noktası zincirinde açık `integrity` olayı varsa önce o incelenir.
+   doğrulanır; kontrol noktası zincirinde açık `integrity` olayı varsa önce o incelenir. Araç:
+   `node tools/backup/dr-fetch.cjs --out DOSYA --latest` (ya da `--manifest manifests/....json`). Bu denetimleri yapar,
+   şifreli dosyayı 0600 olarak kaydeder, şifre çözmez; daha yeni bir manifestte bütünlük sorunu görürse durur.
 3. **Çevrim dışı çöz.** A (ya da B) gizli anahtarıyla, ağsız makinede. Şifresiz dosya yalnız o makinede ve şifreli diskte.
 4. **Yalıtılmış hedef.** Yeni, geçici bir Supabase projesi (ayrı onay). Bağlantı yalnız `sslmode=verify-full`.
 5. **Sıra.** Yeni Supabase projesinde Auth/Storage şemasını Supabase kurar; `bootstrap.sql`, `B.pre.sql` ve
