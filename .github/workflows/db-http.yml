@@ -1,0 +1,56 @@
+# Bugün yalnız yerelde koşan HTTP testlerini (yerel PostgREST), gerçek supabase-js istemci testini ve Workers
+# (workerd/Miniflare) testlerini CI'da koşturmak. Gizli anahtar, canlı hesap ya da production bağlantısı YOK: veritabanı CI
+# içindeki geçici PostgreSQL 17, PostgREST ve JWT sırrı test sırasında rastgele üretilir.
+name: NakGo HTTP and Workers
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: db-http-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  db-http:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-only-local
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install pinned test tools (pg, supabase-js, miniflare, PostgREST)
+        run: |
+          npm install --prefix "$RUNNER_TEMP/nakgo-pg" --no-save --package-lock=false --ignore-scripts pg@8.23.1 @supabase/supabase-js@2.117.3
+          npm install --prefix "$RUNNER_TEMP/nakgo-mf" --no-save --package-lock=false miniflare@4.20260730.0
+          curl -fsSL -o "$RUNNER_TEMP/postgrest.tar.xz" https://github.com/PostgREST/postgrest/releases/download/v12.2.3/postgrest-v12.2.3-linux-static-x64.tar.xz
+          echo "9f71269e61ac3a940281e93ff415760f5957e430e475ba4c3889f3ede7d5527c  $RUNNER_TEMP/postgrest.tar.xz" | sha256sum --check
+          tar -xJf "$RUNNER_TEMP/postgrest.tar.xz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/postgrest" --version
+      - name: HTTP, supabase-js and Workers tests (PostgreSQL 17)
+        env:
+          NODE_PATH: ${{ runner.temp }}/nakgo-pg/node_modules
+          NAKGO_PG_HOST: localhost
+          NAKGO_PG_PORT: '5432'
+          NAKGO_PG_PASSWORD: ci-only-local
+          NAKGO_POSTGREST_BIN: ${{ runner.temp }}/postgrest
+          NAKGO_MINIFLARE: ${{ runner.temp }}/nakgo-mf/node_modules/miniflare/dist/src/index.js
+        # Ortam eksikse bu testler atlanır; burada atlanan test başarısızlık sayılır (sessizce geçmesin).
+        run: |
+          # Yönetici çakışması testinin PostgREST bölümü (#148 ile gelir; dosya yoksa eklenmez).
+          extra=$(ls tests/db/admin-moderate-conflict.test.cjs 2>/dev/null || true)
+          # Dosyalar sırayla: her biri küme genelindeki rolleri (authenticator) "yoksa oluştur" ile kurar; paralel koşu yarışır.
+          node --test --test-reporter=tap --test-concurrency=1 tests/db/*-http.test.cjs tests/db/worker-role.test.cjs $extra tests/server/*.test.mjs | tee "$RUNNER_TEMP/http.tap"
+          grep -qx '# skipped 0' "$RUNNER_TEMP/http.tap" || { echo "Atlanan test var: PostgREST, supabase-js ya da Miniflare kurulamadı"; exit 1; }
