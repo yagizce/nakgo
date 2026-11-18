@@ -14,6 +14,33 @@ function syncDetailViewport() {
     app.dataset.keyboard = window.innerHeight - v.height - v.offsetTop > 120 ? "true" : "false";
 }
 
+// API v1 listesi fotoğraf taşımaz (yalnız has_photo); fotoğraf ayrıntı açılınca alınır. Yüklenene kadar yer tutucu;
+// boş yanıtta yer tutucu kalkar, hata, ağ kesintisi ya da 15 sn zaman aşımında "Yeniden dene" gösterilir.
+let detailPhotoFor = null;
+const detailPhotoHTML = l => imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">`
+    : l.hasPhoto && l._remote && nakgoMarket.active() ? '<div class="ph ph-wait" id="detail-photo" role="status">Fotoğraf yükleniyor…</div>' : "";
+function loadDetailPhoto(l) {
+    detailPhotoFor = null;
+    if (imgOk(l.img) || !l.hasPhoto || !l._remote || !nakgoMarket.active() || !$("#detail-photo")) return;
+    const id = l.remoteId, owner = nakgoMarket.token();
+    detailPhotoFor = id;
+    // Başka ilan açıldıysa, oturum değiştiyse ya da yer tutucu yoksa sonuç ekrana yazılmaz.
+    const slot = () => detailPhotoFor === id && owner === nakgoMarket.token() ? $("#detail-photo") : null;
+    let timer;
+    const late = new Promise((_, fail) => { timer = setTimeout(() => fail(Error("timeout")), 15000); });
+    Promise.race([nakgoAuth.listingPhoto(id), late]).then(photo => {
+        const s = slot();
+        if (imgOk(photo)) { l.img = photo; if (s) s.outerHTML = `<img class="ph" src="${photo}" alt="Yük fotoğrafı">`; }
+        else { l.hasPhoto = false; if (s && s.remove) s.remove(); }
+    }, () => {
+        const s = slot();
+        if (!s) return;
+        s.innerHTML = 'Fotoğraf yüklenemedi. <button class="chip" type="button" id="detail-photo-retry">Yeniden dene</button>';
+        const retry = $("#detail-photo-retry");
+        if (retry) retry.onclick = () => { s.textContent = "Fotoğraf yükleniyor…"; loadDetailPhoto(l); };
+    }).finally(() => { if (typeof clearTimeout === "function") clearTimeout(timer); });
+}
+
 function openLoad(id) {
     roadMapDispose(true);
     const l = findIt("l",id);
@@ -28,7 +55,7 @@ function openLoad(id) {
       <div class="detail-scroll" tabindex="0" aria-label="İlan bilgileri">
         <section class="detail-summary">${routeTitle(l)}<div class="summary-tags"><span class="tag">Yükleme: ${esc(dateLabel(l))}</span>${isF(l) ? `<span class="tag ft">Öne çıkan${isDemoFeature(l) ? ' · Örnek' : ''}</span>` : ""}</div></section>
         ${!cloud && !nakgoMarket.locked() ? '<p class="demo-note"><b>Demo modu</b> · Bu ekrandaki örnek ilanlar ve talepler deneme amaçlıdır.</p>' : ""}
-        ${imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">` : ""}
+        ${detailPhotoHTML(l)}
         <section class="detail-group"><h2>Yük bilgileri</h2>${kv([["Yük türü", esc(l.cargo)], ["Tonaj", esc(l.ton) + " ton"], ...(Array.isArray(l.items) && l.items.length ? [["Kalemler", itemsTxt(l)]] : []), ["Yükleme tarihi", esc(dateLabel(l))], ...(postedAt(l,true) ? [["İlan yayın zamanı", esc(postedAt(l,true))]] : [])])}${l.note ? `<p class="detail-note">${esc(l.note)}</p>` : ""}</section>
         <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefonda veya WhatsApp'ta görüşebilirsin.</p></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
@@ -41,6 +68,7 @@ function openLoad(id) {
     syncDetailViewport();
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openLoad(id));
+    loadDetailPhoto(l);
     $("#close").onclick = closeSheet;
     $("#sh").onclick = () => shareLoad(l);
     $("#call").onclick = () => {

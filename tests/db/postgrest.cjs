@@ -4,7 +4,8 @@
 const crypto=require('node:crypto'),{spawn}=require('node:child_process');
 const b64=x=>Buffer.from(typeof x==='string'?x:JSON.stringify(x)).toString('base64url');
 
-async function startPostgrest(db){
+/** schemas: PostgREST'in açtığı şemalar (varsayılan public,api; 'public' = api açılmamış Supabase gibi). */
+async function startPostgrest(db,{schemas='public,api'}={}){
   const SECRET=crypto.randomBytes(32).toString('hex'),PW=crypto.randomBytes(16).toString('hex');
   const PORT=3900+Math.floor(Math.random()*90),ADMIN=PORT+100;
   await db.exec(`create or replace function auth.uid() returns uuid language sql stable as $$
@@ -13,7 +14,7 @@ async function startPostgrest(db){
     alter role authenticator password '${PW}'; grant anon,authenticated to authenticator;`);
   const host=process.env.NAKGO_PG_HOST,port=process.env.NAKGO_PG_PORT||5432;
   const uri=host.startsWith('/')?`postgres://authenticator:${PW}@/${db.name}?host=${host}&port=${port}`:`postgres://authenticator:${PW}@${host}:${port}/${db.name}`;
-  const proc=spawn(process.env.NAKGO_POSTGREST_BIN,[],{env:{PGRST_DB_URI:uri,PGRST_DB_SCHEMAS:'public,api',PGRST_DB_ANON_ROLE:'anon',PGRST_JWT_SECRET:SECRET,
+  const proc=spawn(process.env.NAKGO_POSTGREST_BIN,[],{env:{PGRST_DB_URI:uri,PGRST_DB_SCHEMAS:schemas,PGRST_DB_ANON_ROLE:'anon',PGRST_JWT_SECRET:SECRET,
     PGRST_SERVER_HOST:'127.0.0.1',PGRST_SERVER_PORT:String(PORT),PGRST_ADMIN_SERVER_PORT:String(ADMIN),PGRST_LOG_LEVEL:'crit'},stdio:'ignore'});
   let ready=false;for(let i=0;i<100&&!ready;i++){try{ready=(await fetch(`http://127.0.0.1:${ADMIN}/ready`)).ok;}catch{}if(!ready)await new Promise(r=>setTimeout(r,150));}
   if(!ready){proc.kill();throw Error('PostgREST hazır değil');}
@@ -28,6 +29,6 @@ async function startPostgrest(db){
     const text=await r.text();return {status:r.status,body:text?JSON.parse(text):null,raw:text};
   };
   const get=(path,token)=>fetch(`http://127.0.0.1:${PORT}${path}`,{headers:token?{authorization:'Bearer '+token}:{}});
-  return {jwt,rpc,get,stop:()=>proc.kill()};
+  return {jwt,rpc,get,base:`http://127.0.0.1:${PORT}`,stop:()=>proc.kill()};
 }
 module.exports={startPostgrest};
