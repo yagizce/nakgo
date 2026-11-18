@@ -40,6 +40,10 @@ async function applyMigrations(admin,{list,dir=path.join(root,'supabase/migratio
   return applied;
 }
 
+/** #125 migration'ı depoya girdi mi? Girdiyse her depo kurulumu #125'i içerir: "base" (#125 yok) senaryosu artık
+ * gerçek bir kurulumu temsil etmez (geri yükleme sözleşme kontrolü de #125 fonksiyonlarını zorunlu tutar). */
+const legalInRepo=()=>fs.existsSync(path.join(root,'supabase/migrations',LEGAL125.name));
+
 /** Projenin hangi senaryoda olduğu: #125 tabloları varsa 'legal125', yoksa 'base'. */
 async function scenarioOf(admin){
   return (await q(admin,`select to_regclass($1) is not null x`,[LEGAL125.marker]))[0].x?'legal125':'base';
@@ -50,10 +54,15 @@ async function scenarioOf(admin){
  * bir proje legal125'e geçtikten sonra temel senaryo o projede tekrar koşulamaz. */
 async function prepareScenario(admin,scenario){
   if(!['base','legal125'].includes(scenario))return r('scenario','stop','bilinmeyen senaryo');
+  if(legalInRepo()){
+    const sha=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'supabase/migrations',LEGAL125.name))).digest('hex');
+    if(sha!==LEGAL125.sha256)return r('scenario','stop','depodaki #125 migration\'ı sabitlenmiş kopyayla aynı değil');
+    if(scenario==='base')return r('scenario','stop','#125 depoda: temel senaryo artık yok; legal125 kullanılmalı');
+  }
   const before=await scenarioOf(admin);
   if(scenario==='base'&&before==='legal125')return r('scenario','stop','proje #125 senaryosuna geçmiş; temel senaryo için yeni geçici proje gerekir');
   const applied=await applyMigrations(admin);
-  if(scenario==='legal125'){
+  if(scenario==='legal125'&&!legalInRepo()){
     const sql=fs.readFileSync(LEGAL125.file,'utf8');
     const sha=crypto.createHash('sha256').update(sql).digest('hex');
     if(sha!==LEGAL125.sha256)return r('scenario','stop','#125 kopyasının sha256\'sı sabit değerle uyuşmuyor');
@@ -256,4 +265,4 @@ async function cleanupRole(admin,{role}){
   return r('cleanup',still?'fail':'pass',{role_present:still,large_objects_owned_before:owned,error:e});
 }
 
-module.exports={r2Scope,cleanupRole,advisoryVerdict,LEGAL125,ADVISORY_KEY,DOCUMENTED_RESIDUALS,applyMigrations,scenarioOf,prepareScenario,v1,v2,v3,v4,v5,v6,v7};
+module.exports={legalInRepo,r2Scope,cleanupRole,advisoryVerdict,LEGAL125,ADVISORY_KEY,DOCUMENTED_RESIDUALS,applyMigrations,scenarioOf,prepareScenario,v1,v2,v3,v4,v5,v6,v7};

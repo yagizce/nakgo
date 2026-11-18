@@ -159,7 +159,14 @@ test('#125 senaryo yalıtımı ve V4–V8 (yerel PostgreSQL)',async t=>{
       assert.deepEqual(await V.applyMigrations(db),[]);
       await assert.rejects(V.applyMigrations(db,{list:[{name:applied[0],sql:'select 1'}]}),/değişmiş/);
     });
+    // #125 depoya girdiyse depo kurulumu #125'i içerir: temel senaryo durur, aynı akış legal125 senaryosunda koşar.
+    const IN_REPO=V.legalInRepo(),S=IN_REPO?'legal125':'base';
     await t.test('senaryo base: #125 nesnesi yok',async()=>{
+      if(IN_REPO){
+        const b=await V.prepareScenario(db,'base');assert.equal(b.status,'stop',JSON.stringify(b));assert.match(b.detail,/temel senaryo artık yok/);
+        const s=await V.prepareScenario(db,'legal125');assert.equal(s.status,'pass',JSON.stringify(s));assert.deepEqual(s.detail.applied,[]);
+        assert.equal(await V.scenarioOf(db),'legal125');return;
+      }
       const s=await V.prepareScenario(db,'base');
       assert.equal(s.status,'pass',JSON.stringify(s));assert.equal(await V.scenarioOf(db),'base');
     });
@@ -205,7 +212,7 @@ test('#125 senaryo yalıtımı ve V4–V8 (yerel PostgreSQL)',async t=>{
     });
     await t.test('rol temizliği: hata durumunda da rol ve sahip olduğu büyük nesne silinir',async()=>{
       const r2=uniqueRole('nakgo_backup_c');
-      const out=await RUN.suiteSupabase({scenario:'base',admin:db,role:r2,maskImpl:()=>{},
+      const out=await RUN.suiteSupabase({scenario:S,admin:db,role:r2,maskImpl:()=>{},
         connectBackup:async()=>{throw Error('bağlantı kurulamadı');},conn:{},store:new MemoryStore(),anchorStore:new MemoryStore(),runId:'c-1'});
       assert.deepEqual(out.map(x=>[x.code,x.status]),[['scenario','pass'],['V4','pass'],['exception','fail'],['cleanup','pass']],JSON.stringify(out));
       assert.equal((await db.query(`select count(*)::int n from pg_roles where rolname=$1`,[r2])).rows[0].n,0,'rol silindi');
@@ -225,7 +232,7 @@ test('#125 senaryo yalıtımı ve V4–V8 (yerel PostgreSQL)',async t=>{
     await t.test('V8 temel senaryo: geçici anahtarlarla uçtan uca doğrulanmış yedek',async t2=>{
       if(v8Skip){if(process.env.NAKGO_REQUIRE_DUMP==='1')throw Error(v8Skip);t2.skip(v8Skip);return;}
       const store=new MemoryStore({lockDays:1,lockPrefixes:['db/']});
-      const x=await RUN.v8({conn,store,anchorStore:new MemoryStore(),pgBin:process.env.NAKGO_PG_BIN,expectLegal:false,allowLocal:true,runId:'b7b-1'});
+      const x=await RUN.v8({conn,store,anchorStore:new MemoryStore(),pgBin:process.env.NAKGO_PG_BIN,expectLegal:IN_REPO,allowLocal:true,runId:'b7b-1'});
       assert.equal(x.status,'pass',JSON.stringify(x));
       assert.equal(fs.readdirSync(os.tmpdir()).filter(f=>f.startsWith('nakgo-b7b-keys-')).length,0,'geçici anahtar klasörü silindi');
       const r=RUN.v8ConnectionRules({host:'aws-0-eu-central-1.pooler.supabase.com',port:5432,sslmode:'verify-full',sslrootcert:'/yok'});
@@ -237,7 +244,7 @@ test('#125 senaryo yalıtımı ve V4–V8 (yerel PostgreSQL)',async t=>{
       assert.equal((await V.cleanupRole(db,{role})).status,'pass');
       const r3=uniqueRole('nakgo_backup_s');let masked=null;
       const {Client}=require('pg');
-      const out=await RUN.suiteSupabase({scenario:'base',admin:db,role:r3,maskImpl:v=>{masked=v;},allowLocal:true,runId:'s-1',
+      const out=await RUN.suiteSupabase({scenario:S,admin:db,role:r3,maskImpl:v=>{masked=v;},allowLocal:true,runId:'s-1',
         connectBackup:async pw=>{const c=new Client({host:process.env.NAKGO_PG_HOST,port:Number(process.env.NAKGO_PG_PORT||5432),user:r3,password:pw,database:db.name});await c.connect();c.on('error',()=>{});return c;},
         conn:{host:process.env.NAKGO_PG_HOST,port:Number(process.env.NAKGO_PG_PORT||5432),user:r3,database:db.name},
         store:new MemoryStore({lockDays:1,lockPrefixes:['db/']}),anchorStore:new MemoryStore(),pgBin:process.env.NAKGO_PG_BIN});
@@ -250,7 +257,7 @@ test('#125 senaryo yalıtımı ve V4–V8 (yerel PostgreSQL)',async t=>{
     });
     await t.test('senaryo legal125: sabitlenmiş #125 kopyası ayrı uygulanır; geri dönüş yok',async()=>{
       const s=await V.prepareScenario(db,'legal125');
-      assert.equal(s.status,'pass',JSON.stringify(s));assert.deepEqual(s.detail.applied,[V.LEGAL125.name]);
+      assert.equal(s.status,'pass',JSON.stringify(s));assert.deepEqual(s.detail.applied,IN_REPO?[]:[V.LEGAL125.name]);
       assert.equal(await V.scenarioOf(db),'legal125');
       assert.equal((await V.prepareScenario(db,'base')).status,'stop','legal125 sonrası temel senaryo bu projede koşulamaz');
       const b=await backupClient();

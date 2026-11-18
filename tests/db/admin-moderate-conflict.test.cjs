@@ -60,7 +60,12 @@ test('Yönetici işlemi eşzamanlılığı',async t=>{
   try{
     const listing=await seed(db);
     await t.test('tanım: PT409, lock_timeout 5s, istemciye açık fonksiyonlarda 40001 yok',()=>definitionChecks(db));
-    await t.test('eski revision PT409; durum ve denetim kaydı değişmez; doğru revision işler',()=>staleChecks(db,listing));
+    // #125 depodaysa yasal saklama ayrıca yasal erişim (MFA) ister; o kural #125'e aittir ve burada değişmez.
+    const legal=(await db.query(`select to_regclass('private.legal_records') is not null x`)).rows[0].x;
+    await t.test('eski revision PT409; durum ve denetim kaydı değişmez; doğru revision işler',async()=>{
+      if(legal)assert.equal((await moderate(db,ADMIN,['listing',listing,'hold','Deneme',7])).error.key,'Legal access required');
+      await staleChecks(db,listing,{hold:!legal});
+    });
 
     await t.test('iki yönetici aynı anda; kilit 5 saniyeden uzun (gerçek PostgreSQL)',async t2=>{
       if(!realPg()){t2.skip('PGlite tek bağlantılıdır; CI PostgreSQL 17 sunucusunda çalışır');return;}
@@ -123,7 +128,9 @@ test('#125 kendi zaman damgasıyla kuruluyken düzeltme yasal arşiv sürümüne
   try{
     await db.exec(`do $$ begin if not exists(select 1 from pg_roles where rolname='service_role') then create role service_role nologin bypassrls; end if; end $$;`);
     const legal={name:'20261117000000_legal_archive.sql',sql:fs.readFileSync(path.join(root,'tests/backup/fixtures/legal_archive.b25013e.sql'),'utf8')};
-    await build(db,{list:[...migrations(),legal].sort((a,b)=>a.name<b.name?-1:1)});
+    // #125 depodaysa migrations() onu zaten tarih sırasıyla içerir; yoksa sabitlenmiş kopya kendi tarihine eklenir.
+    const list=migrations();
+    await build(db,{list:(list.some(m=>m.name===legal.name)?list:[...list,legal]).sort((a,b)=>a.name<b.name?-1:1)});
     const src=(await db.query(`select prosrc from pg_proc where oid='public.nakgo_admin_moderate(text,text,text,text,bigint)'::regprocedure`)).rows[0].prosrc;
     assert.ok(src.includes('rid bigint; h record'),'#125 sürümü korunur (yasal koruma adımları)');
     await definitionChecks(db);

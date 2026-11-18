@@ -38,7 +38,9 @@ function env({conditionalPut=true,verified=true,anchors}={}){
   return {store,k1,k2,k7:crypto.randomBytes(32),anchors:anchors||[memAnchor('a1')],trustedK1:{[k1.keyId]:k1.publicKey},trustedK2:{[k2.keyId]:k2.publicKey},n:0};
 }
 /** Migration'larla kurulmuş veritabanı + GERÇEK #125 migration'ı + test yardımcıları. */
-async function legalDb(){const db=await migratedDb();try{await db.exec(REAL);await db.exec(HELP);}catch(e){await finish(db,e);throw e;}return db;}
+// #125 migration'ı depodaysa migratedDb onu zaten kurar; sabitlenmiş kopya yalnız yoksa uygulanır (içerik aynılığı aşağıda denetlenir).
+const has125=async db=>(await db.query(`select to_regclass('private.legal_records') is not null x`)).rows[0].x;
+async function legalDb(){const db=await migratedDb();try{if(!await has125(db))await db.exec(REAL);await db.exec(HELP);}catch(e){await finish(db,e);throw e;}return db;}
 const state=db=>LE.extractState((s,a)=>db.query(s,a));
 async function step(E,db,days,extra={}){
   return advance({store:E.store,trustedK1:E.trustedK1,k1:E.k1,k7:E.k7,trustedK2:E.trustedK2,anchors:E.anchors,environment:'test',
@@ -174,9 +176,12 @@ test('B1 API sözleşmesi: gerçek #125 ile uyumlu; migration depoya girince zor
     r=await check({client:false,db});
     assert.ok(r.fails.some(f=>/sözleşmedeki yetki veritabanında yok: public\.nakgo_legal_action authenticated/.test(f)),r.fails.join('\n'));
   }finally{await finish(db);}
-  const plain=await migratedDb();
+  // "#125 yokken": #125 migration'ı depodaysa onu hariç tutarak kurulan veritabanı.
+  const plain=await (async()=>{const {openDb,build,migrations}=require('../../tools/db-lib.cjs');const list=migrations().filter(m=>m.name!==FILE);
+    if(list.length===migrations().length)return migratedDb();
+    const x=await openDb();try{await x.exec(`do $$ begin if not exists(select 1 from pg_roles where rolname='service_role') then create role service_role nologin bypassrls; end if; end $$;`);await build(x,{list});}catch(e){await finish(x,e);throw e;}return x;})();
   try{
-    assert.deepEqual((await check({client:false,db:plain})).fails,[],'#125 yokken (bugünkü altyapı) isteğe bağlı');
+    assert.deepEqual((await check({client:false,db:plain,migrationsPresent:[]})).fails,[],'#125 depoda yokken isteğe bağlı');
     const r=await check({client:false,db:plain,migrationsPresent:[FILE]});
     assert.ok(r.fails.some(f=>/depoda var ama fonksiyon veritabanında yok/.test(f)),'#125 depodaysa fonksiyonlar zorunlu');
   }finally{await finish(plain);}

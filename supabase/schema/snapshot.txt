@@ -96,6 +96,7 @@ column private.admin_audit.target text not null
 column private.admin_members.active boolean not null default true
 column private.admin_members.granted_at timestamp with time zone not null default now()
 column private.admin_members.granted_by uuid
+column private.admin_members.legal_access boolean not null default false
 column private.admin_members.owner boolean not null default false
 column private.admin_members.user_id uuid not null
 column private.api_errors.detail text not null
@@ -133,6 +134,60 @@ column private.daily_stats.users integer not null default 0
 column private.document_reviewers.active boolean not null default true
 column private.document_reviewers.granted_at timestamp with time zone not null default now()
 column private.document_reviewers.user_id uuid not null
+column private.legal_access_log.action text not null
+column private.legal_access_log.actor uuid
+column private.legal_access_log.at timestamp with time zone not null default now()
+column private.legal_access_log.detail jsonb not null default '{}'::jsonb
+column private.legal_access_log.id bigint not null
+column private.legal_access_log.prev_hash text not null
+column private.legal_access_log.record_id bigint
+column private.legal_access_log.row_hash text not null
+column private.legal_destructions.actor uuid
+column private.legal_destructions.at timestamp with time zone not null default now()
+column private.legal_destructions.cause text not null
+column private.legal_destructions.closed_month date not null
+column private.legal_destructions.holds_removed integer not null
+column private.legal_destructions.id bigint not null
+column private.legal_destructions.opened_month date not null
+column private.legal_destructions.policy text not null
+column private.legal_destructions.prev_hash text not null
+column private.legal_destructions.record_no bigint not null
+column private.legal_destructions.retain_days integer not null
+column private.legal_destructions.row_hash text not null
+column private.legal_holds.id bigint not null
+column private.legal_holds.listing_id bigint
+column private.legal_holds.opened_at timestamp with time zone not null default now()
+column private.legal_holds.opened_by uuid not null
+column private.legal_holds.reason text not null
+column private.legal_holds.record_id bigint not null
+column private.legal_holds.release_reason text
+column private.legal_holds.released_at timestamp with time zone
+column private.legal_holds.released_by uuid
+column private.legal_holds.scope text not null
+column private.legal_holds.user_id uuid
+column private.legal_policies.approved_at timestamp with time zone
+column private.legal_policies.approved_by uuid
+column private.legal_policies.basis text not null default ''::text
+column private.legal_policies.code text not null
+column private.legal_policies.label text not null
+column private.legal_policies.legal_record boolean not null
+column private.legal_policies.retain_days integer
+column private.legal_records.basis text not null default ''::text
+column private.legal_records.close_reason text
+column private.legal_records.closed_at timestamp with time zone
+column private.legal_records.closed_by uuid
+column private.legal_records.contact_basis text not null default ''::text
+column private.legal_records.id bigint not null
+column private.legal_records.listing_id bigint
+column private.legal_records.opened_at timestamp with time zone not null default now()
+column private.legal_records.opened_by uuid not null
+column private.legal_records.policy text not null
+column private.legal_records.reason text not null
+column private.legal_records.request_no text not null default ''::text
+column private.legal_records.snapshot jsonb not null
+column private.legal_records.snapshot_sha256 text not null
+column private.legal_records.status text not null default 'open'::text
+column private.legal_records.user_id uuid
 column private.listing_moderation.hold boolean not null default false
 column private.listing_moderation.hold_reason text not null default ''::text
 column private.listing_moderation.listing_id bigint not null
@@ -322,6 +377,37 @@ constraint private.daily_stats.daily_stats_trucks_check CHECK ((trucks >= 0))
 constraint private.daily_stats.daily_stats_users_check CHECK ((users >= 0))
 constraint private.document_reviewers.document_reviewers_pkey PRIMARY KEY (user_id)
 constraint private.document_reviewers.document_reviewers_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE
+constraint private.legal_access_log.legal_access_log_action_check CHECK ((action = ANY (ARRAY['list'::text, 'search'::text, 'view_record'::text, 'view_access'::text, 'view_policies'::text, 'view_destructions'::text, 'view_integrity'::text, 'export'::text, 'record_open'::text, 'hold_add'::text, 'hold_release'::text, 'record_close'::text, 'destroy'::text, 'grant_legal'::text, 'revoke_legal'::text, 'policy_approve'::text])))
+constraint private.legal_access_log.legal_access_log_detail_check CHECK ((octet_length((detail)::text) <= 4000))
+constraint private.legal_access_log.legal_access_log_pkey PRIMARY KEY (id)
+constraint private.legal_destructions.legal_destructions_cause_check CHECK ((cause = ANY (ARRAY['retention_expired'::text, 'manual_expired'::text])))
+constraint private.legal_destructions.legal_destructions_check CHECK (((cause = 'retention_expired'::text) = (actor IS NULL)))
+constraint private.legal_destructions.legal_destructions_pkey PRIMARY KEY (id)
+constraint private.legal_holds.legal_holds_check CHECK ((((scope = 'listing'::text) = (listing_id IS NOT NULL)) AND ((scope = 'user'::text) = (user_id IS NOT NULL))))
+constraint private.legal_holds.legal_holds_check1 CHECK ((((released_at IS NULL) = (released_by IS NULL)) AND ((released_at IS NULL) = (release_reason IS NULL))))
+constraint private.legal_holds.legal_holds_pkey PRIMARY KEY (id)
+constraint private.legal_holds.legal_holds_reason_check CHECK (((char_length(reason) >= 3) AND (char_length(reason) <= 500)))
+constraint private.legal_holds.legal_holds_record_id_fkey FOREIGN KEY (record_id) REFERENCES private.legal_records(id) ON DELETE CASCADE
+constraint private.legal_holds.legal_holds_release_reason_check CHECK (((char_length(release_reason) >= 3) AND (char_length(release_reason) <= 500)))
+constraint private.legal_holds.legal_holds_scope_check CHECK ((scope = ANY (ARRAY['listing'::text, 'user'::text])))
+constraint private.legal_policies.legal_policies_basis_check CHECK ((char_length(basis) <= 500))
+constraint private.legal_policies.legal_policies_check CHECK (((approved_by IS NULL) = (approved_at IS NULL)))
+constraint private.legal_policies.legal_policies_check1 CHECK (((approved_at IS NULL) OR (retain_days IS NOT NULL)))
+constraint private.legal_policies.legal_policies_code_check CHECK ((code ~ '^[a-z_]{3,40}$'::text))
+constraint private.legal_policies.legal_policies_label_check CHECK (((char_length(label) >= 3) AND (char_length(label) <= 100)))
+constraint private.legal_policies.legal_policies_pkey PRIMARY KEY (code)
+constraint private.legal_policies.legal_policies_retain_days_check CHECK (((retain_days >= 1) AND (retain_days <= 36500)))
+constraint private.legal_records.legal_records_basis_check CHECK ((char_length(basis) <= 500))
+constraint private.legal_records.legal_records_check CHECK (((listing_id IS NOT NULL) OR (user_id IS NOT NULL)))
+constraint private.legal_records.legal_records_check1 CHECK (((status = 'closed'::text) = ((closed_at IS NOT NULL) AND (closed_by IS NOT NULL) AND (close_reason IS NOT NULL))))
+constraint private.legal_records.legal_records_close_reason_check CHECK (((char_length(close_reason) >= 3) AND (char_length(close_reason) <= 500)))
+constraint private.legal_records.legal_records_contact_basis_check CHECK ((char_length(contact_basis) <= 500))
+constraint private.legal_records.legal_records_pkey PRIMARY KEY (id)
+constraint private.legal_records.legal_records_policy_fkey FOREIGN KEY (policy) REFERENCES private.legal_policies(code)
+constraint private.legal_records.legal_records_reason_check CHECK (((char_length(reason) >= 3) AND (char_length(reason) <= 500)))
+constraint private.legal_records.legal_records_request_no_check CHECK ((char_length(request_no) <= 100))
+constraint private.legal_records.legal_records_snapshot_sha256_check CHECK ((snapshot_sha256 ~ '^[0-9a-f]{64}$'::text))
+constraint private.legal_records.legal_records_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text])))
 constraint private.listing_moderation.listing_moderation_hold_reason_check CHECK ((char_length(hold_reason) <= 500))
 constraint private.listing_moderation.listing_moderation_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE
 constraint private.listing_moderation.listing_moderation_pkey PRIMARY KEY (listing_id)
@@ -469,6 +555,8 @@ execute public.nakgo_admin_report_set(p_id bigint, p_status text, p_reason text,
 execute public.nakgo_admin_reports(p_status text, p_offset integer) authenticated
 execute public.nakgo_admin_role() authenticated
 execute public.nakgo_delete_my_account() authenticated
+execute public.nakgo_legal_action(p_action text, p_data jsonb) authenticated
+execute public.nakgo_legal_page(p_section text, p_offset integer, p_query jsonb) authenticated
 execute public.nakgo_listing_contact(p_id bigint, p_channel text) authenticated
 execute public.nakgo_listing_items_valid(items jsonb) authenticated
 execute public.nakgo_public_listings(p_before bigint) anon
@@ -526,10 +614,28 @@ function private.auth_lock(p_user uuid, p_lock boolean) returns void definer vol
 function private.contact_retention() returns jsonb definer vol=v cfg=search_path="" body=f424919b56b666c38afbfe1956e8e706
 function private.document_account_verified() returns boolean definer vol=s cfg=search_path="" body=ddac92d92e14a35c8050a0531361d37d
 function private.document_object_access(p_path text, p_action text) returns boolean definer vol=v cfg=search_path="" body=3605adecbfeecee2758f1eba869326c1
-function private.erase_account(p_user uuid) returns void definer vol=v cfg=search_path="" body=5ea87f4c87d5c12b1ffa61f3411fa370
+function private.erase_account(p_user uuid) returns void definer vol=v cfg=search_path="" body=d496938502c3284160cf48f4df1609fb
 function private.is_document_reviewer() returns boolean definer vol=s cfg=search_path="" body=e9554843a57c57274d77f3bcfbfc72eb
+function private.is_legal_admin() returns boolean definer vol=s cfg=search_path="" body=c05f783123513395a3d02ec661ae7fca
+function private.is_legal_owner() returns boolean definer vol=s cfg=search_path="" body=5d52e9007c2463d7ae7562d88ce8cdfc
 function private.is_nakgo_admin() returns boolean definer vol=s cfg=search_path="" body=532dedf4099ad1b97b84d11b36257cb0
 function private.job_activity_guard() returns trigger definer vol=v cfg=search_path="" body=607e0b4e0dd5532ddf9f1f93ba672db8
+function private.jwt_aal() returns text invoker vol=s cfg=search_path="" body=ca92e29d504e7670ea587bbad15be00e
+function private.legal_append_only() returns trigger invoker vol=v cfg=search_path="" body=cc3a70a8738ed2218cfe52ef691f744e
+function private.legal_chain() returns trigger definer vol=v cfg=search_path="";TimeZone=UTC body=26a15ac3984b7b92df706bc694a7601b
+function private.legal_chain_check() returns jsonb definer vol=s cfg=search_path="";TimeZone=UTC body=f08233cfc591caae8986afbdc683a34c
+function private.legal_close(p_record bigint, p_reason text) returns void definer vol=v cfg=search_path="" body=0189cf917cfd09c48c82d4ea56bbac3a
+function private.legal_destroy(p_record bigint, p_cause text) returns void definer vol=v cfg=search_path="";TimeZone=UTC body=b4646b51e80081a8e60baebb1fec4077
+function private.legal_expired(r private.legal_records) returns boolean definer vol=s cfg=search_path="" body=5a3bd7137d2582bb7e1036254a078a07
+function private.legal_hash(j jsonb) returns text invoker vol=i cfg=search_path="" body=e58408c91732bb31e94a4e0dcde8be76
+function private.legal_hold_guard() returns trigger invoker vol=v cfg=search_path="" body=d9ca479a810217f29411511396399071
+function private.legal_log(p_action text, p_record bigint, p_detail jsonb) returns void definer vol=v cfg=search_path="" body=4e1f47719d714a7c8aadfe5aa36f09c0
+function private.legal_no_truncate() returns trigger invoker vol=v cfg=search_path="" body=d42d4f7acfe9b849885d16f818b11af0
+function private.legal_open(p_policy text, p_listing bigint, p_user uuid, p_reason text, p_basis text, p_request text, p_contacts boolean, p_contact_basis text, p_hold boolean) returns bigint definer vol=v cfg=search_path="";TimeZone=UTC body=dbf43c7d53d9a32ff81a0772d8e04f39
+function private.legal_record_guard() returns trigger invoker vol=v cfg=search_path="" body=18293f6146126f011c605f588d714afb
+function private.legal_release(p_hold bigint, p_reason text) returns void definer vol=v cfg=search_path="" body=185645054c2a19359865cec42119ded7
+function private.legal_snapshot(p_listing bigint, p_user uuid, p_contacts boolean) returns jsonb definer vol=s cfg=search_path="";TimeZone=UTC body=de7b01d726891743aaa79aa7e659ed03
+function private.legal_sync_listing(p_listing bigint) returns void definer vol=v cfg=search_path="" body=333ad6336a8d501304c8f63d0cc82932
 function private.listing_catalog() returns jsonb invoker vol=i cfg= body=ca2ab18fad712464d48bd936d63985ba
 function private.listing_quota() returns trigger definer vol=v cfg=search_path="" body=eb33b4a25067963dd75cd660e6ab8f9f
 function private.listing_revision() returns trigger invoker vol=v cfg=search_path="" body=74416aee7b4046f6b3d95f39a26712d2
@@ -551,17 +657,19 @@ function private.require_activity(p_user uuid) returns void definer vol=v cfg=se
 function private.retention_batch(p_step text, p_limit integer) returns integer definer vol=v cfg=search_path="" body=138970efd113e1ae1426cc784a0919fd
 function private.retention_batches(IN p_batch integer, IN p_max_batches integer) returns procedure invoker vol=v cfg= body=5fd6a3c83197700bb22e971ab74d5dcc
 function private.retention_job_close(p_job bigint, p_status text, p_error text) returns void definer vol=v cfg=search_path="" body=8c80d98c41d77c938d414318cdc05319
-function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=f5fd96f991fa1c5bfe49415f8b8eae37
+function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=c772c206910377bfdc4fa5c2a3631953
 function private.route_alert_actor() returns uuid definer vol=v cfg=search_path="" body=2910e7045346bdce544ebee0dc3c4dc5
 function private.security_events_immutable() returns trigger invoker vol=v cfg=search_path="" body=7a670d33106d0452910608dbdee48585
 function private.storage_activity_guard() returns trigger definer vol=v cfg=search_path="" body=5b01313fa3de9834b54927d935980fa2
 function public.nakgo_admin_live(p_kind text) returns jsonb definer vol=s cfg=search_path="" body=3e701ba4a3b8e7c04a8046116a4369a5
-function public.nakgo_admin_moderate(p_kind text, p_target text, p_action text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="";lock_timeout=5s body=7928f224b3d22bb1fa0c8439bc88a8ef
+function public.nakgo_admin_moderate(p_kind text, p_target text, p_action text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="";lock_timeout=5s body=16d7329682fa9ef731030ca4047af496
 function public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) returns jsonb definer vol=s cfg=search_path="" body=ff65354b0293d9f80cba7d959562095b
 function public.nakgo_admin_report_set(p_id bigint, p_status text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="" body=e327af8b349aeaba0731b50d1f631047
 function public.nakgo_admin_reports(p_status text, p_offset integer) returns jsonb definer vol=s cfg=search_path="" body=f6c74b6d0b781f592fac02b71c8adb39
 function public.nakgo_admin_role() returns boolean definer vol=s cfg=search_path="" body=3484c96cb778dbff7bb4b0b2710f574e
 function public.nakgo_delete_my_account() returns jsonb definer vol=v cfg=search_path="" body=fc782511c235263fe82efc297e67effa
+function public.nakgo_legal_action(p_action text, p_data jsonb) returns jsonb definer vol=v cfg=search_path="";TimeZone=UTC body=ca6ad5bf6824288dd3026f0e3ae493e2
+function public.nakgo_legal_page(p_section text, p_offset integer, p_query jsonb) returns jsonb definer vol=v cfg=search_path="";TimeZone=UTC body=8582df42730fbdf256c54da0c9b2a9d2
 function public.nakgo_listing_contact(p_id bigint, p_channel text) returns text definer vol=v cfg=search_path="" body=4d23889c59861ea6cd3dca7af1e3be9f
 function public.nakgo_listing_items_valid(items jsonb) returns boolean invoker vol=i cfg=search_path="" body=7e921d4beda13a6780a0f057f3a61e2d
 function public.nakgo_listing_write_guard() returns trigger invoker vol=v cfg=search_path="" body=f6b1be0b3b0cee54bdc9ffcc32f6cd7e
@@ -596,6 +704,20 @@ index private.contact_views_time CREATE INDEX contact_views_time ON private.cont
 index private.contact_views_user_time CREATE INDEX contact_views_user_time ON private.contact_views USING btree (user_id, viewed_at)
 index private.daily_stats_pkey CREATE UNIQUE INDEX daily_stats_pkey ON private.daily_stats USING btree (day)
 index private.document_reviewers_pkey CREATE UNIQUE INDEX document_reviewers_pkey ON private.document_reviewers USING btree (user_id)
+index private.legal_access_log_at CREATE INDEX legal_access_log_at ON private.legal_access_log USING btree (at)
+index private.legal_access_log_pkey CREATE UNIQUE INDEX legal_access_log_pkey ON private.legal_access_log USING btree (id)
+index private.legal_access_log_record CREATE INDEX legal_access_log_record ON private.legal_access_log USING btree (record_id)
+index private.legal_destructions_pkey CREATE UNIQUE INDEX legal_destructions_pkey ON private.legal_destructions USING btree (id)
+index private.legal_holds_listing_active CREATE INDEX legal_holds_listing_active ON private.legal_holds USING btree (listing_id) WHERE (released_at IS NULL)
+index private.legal_holds_pkey CREATE UNIQUE INDEX legal_holds_pkey ON private.legal_holds USING btree (id)
+index private.legal_holds_record CREATE INDEX legal_holds_record ON private.legal_holds USING btree (record_id)
+index private.legal_holds_user_active CREATE INDEX legal_holds_user_active ON private.legal_holds USING btree (user_id) WHERE (released_at IS NULL)
+index private.legal_policies_pkey CREATE UNIQUE INDEX legal_policies_pkey ON private.legal_policies USING btree (code)
+index private.legal_records_listing CREATE INDEX legal_records_listing ON private.legal_records USING btree (listing_id)
+index private.legal_records_opened CREATE INDEX legal_records_opened ON private.legal_records USING btree (opened_at)
+index private.legal_records_pkey CREATE UNIQUE INDEX legal_records_pkey ON private.legal_records USING btree (id)
+index private.legal_records_policy CREATE INDEX legal_records_policy ON private.legal_records USING btree (policy, status)
+index private.legal_records_user CREATE INDEX legal_records_user ON private.legal_records USING btree (user_id)
 index private.listing_moderation_pkey CREATE UNIQUE INDEX listing_moderation_pkey ON private.listing_moderation USING btree (listing_id)
 index private.listing_reports_open_account CREATE UNIQUE INDEX listing_reports_open_account ON private.listing_reports USING btree (reporter_id, account_id) WHERE ((subject = 'account'::text) AND (status = ANY (ARRAY['open'::text, 'reviewing'::text])))
 index private.listing_reports_open_listing CREATE UNIQUE INDEX listing_reports_open_listing ON private.listing_reports USING btree (reporter_id, listing_id) WHERE ((subject = 'listing'::text) AND (status = ANY (ARRAY['open'::text, 'reviewing'::text])))
@@ -672,6 +794,11 @@ table private.contact_clicks rls=true force=false
 table private.contact_views rls=true force=false
 table private.daily_stats rls=true force=false
 table private.document_reviewers rls=true force=false
+table private.legal_access_log rls=true force=false
+table private.legal_destructions rls=true force=false
+table private.legal_holds rls=true force=false
+table private.legal_policies rls=true force=false
+table private.legal_records rls=true force=false
 table private.listing_moderation rls=true force=false
 table private.listing_reports rls=true force=false
 table private.retention_jobs rls=true force=false
@@ -689,6 +816,16 @@ table public.profiles rls=true force=false
 table public.route_alerts rls=true force=false
 table public.transport_jobs rls=true force=false
 trigger CREATE TRIGGER carrier_file_cleanup AFTER DELETE ON public.carrier_document_files FOR EACH ROW EXECUTE FUNCTION private.queue_document_cleanup()
+trigger CREATE TRIGGER legal_access_log_append BEFORE DELETE OR UPDATE ON private.legal_access_log FOR EACH ROW EXECUTE FUNCTION private.legal_append_only()
+trigger CREATE TRIGGER legal_access_log_chain BEFORE INSERT ON private.legal_access_log FOR EACH ROW EXECUTE FUNCTION private.legal_chain()
+trigger CREATE TRIGGER legal_access_log_truncate BEFORE TRUNCATE ON private.legal_access_log FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
+trigger CREATE TRIGGER legal_destructions_append BEFORE DELETE OR UPDATE ON private.legal_destructions FOR EACH ROW EXECUTE FUNCTION private.legal_append_only()
+trigger CREATE TRIGGER legal_destructions_chain BEFORE INSERT ON private.legal_destructions FOR EACH ROW EXECUTE FUNCTION private.legal_chain()
+trigger CREATE TRIGGER legal_destructions_truncate BEFORE TRUNCATE ON private.legal_destructions FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
+trigger CREATE TRIGGER legal_holds_guard BEFORE DELETE OR UPDATE ON private.legal_holds FOR EACH ROW EXECUTE FUNCTION private.legal_hold_guard()
+trigger CREATE TRIGGER legal_holds_truncate BEFORE TRUNCATE ON private.legal_holds FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
+trigger CREATE TRIGGER legal_records_guard BEFORE DELETE OR UPDATE ON private.legal_records FOR EACH ROW EXECUTE FUNCTION private.legal_record_guard()
+trigger CREATE TRIGGER legal_records_truncate BEFORE TRUNCATE ON private.legal_records FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
 trigger CREATE TRIGGER listings_access_log AFTER INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.log_listing_write()
 trigger CREATE TRIGGER listings_quota BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_quota()
 trigger CREATE TRIGGER listings_revision BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_revision()

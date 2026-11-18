@@ -97,7 +97,8 @@ async function releaseOpen(E,day){
     await E.store.put('audit/inbox/releases/'+doc.release_id+'.json',Buffer.from(JSON.stringify(doc)));
   }
 }
-async function legalDb(){const db=await migratedDb();try{await db.exec(REAL);await db.exec(HELP);}catch(e){await finish(db,e);throw e;}return db;}
+const has125=async db=>(await db.query(`select to_regclass('private.legal_records') is not null x`)).rows[0].x;
+async function legalDb(){const db=await migratedDb();try{if(!await has125(db))await db.exec(REAL);await db.exec(HELP);}catch(e){await finish(db,e);throw e;}return db;}
 const logNow=(db,ageDays=0)=>db.query(`select private.t_log(now()-($1::float8*interval '1 day'))`,[ageDays]);
 
 test('yapılandırma eksikse hiçbir şey yapılmaz',async t=>{if(needAge(t))return;
@@ -517,7 +518,7 @@ test('uçtan uca: gerçek döküm, geri yükleme, yasal kanıt ve zincir (gerçe
     const tool=await toolMajor('pg_dump',process.env.NAKGO_PG_BIN);
     if(!tool||tool<major){const msg=`pg_dump ${tool} sunucudan (${major}) eski`;if(process.env.NAKGO_REQUIRE_DUMP==='1')throw Error(msg);t.skip(msg);return;}
     await seed(db);
-    await db.exec(REAL);await db.exec(HELP);
+    if(!await has125(db))await db.exec(REAL);await db.exec(HELP);
     for(const d of [2,1,0])await logNow(db,d);
     const rid=(await db.query(`select private.t_open('dispute',now()-interval '2 days') id`)).rows[0].id;
     await db.query(`select private.t_close($1,now()-interval '1 day')`,[rid]);
