@@ -138,7 +138,9 @@ test('parçalı gece temizliği',async t=>{
   await t.test('yasal arşiv (#125) kuruluyken: aktif yasal koruması olan kullanıcının erişim kayıtları silinmez',async()=>{
     const D=await migratedDb();
     try{
-      await D.exec(fs.readFileSync(path.join(ROOT,'tests/backup/fixtures/legal_archive.b25013e.sql'),'utf8'));
+      // #125 migration'ı depodaysa migratedDb onu zaten kurmuştur; yoksa sabitlenmiş kopya uygulanır.
+      if(!(await D.query(`select to_regclass('private.legal_records') is not null x`)).rows[0].x)
+        await D.exec(fs.readFileSync(path.join(ROOT,'tests/backup/fixtures/legal_archive.b25013e.sql'),'utf8'));
       const {u}=await seed(D);
       await replica(D,async()=>{
         const rec=(await D.query(`insert into private.legal_records(policy,user_id,reason,opened_by,snapshot,snapshot_sha256) values('access_log',$1,'Test koruması',$1,'{}',repeat('0',64)) returning id`,[u[4]])).rows[0];

@@ -90,7 +90,8 @@ async function suiteSupabase({scenario,admin,connectBackup,conn,store,anchorStor
     try{
       if(!push(await V.v5(admin,backup,{role})))return out;
       if(!push(await V.v6(backup,{role})))return out;
-      if(scenario==='base'&&!push(await V.v7(admin,backup,{role})))return out;
+      // V7 temel senaryoda ölçülür; #125 depoya girince temel senaryo kalmadığı için legal125'te ölçülür.
+      if((scenario==='base'||V.legalInRepo())&&!push(await V.v7(admin,backup,{role})))return out;
     }finally{await backup.end().catch(()=>{});}
     const rules=v8ConnectionRules({...conn,password});
     const x=await v8({conn:{...conn,password},store,anchorStore,pgBin,expectLegal:scenario==='legal125',runId,allowLocal});
