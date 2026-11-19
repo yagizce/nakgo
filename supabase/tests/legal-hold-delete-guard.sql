@@ -31,8 +31,16 @@ begin
  if rid is null then raise exception 'FAIL setup: panel hold has no legal record'; end if;
  -- Eski işaret: yasal kaydı olmayan listing_moderation.hold (#125 öncesi saklama).
  insert into private.listing_moderation(listing_id,hold,hold_reason) values(l_legacy,true,'Eski saklama');
- -- İşaret kayması: yasal arşivde aktif koruma var, listing_moderation.hold elle false yapılmış.
+ -- İşaret kayması: yasal arşivde aktif koruma var, listing_moderation.hold false. Normal SQL ile artık kurulamaz
+ -- (legal-hold-flag-sync.sql); yalnız tetikleyicileri kapatan süper kullanıcı (replica) kurabilir. Silme koruması
+ -- bu durumda da legal_holds'a bakarak ilanı korumalı.
+ failed:=false;
+ begin update private.listing_moderation set hold=false where listing_id=l_drift; exception when object_not_in_prerequisite_state then failed:=true; end;
+ if not failed then raise exception 'FAIL flag cleared under active legal hold'; end if;
+ perform set_config('session_replication_role','replica',true);
  update private.listing_moderation set hold=false where listing_id=l_drift;
+ perform set_config('session_replication_role','origin',true);
+ if (select hold from private.listing_moderation where listing_id=l_drift) then raise exception 'FAIL setup: drift not created'; end if;
 
  -- 1) Normal hesap: Auth'tan silinince ilanı ve profili zincirleme silinir (davranış değişmedi).
  delete from auth.users where id=normal;

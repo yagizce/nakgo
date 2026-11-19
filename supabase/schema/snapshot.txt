@@ -628,6 +628,7 @@ function private.legal_close(p_record bigint, p_reason text) returns void define
 function private.legal_destroy(p_record bigint, p_cause text) returns void definer vol=v cfg=search_path="";TimeZone=UTC body=b4646b51e80081a8e60baebb1fec4077
 function private.legal_expired(r private.legal_records) returns boolean definer vol=s cfg=search_path="" body=5a3bd7137d2582bb7e1036254a078a07
 function private.legal_hash(j jsonb) returns text invoker vol=i cfg=search_path="" body=e58408c91732bb31e94a4e0dcde8be76
+function private.legal_hold_flag_sync() returns trigger definer vol=v cfg=search_path="" body=1fb0edeb080f26fff953d2312ce5ab5a
 function private.legal_hold_guard() returns trigger invoker vol=v cfg=search_path="" body=d9ca479a810217f29411511396399071
 function private.legal_log(p_action text, p_record bigint, p_detail jsonb) returns void definer vol=v cfg=search_path="" body=4e1f47719d714a7c8aadfe5aa36f09c0
 function private.legal_no_truncate() returns trigger invoker vol=v cfg=search_path="" body=d42d4f7acfe9b849885d16f818b11af0
@@ -637,6 +638,7 @@ function private.legal_release(p_hold bigint, p_reason text) returns void define
 function private.legal_snapshot(p_listing bigint, p_user uuid, p_contacts boolean) returns jsonb definer vol=s cfg=search_path="";TimeZone=UTC body=de7b01d726891743aaa79aa7e659ed03
 function private.legal_sync_listing(p_listing bigint) returns void definer vol=v cfg=search_path="" body=333ad6336a8d501304c8f63d0cc82932
 function private.listing_catalog() returns jsonb invoker vol=i cfg= body=ca2ab18fad712464d48bd936d63985ba
+function private.listing_hold_flag_guard() returns trigger definer vol=v cfg=search_path="" body=3ae209a1dd35ecc4785f7135e855f158
 function private.listing_legal_hold_guard() returns trigger definer vol=v cfg=search_path="" body=82d4f11a66460961bd3aff3951185365
 function private.listing_quota() returns trigger definer vol=v cfg=search_path="" body=eb33b4a25067963dd75cd660e6ab8f9f
 function private.listing_revision() returns trigger invoker vol=v cfg=search_path="" body=74416aee7b4046f6b3d95f39a26712d2
@@ -823,10 +825,12 @@ trigger CREATE TRIGGER legal_access_log_truncate BEFORE TRUNCATE ON private.lega
 trigger CREATE TRIGGER legal_destructions_append BEFORE DELETE OR UPDATE ON private.legal_destructions FOR EACH ROW EXECUTE FUNCTION private.legal_append_only()
 trigger CREATE TRIGGER legal_destructions_chain BEFORE INSERT ON private.legal_destructions FOR EACH ROW EXECUTE FUNCTION private.legal_chain()
 trigger CREATE TRIGGER legal_destructions_truncate BEFORE TRUNCATE ON private.legal_destructions FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
+trigger CREATE TRIGGER legal_holds_flag_sync AFTER INSERT OR UPDATE ON private.legal_holds FOR EACH ROW EXECUTE FUNCTION private.legal_hold_flag_sync()
 trigger CREATE TRIGGER legal_holds_guard BEFORE DELETE OR UPDATE ON private.legal_holds FOR EACH ROW EXECUTE FUNCTION private.legal_hold_guard()
 trigger CREATE TRIGGER legal_holds_truncate BEFORE TRUNCATE ON private.legal_holds FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
 trigger CREATE TRIGGER legal_records_guard BEFORE DELETE OR UPDATE ON private.legal_records FOR EACH ROW EXECUTE FUNCTION private.legal_record_guard()
 trigger CREATE TRIGGER legal_records_truncate BEFORE TRUNCATE ON private.legal_records FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
+trigger CREATE TRIGGER listing_moderation_hold_guard BEFORE DELETE OR UPDATE OF hold ON private.listing_moderation FOR EACH ROW EXECUTE FUNCTION private.listing_hold_flag_guard()
 trigger CREATE TRIGGER listings_access_log AFTER INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.log_listing_write()
 trigger CREATE TRIGGER listings_legal_hold_guard BEFORE DELETE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_legal_hold_guard()
 trigger CREATE TRIGGER listings_quota BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_quota()
