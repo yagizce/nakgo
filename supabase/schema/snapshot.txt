@@ -656,15 +656,15 @@ function private.report_json(r private.listing_reports) returns jsonb invoker vo
 function private.request_ip() returns inet invoker vol=s cfg=search_path="" body=c62e37d479aa5be286b5043923e19ecf
 function private.require_activity(p_user uuid) returns void definer vol=v cfg=search_path="" body=17f1187e5fadf401964fce8083eb4c17
 function private.retention_batch(p_step text, p_limit integer) returns integer definer vol=v cfg=search_path="" body=138970efd113e1ae1426cc784a0919fd
-function private.retention_batches(IN p_batch integer, IN p_max_batches integer) returns procedure invoker vol=v cfg= body=5fd6a3c83197700bb22e971ab74d5dcc
+function private.retention_batches(IN p_batch integer, IN p_max_batches integer) returns procedure invoker vol=v cfg= body=c81cc9574fc7b320639ab6813bb4a72a
 function private.retention_job_close(p_job bigint, p_status text, p_error text) returns void definer vol=v cfg=search_path="" body=8c80d98c41d77c938d414318cdc05319
-function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=19bece6e81aecadbf8ba728ea1fa2409
+function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=00de420ed812a05285ac30992394e6a6
 function private.route_alert_actor() returns uuid definer vol=v cfg=search_path="" body=2910e7045346bdce544ebee0dc3c4dc5
 function private.security_events_immutable() returns trigger invoker vol=v cfg=search_path="" body=7a670d33106d0452910608dbdee48585
 function private.storage_activity_guard() returns trigger definer vol=v cfg=search_path="" body=5b01313fa3de9834b54927d935980fa2
 function public.nakgo_admin_live(p_kind text) returns jsonb definer vol=s cfg=search_path="" body=3e701ba4a3b8e7c04a8046116a4369a5
 function public.nakgo_admin_moderate(p_kind text, p_target text, p_action text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="";lock_timeout=5s body=16d7329682fa9ef731030ca4047af496
-function public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) returns jsonb definer vol=s cfg=search_path="" body=ff65354b0293d9f80cba7d959562095b
+function public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) returns jsonb definer vol=s cfg=search_path="" body=2ad5891dd7a7aec09f5d60abf86ba4e8
 function public.nakgo_admin_report_set(p_id bigint, p_status text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="" body=e327af8b349aeaba0731b50d1f631047
 function public.nakgo_admin_reports(p_status text, p_offset integer) returns jsonb definer vol=s cfg=search_path="" body=f6c74b6d0b781f592fac02b71c8adb39
 function public.nakgo_admin_role() returns boolean definer vol=s cfg=search_path="" body=3484c96cb778dbff7bb4b0b2710f574e

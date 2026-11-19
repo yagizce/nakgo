@@ -95,9 +95,16 @@ test('parçalı gece temizliği',async t=>{
       await db.exec(`create function public.zz_fail() returns trigger language plpgsql as $$begin if new.id=${L.b40} then raise exception 'enjekte hata'; end if; return new; end$$;
         create trigger zz_fail before update on public.listings for each row execute function public.zz_fail();`);
       const before=(await db.query(`select count(*)::int n from public.listings where redacted_at is not null`)).rows[0].n;
-      await db.exec('call private.retention_batches(5)');
+      // Yordam hatayla biter (pg_cron çalışmayı başarısız gösterir); hata kaydı ondan önce commit edilmiştir.
+      const err=await db.exec('call private.retention_batches(5)').then(()=>null,e=>e);
+      assert.ok(err,'başarısız parti yordamı hatayla bitirir');assert.match(err.message,/^retention_batches failed \(job \d+\)$/);
+      assert.ok(!/enjekte/.test(err.message),'hata metni cron mesajına konmaz');
       const j=(await jobs(db)).at(-1);
       assert.equal(j.status,'failed');assert.match(j.error,/listings_redacted: enjekte hata/);
+      const jid=Number((await db.query(`select max(id) n from private.retention_jobs where status='failed'`)).rows[0].n);
+      assert.equal(err.message,'retention_batches failed (job '+jid+')','mesaj başarısız işin kimliğini taşır');
+      assert.equal((await db.query(`select pg_try_advisory_lock(7301) a`)).rows[0].a,true,'oturum kilidi bırakıldı');
+      await db.query(`select pg_advisory_unlock(7301)`);
       const after=(await db.query(`select count(*)::int n from public.listings where redacted_at is not null`)).rows[0].n;
       assert.equal(after-before,j.counts.listings_redacted||0,'iş kaydındaki sayım işlenen satırla aynı');
       assert.equal((await db.query(`select redacted_at is null n from public.listings where id=$1`,[L.b40])).rows[0].n,true,'hatalı parti geri alındı');
@@ -182,6 +189,10 @@ test('parçalı gece temizliği',async t=>{
           assert.equal((await D.query(`select private.retention_batch('listings_redacted',5) n`)).rows[0].n,-1);
           await D.exec('call private.retention_batches(5)');
           const j=(await jobs(D)).at(-1);assert.equal(j.status,'stopped');assert.match(j.error,/retention_run/);
+          // Aynı anda başka temizlik sürerken retention_run atlanır ve bunu kayda geçirir (yönetim panelinde "Atlandı").
+          const before=Number((await D.query(`select count(*) n from private.retention_runs where counts='{"skipped":true}'`)).rows[0].n);
+          assert.deepEqual((await D.query(`select private.retention_run() r`)).rows[0].r,{skipped:true});
+          assert.equal(Number((await D.query(`select count(*) n from private.retention_runs where counts='{"skipped":true}'`)).rows[0].n),before+1,'atlama kaydı yazıldı');
         }finally{await h.query('rollback');await h.end();}
       });
       await t2.test('kesilen çalışma: oturum öldürülür; sonraki çalışma işi "interrupted" kapatır ve kalanı bitirir',async()=>{
