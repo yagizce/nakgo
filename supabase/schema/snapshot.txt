@@ -611,7 +611,7 @@ function private.api_usage_retention() returns bigint definer vol=v cfg=search_p
 function private.api_vehicle_input(p jsonb) returns jsonb invoker vol=i cfg=search_path="" body=14edfd4f1e9c2adff34972aee8cfa048
 function private.api_viewer() returns uuid invoker vol=v cfg=search_path="" body=6aa3cbc6f8e11fd7d23dffc3cd3f0fbc
 function private.auth_lock(p_user uuid, p_lock boolean) returns void definer vol=v cfg=search_path="" body=6ea41fdd41d26e06514771e5640d171f
-function private.contact_retention() returns jsonb definer vol=v cfg=search_path="" body=f424919b56b666c38afbfe1956e8e706
+function private.contact_retention() returns jsonb definer vol=v cfg=search_path="" body=b5811ab6b9fdcca46710b4ac37971fd3
 function private.document_account_verified() returns boolean definer vol=s cfg=search_path="" body=ddac92d92e14a35c8050a0531361d37d
 function private.document_object_access(p_path text, p_action text) returns boolean definer vol=v cfg=search_path="" body=3605adecbfeecee2758f1eba869326c1
 function private.erase_account(p_user uuid) returns void definer vol=v cfg=search_path="" body=d496938502c3284160cf48f4df1609fb
@@ -657,7 +657,7 @@ function private.require_activity(p_user uuid) returns void definer vol=v cfg=se
 function private.retention_batch(p_step text, p_limit integer) returns integer definer vol=v cfg=search_path="" body=138970efd113e1ae1426cc784a0919fd
 function private.retention_batches(IN p_batch integer, IN p_max_batches integer) returns procedure invoker vol=v cfg= body=5fd6a3c83197700bb22e971ab74d5dcc
 function private.retention_job_close(p_job bigint, p_status text, p_error text) returns void definer vol=v cfg=search_path="" body=8c80d98c41d77c938d414318cdc05319
-function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=c772c206910377bfdc4fa5c2a3631953
+function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=19bece6e81aecadbf8ba728ea1fa2409
 function private.route_alert_actor() returns uuid definer vol=v cfg=search_path="" body=2910e7045346bdce544ebee0dc3c4dc5
 function private.security_events_immutable() returns trigger invoker vol=v cfg=search_path="" body=7a670d33106d0452910608dbdee48585
 function private.storage_activity_guard() returns trigger definer vol=v cfg=search_path="" body=5b01313fa3de9834b54927d935980fa2
