@@ -43,7 +43,7 @@ Her RPC'nin tek tanımı olmalıdır; aynı adla ikinci tanım PostgREST çağr�
 | Tablo | Okuma | Ekleme | Güncelleme | Kapalı olması gereken |
 |---|---|---|---|---|
 | `profiles` | id, display_name, account_type, city, about, phone (yalnız kendi satırı) | id, display_name, account_type | display_name, account_type, city, about, phone | — |
-| `listings` | `cloud.js` `listingColumns` listesi | `listingFields` + kind, owner_label | `listingFields` + status | Okuma: contact_phone, redacted_at. Ekleme: id, owner_id, status, expires_at, created_at, redacted_at. Güncelleme: id, owner_id, kind, expires_at, created_at, redacted_at |
+| `listings` | `cloud.js` `listingColumns` listesi | `listingFields` + kind, owner_label | `listingFields` + status | Okuma: contact_phone, redacted_at, owner_suspended. Ekleme: id, owner_id, status, expires_at, created_at, redacted_at, owner_suspended. Güncelleme: id, owner_id, kind, expires_at, created_at, redacted_at, owner_suspended |
 | `listing_favorites` | listing_id (+ `listing:listings(...)` gömülü okuma) | — | — | Doğrudan yazma ve silme (yalnız RPC) |
 | `route_alerts` | id, kind, from_city, to_city, vehicle, body, active, seen_at, created_at | — | — | Doğrudan yazma ve silme (yalnız RPC) |
 

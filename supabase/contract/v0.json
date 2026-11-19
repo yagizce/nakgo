@@ -28,7 +28,7 @@
       "select": ["id", "owner_id", "kind", "from_city", "to_city", "from_district", "to_district", "expires_at", "vehicle", "body", "amount", "cargo", "note", "owner_label", "available_on", "available_until", "available_time", "loading_text", "items", "image_data", "status", "created_at", "updated_at", "contact_consent"],
       "insert": ["kind", "owner_label", "from_city", "to_city", "from_district", "to_district", "vehicle", "body", "amount", "cargo", "note", "available_on", "available_until", "available_time", "loading_text", "items", "image_data", "contact_phone", "contact_consent"],
       "update": ["from_city", "to_city", "from_district", "to_district", "vehicle", "body", "amount", "cargo", "note", "available_on", "available_until", "available_time", "loading_text", "items", "image_data", "contact_phone", "contact_consent", "status"],
-      "forbidden": {"select": ["contact_phone", "redacted_at"], "insert": ["id", "owner_id", "status", "expires_at", "created_at", "redacted_at"], "update": ["id", "owner_id", "kind", "expires_at", "created_at", "redacted_at"]}
+      "forbidden": {"select": ["contact_phone", "redacted_at", "owner_suspended"], "insert": ["id", "owner_id", "status", "expires_at", "created_at", "redacted_at", "owner_suspended"], "update": ["id", "owner_id", "kind", "expires_at", "created_at", "redacted_at", "owner_suspended"]}
     },
     "listing_favorites": {"select": ["listing_id"], "embeds": {"listing": "listings"}, "forbidden": {"insert": ["*"], "update": ["*"], "delete": ["*"]}},
     "route_alerts": {"select": ["id", "kind", "from_city", "to_city", "vehicle", "body", "active", "seen_at", "created_at"], "forbidden": {"insert": ["*"], "update": ["*"], "delete": ["*"]}}
