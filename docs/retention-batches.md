@@ -25,6 +25,9 @@ temizlik bitene kadar bekler. Hata olursa bütün iş geri alınır ve ertesi ge
   iki kez işlenmez, kullanıcının o an kilitlediği satır beklenmez, sonraki çalışmaya kalır.
 - Denetim: `private.retention_jobs` her işin durumunu, parti sayısını, adım sayımlarını ve hatayı tutar (3 yıl).
   Biten, durdurulan, hata alan ve kesilen her iş `retention_runs`'a özet satırı yazar (`batched_job`, `status`).
+- Raporlama (`20261119030000_retention_reporting.sql`): hata alan iş, kaydı commit edildikten sonra yordamı
+  `retention_batches failed (job N)` hatasıyla bitirir; pg_cron çalışmayı başarısız gösterir (ayrıntı yalnız
+  `retention_jobs.error`'da). Atlanan `retention_run` `retention_runs`'a `{"skipped":true}` yazar.
 
 ## Yasal kayıt ve delil zinciri
 

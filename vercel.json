@@ -26,7 +26,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-9Yy1RL4gL6cZ4T5KrHIGitcdc+FgO4Ex3JFV2PgiklY=' 'sha256-Js+S5F9Gzdzoz4X4o+FiyHlknqbOyQAPk1HBkPzfyb0=' https://cdn.jsdelivr.net; style-src 'self' 'sha256-4wlUhBq8BIms/RnGDjh0LYN0CB/2DhsNt9M/yMM0OqQ=' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+          "value": "default-src 'self'; script-src 'self' 'sha256-9Yy1RL4gL6cZ4T5KrHIGitcdc+FgO4Ex3JFV2PgiklY=' 'sha256-ETZIKDsO80h4hH9awRSR3+dhwPI6DJsLJV1cN5i4TYY=' https://cdn.jsdelivr.net; style-src 'self' 'sha256-4wlUhBq8BIms/RnGDjh0LYN0CB/2DhsNt9M/yMM0OqQ=' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
         }
       ]
     },

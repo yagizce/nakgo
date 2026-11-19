@@ -160,9 +160,11 @@ begin
  set local role authenticated; perform public.nakgo_delete_my_account(); reset role;
  if (select note from public.listings where id=l_held)<>'Delil not' or (select note from public.listings where id=l_free)<>'' then raise exception 'FAIL erase scope'; end if;
  if (select count(*) from private.legal_records where user_id=u1)<>2 then raise exception 'FAIL records lost on erase'; end if;
- -- Hesap kalıntısı doğrudan silinse bile (zincirleme silme) yasal kayıt kalır.
- delete from auth.users where id=u1;
- if (select count(*) from private.legal_records where user_id=u1)<>2 or exists(select 1 from public.listings where id=l_held) then raise exception 'FAIL cascade reached legal archive'; end if;
+ -- Hesap kalıntısı Auth'tan doğrudan silinmek istense de saklamadaki ilan zincirleme silinmez: işlem 55000 ile durur;
+ -- ilan, hesap ve yasal kayıt yerinde kalır (bkz. legal-hold-delete-guard.sql).
+ begin delete from auth.users where id=u1; raise exception 'FAIL cascade deleted held listing'; exception when object_not_in_prerequisite_state then null; end;
+ if (select count(*) from private.legal_records where user_id=u1)<>2 or (select note from public.listings where id=l_held) is distinct from 'Delil not'
+  or not exists(select 1 from auth.users where id=u1) then raise exception 'FAIL cascade reached legal archive'; end if;
  if (select snapshot->'listing'->>'note' from private.legal_records where id=rid)<>'Delil not' then raise exception 'FAIL snapshot after cascade'; end if;
 
  -- 8) Kullanıcı kapsamlı koruma: o kullanıcının eski erişim kaydı ve hesap kalıntısı kalır; diğerleri silinir.

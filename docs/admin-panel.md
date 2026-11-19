@@ -57,6 +57,10 @@ Menü yalnız arka ucu çalışan bölümleri gösterir. Her sayfada başlık, k
 - **Sistem Sağlığı** (`20261118110000_admin_panel_health.sql`): yalnız veritabanında kayıtlı bilgiler. pg_cron kurulu değilse
   görev durumu "okunamıyor" yazar; yedek ve geri yükleme durumu veritabanına yazılmadığı için panelde izlenmez ve üretilmez.
   Görevlerin hata metni döndürülmez.
+  Gece temizliğinin "son çalışma" ve 26 saat gecikme işareti yalnız tamamlanmış `retention_run` çalışmalarından
+  hesaplanır; parçalı işin özet satırları (`batched_job`) ve atlama satırları sayılmaz. Ayrıca son atlama, son tamamlanan
+  çalışmadan sonraki atlama sayısı, son parçalı işin durumu ve son 7 günün parçalı iş hataları gösterilir
+  (`20261119030000_retention_reporting.sql`).
 - **Genel Bakış uyarıları:** açık/incelenen şikâyet, son 24 saatin limit ihlalleri, gecikmiş ya da hiç çalışmamış gece
   temizliği, başarısız zamanlanmış görev, yasal saklamadaki ilan, askıdaki hesap. Sağlık bilgisi alınamazsa "bilinmiyor"
   yazar; sorun yokmuş gibi gösterilmez.

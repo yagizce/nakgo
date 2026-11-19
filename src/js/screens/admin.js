@@ -206,7 +206,11 @@ async function openAdminPanel() {
             if(open||reviewing)items.push(item('bad',num(open)+' açık, '+num(reviewing)+' incelenen şikâyet','reports',open?'open':'reviewing','Şikâyetlere git'));
             if(sec)items.push(item('warn','Son 24 saatte '+num(sec)+' telefon görüntüleme sınırı ihlali','security','','İncele'));
             if(!ret)items.push(item('warn','Gece temizliği bu veritabanında henüz hiç çalışmadı','health','','Ayrıntı'));
-            else if(ret.stale)items.push(item('bad','Gece temizliği 26 saatten uzun süredir çalışmadı (son: '+date(ret.last_run)+')','health','','Ayrıntı'));
+            else{
+                if(ret.stale)items.push(item('bad',ret.last_run?'Gece temizliği 26 saatten uzun süredir çalışmadı (son: '+date(ret.last_run)+')':'Gece temizliği hiç tamamlanmadı','health','','Ayrıntı'));
+                if(Number(ret.skipped_since_run))items.push(item('warn','Gece temizliği son tamamlanan çalışmadan sonra '+num(ret.skipped_since_run)+' kez atlandı','health','','Ayrıntı'));
+                if(Number(ret.batches_failed_7d))items.push(item('bad','Parçalı gece temizliği son 7 günde '+num(ret.batches_failed_7d)+' kez hata verdi','health','','Ayrıntı'));
+            }
             if(Array.isArray(h.jobs)&&h.jobs.some(j=>j.last_status==='failed'))items.push(item('bad','Başarısız zamanlanmış görev var','health','','Ayrıntı'));
             if(Number(h.held))items.push(item('mute',num(h.held)+' ilan yasal saklamada','archive','hold','Arşivde gör'));
         }
@@ -290,7 +294,8 @@ async function openAdminPanel() {
     // Saklama kuralları ve gece temizliğinin son çalışmaları (her gün 03:00, Türkiye saati).
     function retentionCard(){
         const r=retention||{},runs=Array.isArray(r.runs)?r.runs:[];
-        const run=x=>{const c=x.counts||{};return '<li><span>'+date(x.ran_at)+'</span><b>'+(c.skipped?'Atlandı (başka çalışma sürüyordu)':num(c.listings_redacted)+' temizlendi · '+num(c.listings_deleted)+' silindi')+'</b></li>';};
+        const runState={done:'',failed:'Hata · ',stopped:'Durduruldu · ',interrupted:'Yarıda kaldı · '};
+        const run=x=>{const c=x.counts||{};return '<li><span>'+date(x.ran_at)+'</span><b>'+(c.skipped?'Atlandı (başka çalışma sürüyordu)':(c.batched_job?'Parçalı · '+(runState[c.status]??''):'')+num(c.listings_redacted)+' temizlendi · '+num(c.listings_deleted)+' silindi')+'</b></li>';};
         return '<section class="adm-card"><div class="adm-card-head"><h2>Saklama kuralları</h2><small>Gece temizliği her gün 03:00</small></div>'+
             '<ol class="adm-steps"><li class="done"><b>Yayın</b><small>İlan 6 saat yayında kalır.</small></li><li class="done"><b>8 gün sonra</b><small>Kapanan veya süresi dolan ilanın kişisel bilgileri (iletişim, not, isim) temizlenir; ilan arşive geçer.</small></li>'+
             '<li class="done"><b>1 yıl sonra</b><small>Arşivdeki kayıt, giriş kayıtları (IP/saat) ve yönetici kararları otomatik silinir. Yönetimin kaldırdığı ilan önce 1 yıl olduğu gibi bekletilir.</small></li>'+
@@ -438,11 +443,13 @@ async function openAdminPanel() {
         const card=(title,note,inner)=>'<section class="adm-card"><div class="adm-card-head"><h2>'+title+'</h2>'+(note?'<small>'+note+'</small>':'')+'</div>'+inner+'</section>';
         const grid=items=>'<div class="adm-grid">'+items.map(([k,v])=>'<div><span>'+k+'</span><b>'+v+'</b></div>').join('')+'</div>';
         const top=Array.isArray(api.top)?api.top:[];
+        const batchPill=st=>!st?'—':st==='done'?pill('Tamamlandı','ok'):st==='failed'?pill('Hata','bad'):st==='running'?pill('Sürüyor','warn'):st==='skipped'?pill('Atlandı','mute'):st==='interrupted'?pill('Yarıda kaldı','warn'):pill('Durduruldu','warn');
         const db=card('Veritabanı','Sayfa açıldığında okundu',grid([['Sunucu saati',date(h.server_time)],['Veritabanı boyutu',size(h.db_size)]]));
         const apiCard=card('API','Son 24 saat',grid([['API v1',api.v1_enabled===true?pill('Açık','ok'):api.v1_enabled===false?pill('Kapalı (uygulama v0 kullanır)','warn'):'—'],['Çağrı',num(api.calls_24h)]])+
             (top.length?'<h4>En çok çağrılan</h4><ol class="adm-routes">'+top.map(x=>'<li><span>'+esc(x.fn)+'</span><b>'+num(x.calls)+'</b></li>').join('')+'</ol>':'<p class="adm-note">Son 24 saatte v1 çağrısı yok. API v1 canlıda henüz açılmadı.</p>'));
         const retCard=card('Gece temizliği','Her gece çalışır',!ret?'<p class="adm-note">Bu veritabanında hiç çalışmadı.</p>':
-            (ret.stale?'<p role="alert" class="adm-warn">Son çalışma 26 saatten eski.</p>':'')+grid([['Son çalışma',date(ret.last_run)],['Temizlenen ilan',num(ret.counts&&ret.counts.listings_redacted)],['Silinen ilan',num(ret.counts&&ret.counts.listings_deleted)]]));
+            (ret.stale?'<p role="alert" class="adm-warn">'+(ret.last_run?'Son çalışma 26 saatten eski.':'Gece temizliği hiç tamamlanmadı.')+'</p>':'')+grid([['Son çalışma',date(ret.last_run)],['Temizlenen ilan',num(ret.counts&&ret.counts.listings_redacted)],['Silinen ilan',num(ret.counts&&ret.counts.listings_deleted)],
+                ['Son atlama',date(ret.last_skipped)],['Parçalı temizlik',batchPill(ret.batches&&ret.batches.status)],['Parçalı hata (7 gün)',num(ret.batches_failed_7d)]]));
         const jobsCard=card('Zamanlanmış görevler','pg_cron',jobs===null||jobs===undefined?'<p class="adm-note">Zamanlanmış görev servisi (pg_cron) bu veritabanında kurulu değil; görev durumu okunamıyor.</p>':
             !jobs.length?'<p class="adm-note">Kayıtlı NakGo görevi yok.</p>':'<div class="adm-table adm-t-jobs"><div class="adm-thead" aria-hidden="true"><span>Görev</span><span>Zaman (UTC)</span><span>Son çalışma</span><span>Sonuç</span></div>'+
             jobs.map(j=>'<div class="adm-row"><b class="c-main">'+esc(j.name)+(j.active===false?' '+pill('Kapalı','mute'):'')+'</b><span>'+esc(j.schedule||'—')+'</span><span>'+date(j.last_start)+'</span><span>'+

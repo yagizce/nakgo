@@ -612,7 +612,7 @@ function private.api_usage_retention() returns bigint definer vol=v cfg=search_p
 function private.api_vehicle_input(p jsonb) returns jsonb invoker vol=i cfg=search_path="" body=14edfd4f1e9c2adff34972aee8cfa048
 function private.api_viewer() returns uuid invoker vol=v cfg=search_path="" body=6aa3cbc6f8e11fd7d23dffc3cd3f0fbc
 function private.auth_lock(p_user uuid, p_lock boolean) returns void definer vol=v cfg=search_path="" body=6ea41fdd41d26e06514771e5640d171f
-function private.contact_retention() returns jsonb definer vol=v cfg=search_path="" body=f424919b56b666c38afbfe1956e8e706
+function private.contact_retention() returns jsonb definer vol=v cfg=search_path="" body=b5811ab6b9fdcca46710b4ac37971fd3
 function private.document_account_verified() returns boolean definer vol=s cfg=search_path="" body=ddac92d92e14a35c8050a0531361d37d
 function private.document_object_access(p_path text, p_action text) returns boolean definer vol=v cfg=search_path="" body=3605adecbfeecee2758f1eba869326c1
 function private.erase_account(p_user uuid) returns void definer vol=v cfg=search_path="" body=d496938502c3284160cf48f4df1609fb
@@ -629,6 +629,7 @@ function private.legal_close(p_record bigint, p_reason text) returns void define
 function private.legal_destroy(p_record bigint, p_cause text) returns void definer vol=v cfg=search_path="";TimeZone=UTC body=b4646b51e80081a8e60baebb1fec4077
 function private.legal_expired(r private.legal_records) returns boolean definer vol=s cfg=search_path="" body=5a3bd7137d2582bb7e1036254a078a07
 function private.legal_hash(j jsonb) returns text invoker vol=i cfg=search_path="" body=e58408c91732bb31e94a4e0dcde8be76
+function private.legal_hold_flag_sync() returns trigger definer vol=v cfg=search_path="" body=1fb0edeb080f26fff953d2312ce5ab5a
 function private.legal_hold_guard() returns trigger invoker vol=v cfg=search_path="" body=d9ca479a810217f29411511396399071
 function private.legal_log(p_action text, p_record bigint, p_detail jsonb) returns void definer vol=v cfg=search_path="" body=4e1f47719d714a7c8aadfe5aa36f09c0
 function private.legal_no_truncate() returns trigger invoker vol=v cfg=search_path="" body=d42d4f7acfe9b849885d16f818b11af0
@@ -638,6 +639,8 @@ function private.legal_release(p_hold bigint, p_reason text) returns void define
 function private.legal_snapshot(p_listing bigint, p_user uuid, p_contacts boolean) returns jsonb definer vol=s cfg=search_path="";TimeZone=UTC body=de7b01d726891743aaa79aa7e659ed03
 function private.legal_sync_listing(p_listing bigint) returns void definer vol=v cfg=search_path="" body=333ad6336a8d501304c8f63d0cc82932
 function private.listing_catalog() returns jsonb invoker vol=i cfg= body=ca2ab18fad712464d48bd936d63985ba
+function private.listing_hold_flag_guard() returns trigger definer vol=v cfg=search_path="" body=3ae209a1dd35ecc4785f7135e855f158
+function private.listing_legal_hold_guard() returns trigger definer vol=v cfg=search_path="" body=82d4f11a66460961bd3aff3951185365
 function private.listing_owner_flag_init() returns trigger definer vol=v cfg=search_path="" body=bbcdae9aca5138db0aed511ef941eb52
 function private.listing_owner_flag_sync() returns trigger definer vol=v cfg=search_path="" body=4afdaa44c1a750c2b2be99a00264af1b
 function private.listing_quota() returns trigger definer vol=v cfg=search_path="" body=d3fe518da1b2a2aded0f76f88fcb9b75
@@ -658,15 +661,15 @@ function private.report_json(r private.listing_reports) returns jsonb invoker vo
 function private.request_ip() returns inet invoker vol=s cfg=search_path="" body=c62e37d479aa5be286b5043923e19ecf
 function private.require_activity(p_user uuid) returns void definer vol=v cfg=search_path="" body=17f1187e5fadf401964fce8083eb4c17
 function private.retention_batch(p_step text, p_limit integer) returns integer definer vol=v cfg=search_path="" body=138970efd113e1ae1426cc784a0919fd
-function private.retention_batches(IN p_batch integer, IN p_max_batches integer) returns procedure invoker vol=v cfg= body=5fd6a3c83197700bb22e971ab74d5dcc
+function private.retention_batches(IN p_batch integer, IN p_max_batches integer) returns procedure invoker vol=v cfg= body=c81cc9574fc7b320639ab6813bb4a72a
 function private.retention_job_close(p_job bigint, p_status text, p_error text) returns void definer vol=v cfg=search_path="" body=8c80d98c41d77c938d414318cdc05319
-function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=c772c206910377bfdc4fa5c2a3631953
+function private.retention_run() returns jsonb definer vol=v cfg=search_path="" body=00de420ed812a05285ac30992394e6a6
 function private.route_alert_actor() returns uuid definer vol=v cfg=search_path="" body=2910e7045346bdce544ebee0dc3c4dc5
 function private.security_events_immutable() returns trigger invoker vol=v cfg=search_path="" body=7a670d33106d0452910608dbdee48585
 function private.storage_activity_guard() returns trigger definer vol=v cfg=search_path="" body=5b01313fa3de9834b54927d935980fa2
 function public.nakgo_admin_live(p_kind text) returns jsonb definer vol=s cfg=search_path="" body=3e701ba4a3b8e7c04a8046116a4369a5
 function public.nakgo_admin_moderate(p_kind text, p_target text, p_action text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="";lock_timeout=5s body=7e3d50c4eb227d58ad1c6d8902301104
-function public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) returns jsonb definer vol=s cfg=search_path="" body=ff65354b0293d9f80cba7d959562095b
+function public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) returns jsonb definer vol=s cfg=search_path="" body=2ad5891dd7a7aec09f5d60abf86ba4e8
 function public.nakgo_admin_report_set(p_id bigint, p_status text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="" body=e327af8b349aeaba0731b50d1f631047
 function public.nakgo_admin_reports(p_status text, p_offset integer) returns jsonb definer vol=s cfg=search_path="" body=f6c74b6d0b781f592fac02b71c8adb39
 function public.nakgo_admin_role() returns boolean definer vol=s cfg=search_path="" body=3484c96cb778dbff7bb4b0b2710f574e
@@ -826,11 +829,14 @@ trigger CREATE TRIGGER legal_access_log_truncate BEFORE TRUNCATE ON private.lega
 trigger CREATE TRIGGER legal_destructions_append BEFORE DELETE OR UPDATE ON private.legal_destructions FOR EACH ROW EXECUTE FUNCTION private.legal_append_only()
 trigger CREATE TRIGGER legal_destructions_chain BEFORE INSERT ON private.legal_destructions FOR EACH ROW EXECUTE FUNCTION private.legal_chain()
 trigger CREATE TRIGGER legal_destructions_truncate BEFORE TRUNCATE ON private.legal_destructions FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
+trigger CREATE TRIGGER legal_holds_flag_sync AFTER INSERT OR UPDATE ON private.legal_holds FOR EACH ROW EXECUTE FUNCTION private.legal_hold_flag_sync()
 trigger CREATE TRIGGER legal_holds_guard BEFORE DELETE OR UPDATE ON private.legal_holds FOR EACH ROW EXECUTE FUNCTION private.legal_hold_guard()
 trigger CREATE TRIGGER legal_holds_truncate BEFORE TRUNCATE ON private.legal_holds FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
 trigger CREATE TRIGGER legal_records_guard BEFORE DELETE OR UPDATE ON private.legal_records FOR EACH ROW EXECUTE FUNCTION private.legal_record_guard()
 trigger CREATE TRIGGER legal_records_truncate BEFORE TRUNCATE ON private.legal_records FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
+trigger CREATE TRIGGER listing_moderation_hold_guard BEFORE DELETE OR UPDATE OF hold ON private.listing_moderation FOR EACH ROW EXECUTE FUNCTION private.listing_hold_flag_guard()
 trigger CREATE TRIGGER listings_access_log AFTER INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.log_listing_write()
+trigger CREATE TRIGGER listings_legal_hold_guard BEFORE DELETE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_legal_hold_guard()
 trigger CREATE TRIGGER listings_owner_flag BEFORE INSERT ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_owner_flag_init()
 trigger CREATE TRIGGER listings_quota BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_quota()
 trigger CREATE TRIGGER listings_revision BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_revision()
