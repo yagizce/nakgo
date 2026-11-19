@@ -545,6 +545,7 @@ execute api.route_alerts_seen_v1() authenticated
 execute api.route_alerts_v1(p_cursor text) authenticated
 execute api.status_v1() anon
 execute api.status_v1() authenticated
+execute private.account_suspended(p_user uuid) authenticated
 execute private.document_account_verified() authenticated
 execute private.document_object_access(p_path text, p_action text) authenticated
 execute private.is_document_reviewer() authenticated
@@ -678,7 +679,7 @@ function public.nakgo_remove_route_alert(p_id bigint) returns jsonb definer vol=
 function public.nakgo_report_listing(p_listing_id bigint, p_subject text, p_reason text, p_note text) returns jsonb definer vol=v cfg=search_path="" body=78cf33e7394d74c54981e1aba8e0bd0e
 function public.nakgo_route_alerts_seen() returns integer definer vol=v cfg=search_path="" body=cdb9883e4922eb91cfef8a25e279a2fa
 function public.nakgo_save_route_alert(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) returns route_alerts definer vol=v cfg=search_path="" body=e5e04044090f3203ad9a128b67ab267e
-function public.nakgo_set_favorite(p_listing_id bigint, p_saved boolean) returns jsonb definer vol=v cfg=search_path="" body=2011ac20c28f6be2705616d97107b87a
+function public.nakgo_set_favorite(p_listing_id bigint, p_saved boolean) returns jsonb definer vol=v cfg=search_path="" body=03a59c2ca11e0dcf638464905c3e9a7d
 function public.nakgo_set_route_alert(p_id bigint, p_active boolean) returns route_alerts definer vol=v cfg=search_path="" body=ca855cb13499823ebf7f57b40bc7b85f
 function public.nakgo_storage_cleanup_pending(p_limit integer) returns TABLE(bucket_id text, object_path text) definer vol=s cfg=search_path="" body=82b9a5c6017bea0be8cb732bc99177f3
 function public.nakgo_storage_cleanup_result(p_bucket text, p_path text, p_ok boolean, p_error text) returns void definer vol=v cfg=search_path="" body=c46750b96d95c66a198d5f15d0a373a6
@@ -770,7 +771,7 @@ policy public.conversation_messages.messages_participants PERMISSIVE SELECT to a
 policy public.listing_conversations.conversations_participants PERMISSIVE SELECT to authenticated using ((( SELECT auth.uid() AS uid) = owner_id) OR (( SELECT auth.uid() AS uid) = guest_id)) check -
 policy public.listing_favorites.listing_favorites_read_own PERMISSIVE SELECT to authenticated using (user_id = ( SELECT auth.uid() AS uid)) check -
 policy public.listings.listings_create_own PERMISSIVE INSERT to authenticated using - check ((owner_id = ( SELECT auth.uid() AS uid)) AND (status = 'active'::text))
-policy public.listings.listings_read PERMISSIVE SELECT to authenticated using (((owner_id = ( SELECT auth.uid() AS uid)) AND (redacted_at IS NULL)) OR ((status = 'active'::text) AND (expires_at > now()) AND ((loading_text IS NOT NULL) OR (COALESCE(available_until, available_on) >= ((now() AT TIME ZONE 'Europe/Istanbul'::text))::date)))) check -
+policy public.listings.listings_read PERMISSIVE SELECT to authenticated using (((owner_id = ( SELECT auth.uid() AS uid)) AND (redacted_at IS NULL)) OR ((status = 'active'::text) AND (expires_at > now()) AND ((loading_text IS NOT NULL) OR (COALESCE(available_until, available_on) >= ((now() AT TIME ZONE 'Europe/Istanbul'::text))::date)) AND (NOT private.account_suspended(owner_id)))) check -
 policy public.listings.listings_update_own PERMISSIVE UPDATE to authenticated using ((owner_id = ( SELECT auth.uid() AS uid)) AND (redacted_at IS NULL)) check (owner_id = ( SELECT auth.uid() AS uid))
 policy public.profiles.profiles_insert_own PERMISSIVE INSERT to authenticated using - check (( SELECT auth.uid() AS uid) = id)
 policy public.profiles.profiles_select_own PERMISSIVE SELECT to authenticated using (( SELECT auth.uid() AS uid) = id) check -

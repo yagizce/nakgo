@@ -36,6 +36,7 @@
   "anon": {"tables": "none", "rpc": ["nakgo_public_listings"]},
   "internal_execute": {
     "nakgo_listing_items_valid(items jsonb)": {"roles": ["authenticated"], "why": "listings CHECK kısıtı ekleyen kullanıcının yetkisiyle çalışır"},
+    "private.account_suspended(p_user uuid)": {"roles": ["authenticated"], "why": "listings_read RLS politikası: askıdaki sahibin ilanı diğer üyelere görünmez"},
     "private.document_account_verified()": {"roles": ["authenticated"], "why": "eski taşıyıcı belge tablolarının RLS politikaları"},
     "private.document_object_access(p_path text, p_action text)": {"roles": ["authenticated"], "why": "eski taşıyıcı belge Storage politikaları"},
     "private.is_document_reviewer()": {"roles": ["authenticated"], "why": "eski taşıyıcı belge tablolarının RLS politikaları"}

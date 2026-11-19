@@ -54,6 +54,7 @@ anon hiçbir tabloyu doğrudan okuyamaz ve yazamaz.
 Bunlar istemci çağrısı değildir; veritabanının kendi işleyişi için authenticated rolüne açıktır:
 
 - `nakgo_listing_items_valid(jsonb)`: listings CHECK kısıtı.
+- `private.account_suspended(uuid)`: listings_read RLS politikası (askıdaki sahibin ilanı diğer üyelere görünmez).
 - `private.document_account_verified()`, `private.document_object_access(text,text)`, `private.is_document_reviewer()`: eski taşıyıcı belge tablolarının RLS ve Storage politikaları.
 
 ## İstemcinin dayandığı hatalar

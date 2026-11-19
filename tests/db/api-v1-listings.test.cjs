@@ -194,20 +194,28 @@ test('API v1 ilan okuma uçları',async t=>{
         assert.ok((await pages(v0Member(db,P.A,true))).items.length>0);
       }finally{await db.exec('update private.api_settings set v1_enabled=true');}
     });
-    await t.test('tutarsız durumlar (gerçek akışlarda oluşmaz): v1 sıkı kural yine gizler, v0 üye sorgusu gösterir',async()=>{
-      const ids=await replica(db,async()=>{
-        const mk=async owner=>Number((await db.query(`insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,loading_text,contact_phone,contact_consent,owner_id) values('load','Adana','Mersin','Tır','Açık kasa',1,'Yük','X','bugün',$1,true,$2) returning id`,[PHONE,owner])).rows[0].id);
-        const removed=await mk(P.owners[1]);await db.query(`insert into private.listing_moderation(listing_id,removed) values($1,true)`,[removed]);
-        const suspended=await mk(P.S);
-        return [removed,suspended];
+    // Askı ilanları kapatmaz (yalnız yasaklama kapatır): askıdaki sahibin aktif ilanı gerçek akışta oluşur.
+    await t.test('askıdaki sahibin aktif ilanı: v1 ve v0 üye okuması (liste, ayrıntı) gizler; sahibi görür',async()=>{
+      const id=await replica(db,async()=>Number((await db.query(`insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,loading_text,contact_phone,contact_consent,owner_id) values('load','Adana','Mersin','Tır','Açık kasa',1,'Yük','X','bugün',$1,true,$2) returning id`,[PHONE,P.S])).rows[0].id));
+      const v1ids=(await pages(v1Page(db,{user:P.B},'listings_v1'))).items.map(x=>x.id);
+      const v0ids=(await pages(v0Member(db,P.B))).items.map(x=>Number(x.id));
+      assert.ok(!v1ids.includes(id),'v1 gizler');assert.ok(!v0ids.includes(id),'v0 üye listesi gizler');
+      assert.equal((await as(db,{user:P.B},`select api.listing_v1($1) r`,[id])).error.key,'not_found');
+      assert.deepEqual((await as(db,{user:P.B},`select id from public.listings where id=$1`,[id])).rows,[],'v0 ayrıntı gizler');
+      assert.equal((await as(db,{user:P.S},`select id from public.listings where id=$1`,[id])).rows.length,1,'sahip kendi ilanını görür');
+      await replica(db,()=>db.query(`delete from public.listings where id=$1`,[id]));
+    });
+    await t.test('tutarsız durum (gerçek akışlarda oluşmaz: kaldırma ilanı arşivler): v1 sıkı kural yine gizler, v0 üye sorgusu gösterir',async()=>{
+      const id=await replica(db,async()=>{
+        const removed=Number((await db.query(`insert into public.listings(kind,from_city,to_city,vehicle,body,amount,cargo,owner_label,loading_text,contact_phone,contact_consent,owner_id) values('load','Adana','Mersin','Tır','Açık kasa',1,'Yük','X','bugün',$1,true,$2) returning id`,[PHONE,P.owners[1]])).rows[0].id);
+        await db.query(`insert into private.listing_moderation(listing_id,removed) values($1,true)`,[removed]);
+        return removed;
       });
       const v1ids=(await pages(v1Page(db,{user:P.B},'listings_v1'))).items.map(x=>x.id);
       const v0ids=(await pages(v0Member(db,P.B))).items.map(x=>Number(x.id));
-      for(const id of ids){
-        assert.ok(!v1ids.includes(id),'v1 gizler '+id);assert.ok(v0ids.includes(id),'v0 üye gösterir '+id);
-        assert.equal((await as(db,{user:P.B},`select api.listing_v1($1) r`,[id])).error.key,'not_found');
-      }
-      await replica(db,()=>db.query(`delete from public.listings where id=any($1)`,[ids]));
+      assert.ok(!v1ids.includes(id),'v1 gizler');assert.ok(v0ids.includes(id),'v0 üye gösterir');
+      assert.equal((await as(db,{user:P.B},`select api.listing_v1($1) r`,[id])).error.key,'not_found');
+      await replica(db,()=>db.query(`delete from public.listings where id=$1`,[id]));
     });
   }catch(e){primary=e;throw e;}
   finally{await finish(db,primary);}
