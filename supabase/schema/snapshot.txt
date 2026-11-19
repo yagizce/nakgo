@@ -637,6 +637,7 @@ function private.legal_release(p_hold bigint, p_reason text) returns void define
 function private.legal_snapshot(p_listing bigint, p_user uuid, p_contacts boolean) returns jsonb definer vol=s cfg=search_path="";TimeZone=UTC body=de7b01d726891743aaa79aa7e659ed03
 function private.legal_sync_listing(p_listing bigint) returns void definer vol=v cfg=search_path="" body=333ad6336a8d501304c8f63d0cc82932
 function private.listing_catalog() returns jsonb invoker vol=i cfg= body=ca2ab18fad712464d48bd936d63985ba
+function private.listing_legal_hold_guard() returns trigger definer vol=v cfg=search_path="" body=82d4f11a66460961bd3aff3951185365
 function private.listing_quota() returns trigger definer vol=v cfg=search_path="" body=eb33b4a25067963dd75cd660e6ab8f9f
 function private.listing_revision() returns trigger invoker vol=v cfg=search_path="" body=74416aee7b4046f6b3d95f39a26712d2
 function private.log_listing_write() returns trigger definer vol=v cfg=search_path="" body=bba4c453dce05c6b521f4aa51fdbd84a
@@ -827,6 +828,7 @@ trigger CREATE TRIGGER legal_holds_truncate BEFORE TRUNCATE ON private.legal_hol
 trigger CREATE TRIGGER legal_records_guard BEFORE DELETE OR UPDATE ON private.legal_records FOR EACH ROW EXECUTE FUNCTION private.legal_record_guard()
 trigger CREATE TRIGGER legal_records_truncate BEFORE TRUNCATE ON private.legal_records FOR EACH STATEMENT EXECUTE FUNCTION private.legal_no_truncate()
 trigger CREATE TRIGGER listings_access_log AFTER INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.log_listing_write()
+trigger CREATE TRIGGER listings_legal_hold_guard BEFORE DELETE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_legal_hold_guard()
 trigger CREATE TRIGGER listings_quota BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_quota()
 trigger CREATE TRIGGER listings_revision BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_revision()
 trigger CREATE TRIGGER listings_write_guard BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION nakgo_listing_write_guard()
