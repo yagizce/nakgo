@@ -303,6 +303,7 @@ column public.listings.loading_text text
 column public.listings.note text not null default ''::text
 column public.listings.owner_id uuid not null default auth.uid()
 column public.listings.owner_label text not null
+column public.listings.owner_suspended boolean not null default false
 column public.listings.redacted_at timestamp with time zone
 column public.listings.revision bigint not null default 0
 column public.listings.status text not null default 'active'::text
@@ -591,7 +592,7 @@ function api.route_alerts_v1(p_cursor text) returns jsonb definer vol=v cfg=sear
 function api.status_v1() returns jsonb definer vol=v cfg=search_path="" body=2523637b93b591a6fd280ebebebe6833
 function private.account_deleted(p_user uuid) returns boolean definer vol=s cfg=search_path="" body=71c686aff64786a7b3af1d6b37a7435b
 function private.account_suspended(p_user uuid) returns boolean definer vol=s cfg=search_path="" body=6f81a36ee8d611cee6c5778b2e9f6497
-function private.activity_write_guard() returns trigger definer vol=v cfg=search_path="" body=8bcae1932ba2eb299c7aa7e635b9ff77
+function private.activity_write_guard() returns trigger definer vol=v cfg=search_path="" body=c0b96d4a2ae7d1efa24741e7e793ff1f
 function private.admin_cron_jobs() returns jsonb definer vol=s cfg=search_path="" body=b0477e44429cfb5d3f05cea98cc3b926
 function private.api_actor(p_write boolean) returns uuid invoker vol=v cfg=search_path="" body=f08a66e0a242c3c3a896ad449ff2f106
 function private.api_admin() returns uuid invoker vol=v cfg=search_path="" body=4b1f9524567b012ced32ac1ed0676693
@@ -640,9 +641,11 @@ function private.legal_sync_listing(p_listing bigint) returns void definer vol=v
 function private.listing_catalog() returns jsonb invoker vol=i cfg= body=ca2ab18fad712464d48bd936d63985ba
 function private.listing_hold_flag_guard() returns trigger definer vol=v cfg=search_path="" body=3ae209a1dd35ecc4785f7135e855f158
 function private.listing_legal_hold_guard() returns trigger definer vol=v cfg=search_path="" body=82d4f11a66460961bd3aff3951185365
-function private.listing_quota() returns trigger definer vol=v cfg=search_path="" body=eb33b4a25067963dd75cd660e6ab8f9f
-function private.listing_revision() returns trigger invoker vol=v cfg=search_path="" body=74416aee7b4046f6b3d95f39a26712d2
-function private.log_listing_write() returns trigger definer vol=v cfg=search_path="" body=bba4c453dce05c6b521f4aa51fdbd84a
+function private.listing_owner_flag_init() returns trigger definer vol=v cfg=search_path="" body=bbcdae9aca5138db0aed511ef941eb52
+function private.listing_owner_flag_sync() returns trigger definer vol=v cfg=search_path="" body=4afdaa44c1a750c2b2be99a00264af1b
+function private.listing_quota() returns trigger definer vol=v cfg=search_path="" body=d3fe518da1b2a2aded0f76f88fcb9b75
+function private.listing_revision() returns trigger invoker vol=v cfg=search_path="" body=95e86df6194f26ebe95ccbf3a47e6f50
+function private.log_listing_write() returns trigger definer vol=v cfg=search_path="" body=3b3ece9f49bb17ebceabf6d25557492c
 function private.log_login() returns trigger definer vol=v cfg=search_path="" body=9a72a368cb13548209f929d932282ac8
 function private.nakgo_backup_auth_identities() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=84a5b1ec4a92c6dff0df1354abc3a3b9
 function private.nakgo_backup_auth_mfa_factors() returns SETOF jsonb definer vol=s cfg=search_path=pg_catalog, pg_temp body=332bf3aea14bb3b43e2befe4a46755ac
@@ -665,7 +668,7 @@ function private.route_alert_actor() returns uuid definer vol=v cfg=search_path=
 function private.security_events_immutable() returns trigger invoker vol=v cfg=search_path="" body=7a670d33106d0452910608dbdee48585
 function private.storage_activity_guard() returns trigger definer vol=v cfg=search_path="" body=5b01313fa3de9834b54927d935980fa2
 function public.nakgo_admin_live(p_kind text) returns jsonb definer vol=s cfg=search_path="" body=3e701ba4a3b8e7c04a8046116a4369a5
-function public.nakgo_admin_moderate(p_kind text, p_target text, p_action text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="";lock_timeout=5s body=16d7329682fa9ef731030ca4047af496
+function public.nakgo_admin_moderate(p_kind text, p_target text, p_action text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="";lock_timeout=5s body=7e3d50c4eb227d58ad1c6d8902301104
 function public.nakgo_admin_page(p_section text, p_offset integer, p_search text, p_filter text, p_query jsonb) returns jsonb definer vol=s cfg=search_path="" body=2ad5891dd7a7aec09f5d60abf86ba4e8
 function public.nakgo_admin_report_set(p_id bigint, p_status text, p_reason text, p_revision bigint) returns jsonb definer vol=v cfg=search_path="" body=e327af8b349aeaba0731b50d1f631047
 function public.nakgo_admin_reports(p_status text, p_offset integer) returns jsonb definer vol=s cfg=search_path="" body=f6c74b6d0b781f592fac02b71c8adb39
@@ -675,13 +678,13 @@ function public.nakgo_legal_action(p_action text, p_data jsonb) returns jsonb de
 function public.nakgo_legal_page(p_section text, p_offset integer, p_query jsonb) returns jsonb definer vol=v cfg=search_path="";TimeZone=UTC body=8582df42730fbdf256c54da0c9b2a9d2
 function public.nakgo_listing_contact(p_id bigint, p_channel text) returns text definer vol=v cfg=search_path="" body=4d23889c59861ea6cd3dca7af1e3be9f
 function public.nakgo_listing_items_valid(items jsonb) returns boolean invoker vol=i cfg=search_path="" body=7e921d4beda13a6780a0f057f3a61e2d
-function public.nakgo_listing_write_guard() returns trigger invoker vol=v cfg=search_path="" body=f6b1be0b3b0cee54bdc9ffcc32f6cd7e
+function public.nakgo_listing_write_guard() returns trigger invoker vol=v cfg=search_path="" body=830e1160dbfa7adf2720b01c9d59ba49
 function public.nakgo_public_listings(p_before bigint) returns TABLE(id bigint, kind text, from_city text, to_city text, from_district text, to_district text, vehicle text, body text, amount numeric, cargo text, items jsonb, available_on date, available_until date, available_time text, loading_text text, status text, created_at timestamp with time zone) definer vol=s cfg=search_path="" body=679af752965f132840bdcac78f4ee33e
 function public.nakgo_remove_route_alert(p_id bigint) returns jsonb definer vol=v cfg=search_path="" body=c33c8a13f59073ff154e0135931657de
 function public.nakgo_report_listing(p_listing_id bigint, p_subject text, p_reason text, p_note text) returns jsonb definer vol=v cfg=search_path="" body=78cf33e7394d74c54981e1aba8e0bd0e
 function public.nakgo_route_alerts_seen() returns integer definer vol=v cfg=search_path="" body=cdb9883e4922eb91cfef8a25e279a2fa
 function public.nakgo_save_route_alert(p_kind text, p_from text, p_to text, p_vehicle text, p_body text) returns route_alerts definer vol=v cfg=search_path="" body=e5e04044090f3203ad9a128b67ab267e
-function public.nakgo_set_favorite(p_listing_id bigint, p_saved boolean) returns jsonb definer vol=v cfg=search_path="" body=2011ac20c28f6be2705616d97107b87a
+function public.nakgo_set_favorite(p_listing_id bigint, p_saved boolean) returns jsonb definer vol=v cfg=search_path="" body=03a59c2ca11e0dcf638464905c3e9a7d
 function public.nakgo_set_route_alert(p_id bigint, p_active boolean) returns route_alerts definer vol=v cfg=search_path="" body=ca855cb13499823ebf7f57b40bc7b85f
 function public.nakgo_storage_cleanup_pending(p_limit integer) returns TABLE(bucket_id text, object_path text) definer vol=s cfg=search_path="" body=82b9a5c6017bea0be8cb732bc99177f3
 function public.nakgo_storage_cleanup_result(p_bucket text, p_path text, p_ok boolean, p_error text) returns void definer vol=v cfg=search_path="" body=c46750b96d95c66a198d5f15d0a373a6
@@ -773,7 +776,7 @@ policy public.conversation_messages.messages_participants PERMISSIVE SELECT to a
 policy public.listing_conversations.conversations_participants PERMISSIVE SELECT to authenticated using ((( SELECT auth.uid() AS uid) = owner_id) OR (( SELECT auth.uid() AS uid) = guest_id)) check -
 policy public.listing_favorites.listing_favorites_read_own PERMISSIVE SELECT to authenticated using (user_id = ( SELECT auth.uid() AS uid)) check -
 policy public.listings.listings_create_own PERMISSIVE INSERT to authenticated using - check ((owner_id = ( SELECT auth.uid() AS uid)) AND (status = 'active'::text))
-policy public.listings.listings_read PERMISSIVE SELECT to authenticated using (((owner_id = ( SELECT auth.uid() AS uid)) AND (redacted_at IS NULL)) OR ((status = 'active'::text) AND (expires_at > now()) AND ((loading_text IS NOT NULL) OR (COALESCE(available_until, available_on) >= ((now() AT TIME ZONE 'Europe/Istanbul'::text))::date)))) check -
+policy public.listings.listings_read PERMISSIVE SELECT to authenticated using (((owner_id = ( SELECT auth.uid() AS uid)) AND (redacted_at IS NULL)) OR ((status = 'active'::text) AND (expires_at > now()) AND ((loading_text IS NOT NULL) OR (COALESCE(available_until, available_on) >= ((now() AT TIME ZONE 'Europe/Istanbul'::text))::date)) AND (NOT owner_suspended))) check -
 policy public.listings.listings_update_own PERMISSIVE UPDATE to authenticated using ((owner_id = ( SELECT auth.uid() AS uid)) AND (redacted_at IS NULL)) check (owner_id = ( SELECT auth.uid() AS uid))
 policy public.profiles.profiles_insert_own PERMISSIVE INSERT to authenticated using - check (( SELECT auth.uid() AS uid) = id)
 policy public.profiles.profiles_select_own PERMISSIVE SELECT to authenticated using (( SELECT auth.uid() AS uid) = id) check -
@@ -818,6 +821,7 @@ table public.listings rls=true force=false
 table public.profiles rls=true force=false
 table public.route_alerts rls=true force=false
 table public.transport_jobs rls=true force=false
+trigger CREATE TRIGGER account_moderation_owner_flag AFTER INSERT OR DELETE OR UPDATE OF suspended ON private.account_moderation FOR EACH ROW EXECUTE FUNCTION private.listing_owner_flag_sync()
 trigger CREATE TRIGGER carrier_file_cleanup AFTER DELETE ON public.carrier_document_files FOR EACH ROW EXECUTE FUNCTION private.queue_document_cleanup()
 trigger CREATE TRIGGER legal_access_log_append BEFORE DELETE OR UPDATE ON private.legal_access_log FOR EACH ROW EXECUTE FUNCTION private.legal_append_only()
 trigger CREATE TRIGGER legal_access_log_chain BEFORE INSERT ON private.legal_access_log FOR EACH ROW EXECUTE FUNCTION private.legal_chain()
@@ -833,6 +837,7 @@ trigger CREATE TRIGGER legal_records_truncate BEFORE TRUNCATE ON private.legal_r
 trigger CREATE TRIGGER listing_moderation_hold_guard BEFORE DELETE OR UPDATE OF hold ON private.listing_moderation FOR EACH ROW EXECUTE FUNCTION private.listing_hold_flag_guard()
 trigger CREATE TRIGGER listings_access_log AFTER INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.log_listing_write()
 trigger CREATE TRIGGER listings_legal_hold_guard BEFORE DELETE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_legal_hold_guard()
+trigger CREATE TRIGGER listings_owner_flag BEFORE INSERT ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_owner_flag_init()
 trigger CREATE TRIGGER listings_quota BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_quota()
 trigger CREATE TRIGGER listings_revision BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION private.listing_revision()
 trigger CREATE TRIGGER listings_write_guard BEFORE INSERT OR UPDATE ON public.listings FOR EACH ROW EXECUTE FUNCTION nakgo_listing_write_guard()
