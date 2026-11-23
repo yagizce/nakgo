@@ -65,9 +65,16 @@ Canlı yedek (`backup.yml`) bu maddeler kapanmadan **etkinleştirilmez**. O zama
 - Açık: gerçek anahtar töreni (K9, çapa, kâğıt), gerçek imza makinesinin araç paketi özeti, gerçek Production yedeğinin
   L2'si (süper kullanıcı olmayan rolün gerçek Production paketini geri yükleyebildiğinin gösterilmesi; süper kullanıcı
   yolu kaldırıldı) (ayrı onaylar).
-- Production'daki `schema_migrations.name` değerlerinin repodaki dosya adlarıyla (sürüm + ad) birebir eşleştiği
-  varsayımı: eşleşmezse yedek durur (`migration_history`), takma ad yalnız PR'la (`migration-aliases.json`). İlk gerçek
-  çalıştırmada doğrulanır.
+- Production'daki `schema_migrations` değerleri (23.11.2026, salt okunur sorgu; iş akışı değil, bu yüzden kapanmadı):
+  32 sürümün 32'si repodaki dosya sürümleriyle aynı (takma ad gerekmez). Ad alanı varsayıldığı gibi DEĞİL: 17 satır
+  yalın ad, 15 satır `<14 hane>_<ad>.sql`; bunların 8'inde addaki zaman damgası sürümden farklı. Eski eşleştirici bu
+  geçmişi reddederdi (offline-sign `migration_history`'de dururdu). Eşleştirici artık yalnız bu iki biçimi normalize
+  eder (anahtar sürüm; başka dosyayı gösteren damga belirsiz → ret; bozuk biçim → ret). Damga farkı yalnız
+  `ops/backup/migration-aliases.json → timestamp_exceptions` sabit izin listesindeki 8 satırla (sürüm + slug +
+  Production adı birebir) kabul edilir; imzalı kayda (sürüm 2) kabul edilen her istisnanın tam kimliği ve izin
+  listesinin kanonik hash'i yazılır. Yeni fark, değişmiş ya da eksik istisna run ve offline-sign'da (geçmişten), finalize'da
+  (imzalı kimlikler ↔ main'deki liste, birebir küme + hash) reddedilir. Ölçülen 32 satır testte sabit veridir (`tests/backup/prod-fixture.cjs`).
+  Açık: gerçek yedek paketindeki geçmişin aynı sonucu verdiği ilk gerçek çalıştırmada görülür.
 
 ## Kapanış kuralı
 

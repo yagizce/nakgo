@@ -750,8 +750,13 @@ test('migration geçmişi ve zamanlanmış işler: repo ile tutarlılık, kurtar
   const list=RM.repoMigrations();
   const hist=list.slice(0,32).map(m=>({version:m.version,name:m.file.slice(15,-4)}));
   const ok=RM.historyStatus(hist,list);
-  // R1: ad dosyanın ad kısmıyla aynı olmalı; tam dosya adı ya da başka ad uyuşmazlıktır (tahmin yok).
-  assert.equal(RM.historyStatus(hist.map((h,i)=>i===5?{...h,name:list[5].file}:h),list).ok,false);
+  // R1: ad dosyanın ad kısmıyla aynı olmalı. Tam dosya adı biçimi ("<14 hane>_<ad>.sql", Production'da ölçüldü)
+  // normalize edilir ve sayısı raporlanır; addaki damga başka bir dosyanın sürümüyse belirsiz, bozuk biçim ve başka ad ret.
+  const full=RM.historyStatus(hist.map((h,i)=>i===5?{...h,name:list[5].file}:h),list);
+  assert.equal(full.ok,true);assert.equal(full.normalized,1);assert.deepEqual(full.timestamp_mismatch,[]);
+  assert.deepEqual(RM.historyStatus(hist.map((h,i)=>i===5?{...h,name:list[4].version+list[5].file.slice(14)}:h),list).unknown,[list[5].version],'belirsiz damga');
+  for(const bad of [list[5].file.toUpperCase(),list[5].file+' ',list[5].file.slice(0,-4),list[5].file.slice(15)])
+    assert.deepEqual(RM.historyStatus(hist.map((h,i)=>i===5?{...h,name:bad}:h),list).unknown,[list[5].version],JSON.stringify(bad));
   assert.deepEqual(RM.historyStatus(hist.map((h,i)=>i===5?{...h,name:'baska_ad'}:h),list).unknown,[list[5].version]);
   assert.equal(ok.ok,true);assert.equal(ok.applied,32);assert.equal(ok.last,PROD_APPLIED);
   assert.deepEqual(ok.pending,list.slice(32).map(m=>m.file));

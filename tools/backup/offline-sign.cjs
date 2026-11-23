@@ -211,7 +211,7 @@ async function signInner({usbDir,requestName='request.json',packageName,anchorNa
   const {key,id}=loadK9({keyBytes,passphrase:pass,anchor,config});
   // 10. Kayıt, imzalar, zincir, yanıt
   const signedAt=now().toISOString();
-  const record=MF.validateRecordBody({version:1,kind:req.kind,run_id:req.run_id,created_at:req.created_at,request_sha256:pending.request_sha256,
+  const record=MF.validateRecordBody({version:MF.RECORD_VERSION,kind:req.kind,run_id:req.run_id,created_at:req.created_at,request_sha256:pending.request_sha256,
     manifest_key:req.manifest_key,manifest_sha256:MF.manifestBodySha256(req.manifest),data_key:req.data_key,ciphertext_sha256:req.manifest.ciphertext_sha256,
     size:req.manifest.size,recipients_sha256:req.manifest.recipients_sha256,k9_key_id:id,anchor_sha256:aSha,reference_sha256:req.reference_sha256,
     toolset_sha256:ts2.sha256,repo_commit:anchor.repo_commit,approval_ref:req.approval_ref,claims:req.claims,offline,signed_at:signedAt});
@@ -275,9 +275,17 @@ async function levelTwo({req,pkg,anchor,refDoc,identityFile,identityLabel,recipi
   let meta;try{meta=readMeta(bundle,source.meta_files||{});}catch{stop('meta','yönetim verisi okunamadı');}
   const history=meta['supabase_migrations.schema_migrations'];
   if(!Array.isArray(history))stop('migration_history','migration geçmişi yedekte yok');
-  const mm=MM.matchHistory(history,repoList);
+  // İzin listesi bir kez okunur (araç paketi özetindeki dosya); eşleştirme ve kayda giren hash aynı içerikten.
+  let nameExceptions;try{nameExceptions=MM.loadNameExceptions();}catch{stop('migration_exceptions','zaman damgası izin listesi bozuk');}
+  const mm=MM.matchHistory(history,repoList,{nameExceptions,requireAllExceptions:true});
   if(!mm.ok)stop('migration_history','migration geçmişi repo ile eşleşmiyor');
+  // finalize ile aynı küme kuralı (ortak fonksiyon): kullanılan istisnalar izin listesiyle birebir.
+  if(MM.exceptionSetProblems({entries:mm.timestampExceptions,list:nameExceptions,sha256:mm.exceptionsSha256}).length)
+    stop('migration_exceptions','zaman damgası istisnaları izin listesiyle birebir değil');
   if(!mm.applied.length)stop('migration_history','migration geçmişi boş: yanlış kaynak ya da eksik yönetim verisi');
+  // Addaki zaman damgası sürümden farklı satırlar kabul edilir ama sessiz değildir: operatöre yazılır, sayısı kayda girer.
+  if(mm.timestampMismatch.length)log('UYARI: '+mm.timestampMismatch.length+' migration kaydının adındaki zaman damgası sürümden farklı: '+
+    mm.timestampMismatch.map(t=>t.version+'≠'+t.name_timestamp).join(', '));
   // T8: döküm anlık görüntüsü ve sayıları, çevrim içi önce/sonra ölçümleriyle tutarlı mı (kanıt değil, tutarlılık).
   let reference='not_measured';
   if(refDoc){
@@ -316,7 +324,9 @@ async function levelTwo({req,pkg,anchor,refDoc,identityFile,identityLabel,recipi
   const jobs=meta['cron.job']||[];
   return {level:'L2',ciphertext_ok:true,header_ok:true,decrypted_with:identityLabel,restore:'ok',restore_role:role,
     checks:[...new Set(v.checks.filter(c=>c.ok).map(c=>c.code))].filter(c=>MF.RE.code.test(c)).slice(0,64),
-    migrations:{applied:mm.applied.length,pending:mm.pending.length,aliases:mm.aliases,nameless:mm.nameless},
+    migrations:{applied:mm.applied.length,pending:mm.pending.length,aliases:mm.aliases,nameless:mm.nameless,
+      normalized:mm.normalized.length,timestamp_mismatch:mm.timestampMismatch.length,
+      timestamp_exceptions:mm.timestampExceptions,exceptions_sha256:mm.exceptionsSha256},
     cron:{jobs:jobs.length,inactive:jobs.filter(j=>j&&j.active===false).length},triggers:ref.triggers.length,schema:'match',reference,contract};
 }
 

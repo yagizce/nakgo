@@ -19,6 +19,7 @@ const E=require('../../tools/backup/encrypt.cjs');
 const C=require('../../tools/backup/crypto.cjs');
 const {FileStore}=require('../../tools/backup/store.cjs');
 const {toolMajor}=require('../../tools/backup/dump.cjs');
+const MMx=require('../../tools/backup/migration-match.cjs');
 
 const root=path.resolve(__dirname,'../..');
 const OWN=new Set();
@@ -115,7 +116,10 @@ test('K9 akışı uçtan uca: run → offline-sign (A ve B, L2, süper kullanıc
       const o=sA.record.offline;
       assert.equal(o.level,'L2');assert.equal(o.decrypted_with,'A');assert.equal(o.restore_role,'non_superuser');assert.equal(o.schema,'match');
       for(const c of ['target_role','restore','counts','b_content','fk_orphans','fingerprint','auth_version','meta','migration_history','cron_jobs','external_triggers','schema_reference'])assert.ok(o.checks.includes(c),c);
-      assert.deepEqual(o.migrations,{applied:32,pending:require('../../tools/backup/restore-meta.cjs').repoMigrations().length-32,aliases:0,nameless:0});
+      // Production'daki gerçek ad biçimleri: 15 satır dosya adı biçiminde (normalize), 8'inde addaki zaman damgası farklı (uyarı + kayıt).
+      assert.deepEqual(o.migrations,{applied:32,pending:require('../../tools/backup/restore-meta.cjs').repoMigrations().length-32,aliases:0,nameless:0,
+        normalized:15,timestamp_mismatch:8,timestamp_exceptions:MMx.canonicalExceptions(MMx.loadNameExceptions()),exceptions_sha256:MMx.exceptionsSha256(MMx.loadNameExceptions())});
+      assert.equal(sA.record.version,MF.RECORD_VERSION);
       assert.deepEqual(o.cron,{jobs:2,inactive:0});assert.equal(o.triggers,1);
       assert.deepEqual(o.contract,{status:'exception',exception:'no_contract_at_applied_ref'});
       assert.equal(o.reference,'match','kaynak ölçümler arasında değişmedi: önce = sonra = döküm');
@@ -206,6 +210,14 @@ test('K9 akışı uçtan uca: run → offline-sign (A ve B, L2, süper kullanıc
       await variant('bilinmeyen',rows=>[...rows,{version:'20991231000000',name:'elle'}],'migration_history');
       await variant('ad',rows=>rows.map((x,i)=>i===3?{...x,name:x.name+'_x'}:x),'migration_history');
       await variant('bosluk',rows=>rows.filter((_,i)=>i!==10),'migration_history');
+      // Zaman damgası izin listesi: yeni fark (yalın satır ya da aynı damgalı satır) ve bilinen satırın farklı damgası → ret.
+      const setName=(v,n)=>rows=>{assert.ok(rows.some(x=>x.version===v),v);return rows.map(x=>x.version===v?{...x,name:n}:x);};
+      await variant('yeni_damga_yalin',setName('20261014000000','20261014000001_profiles.sql'),'migration_history');
+      await variant('yeni_damga_tam',setName('20261112020000','20261112020059_data_retention.sql'),'migration_history');
+      await variant('bilinen_damga_degisti',setName('20261115075953','20261115010001_admin_live.sql'),'migration_history');
+      await variant('bilinen_slug_degisti',setName('20261115075953','20261115010000_admin_lives.sql'),'migration_history');
+      // İzinli istisna eksik: satır yalın ada dönmüş ya da tamamen yok → katı küme kuralı (aynı ret kodu).
+      await variant('izinli_istisna_eksik',setName('20261115075953','admin_live'),'migration_history');
       fs.rmSync(work2,{recursive:true,force:true});
       assert.deepEqual(leftovers().filter(x=>!before.includes(x)),[]);
     });
@@ -356,6 +368,34 @@ OS.offlineSign({...P,networkCheck:()=>({ok:true}),log:m=>process.stderr.write('L
       v=await run({...base,triggers:ref.triggers.map(x=>({...x,def:x.def.replace('log_login','baska')}))});assert.ok(failed(v).includes('external_triggers'),JSON.stringify(failed(v)));
       v=await run({...base,cron:ref.cron.map(j=>j.jobname==='nakgo-retention'?{...j,schedule:'5 0 * * *'}:j)});assert.deepEqual(failed(v),['cron_jobs']);
       fs.rmSync(bundle,{recursive:true,force:true});
+    });
+    await t.test('run: kaynakta izin listesi dışı yeni zaman damgası farkı varsa geri yükleme doğrulaması (migration_history) düşer, imza isteği yazılmaz',async()=>{
+      const tbl='supabase_migrations.schema_migrations';
+      for(const [v,n,orig] of [['20261014000000','20261014000001_profiles.sql','profiles'],['20261115075953','20261115010001_admin_live.sql','20261115010000_admin_live.sql'],
+        ['20261115075953','admin_live','20261115010000_admin_live.sql']]){
+        await db.query(`update ${tbl} set name=$2 where version=$1`,[v,n]);
+        try{
+          const out2=fs.mkdtempSync(path.join(dir,'out-ts-'));const w2=fs.mkdtempSync(path.join(dir,'work-ts-'));
+          const x=await B.runManual({kind:'bootstrap',config:K.config,conn,outDir:out2,recipientsFile:K.recipientsFile,pinnedRecipientsSha256:K.pinned,
+            approval:'TEST-ONAY-K9 yerel prova',runId:'k9ts'+v.slice(-4)+(n.endsWith('.sql')?'f':'s'),now,allowLocal:true,workRoot:w2});
+          assert.equal(x.state,'failed',v+': '+JSON.stringify({failed:x.failed}));assert.equal(B.exitCodeOf(x),1);
+          assert.equal(x.backup_verified,false,v);
+          // Düşen doğrulama migration geçmişi; satır ret listesinde (sürüm metni). Zamanlanmış işler beklentisi geçmişe bağlı
+          // olduğu için satır reddedildiğinde cron_jobs da kapalı tarafta düşer; başka denetim düşmez.
+          const bad=(x.restore_checks||[]).filter(c=>!c.ok);
+          const codes=bad.map(c=>c.code);
+          assert.ok(codes.includes('migration_history')&&codes.every(c=>['migration_history','cron_jobs'].includes(c)),v+': '+JSON.stringify(bad).slice(0,800));
+          // Geçmiş eşleşemiyorsa cron beklentisi de hesaplanamaz (kapalı); yalnız istisna eksikse geçmiş eşleşir, cron geçer.
+          assert.equal(codes.includes('cron_jobs'),n.endsWith('.sql'),v+' '+n);
+          assert.deepEqual(bad.find(c=>c.code==='migration_history').detail.unknown,[v],v);
+          // İmza isteği yazılmaz; yalnız sabit kodlu başarısızlık raporu (ve şifreli paket) kalabilir.
+          assert.equal(x.request_key,null,v+': imza isteği yok');assert.ok(x.failed_key,v+': başarısızlık raporu');
+          const left=files(out2);assert.ok(left.includes(x.failed_key),v);
+          assert.deepEqual(left.filter(f=>f!==x.failed_key&&!(x.keys&&f===x.keys.data_key)),[],v+': '+JSON.stringify(left));
+          assert.ok(!fs.readFileSync(path.join(out2,x.failed_key)).includes(Buffer.from('profiles')),v+': raporda ham ad yok');
+          assert.deepEqual(fs.readdirSync(w2),[],v+': şifresiz dosya yok');
+        }finally{await db.query(`update ${tbl} set name=$2 where version=$1`,[v,orig]);}
+      }
     });
   }catch(e){primary=e;throw e;}
   finally{await finish(db,primary);await dropRoles([boot]);fs.rmSync(dir,{recursive:true,force:true});}

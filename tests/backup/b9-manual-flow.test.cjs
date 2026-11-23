@@ -41,9 +41,10 @@ function synth({kind='bootstrap',runId='u1',createdAt='2026-11-23T03:00:00.000Z'
   const request={version:1,kind,run_id:runId,created_at:createdAt,approval_ref:'TEST-ONAY-U1',data_key:keys.data_key,manifest_key:keys.manifest_key,record_key:keys.record_key,reference_sha256:refSha,manifest,claims};
   const enc=MF.encodeRequestFile(request);
   const offline={level:'L2',ciphertext_ok:true,header_ok:true,decrypted_with:'A',restore:'ok',restore_role:'non_superuser',checks:['restore','counts'],
-    migrations:{applied:32,pending:19,aliases:0,nameless:0},cron:{jobs:2,inactive:0},triggers:1,schema:'match',reference:refSha?'match':'not_measured',
+    migrations:{applied:32,pending:19,aliases:0,nameless:0,normalized:15,timestamp_mismatch:8,
+      timestamp_exceptions:MM.canonicalExceptions(MM.loadNameExceptions()),exceptions_sha256:MM.exceptionsSha256(MM.loadNameExceptions())},cron:{jobs:2,inactive:0},triggers:1,schema:'match',reference:refSha?'match':'not_measured',
     contract:{status:'exception',exception:'no_contract_at_applied_ref'}};
-  const record={version:1,kind,run_id:runId,created_at:createdAt,request_sha256:enc.request_sha256,manifest_key:keys.manifest_key,
+  const record={version:MF.RECORD_VERSION,kind,run_id:runId,created_at:createdAt,request_sha256:enc.request_sha256,manifest_key:keys.manifest_key,
     manifest_sha256:MF.manifestBodySha256(manifest),data_key:keys.data_key,ciphertext_sha256:manifest.ciphertext_sha256,size:pkg.length,
     recipients_sha256:recipients,k9_key_id:id,anchor_sha256:anchor,reference_sha256:refSha,toolset_sha256:hex(32),repo_commit:hex(20),
     approval_ref:request.approval_ref,claims,offline,signed_at:'2026-11-23T05:00:00.000Z'};
@@ -486,4 +487,98 @@ test('T8: paketin sayım tablo kümesi ölçümle birebir aynı olmalı (atlanan
   const ref={version:1,before:m('1:10:',{'public.a':1,'public.b':2},'2026-11-23T03:00:00.000Z'),after:m('1:20:',{'public.a':1,'public.b':2},'2026-11-23T03:01:00.000Z')};
   assert.deepEqual(RMS.compare(ref,{txid_snapshot:'1:15:',counts:{'public.a':1,'public.b':2},migrations_sha256:mh}),{result:'match'});
   throwsCode(()=>RMS.compare(ref,{txid_snapshot:'1:15:',counts:{'public.a':1},migrations_sha256:mh}),'reference_tables','atlanan tablo');
+});
+
+/* ---------- kayıt: migration ad biçimi alanları ---------- */
+test('kayıt: normalize ve zaman damgası farkı sayıları izin listesinde, tutarlılık zorunlu, imzayla korunur',()=>{
+  const S=synth();
+  const withMig=mig=>({...S.record,offline:{...S.record.offline,migrations:mig}});
+  const base=S.record.offline.migrations;
+  assert.deepEqual({...base,timestamp_exceptions:undefined,exceptions_sha256:undefined},{applied:32,pending:19,aliases:0,nameless:0,normalized:15,timestamp_mismatch:8,timestamp_exceptions:undefined,exceptions_sha256:undefined});
+  assert.equal(MF.validateRecordBody(withMig({...base,normalized:0,timestamp_mismatch:0,timestamp_exceptions:[]})).offline.migrations.normalized,0);
+  const {normalized,...noNorm}=base;const {timestamp_mismatch,...noTs}=base;
+  const bad=[
+    ['eski biçim (dört alan eksik)',{applied:32,pending:19,aliases:0,nameless:0}],
+    ['normalize alanı yok',noNorm],['zaman damgası alanı yok',noTs],
+    ['fazladan alan',{...base,mismatch_versions:['20261115075953']}],
+    ['kesirli sayı',{...base,timestamp_mismatch:1.5}],['negatif',{...base,normalized:-1}],['metin',{...base,timestamp_mismatch:'8'}],
+    ['damga farkı normalize sayısından büyük',{...base,normalized:7,timestamp_mismatch:8}],
+    ['normalize + adsız uygulanandan büyük',{...base,applied:15,nameless:1}]];
+  for(const [label,mig] of bad)assert.throws(()=>MF.validateRecordBody(withMig(mig)),label);
+  // İmza: imzalandıktan sonra sayıyı değiştirmek kayıt imzasını bozar.
+  const r=S.respond();const P={request:S.request,request_sha256:S.enc.request_sha256};
+  const manifestDoc=MF.attach(MF.NS_MANIFEST,S.manifest,r.manifest_signature);
+  assert.equal(MF.verifyChain({manifestDoc,recordDoc:MF.attach(MF.NS_RECORD,r.record,r.record_signature),config:S.config,packageBytes:S.pkg,pending:P}).request_binding,'verified');
+  // Şemaya uygun ama imzadan sonra değişmiş: başka bir izin listesi hash'i.
+  const tampered={...r.record,offline:{...r.record.offline,migrations:{...r.record.offline.migrations,exceptions_sha256:'0'.repeat(64)}}};
+  throwsCode(()=>MF.verifyChain({manifestDoc,recordDoc:MF.attach(MF.NS_RECORD,tampered,r.record_signature),config:S.config,packageBytes:S.pkg,pending:P}),
+    'record_signature','izin listesi hash\'i imzadan sonra değişti');
+});
+
+test('finalize: zaman damgası istisnaları tam kimlikle (sürüm + slug + Production adı) ve izin listesi hash\'iyle doğrulanır; ret durumunda hiçbir şey yazılmaz',async()=>{
+  const LIST=MM.loadNameExceptions();assert.equal(LIST.length,8,'repodaki izin listesi');
+  const SHA=MM.exceptionsSha256(LIST),EX=MM.canonicalExceptions(LIST);
+  // Kanonik hash: satır sırası önemsiz, içerik (üç alan) önemli; açıklama/biçim dahil değil.
+  assert.equal(MM.exceptionsSha256([...LIST].reverse()),SHA);
+  assert.notEqual(MM.exceptionsSha256(LIST.map((e,i)=>i?e:{...e,production_name:'20261115010001_admin_live.sql'})),SHA);
+  let n=0;
+  const run=async(mutate,{list,signWith}={})=>{
+    const S=synth({runId:'fx'+(n++)});const m=S.record.offline.migrations;
+    const rec={...S.record,offline:{...S.record.offline,migrations:mutate({...m,timestamp_exceptions:m.timestamp_exceptions.map(e=>({...e}))})}};
+    const {store}=await storeWith(S);
+    const resp=S.respond(rec);if(signWith)resp.record_signature=signWith(resp,S);
+    const p=MF.finalize({store,config:S.config,responseBytes:SJ.toBytes(resp),...(list?{nameExceptions:list}:{})});
+    return {S,store,p};
+  };
+  const nothingWritten=async({S,store},label)=>{
+    assert.equal(await store.get(S.keys.manifest_key),null,label+': manifest yok');
+    assert.equal(await store.get(S.keys.record_key),null,label+': kayıt yok');
+  };
+  // Tam olarak 8 izinli istisna: kabul, manifest ve kayıt yazılır; kayıttaki kimlikler izin listesiyle aynı.
+  {const x=await run(m=>m);const f=await x.p;assert.equal(f.completed,true);
+    const stored=SJ.parseCanonical(await x.store.get(x.S.keys.record_key));
+    assert.deepEqual(JSON.parse(JSON.stringify(stored.offline.migrations.timestamp_exceptions)),EX);assert.equal(stored.offline.migrations.exceptions_sha256,SHA);}
+  const with8=(f)=>m=>{const ex=f(m.timestamp_exceptions);return {...m,timestamp_exceptions:ex,timestamp_mismatch:ex.length,normalized:Math.max(m.normalized,ex.length)};};
+  const other={version:'20261112020000',slug:'data_retention',production_name:'20261112020059_data_retention.sql'};
+  const cases=[
+    // Küme: eksik, fazla, değiştirilmiş, bilinmeyenle değiştirilmiş (sayı aynı), yinelenmiş.
+    ['eksik (7)',with8(ex=>ex.slice(1)),'migration_exceptions'],
+    ['fazla (9)',with8(ex=>[...ex,{version:'20261116000000',slug:'yeni',production_name:'20261116000001_yeni.sql'}]),'migration_exceptions'],
+    ['damga değişti',with8(ex=>ex.map((e,i)=>i===0?{...e,production_name:'20261115010001_admin_live.sql'}:e)),'migration_exceptions'],
+    ['slug değişti',with8(ex=>ex.map((e,i)=>i===0?{...e,slug:'admin_lives',production_name:'20261115010000_admin_lives.sql'}:e)),'migration_exceptions'],
+    ['sürüm değişti',with8(ex=>ex.map((e,i)=>i===0?{...e,version:'20261115075954'}:e)),'migration_exceptions'],
+    ['bilinmeyenle değiştirildi (sayı 8)',with8(ex=>[other,...ex.slice(1)].sort((a,b)=>a.version<b.version?-1:1)),'migration_exceptions'],
+    ['hiç yok (0)',with8(()=>[]),'migration_exceptions'],
+    // Şema: yinelenen sürüm (sıra kuralı), sayı ↔ dizi tutarsızlığı, fazladan alan, damga = sürüm.
+    ['yinelendi',m=>({...m,timestamp_exceptions:[m.timestamp_exceptions[0],...m.timestamp_exceptions.slice(0,7)]}),'schema'],
+    ['sayı ↔ dizi',m=>({...m,timestamp_mismatch:7}),'schema'],
+    ['fazladan alan',m=>({...m,timestamp_exceptions:m.timestamp_exceptions.map((e,i)=>i?e:{...e,file:'x'})}),'schema'],
+    ['sırasız',m=>({...m,timestamp_exceptions:[...m.timestamp_exceptions].reverse()}),'schema'],
+    ['damga sürümle aynı',m=>({...m,timestamp_exceptions:m.timestamp_exceptions.map((e,i)=>i?e:{...e,production_name:e.version+'_'+e.slug+'.sql'})}),'schema'],
+    ['ad ↔ slug',m=>({...m,timestamp_exceptions:m.timestamp_exceptions.map((e,i)=>i?e:{...e,slug:'baska'})}),'schema'],
+    // Hash: kayıttaki hash farklı (izin listesi başka içerikten) ya da biçimsiz.
+    ['hash farklı',m=>({...m,exceptions_sha256:'0'.repeat(64)}),'migration_exceptions'],
+    ['hash biçimsiz',m=>({...m,exceptions_sha256:'x'}),'schema'],
+    ['hash alanı yok',m=>{const {exceptions_sha256,...r}=m;return r;},'schema'],
+  ];
+  for(const [label,mut,code] of cases){const x=await run(mut);await rejectsCode(x.p,code,label);await nothingWritten(x,label);}
+  // main'deki izin listesi değişti (hash ve kimlik): kayıt kendi içinde tutarlı olsa da ret.
+  for(const [label,list] of [['liste boş',[]],['liste 7',LIST.slice(1)],['listede ad değişti',LIST.map((e,i)=>i?e:{...e,production_name:'20261115010001_admin_live.sql'})],
+    ['listede fazladan satır',[...LIST,{version:'20261116000000',slug:'yeni',production_name:'20261116000001_yeni.sql'}]]]){
+    const x=await run(m=>m,{list});await rejectsCode(x.p,'migration_exceptions',label);await nothingWritten(x,label);
+  }
+  // İmza: geçersiz imza ya da imzadan sonra değiştirilmiş istisna → kayıt imzası reddedilir (kimlik denetiminden önce).
+  {const x=await run(m=>m,{signWith:(resp)=>({...resp.record_signature,signature:Buffer.alloc(64).toString('base64')})});
+    await rejectsCode(x.p,'record_signature','geçersiz imza');await nothingWritten(x,'geçersiz imza');}
+  {const S=synth({runId:'fxtamper'});const {store}=await storeWith(S);const resp=S.respond();
+    const t=JSON.parse(JSON.stringify(resp));t.record.offline.migrations.timestamp_exceptions[0].production_name='20261115010001_admin_live.sql';
+    await rejectsCode(MF.finalize({store,config:S.config,responseBytes:SJ.toBytes(t)}),'record_signature','imzadan sonra değişti');
+    await nothingWritten({S,store},'imzadan sonra değişti');}
+  // Sürüm 1 kayıt (yalnız sayı) açıkça reddedilir.
+  {const S=synth({runId:'fxv1'});const {store}=await storeWith(S);
+    const m=S.record.offline.migrations;const {timestamp_exceptions,exceptions_sha256,...m1}=m;
+    const rec={...S.record,version:1,offline:{...S.record.offline,migrations:m1}};
+    await rejectsCode(MF.finalize({store,config:S.config,responseBytes:SJ.toBytes(S.respond(rec))}),'record_version','sürüm 1');
+    await nothingWritten({S,store},'sürüm 1');
+    assert.throws(()=>MF.validateRecordBody(rec),e=>e.code==='record_version');}
 });

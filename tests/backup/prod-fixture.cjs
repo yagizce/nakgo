@@ -5,6 +5,24 @@ const assert=require('node:assert/strict');
 const {openDb,build,migrations,finish}=require('../../tools/db-lib.cjs');
 const {seed}=require('./fixtures.cjs');
 const PROD_APPLIED='20261115184145';
+/** Production supabase_migrations.schema_migrations (version, name): 23.11.2026'da salt okunur ölçüldü (yalnız bu iki
+ * sütun; SQL metni alınmadı). 17 satır yalın ad, 15 satır "<14 hane>_<ad>.sql"; bunların 8'inde addaki zaman damgası
+ * sürümden farklı (apply_migration sürümü kendi yazdı, ad özgün dosya adını taşıyor). Canlı bağlantı yok; sabit veri. */
+const PROD_MIGRATION_NAMES=Object.freeze([
+  ['20261014000000','profiles'],['20261024000000','profile_details'],['20261024010000','listings'],
+  ['20261024020000','listing_photo'],['20261024030000','listing_time'],['20261024040000','transport_jobs'],
+  ['20261025080000','listing_favorites'],['20261025210000','private_messages'],['20261025220000','message_sender_index'],
+  ['20261025230000','private_carrier_documents'],['20261026010000','admin_panel'],['20261026020000','admin_moderation'],
+  ['20261026030000','single_admin_access'],['20261027010000','storage_service_activity'],['20261028010000','load_timing_text'],
+  ['20261110010000','public_listings'],['20261111020000','route_alerts'],
+  ['20261111040000','20261111040000_listing_districts_expiry.sql'],['20261111050000','20261111050000_listing_contact.sql'],
+  ['20261112020000','20261112020000_data_retention.sql'],['20261112030000','20261112030000_admin_dashboard.sql'],
+  ['20261112040000','20261112040000_admin_panel_tools.sql'],['20261112050000','20261112050000_accounts_admins.sql'],
+  ['20261112060000','20261112060000_recent_archive.sql'],
+  ['20261115075953','20261115010000_admin_live.sql'],['20261115181517','20261115180000_redaction_free_text.sql'],
+  ['20261115181526','20261115190000_listing_quota.sql'],['20261115181530','20261115200000_trusted_request_ip.sql'],
+  ['20261115181551','20261115210000_document_storage_cleanup.sql'],['20261115181600','20261115220000_listing_contact_date.sql'],
+  ['20261115182624','20261115190000_unban_hold.sql'],['20261115184145','20261115230000_close_legacy_features.sql']].map(Object.freeze));
 /** Supabase taklidi (Production'da gözlenen tablolar; içerik yok). */
 const SUPABASE_EMULATION=`
 alter table auth.users add column if not exists confirmation_token text, add column if not exists recovery_token text,
@@ -70,7 +88,9 @@ async function prodShaped({rich=true}={}){
     assert.equal(Number((await db.query(`select count(*) n from storage.buckets`)).rows[0].n),1,'migration kovayı kurdu (Production: 1)');
     await db.query(`insert into storage.migrations(id,name,hash) select g,'m'||g,md5(g::text) from generate_series(0,79) g`);
     for(const [n,s,c] of PROD_JOBS)await db.query(`insert into cron.job(jobname,schedule,command) values($1,$2,$3)`,[n,s,c]);
-    for(const m of list)await db.query(`insert into supabase_migrations.schema_migrations(version,name) values($1,$2)`,[m.name.slice(0,14),m.name.slice(15,-4)]);
+    // Production'daki gerçek ad biçimleri (17 yalın, 15 dosya adı biçiminde, 8'i farklı zaman damgalı).
+    assert.deepEqual(list.map(m=>m.name.slice(0,14)),PROD_MIGRATION_NAMES.map(([v])=>v),'Production sürümleri repo dosyalarıyla aynı');
+    for(const [v,n] of PROD_MIGRATION_NAMES)await db.query(`insert into supabase_migrations.schema_migrations(version,name) values($1,$2)`,[v,n]);
     // Gerçek yoldan: bir hesap askıda, bir ilan saklamada (32 migration'lık şemadaki panel işlemi).
     const held=(await db.query(`select id from public.listings where owner_id=$1 order by id limit 1`,[ids[2]])).rows[0].id;
     if(!rich)return {db,ids,admin,suspended:null,held:null,list};
@@ -86,4 +106,4 @@ async function prodShaped({rich=true}={}){
   }catch(e){await finish(db,e);throw e;}
 }
 
-module.exports={PROD_APPLIED,SUPABASE_EMULATION,PG_CRON_API,PROD_JOBS,bootRoleSql,prodShaped};
+module.exports={PROD_APPLIED,PROD_MIGRATION_NAMES,SUPABASE_EMULATION,PG_CRON_API,PROD_JOBS,bootRoleSql,prodShaped};

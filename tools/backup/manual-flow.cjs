@@ -43,6 +43,7 @@ function exactKeys(o,keys,where){
   const k=Object.keys(o).sort(),w=[...keys].sort();
   if(k.length!==w.length||k.some((x,i)=>x!==w[i]))bad('schema',where+': alanlar izin listesiyle aynı değil');
 }
+const RECORD_VERSION=2;
 const want=(cond,where)=>{if(!cond)bad('schema',where+': geçersiz değer');};
 const int=(v,max=Number.MAX_SAFE_INTEGER)=>Number.isSafeInteger(v)&&v>=0&&v<=max;
 const str=(v,re)=>typeof v==='string'&&re.test(v);
@@ -169,7 +170,10 @@ const OFFLINE_KEYS=['level','ciphertext_ok','header_ok','decrypted_with','restor
 function validateRecordBody(b){
   exactKeys(b,['version','kind','run_id','created_at','request_sha256','manifest_key','manifest_sha256','data_key','ciphertext_sha256','size','recipients_sha256',
     'k9_key_id','anchor_sha256','reference_sha256','toolset_sha256','repo_commit','approval_ref','claims','offline','signed_at'],'record');
-  want(b.version===1&&KINDS.includes(b.kind)&&str(b.run_id,RE.run_id)&&str(b.created_at,RE.iso),'record kimliği');
+  // Sürüm 2: L2 kaydı zaman damgası istisnalarının tam kimliğini ve izin listesi hash'ini taşır. Sürüm 1 (yalnız sayı)
+  // açıkça reddedilir; geriye dönük gevşek kural yok (Production'da hiç elle kayıt yayımlanmadı).
+  if(b.version===1)bad('record_version','kayıt sürümü 1 artık kabul edilmiyor (istisna kimlikleri yok)');
+  want(b.version===RECORD_VERSION&&KINDS.includes(b.kind)&&str(b.run_id,RE.run_id)&&str(b.created_at,RE.iso),'record kimliği');
   const k=keysFor(b.run_id,b.created_at);
   want(b.manifest_key===k.manifest_key&&b.data_key===k.data_key,'record anahtarları');
   for(const f of ['request_sha256','manifest_sha256','ciphertext_sha256','recipients_sha256','anchor_sha256','toolset_sha256'])want(str(b[f],RE.hex64),'record.'+f);
@@ -182,8 +186,21 @@ function validateRecordBody(b){
     // decrypted_with: A, B ya da AB (iki kimlik ayrı ayrı çözdü ve düz metin baytları aynı). Geri yükleme yalnız süper kullanıcı olmayan rolle.
     want(['A','B','AB'].includes(o.decrypted_with)&&o.restore==='ok'&&o.restore_role==='non_superuser','record.offline L2');
     want(Array.isArray(o.checks)&&o.checks.length<=64&&o.checks.every(c=>str(c,RE.code)),'record.offline.checks');
-    exactKeys(o.migrations,['applied','pending','aliases','nameless'],'record.offline.migrations');
-    for(const v of Object.values(o.migrations))want(int(v,100000),'record.offline.migrations');
+    exactKeys(o.migrations,['applied','pending','aliases','nameless','normalized','timestamp_mismatch','timestamp_exceptions','exceptions_sha256'],'record.offline.migrations');
+    for(const k of ['applied','pending','aliases','nameless','normalized','timestamp_mismatch'])want(int(o.migrations[k],100000),'record.offline.migrations');
+    want(str(o.migrations.exceptions_sha256,RE.hex64),'record.offline.migrations.exceptions_sha256');
+    // İstisna kimlikleri: {version, slug, production_name}; biçim, ad ↔ slug, damga ≠ sürüm, sürüme göre kesin artan (benzersiz).
+    const ex=o.migrations.timestamp_exceptions;
+    want(Array.isArray(ex)&&ex.length<=256&&ex.length===o.migrations.timestamp_mismatch,'record.offline.migrations.timestamp_exceptions');
+    ex.forEach((e,i)=>{
+      exactKeys(e,['version','slug','production_name'],'record.offline.migrations.timestamp_exceptions');
+      const p=str(e.production_name,/^\d{14}_[a-z0-9_]+\.sql$/)?/^(\d{14})_([a-z0-9_]+)\.sql$/.exec(e.production_name):null;
+      want(str(e.version,/^\d{14}$/)&&str(e.slug,/^[a-z0-9_]+$/)&&p&&p[2]===e.slug&&p[1]!==e.version&&(i===0||ex[i-1].version<e.version),
+        'record.offline.migrations.timestamp_exceptions');
+    });
+    // Dosya adı biçiminde normalize edilen ve zaman damgası farklı satırlar uygulanmışların alt kümesidir.
+    want(o.migrations.timestamp_mismatch<=o.migrations.normalized&&o.migrations.normalized+o.migrations.nameless<=o.migrations.applied,
+      'record.offline.migrations tutarlılığı');
     exactKeys(o.cron,['jobs','inactive'],'record.offline.cron');for(const v of Object.values(o.cron))want(int(v,10000),'record.offline.cron');
     want(int(o.triggers,10000)&&o.schema==='match','record.offline');
     want(['match','bounds','not_measured'].includes(o.reference),'record.offline.reference');
@@ -271,9 +288,22 @@ async function putSameOrNew(store,key,bytes){
   bad('conflict','hedefte farklı içerik var; üzerine yazılmaz');
 }
 /** Yarım kalmışsa tekrar çalıştırılabilir; aynı baytlar geçilir, farklıysa çakışma. Sıra: manifest, sonra kayıt. */
-async function finalize({store,config,responseBytes}){
+async function finalize({store,config,responseBytes,nameExceptions}){
   if(!Buffer.isBuffer(responseBytes)||responseBytes.length>LIMITS.response)bad('response_size','yanıt boyutu geçersiz');
   const resp=validateResponse(SJ.parseCanonical(responseBytes));
+  // İmza önce (bağsız bir kayıttaki alanlara güvenilmez); hiçbir yazımdan önce.
+  {const T=trustedSets(config);
+    if(!C.verify(NS_RECORD,attach(NS_RECORD,resp.record,resp.record_signature),T.t9).ok)bad('record_signature','kayıt imzası geçersiz');}
+  // Zaman damgası istisnaları: imzalı kayıttaki tam kimlikler ve izin listesi hash'i, main'deki incelenmiş izin listesiyle
+  // birebir (offline-sign ile aynı ortak fonksiyon). Yalnız sayıya güvenilmez.
+  const mig=resp.record.offline.migrations;
+  if(mig){
+    const MM=require('./migration-match.cjs');
+    let list=nameExceptions;
+    if(list===undefined){try{list=MM.loadNameExceptions();}catch{bad('migration_exceptions','zaman damgası izin listesi bozuk');}}
+    const p=MM.exceptionSetProblems({entries:mig.timestamp_exceptions,list,sha256:mig.exceptions_sha256});
+    if(p.length)bad('migration_exceptions','zaman damgası istisnaları izin listesiyle birebir değil: '+p.join(','));
+  }
   const keys0=keysFor(resp.record.run_id,resp.record.created_at);
   const reqBuf=await store.get(keys0.request_key);
   if(!reqBuf)bad('request_missing','bekleyen istek yok');
@@ -334,7 +364,7 @@ function k9ConfigProblems(config){
   return [...new Set(p)];
 }
 
-module.exports={NS_MANIFEST,NS_RECORD,H_REQUEST,H_MANIFEST_BODY,H_ANCHOR,H_REFERENCE,KINDS,LIMITS,RE,
+module.exports={RECORD_VERSION,NS_MANIFEST,NS_RECORD,H_REQUEST,H_MANIFEST_BODY,H_ANCHOR,H_REFERENCE,KINDS,LIMITS,RE,
   keysFor,manualManifestBody,validateManifestBody,manifestBodySha256,claimsFrom,validateClaims,
   validateRequest,requestSha256,shortCode,encodeRequestFile,decodeRequestFile,requestSignable,
   failedReport,validateFailed,validateRecordBody,validateResponse,attach,stripSig,verifyChain,finalize,verifyStored,k9ConfigProblems,putSameOrNew};

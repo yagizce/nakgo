@@ -37,10 +37,13 @@ function repoCronJobs(list=repoMigrations()){
 }
 
 /** R1–R3 (migration-match.cjs): tam sürüm + ad eşleşmesi ya da PR'la incelenmiş takma ad; bilinmeyen, ad uyuşmazlığı,
- * yineleme ve boşluk kapalı. unknown listesi ad uyuşmazlığını ve yinelemeyi de kapsar (sürüm metni). */
-function historyStatus(history,list=repoMigrations(),{aliases}={}){
-  const m=MM.matchHistory(history,list,aliases?{aliases}:{});
-  return {ok:m.ok,applied:m.applied.length,last:m.last,unknown:[...m.unknown,...m.nameMismatch,...m.duplicate],gaps:m.gaps,pending:m.pending,aliases:m.aliases,nameless:m.nameless};
+ * yineleme ve boşluk kapalı. unknown listesi ad uyuşmazlığını, yinelemeyi, bozuk adı ve belirsiz eşleşmeyi de kapsar
+ * (sürüm metni). normalized: dosya adı biçimindeki ad sayısı; timestamp_mismatch: addaki zaman damgası farklı sürümler. */
+function historyStatus(history,list=repoMigrations(),{aliases,requireAllExceptions=false}={}){
+  const m=MM.matchHistory(history,list,{...(aliases?{aliases}:{}),requireAllExceptions});
+  return {ok:m.ok,applied:m.applied.length,last:m.last,unknown:[...new Set([...m.unknown,...m.nameMismatch,...m.duplicate,...m.malformedName,...m.ambiguous,...m.timestampUnapproved,...m.exceptionsMissing])],
+    gaps:m.gaps,pending:m.pending,aliases:m.aliases,nameless:m.nameless,normalized:m.normalized.length,
+    timestamp_mismatch:m.timestampMismatch.map(t=>t.version)};
 }
 /** Uygulanmış migration dosyaları (sırayla); geçmiş eşleşmiyorsa null. */
 function appliedList(history,list=repoMigrations(),{aliases}={}){

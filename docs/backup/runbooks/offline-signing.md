@@ -88,7 +88,7 @@ K6b'de `bootstrap.cjs` yerine `k6b.cjs` (aynı alt komutlar). Kurtarmada indirme
 | 6 | T8 ölçüm dosyası istekteki hash'le aynı; bootstrap'ta ölçüm zorunlu | `reference_hash`, `reference_required` |
 | 7 | L1: paket boyutu ve SHA-256 manifestle aynı; age başlığı tam iki X25519 alıcısı | `package_hash`, `package_header` |
 | 8 | L2 (bootstrap'ta zorunlu): her kimlik alıcı listesinde ve etiketi yerine uygun (sıralı listede A ilk, B ikinci); her kimlik paketi AYRI çözer, AB'de iki düz metin birebir aynı; tar içeriği izin listesinde ve yalnız düz dosya | `identity`, `identity_label`, `decrypt`, `decrypt_mismatch`, `tar_entry` |
-| 9 | R1–R3: migration geçmişi repo ile (tam eşleşme ya da PR'lı takma ad); bilinmeyen, ad farkı, yineleme, boşluk yok | `migration_history` |
+| 9 | R1–R3: migration geçmişi repo ile (sürümle tam eşleşme ya da PR'lı takma ad; ad yalın ya da `<14 hane>_<ad>.sql`, ad kısmı birebir); bilinmeyen, ad farkı, bozuk ad, belirsiz damga, yineleme, boşluk yok; damga farkı yalnız `migration-aliases.json → timestamp_exceptions` izin listesindeki satırla (sürüm + slug + Production adı birebir), uyarı + kayıt; listede olmayan yeni fark ret | `migration_history` |
 | 10 | T8: döküm anlık görüntüsü ve sayılar önce/sonra ölçümleriyle tutarlı | `reference_order`, `reference_counts`, `reference_migrations`, `reference_tables` |
 | 11 | Referans derlemesi: uygulanmış migration'lar ağsız atılabilir kümede (pg_cron taklidiyle) çalıştırılır | `reference_migration` |
 | 12 | Ağsız kümede **süper kullanıcı olmayan** rolle geri yükleme; S1 denetimleri, `migration_history`, `cron_jobs` (R6, referansa karşı), `external_triggers` (O5), `schema_reference` (R4) | `restore_*`, `check_missing` |
@@ -97,11 +97,32 @@ K6b'de `bootstrap.cjs` yerine `k6b.cjs` (aynı alt komutlar). Kurtarmada indirme
 | 15 | K9: şifreli PKCS#8 olmalı, parola terminalden; kimliği çapa ve etkin K9 ile aynı. **Bundan sonra alt süreç başlatılmaz** | `k9_unencrypted`, `k9_passphrase`, `k9_mismatch` |
 | 16 | Kayıt izin listeli (yalnız kodlar, sayılar, hash'ler); iki imza; zincir finalize'ın koduyla yeniden doğrulanır; yanıt atomik, üzerine yazmadan | `response_exists` |
 
-## Kayıt (nakgo-manual-record/v1) neyi söyler, neyi söylemez
+## Kayıt (nakgo-manual-record, `version: 2`) neyi söyler, neyi söylemez
+
+`version: 1` kayıtlar (istisna kimlikleri ve hash'i olmayan) `record_version` koduyla açıkça reddedilir; Production'da
+hiç elle kayıt yayımlanmadığı için geriye dönük gevşek kural yoktur.
+
+**Zaman damgası istisnaları aşamalar arasında (aynı ortak kod, `migration-match.cjs`):**
+
+| Aşama | Gördüğü | Kural |
+|---|---|---|
+| run | yedekteki geçmiş (geri yükleme doğrulaması) | satır kuralı (sürüm + slug + Production adı izin listesinde birebir) ve küme kuralı (`requireAllExceptions`: listedeki her satır geçmişte); bozulursa `migration_history` düşer, imza isteği yazılmaz |
+| offline-sign | aynı geçmiş (çözülmüş paket) | aynı satır ve küme kuralı + `exceptionSetProblems` (K9'dan önce; `migration_history` / `migration_exceptions`); kimlikler ve hash imzalı kayda yazılır |
+| finalize | yalnız imzalı kayıt (paketi çözemez) | önce kayıt imzası; sonra `exceptionSetProblems`: kayıttaki kimlikler main'deki izin listesiyle birebir (eksik, fazla, yinelenen, bilinmeyen, değiştirilmiş yok) ve `exceptions_sha256` eşleşir; ret `migration_exceptions`, hiçbir yazım yapılmadan |
+
+dr-fetch kimlikleri yalnız biçim olarak doğrular (imzalı kayıt sonradan değişen bir izin listesine göre yeniden
+yargılanmaz; hangi listeyle imzalandığı `exceptions_sha256` ile kanıtlanır).
 
 - `offline.level: L2`, `decrypted_with: A|B|AB`, `restore_role: non_superuser` (başka değer yok), `checks` (geçen kodlar;
   `target_role` geri yükleyen oturumun süper kullanıcı OLMADIĞININ ölçümüdür), `migrations {applied, pending, aliases,
-  nameless}`, `cron {jobs, inactive}`, `triggers`, `schema: match`, `reference: match|bounds|not_measured`,
+  nameless, normalized, timestamp_mismatch}` (`normalized`: adı `<14 hane>_<ad>.sql` biçiminde olup ad kısmı dosyayla
+  aynı satırlar; `timestamp_mismatch`: bunlardan addaki zaman damgası sürümden farklı olanlar, imza makinesi ekrana
+  sürümleriyle de yazar; `timestamp_mismatch ≤ normalized`, `normalized + nameless ≤ applied`;
+  `timestamp_exceptions`: kabul edilen her istisnanın tam kimliği `{version, slug, production_name}`, sürüme göre
+  kesin artan, sayısı `timestamp_mismatch`'e eşit; `exceptions_sha256`: doğrulamada kullanılan izin listesinin kanonik
+  hash'i — `nakgo-migration-timestamp-exceptions/v1` etiketi + sürüme göre sıralı `[version, slug, production_name]`
+  satırları; açıklama metni ve dosya biçimi dahil değil),
+  `cron {jobs, inactive}`, `triggers`, `schema: match`, `reference: match|bounds|not_measured`,
   `contract {status: claimed_passed|exception, exception}`.
 - `claims` çevrim içi makinenin **beyanıdır** (kanıt değil); kanıt `offline` alanıdır. **İstisna:** `offline.contract`
   imza makinesinde doğrulanmaz. `claimed_passed` yalnız çevrim içi beyanın politikadan geçtiğini, `exception` çapada izinli

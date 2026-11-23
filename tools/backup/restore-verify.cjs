@@ -185,7 +185,8 @@ async function restoreAndVerify({bundleDir,pgBin,contractCheck=true,requireMeta=
         const st=status(meta[table]);
         return st.ok===true?pass(code,st):fail(code,st);
       };
-      need('migration_history','supabase_migrations.schema_migrations',h=>RM.historyStatus(h));
+      // Yedek doğrulaması: izin listesindeki her zaman damgası istisnası geçmişte birebir bulunmalı (offline-sign ve finalize ile aynı kural).
+      need('migration_history','supabase_migrations.schema_migrations',h=>RM.historyStatus(h,undefined,{requireAllExceptions:true}));
       need('cron_jobs','cron.job',j=>RM.cronStatus(j,{history:meta&&meta['supabase_migrations.schema_migrations']||null,expected:expected&&expected.cron}));
     }
     if(expected){
