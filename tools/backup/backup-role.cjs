@@ -86,7 +86,8 @@ async function verifyRole(query,{role,scope=loadScope()}){
     if(!r)problems.push('dışa aktarma fonksiyonu yok: '+f);else if(!r.ok)problems.push('dışa aktarma fonksiyonu çağrılamıyor: '+f);
   }
   // Negatif denetim: kapsam dışı Auth/Storage tabloları ve bu şemaların kendisi okunamamalı.
-  const forbidden=[...scope.excluded.transient,...scope.excluded.known_loss,...scope.excluded.guard_stop_if_rows,...scope.tables.map(t=>t.name)];
+  const forbidden=[...scope.excluded.transient,...scope.excluded.known_loss,...scope.excluded.guard_stop_if_rows,...(scope.excluded.guard_stop_if_rows_pending||[]),
+    ...(scope.excluded.managed||[]),...scope.tables.map(t=>t.name),...(scope.meta||[]).map(m=>m.name)];
   for(const t of forbidden){
     const [ns,rel]=t.split('.');
     const r=(await q(`select has_table_privilege($1,c.oid,'SELECT') or has_any_column_privilege($1,c.oid,'SELECT') sel,has_schema_privilege($1,n.oid,'USAGE') u

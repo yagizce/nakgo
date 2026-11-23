@@ -14,7 +14,7 @@ R2 yaşam döngüsüyle silme → uygulama kapısıyla silme (D1); yasal kayıtl
 | Depo | Ayrı R2 kovası (tercihen ayrı Cloudflare hesabı). Kilit: `db/` 14 gün, `audit/` 90 gün. |
 | Silme | Yaşam döngüsüyle otomatik silme yok (D1). Kapı varsayılan kapalı; K3 kanıtı ve PR onayı olmadan açılmaz. |
 | Şifreleme | `age`, iki çevrim dışı alıcı (A, B). Alıcı listesi hash'i repo'da sabit. |
-| İmza | K1 (CI): manifest, kontrol noktası, silme kaydı. K2 (çevrim dışı sahip): serbest bırakma ve K6 muafiyeti. |
+| İmza | K1 (CI): manifest, kontrol noktası, silme kaydı. K2 (çevrim dışı sahip): serbest bırakma ve K6 muafiyeti. K9 (çevrim dışı imza makinesi): elle yedeğin (bootstrap, K6b) manifest gövdesi ve kaydı, L2 doğrulamasından sonra; güven çapası kâğıtta ve `config.json`'da. K1/K2/K9 ayrık. |
 | Gizlilik | K7 (CI): kontrol noktası gövdelerinin şifrelenmesi. |
 | Bağlantı | Yalnız `nakgo_backup` rolü (BYPASSRLS, üyelik yok, `public`/`private` SELECT, Auth/Storage yalnız sabitlenmiş dışa aktarma fonksiyonlarıyla); Supavisor oturum modu 5432; `sslmode=verify-full`. 6543 reddedilir. |
 | Doğrulama | Her çalışmada S1 (düz PG17'ye geri yükleme ve denetim). S2a/S2b ayrı ve elle. |
@@ -30,6 +30,9 @@ R2 yaşam döngüsüyle silme → uygulama kapısıyla silme (D1); yasal kayıtl
 - A3 — yasal kayıt kanıtı, kontrol noktası zinciri, olaylar, K2/K6: [backup/legal-evidence.md](backup/legal-evidence.md)
 - A4 — orkestratör (`tools/backup/run.cjs`), silme günlüğü (`tools/backup/deletion-journal.cjs`: önce imzalı niyet, sonra imzalı sonuç), iş akışı (`.github/workflows/backup.yml`, etkisiz), izleme Worker'ı
   (`ops/backup/monitor/`, dağıtılmadı), yapılandırma (`ops/backup/config.json`, bilinçli olarak eksik)
+- B8 — ilk Production yedeği (bootstrap kipi, `tools/backup/bootstrap.cjs`), kapsam denetimi (sınıflandırılmamış
+  Auth/Storage/Vault tablosu → dur), yönetim verisi (zamanlanmış işler, migration geçmişi; `tools/backup/restore-meta.cjs`),
+  bekleyen migration provası (`tools/backup/migration-rehearsal.cjs`). Testler: `tests/backup/b8-*.test.cjs`.
 
 ## Runbook'lar
 
@@ -39,6 +42,10 @@ R2 yaşam döngüsüyle silme → uygulama kapısıyla silme (D1); yasal kayıtl
 - [Alarmlar ve izleme](backup/runbooks/alarms.md)
 - [Olay inceleme, K2 serbest bırakma, K6 muafiyeti](backup/runbooks/release-waiver.md)
 - [K6b istisnai elle döküm](backup/runbooks/k6b-manual-dump.md)
+- [K6b-0 ilk Production yedeği (bootstrap)](backup/runbooks/bootstrap-first-backup.md)
+- [Elle yedeğin çevrim dışı imzası (K9): run → offline-sign → finalize](backup/runbooks/offline-signing.md)
+- [T8 referans ölçümü: ne kanıtlar, ne kanıtlamaz](backup/runbooks/reference-measurement.md)
+- [Bekleyen migration'ların geri yüklenmiş kopyada provası](backup/runbooks/migration-rehearsal.md)
 - [Saklama ve yasal kayıtlar](backup/runbooks/retention-legal.md)
 
 ## Neden otomatik çözme yok
@@ -78,3 +85,20 @@ denetimi "sözleşme dışı çalıştırma yetkisi" verir.
 5. İş akışının main'e alınması; zamanlamanın açılması.
 6. İzleme Worker'ının dağıtımı.
 7. Silmenin açılması (K3 kanıtı + K4 hukuk metni).
+
+## İlk Production yedeği için gereken onaylar (B8, B7'den önce)
+Production Free planda; platform yedeği yok. Bekleyen migration'lar ve yedek rolü bu yedekten sonra gelir.
+1. B8 kodunun incelenip `nakgo/altyapi`'ye alınması (yerel PG17 ve CI yeşil).
+2. Anahtar töreni: en az A, B (age), K9 ve güven çapası; `recipients.txt`, `recipients_sha256`, `trusted_k9`,
+   `active_k9`, `trusted_anchors`, `active_anchor_sha256` PR'ı; çapa hash'i kâğıtta.
+3. Production'da salt okunur yetki ve kapsam doğrulaması (runbook ön koşul 3; yalnız evet/hayır ve tablo adları).
+4. İlk yedeğin alınması: sahibin makinesinde, parolayı yalnız sahibin girdiği tek çalıştırma (`run`), ardından
+   çevrim dışı imza makinesinde `offline-sign` (L2) ve `finalize`
+   ([bootstrap-first-backup.md](backup/runbooks/bootstrap-first-backup.md), [offline-signing.md](backup/runbooks/offline-signing.md)).
+5. Şifreli yedeğin iki çevrim dışı yerde saklanması.
+6. Gerçek yedeğin çevrim dışı makinede geri yükleme ve migration provası
+   ([migration-rehearsal.md](backup/runbooks/migration-rehearsal.md)).
+7. Bekleyen 19 migration'ın Production'a uygulanması (prova raporuna bakılarak, ayrı karar).
+8. B7'ye geçiş öncesi ayrı iş: sayım fonksiyonunun `guard_stop_if_rows_pending` tablolarını sayması ve `cron.job` ile
+   migration geçmişi için dışa aktarma fonksiyonları (yeni migration + korumalı a1 testinin incelemeli bakımı). O zamana
+   kadar B7 kipi Production'da güvenli tarafta durur.

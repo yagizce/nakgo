@@ -27,7 +27,7 @@ const {advance}=require('./legal-run.cjs');
 const D=require('./deletion.cjs');
 const {verifyManifest}=require('./manifest.cjs');
 const {sign,sha256,keyIdOf}=require('./crypto.cjs');
-const {clientConfig}=require('./dump.cjs');
+const {clientConfig,newClient,validateConn}=require('./dump.cjs');
 const {recipientsSha256}=require('./encrypt.cjs');
 const C=require('./checkpoint.cjs');
 const J=require('./deletion-journal.cjs');
@@ -55,6 +55,10 @@ function configProblems(config,{environment,k1,k7,anchors,recipientsFile}){
   const ids=o=>new Set(Object.entries(o).map(([id,pem])=>{try{return keyIdOf(pem);}catch{return id;}}).concat(Object.keys(o)));
   const i1=ids(t1),i2=ids(t2);
   if([...i1].some(x=>i2.has(x)))p.push('K1 ve K2 aynı anahtarı paylaşıyor (görev ayrılığı ihlali)');
+  // K9 (elle yedeğin çevrim dışı imza anahtarı) ne K1 ne K2 olabilir; B7 K9 istemez, yalnız ayrılığı denetler.
+  const t9=config.trusted_k9&&typeof config.trusted_k9==='object'&&!Array.isArray(config.trusted_k9)?config.trusted_k9:{};
+  const i9=ids(t9);
+  if([...i9].some(x=>i1.has(x)||i2.has(x)))p.push('K9, K1 ya da K2 ile aynı anahtarı paylaşıyor (görev ayrılığı ihlali)');
   for(const [id,pem] of Object.entries({...t1,...t2})){try{if(keyIdOf(pem)!==id)p.push('anahtar kimliği açık anahtarla uyuşmuyor: '+id);}catch{p.push('açık anahtar okunamadı: '+id);}}
   if(!k1||!k1.privateKey||!k1.keyId)p.push('K1 gizli anahtarı yok');
   else if(!t1[k1.keyId])p.push('K1 anahtarı güvenilir listede değil');
@@ -78,9 +82,13 @@ async function readInbox(store,prefix){
   return {docs:out,bad};
 }
 
-/** A1 denetimini kaynak veritabanına yedek rolüyle bağlanarak yapar. */
-async function preflightAudit({conn,Client,allowlist}){
-  const c=new Client(clientConfig(conn));
+/** A1 denetimini kaynak veritabanına yedek rolüyle bağlanarak yapar. Bağlantı kuralları (verify-full, kök sertifika,
+ * Supavisor sunucu adı, 5432) bağlantı AÇILMADAN denetlenir; ihlalde hiç bağlanılmaz (hata → ön kontrol başarısız).
+ * Ortamdaki PGOPTIONS bu bağlantıya aktarılmaz (newClient). */
+async function preflightAudit({conn,Client,allowlist,allowLocal=false}){
+  const rules=validateConn(conn,{allowLocal});
+  if(rules.length)throw Error('bağlantı kuralları: '+rules.join('; '));
+  const c=newClient(Client,clientConfig(conn));
   c.on('error',()=>{});// kopan bağlantı süreci çökertmez; sorgu hatası denetim hatası sayılır
   await c.connect();
   try{return PA.evaluate(await PA.audit({query:(s,a)=>c.query(s,a)},{role:conn.user}),{allowlist});}
@@ -119,7 +127,7 @@ async function runAll(cfg){
 
   // 2. A1
   let evaluation=null,preflight;
-  try{evaluation=await preflightImpl({conn,Client,allowlist});}
+  try{evaluation=await preflightImpl({conn,Client,allowlist,allowLocal});}
   catch(e){preflight={status:'failed',code:'audit_error',reason:e.message};}
   if(evaluation){
     if(evaluation.decision==='ok')preflight={status:'ok'};

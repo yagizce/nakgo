@@ -1,9 +1,13 @@
 {
   "version": 1,
-  "description": "B7 yedek yapılandırması. Bu dosya PR incelemesinden geçerek değişir; ortam değişkeniyle ezilemez. null olan her alan doldurulana kadar yedek iş akışı çalışmayı reddeder.",
+  "description": "B7 yedek yapılandırması. Bu dosya PR incelemesinden geçerek değişir; ortam değişkeniyle ezilemez. null olan her alan doldurulana kadar yedek iş akışı çalışmayı reddeder. trusted_k9/active_k9 (elle yedeğin çevrim dışı imza anahtarı) ve trusted_anchors/active_anchor_sha256 (anahtar töreninde kâğıda yazılan güven çapaları) anahtar töreniyle doldurulur; K1, K2 ve K9 ayrı anahtarlardır.",
   "recipients_sha256": null,
   "trusted_k1": {},
   "trusted_k2": {},
+  "trusted_k9": {},
+  "active_k9": null,
+  "trusted_anchors": {},
+  "active_anchor_sha256": null,
   "deletion": {
     "enabled": false,
     "retention_days": 15,

@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Production schema_migrations sürümü repodaki dosya adından farklıysa (apply_migration kendi zaman damgasını yazar) açık eşleme. Yalnız PR incelemesiyle eklenir; ada göre tahmin yapılmaz. Bugün boş: Production'daki 32 sürüm repo dosya adlarıyla aynı kabul edilir ve gerçek değer ilk yedek öncesi referans ölçümüyle doğrulanır.",
+  "aliases": []
+}
