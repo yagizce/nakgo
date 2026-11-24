@@ -51,10 +51,43 @@ jobs:
         # tools/backup/pg-cluster.cjs, NAKGO_PG_SERVER altında bin/, lib/ ve share/ içeren taşınabilir bir kurulum ister
         # (pg_cron taklidini kopyanın share/ klasörüne yazar); Debian paketinde share/ ayrı yerde olduğu için uygun değil.
         # Testler bu kurulumla yalnız Unix soketli, geçici kümeler açar; servis veritabanına dokunmaz.
+        # Paket dosyası kurulumdan önce sabit SHA-512 ile denetlenir (npm yayın kaydındaki dist.integrity ile aynı değer).
+        # Kütüphane bağlantı listesi güvenilmeyen veri sayılır: önce bütün kayıtlar denetlenir, sonra bağlantılar kurulur.
         run: |
-          npm install --prefix "$RUNNER_TEMP/nakgo-pg-server" --no-save --package-lock=false --ignore-scripts @embedded-postgres/linux-x64@17.11.0-beta.19
+          TGZ_DIR="$RUNNER_TEMP/nakgo-pg-server-tgz"
+          TGZ="$TGZ_DIR/embedded-postgres-linux-x64-17.11.0-beta.19.tgz"
+          mkdir -p "$TGZ_DIR"
+          npm pack --ignore-scripts --pack-destination "$TGZ_DIR" @embedded-postgres/linux-x64@17.11.0-beta.19
+          echo "320d9252255fd135bdbc408ef2a7efe35ef7d1680938a82e39a2b869c52e201e0bf07795ba26204339488f6921ef743738bc5175eb9bec3f02fd2904c4c96aae  $TGZ" | sha512sum --check
+          npm install --prefix "$RUNNER_TEMP/nakgo-pg-server" --no-save --package-lock=false --ignore-scripts "$TGZ"
           PKG="$RUNNER_TEMP/nakgo-pg-server/node_modules/@embedded-postgres/linux-x64"
-          node -e 'const fs=require("fs"),p=require("path"),d=process.argv[1];for(const l of JSON.parse(fs.readFileSync(p.join(d,"native/pg-symlinks.json"),"utf8"))){const t=p.join(d,l.target);fs.rmSync(t,{force:true});fs.symlinkSync(p.relative(p.dirname(t),p.join(d,l.source)),t);}' "$PKG"
+          node - "$PKG" <<'JS'
+          const fs=require('fs'),p=require('path');
+          const fail=m=>{console.error('pg-symlinks reddedildi: '+m);process.exit(1);};
+          const root=fs.realpathSync(process.argv[2]),lib=p.join(root,'native','lib');
+          const under=(x,d)=>x.startsWith(d+p.sep);
+          const exists=x=>{try{fs.lstatSync(x);return true;}catch{return false;}};
+          let list;try{list=JSON.parse(fs.readFileSync(p.join(root,'native','pg-symlinks.json'),'utf8'));}catch{fail('liste okunamadı');}
+          if(!Array.isArray(list)||!list.length)fail('liste boş ya da dizi değil');
+          if(fs.realpathSync(lib)!==lib)fail('native/lib sembolik bağlantı');
+          const plan=[],seen=new Set();
+          for(const l of list){
+            if(!l||typeof l.source!=='string'||typeof l.target!=='string')fail('geçersiz kayıt');
+            for(const s of [l.source,l.target])
+              if(p.isAbsolute(s)||/[\\\0]/.test(s)||s.split('/').some(x=>x===''||x==='.'||x==='..'))fail('güvenli olmayan yol: '+JSON.stringify(s));
+            const src=p.join(root,l.source),tgt=p.join(root,l.target);
+            if(!under(src,lib)||!under(tgt,lib))fail('native/lib dışında yol: '+JSON.stringify(l));
+            if(!exists(src)||!fs.lstatSync(src).isFile())fail('kaynak normal dosya değil: '+l.source);
+            if(fs.realpathSync(src)!==src)fail('kaynak yolu sembolik bağlantıdan geçiyor: '+l.source);
+            if(fs.realpathSync(p.dirname(tgt))!==p.dirname(tgt))fail('hedef klasörü sembolik bağlantıdan geçiyor: '+l.target);
+            if(exists(tgt))fail('hedef zaten var: '+l.target);
+            if(seen.has(tgt))fail('yinelenen hedef: '+l.target);
+            seen.add(tgt);plan.push({src,tgt});
+          }
+          for(const {src,tgt} of plan)fs.symlinkSync(p.relative(p.dirname(tgt),src),tgt);
+          for(const {src,tgt} of plan)if(fs.realpathSync(tgt)!==src)fail('bağlantı beklenen dosyaya çözülmüyor: '+tgt);
+          console.log('pg-symlinks: '+plan.length+' bağlantı kuruldu');
+          JS
           "$PKG/native/bin/postgres" --version | grep -E '^postgres \(PostgreSQL\) 17\.'
           "$PKG/native/bin/initdb" --version
       - name: PGlite (PostgreSQL 17, in-process)
