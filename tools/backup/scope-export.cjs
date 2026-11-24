@@ -64,7 +64,25 @@ async function unclassifiedTables(c,scope){
   const known=classified(scope);
   const rows=(await c.query(`select n.nspname||'.'||c.relname q from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace
     where c.relkind in ('r','p') and n.nspname = any($1::text[]) order by 1`,[scope.coverage_schemas||[]])).rows.map(r=>r.q);
-  return {total:rows.length,unclassified:rows.filter(q=>!known.has(q))};
+  return {total:rows.length,unclassified:rows.filter(q=>!known.has(q)),present:rows};
+}
+/** Envanter denetimi (bootstrap): coverage_schemas içindeki gerçek tablo kümesi scope.coverage_inventory.tables ile
+ * birebir aynı olmalı. Dönüş: neden listesi (boşsa geçer). Liste yoksa, biçimi bozuksa, yineleme ya da sınıflandırılmamış
+ * satır içeriyorsa da durur; eksik ve fazla tablo ayrı ayrı adlandırılır. Hiçbir tablo otomatik yok sayılmaz. */
+function inventoryProblems(scope,present){
+  const inv=scope.coverage_inventory,schemas=scope.coverage_schemas||[];
+  if(!inv||!Array.isArray(inv.tables)||!inv.tables.length)return ['kapsam envanteri tanımlı değil (ops/backup/scope.json coverage_inventory)'];
+  const reasons=[],seen=new Set(),known=classified(scope);
+  for(const t of inv.tables){
+    if(typeof t!=='string'||!/^[a-z_]+\.[a-z0-9_]+$/.test(t)||!schemas.includes(t.split('.')[0])){reasons.push('envanter satırı geçersiz: '+String(t));continue;}
+    if(seen.has(t)){reasons.push('envanterde yinelenen tablo: '+t);continue;}
+    seen.add(t);
+    if(!known.has(t))reasons.push('envanterde sınıflandırılmamış tablo: '+t);
+  }
+  const have=new Set(present);
+  for(const t of seen)if(!have.has(t))reasons.push('envanterdeki tablo veritabanında yok: '+t);
+  for(const t of have)if(!seen.has(t))reasons.push('envanterde olmayan tablo: '+t);
+  return reasons;
 }
 /** Sayım fonksiyonunun saydığı liste (a1 testi fonksiyonla eşitliğini denetler) ve sayılması gereken bütün liste. */
 const coreGuardList=scope=>[...scope.excluded.guard_stop_if_rows,...scope.excluded.known_loss,...scope.guard_exact_zero,'pg_catalog.pg_largeobject_metadata'];
@@ -238,4 +256,4 @@ async function compareScope(db,{bundleDir,files}){
 }
 
 module.exports={scopeDDL,exportScope,exportMeta,readMeta,loadScope,compareScope,fileOf,metaFileOf,EXPORT_SETTINGS,DIRECT_SQL,directFrom,TOKEN_COLUMNS,
-  unclassifiedTables,classified,guardList,coreGuardList,guardKey,directGuardCounts,relExists};
+  unclassifiedTables,inventoryProblems,classified,guardList,coreGuardList,guardKey,directGuardCounts,relExists};

@@ -57,7 +57,7 @@ const withK9=cfg=>{const k9=C.testKeyPair();const a=require('node:crypto').rando
   return {...cfg,trusted_k9:{[k9.keyId]:k9.publicKey},active_k9:k9.keyId,trusted_anchors:{[a]:{created_at:'2026-11-22T10:00:00.000Z'}},active_anchor_sha256:a};};
 const qn=t=>t.split('.').map(s=>'"'+s+'"').join('.');
 
-const {SUPABASE_EMULATION,PG_CRON_API,PROD_JOBS,bootRoleSql,prodShaped}=require('./prod-fixture.cjs');
+const {SUPABASE_EMULATION,PG_CRON_API,PROD_JOBS,PROD_AUX_TABLES,LIFECYCLE_DDL,bootRoleSql,prodShaped}=require('./prod-fixture.cjs');
 
 /* --- Veritabanı gerektirmeyen birimler --- */
 test('kapsam: listeler ayrık, her meta ve kapsam tablosu tek sınıfta; doğrudan sorgular fonksiyon gövdeleriyle aynı',()=>{
@@ -902,7 +902,8 @@ test('bootstrap ve kurtarma (gerçek PostgreSQL, Production biçiminde kaynak)',
       const src=JSON.parse(fs.readFileSync(path.join(bundle,'source.json'),'utf8'));
       assert.equal(src.mode,'bootstrap');assert.equal(src.dump_role,boot);
       assert.deepEqual(src.read_only,RO_SOURCE);assert.equal(PG_DUMP_TRANSACTION,RO_SOURCE.pg_dump_transaction);
-      assert.equal(src.coverage.unclassified,0);assert.equal(src.coverage.tables,14);
+      assert.equal(src.coverage.unclassified,0);assert.equal(src.coverage.tables,PROD_AUX_TABLES.length,'Production envanteri: 38 Auth/Storage/Vault tablosu');
+      assert.equal(src.guard_counts['storage.bucket_lifecycle_states'],0);assert.equal(src.guard_counts['storage.lifecycle_abandoned_artifacts'],0);
       assert.deepEqual(src.external_triggers.map(x=>x.table+'.'+x.name),['auth.sessions.nakgo_access_log']);
       assert.ok(fs.existsSync(path.join(bundle,'X.pre.sql')));
       assert.equal(src.guard_counts['auth.instances'],0);assert.equal(src.guard_counts['vault.secrets'],0);assert.equal(src.guard_counts['storage.objects'],0);
@@ -1627,8 +1628,26 @@ process.kill(process.pid,'SIGTERM');
       await stopCase('Vault satırı',`insert into vault.secrets(secret) values('s')`,`delete from vault.secrets`,'guards',/vault\.secrets/);
       await stopCase('Storage nesnesi',`alter table storage.objects disable trigger user;insert into storage.objects(bucket_id,name) values('carrier-documents','b8');alter table storage.objects enable trigger user;`,
         `alter table storage.objects disable trigger user;delete from storage.objects;alter table storage.objects enable trigger user;`,'guards',/storage\.objects boş olmalı/);
-      await stopCase('Storage yardımcı tablosu (önek)',`create table storage.prefixes(bucket_id text,name text);grant select on storage.prefixes to ${boot};insert into storage.prefixes values('carrier-documents','a/')`,
-        `drop table storage.prefixes`,'guards',/storage\.prefixes/);
+      // Production envanterinde olmayan (sınıflandırılmış ama gözlenmemiş) tablo: satır sayımından önce envanterde durur.
+      await stopCase('Storage yardımcı tablosu (önek, Production envanterinde yok)',`create table storage.prefixes(bucket_id text,name text);grant select on storage.prefixes to ${boot};insert into storage.prefixes values('carrier-documents','a/')`,
+        `drop table storage.prefixes`,'coverage',/envanterde olmayan tablo: storage\.prefixes/);
+      // Kova yaşam döngüsü tabloları (Production'da var, boş): satır görünürse veri okunmadan durur; ayrı ayrı ve birlikte.
+      const LS='storage.bucket_lifecycle_states',LA='storage.lifecycle_abandoned_artifacts';
+      // Satırlar Storage kaynağındaki gerçek yollarla aynı biçimde: durum satırı kova yaşam döngüsü kuralı açılınca
+      // (reconcile_lifecycle_state), terk edilmiş öğe fiziksel silme beklerken (SaveLifecycleMetadataDeletions) oluşur.
+      const stateRow=`insert into ${LS}(bucket_id,generation,next_run_at) values('carrier-documents',gen_random_uuid(),now())`;
+      const artifactRow=n=>`insert into ${LA}(bucket_id,key,name,version) select 'carrier-documents','k'||g,'belge-'||g||'.pdf',null from generate_series(1,${n}) g`;
+      await stopCase('yaşam döngüsü durumu satırı',stateRow,`delete from ${LS}`,'guards',/storage\.bucket_lifecycle_states \(1 satır\)/);
+      await stopCase('terk edilmiş yaşam döngüsü öğesi satırı',artifactRow(1),`delete from ${LA}`,'guards',/storage\.lifecycle_abandoned_artifacts \(1 satır\)/);
+      await stopCase('iki yaşam döngüsü tablosu birlikte dolu',stateRow+';'+artifactRow(2),`delete from ${LS};delete from ${LA}`,
+        'guards',/storage\.bucket_lifecycle_states \(1 satır\)[\s\S]*storage\.lifecycle_abandoned_artifacts \(2 satır\)/);
+      // Beklenen (envanterdeki) tablo eksik: sessiz geçilmez.
+      await stopCase('envanterdeki Storage tablosu yok',`drop table ${LA}`,
+        `${LIFECYCLE_DDL[LA]};alter table ${LA} enable row level security;grant select on ${LA} to ${boot}`,'coverage',/envanterdeki tablo veritabanında yok: storage\.lifecycle_abandoned_artifacts/);
+      await stopCase('envanterdeki Auth tablosu yok',`drop table auth.saml_providers`,
+        `create table auth.saml_providers(id bigint);alter table auth.saml_providers owner to supabase_auth_admin;alter table auth.saml_providers enable row level security;grant select on auth.saml_providers to ${boot}`,
+        'coverage',/envanterdeki tablo veritabanında yok: auth\.saml_providers/);
+      await stopCase('sınıflandırılmamış Storage tablosu',`create table storage.yeni_ozellik(x int)`,`drop table storage.yeni_ozellik`,'coverage',/sınıflandırılmamış tablo: storage\.yeni_ozellik/);
       await stopCase('sınıflandırılmamış Auth tablosu',`create table auth.yeni_ozellik(x int)`,`drop table auth.yeni_ozellik`,'coverage',/sınıflandırılmamış tablo: auth\.yeni_ozellik/);
       await stopCase('sınıflandırılmamış Vault tablosu',`create table vault.baska(x int)`,`drop table vault.baska`,'coverage',/vault\.baska/);
       await stopCase('BYPASSRLS yok',`alter role ${boot} nobypassrls`,`alter role ${boot} bypassrls`,'rls',/auth\.users/);

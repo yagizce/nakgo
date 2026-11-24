@@ -23,7 +23,7 @@
 | Bağlantı güvenliği | Production'a **hiçbir bağlantı açılmadan önce** bağlantı kuralları denetlenir: `sslmode=verify-full`, var olan kök sertifika dosyası, `*.pooler.supabase.com` sunucu adı, port 5432 (6543 reddedilir). Uzak sunucu için TLS doğrulaması (sertifika zinciri ve sunucu adı) olmayan bir bağlantı yapılandırması hiç üretilmez. Kural ihlalinde parola hiçbir yere gönderilmez; ön kontrol ve döküm `connection`/`bağlantı kuralları` ile durur. |
 | Salt okunurluk | Başlangıç parametresi (`options`/`PGOPTIONS`) kullanılmaz; Supavisor onu iletmeyebilir, ortamdan devralınan `PGOPTIONS` da silinir. Ön kontrol ve S1 bağlantısında, bağlantı kurulur kurulmaz ve başka hiçbir sorgudan önce `SET default_transaction_read_only = on` çalıştırılır ve değer sorgulanarak `on` olduğu doğrulanır. Değer `on` değilse hiçbir şey okunmadan durur (`read_only` / `salt okunurluk`). S1 ayrıca `READ ONLY` işlemdir; `pg_dump` kendi işlemini salt okunur açar. |
 | Tutarlılık | `REPEATABLE READ` S1 işlemi, ilk komut `pg_export_snapshot()`; aynı görüntüden sayımlar, Auth/Storage satırları, yönetim verisi ve `pg_dump --snapshot`. |
-| Kapsam | `auth`, `storage`, `vault` şemalarındaki her tablo `ops/backup/scope.json`'da bir sınıfta olmalı; değilse **coverage** aşamasında durur. Kapsam dışı tablolar (Vault, SSO, WebAuthn, OAuth, `auth.instances`, Storage yardımcıları) ve `storage.objects` satır içerirse **guards** aşamasında durur. |
+| Kapsam | `auth`, `storage`, `vault` şemalarındaki her tablo `ops/backup/scope.json`'da bir sınıfta olmalı ve tablo kümesi `coverage_inventory` ile birebir aynı olmalı (eksik ya da fazla tablo); değilse **coverage** aşamasında, veri okunmadan durur. Kapsam dışı tablolar (Vault, SSO, WebAuthn, OAuth, `auth.instances`, Storage yardımcıları) ve `storage.objects` satır içerirse **guards** aşamasında durur. |
 | Okuma | Auth/Storage/meta satırları dışa aktarma fonksiyonlarının gövdeleriyle birebir aynı sorgularla (`scope-export.cjs → DIRECT_SQL`, testle sabit) doğrudan okunur. Tek kullanımlık belirteçler boş yazılır; oturum, yenileme belirteci, tek kullanımlık belirteç ve giriş akışı tabloları okunmaz. |
 | Yetki ve RLS | Kapsam, meta ve sayım tabloları ile tam şemalardaki tablo ve diziler okunabilir olmalı; RLS bağlanan rol için etkinse (**rls**) durur. Süper kullanıcı gerekmez. |
 | Doğrulama (çevrim içi) | Yerel PostgreSQL'e geri yükleme (S1): sayılar, Auth/Storage içerik eşitliği, yabancı anahtar yetimleri, şema parmak izi, Auth sürümü, meta dosyaları. Ayrıca **zorunlu** `migration_history` (R1–R3: tam sürüm + ad eşleşmesi ya da PR'lı takma ad, `ops/backup/migration-aliases.json`) ve `cron_jobs` (yalnız uygulanmış migration'ların işleri) kontrolleri. Biri başarısızsa yedek doğrulanmış sayılmaz, şifrelenmez ve yazılmaz; çıkış kodu 1. Kaynak repodan geride olduğu için API sözleşmesi bu kopyada denetlenmez: istekte `claims.contract: "skipped"`. Bu sonuçlar **beyandır**; kanıt çevrim dışı L2'dir. |
@@ -89,10 +89,36 @@ Sonra: kısa kod kâğıda; istek, ölçüm ve paket USB ile imza makinesine →
 5. Ancak prova başarılıysa, ayrı onayla bekleyen 19 migration Production'a uygulanır. Ardından `nakgo_backup` rolü
    kurulur ve B7'nin normal yoluna geçilir ([../b7b-acceptance.md](../b7b-acceptance.md)).
 
+## Kapsam envanteri
+
+Bootstrap, `auth`, `storage` ve `vault` şemalarındaki gerçek tablo kümesini `ops/backup/scope.json → coverage_inventory`
+ile birebir karşılaştırır. Liste Production'da gözlenen kümedir; 24.11.2026 ölçümü 38 tablodur (auth 27, storage 10,
+vault 1; `public`/`private` bu denetimde değil, tam şema olarak dökülür).
+
+**Neden bilinmeyen tabloda durur:** Supabase platformu Auth/Storage'a sessizce tablo ekler (ör. Kasım 2026'da Storage'ın
+kova yaşam döngüsü tabloları; tarih dış raporlardan, Production'da doğrulanmadı). Sınıflandırılmamış bir tablo ya veri kaybı (yedeklenmesi gereken veri) ya da yedeklenmemesi
+gereken iç durumdur; hangisi olduğu incelenmeden karar verilemez. Bu yüzden araç tahmin etmez, durur. Eksik tablo da durur:
+beklenen bir tablonun kaybolması sürüm değişikliği ya da yanlış hedef demektir.
+
+**Envanter nasıl güncellenir (incelemeli PR, ayrı onay):**
+1. Production'da salt okunur katalog sorgusu (yalnız tablo adı ve `relrowsecurity`; satır ve sütun içeriği alınmaz):
+   `select n.nspname||'.'||c.relname, c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace
+   where c.relkind in ('r','p') and n.nspname in ('auth','storage','vault') order by 1`.
+2. Yeni tablonun Supabase kaynağındaki tanımı ve kullanımı incelenir; bir sınıfa (`tables`, `excluded.*`,
+   `guard_exact_zero`, `meta`) gerekçesiyle konur. Gerekçe doğrulanamazsa sınıflandırılmaz, yedek durmaya devam eder.
+3. Aynı PR'da `scope.json → coverage_inventory.tables` (ve `observed_at`) ile `tests/backup/prod-fixture.cjs →
+   PROD_AUX_TABLES` birlikte güncellenir; `tests/backup/b9-coverage-inventory.test.cjs` ikisinin eşitliğini denetler.
+4. `scope.json` araç paketi özetine girer: değişiklik güven çapasının yeniden üretilmesini gerektirir.
+
+**Kova yaşam döngüsü tabloları (özel durum):** `storage.bucket_lifecycle_states` (kova başına yaşam döngüsü çalıştırma durumu: zamanlama, işçi kilidi, imleç; kovaya bir yaşam döngüsü kuralı yazılınca `storage.reconcile_lifecycle_state` oluşturur, kural kalkıp işçi boştayken siler, kova silinince `on delete cascade` ile gider) ve `storage.lifecycle_abandoned_artifacts` (süresi dolan nesnelerin meta verisi silindikten sonra fiziksel dosyası silinmeyi bekleyen anahtarlar; işçi dosyayı silince satırı siler). Kaynak: supabase/storage `migrations/tenant/0076-noncurrent-lifecycle.sql`, `0079-lifecycle-writer-coordination.sql`, `0080-revoke-extra-lifecycle-postgres-grants.sql`, `src/storage/database/pg.ts` (`SaveLifecycleMetadataDeletions`, `resolveLifecycleAbandonedArtifacts`). İkisi de Storage servisinin türetilmiş iç durumudur; NakGo yaşam döngüsü kuralı kullanmaz ve dosya yedeklenmez, bu yüzden yedeklenmez. Satır görünürse kural açılmış ya da dosya silme bekliyor demektir: yedek `guards` aşamasında durur.
+Test taklidinde iki tablo Supabase kaynağındaki sütunlarla kurulur; gerçek PostgreSQL 17 testleri (`b8-bootstrap`) her
+birinde ayrı ayrı ve birlikte satır varken yedeğin `guards` aşamasında, tablo yokken `coverage` aşamasında durduğunu sınar.
+
 ## DURDURMA koşulları
 
 - `coverage`, `guards`, `rls`, `permissions`, `read_only` aşamalarından biri: kapsam ya da yetki incelenmeden tekrar
-  denenmez; muafiyet yoktur.
+  denenmez; muafiyet yoktur. `coverage` nedeni `envanterde olmayan tablo` ya da `envanterdeki tablo veritabanında yok`
+  ise yukarıdaki "Kapsam envanteri" adımları izlenir; liste elle "geçsin diye" düzenlenmez.
 - Ön kontrol `bağlantı kuralları` ya da `salt okunurluk` ile durdu: ortam değişkenleri (`PGSSLMODE=verify-full`,
   `PGSSLROOTCERT`, `PGHOST`, `PGPORT=5432`) düzeltilmeden tekrar denenmez. Kurala aykırı bağlantı denenmez.
 - `restore_test` başarısız: yedek doğrulanmamıştır, kullanılmaz.
@@ -110,6 +136,11 @@ ve yönetim verisi için dışa aktarma fonksiyonu yoktur. B7 kipi bu yüzden Pr
 (`guards: sayılamadı` / `meta`). B7'ye geçmeden önce: sayım fonksiyonunu genişleten ve `cron.job` ile migration geçmişi
 için dışa aktarma fonksiyonları ekleyen bir migration, `export-functions.json` ve rol betiğinin yeniden üretilmesi ve
 korumalı `tests/backup/a1-privilege.test.cjs`'in (fonksiyon sayısı) incelemeli bakımı. Ayrı onay ister.
+
+**Geçiş engeli (açık):** K6b/B7 kipi kapsam envanteri denetimini (`coverage_inventory`) uygulamaz; yalnız
+sınıflandırma denetimini yapar. Ayrıca B7'nin sayım fonksiyonu kova yaşam döngüsü tablolarını saymaz; Production'da
+var oldukları için K6b `guards: sayılamadı` ile durur. Envanter denetimi K6b yoluna eklenip test edilmeden ve sayım
+fonksiyonu genişletilmeden K6b/B7 etkinleştirilmez (zamanlanmış yedek ve [k6b-manual-dump.md](k6b-manual-dump.md) dahil).
 
 ## Bilinen sınırlar
 

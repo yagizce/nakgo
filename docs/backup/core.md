@@ -66,9 +66,16 @@ Aşamalar sırayla ve ayrı ayrı raporlanır. Biri bile "ok" değilse yedek **d
 - **Kapsam denetimi (`coverage`):** `scope.json → coverage_schemas` (`auth`, `storage`, `vault`) içindeki her tablo
   bir sınıfta olmalı (`tables`, `excluded.transient`, `known_loss`, `guard_stop_if_rows`, `managed`, `meta`). Değilse
   korumalardan ÖNCE durur; yalnız katalog okunur. Supabase yeni bir tablo eklediğinde sessiz kayıp olmaz.
+- **Envanter denetimi (`coverage`, yalnız bootstrap):** aynı şemalardaki gerçek tablo kümesi
+  `scope.json → coverage_inventory.tables` ile birebir aynı olmalı. Eksik tablo, fazla tablo (sınıflandırılmış olsa bile),
+  listede yinelenen ya da sınıflandırılmamış satır veya listenin yokluğu dökümü veri okunmadan durdurur. Liste,
+  Production'da salt okunur katalog sorgusuyla gözlenen kümedir (24.11.2026: 38 tablo; auth 27, storage 10, vault 1) ve
+  testteki Supabase taklidi (`tests/backup/prod-fixture.cjs → PROD_AUX_TABLES`) ile eşit olduğu testte denetlenir.
+  Güncelleme: [bootstrap-first-backup.md](runbooks/bootstrap-first-backup.md) → "Kapsam envanteri". **B7 (K6b) kipi bu
+  denetimi uygulamaz**; yalnız sınıflandırma denetimini yapar. Bu açık kapanmadan K6b/B7 etkinleştirilmez.
 - **Sayılamayan koruma tablosu:** listede olup veritabanında bulunan bir tablo sayım sonucunda yoksa döküm `guards`
   aşamasında durur. `auth.instances` (eski GoTrue tablosu, yapılandırma tutabilir) ve Storage'ın dosyaya bağlı yardımcı
-  tabloları (önekler, analitik/vektör kovaları) `guard_stop_if_rows_pending` listesindedir: bootstrap bunları doğrudan
+  tabloları (önekler, analitik/vektör kovaları, kova yaşam döngüsü tabloları) `guard_stop_if_rows_pending` listesindedir: bootstrap bunları doğrudan
   sayar; B7'nin sayım fonksiyonu henüz saymaz, bu yüzden B7 bu tablolar varsa durur (ayrı iş). Yarım kalmış çok parçalı
   yüklemeler geçici sınıftadır.
 

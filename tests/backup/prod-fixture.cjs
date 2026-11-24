@@ -23,6 +23,45 @@ const PROD_MIGRATION_NAMES=Object.freeze([
   ['20261115181526','20261115190000_listing_quota.sql'],['20261115181530','20261115200000_trusted_request_ip.sql'],
   ['20261115181551','20261115210000_document_storage_cleanup.sql'],['20261115181600','20261115220000_listing_contact_date.sql'],
   ['20261115182624','20261115190000_unban_hold.sql'],['20261115184145','20261115230000_close_legacy_features.sql']].map(Object.freeze));
+/** Production'daki Auth/Storage/Vault tablo envanteri ve RLS durumu (24.11.2026, salt okunur katalog sorgusu;
+ * yalnız tablo adı ve relrowsecurity alındı, sütunlar ve satırlar alınmadı). Taklit bu kümeyi kurar; kapsam envanteri
+ * (ops/backup/scope.json coverage_inventory) testte buna eşitlenir. Supabase tablo ekler ya da kaldırırsa bu liste ve
+ * kapsam envanteri birlikte, incelemeli PR ile güncellenir. */
+const PROD_AUX_TABLES=Object.freeze([
+  ['auth.audit_log_entries',true],['auth.custom_oauth_providers',false],['auth.flow_state',true],['auth.identities',true],
+  ['auth.instances',true],['auth.mfa_amr_claims',true],['auth.mfa_challenges',true],['auth.mfa_factors',true],
+  ['auth.mfa_recovery_code_sets',false],['auth.mfa_recovery_codes',false],['auth.oauth_authorizations',false],['auth.oauth_client_states',false],
+  ['auth.oauth_clients',false],['auth.oauth_consents',false],['auth.one_time_tokens',true],['auth.refresh_tokens',true],
+  ['auth.saml_providers',true],['auth.saml_relay_states',true],['auth.schema_migrations',true],['auth.scim_tokens',false],
+  ['auth.scim_users',false],['auth.sessions',true],['auth.sso_domains',true],['auth.sso_providers',true],
+  ['auth.users',true],['auth.webauthn_challenges',false],['auth.webauthn_credentials',false],['storage.bucket_lifecycle_states',true],
+  ['storage.buckets',true],['storage.buckets_analytics',true],['storage.buckets_vectors',true],['storage.lifecycle_abandoned_artifacts',true],
+  ['storage.migrations',true],['storage.objects',true],['storage.s3_multipart_uploads',true],['storage.s3_multipart_uploads_parts',true],
+  ['storage.vector_indexes',true],['vault.secrets',false]].map(Object.freeze));
+/** Kova yaşam döngüsü tabloları: sütunlar Supabase Storage kaynağındaki tanımdan (supabase/storage
+ * migrations/tenant/0076-noncurrent-lifecycle.sql ve 0079-lifecycle-writer-coordination.sql; CHECK kısıtları ve
+ * dizinler alınmadı). Production'dan sütun okunmadı. */
+const LIFECYCLE_DDL=Object.freeze({
+  'storage.bucket_lifecycle_states':`create table storage.bucket_lifecycle_states(bucket_id text primary key references storage.buckets(id) on delete cascade,
+    generation uuid,next_run_at timestamptz,claim_id uuid,claim_until timestamptz,continuation jsonb,last_started_at timestamptz,
+    last_completed_at timestamptz,last_success_at timestamptz,last_result jsonb,failure_count integer not null default 0,last_error jsonb,
+    updated_at timestamptz not null default now())`,
+  'storage.lifecycle_abandoned_artifacts':`create table storage.lifecycle_abandoned_artifacts(bucket_id text not null,key text not null,name text not null,
+    version text,attempted_at timestamptz not null default now(),primary key(bucket_id,key))`});
+/** Taklitte eksik kalan envanter tablolarını kurar (yalnız var olmayanlar; sütun içeriği taklit edilmez: kapsam dışı
+ * tablolar yalnız var olup olmadıkları ve satır sayılarıyla denetlenir; yaşam döngüsü tabloları LIFECYCLE_DDL ile).
+ * Auth tabloları supabase_auth_admin'e ait. */
+async function ensureProdInventory(db){
+  for(const [t,rls] of PROD_AUX_TABLES){
+    const [ns,rel]=t.split('.');
+    const exists=(await db.query(`select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname=$1 and c.relname=$2`,[ns,rel])).rows.length;
+    if(exists)continue;
+    await db.exec(LIFECYCLE_DDL[t]||`create table ${ns}.${rel}(id bigint)`);
+    if(ns==='auth')await db.exec(`alter table ${ns}.${rel} owner to supabase_auth_admin`);
+    if(rls)await db.exec(`alter table ${ns}.${rel} enable row level security`);
+  }
+}
+
 /** Supabase taklidi (Production'da gözlenen tablolar; içerik yok). */
 const SUPABASE_EMULATION=`
 alter table auth.users add column if not exists confirmation_token text, add column if not exists recovery_token text,
@@ -79,6 +118,7 @@ async function prodShaped({rich=true}={}){
     await build(db,{list});
     await db.exec(SUPABASE_EMULATION);
     const ids=await seed(db,{users:7,listingsPerUser:2});
+    await ensureProdInventory(db);
     const admin=ids[0],suspended=ids[5];
     await db.query(`insert into private.admin_members(user_id,active) values($1,true)`,[admin]);
     await db.query(`update auth.users set confirmation_token='TOK-CONF-'||id,recovery_token='TOK-RECOV-'||id,encrypted_password='$2a$10$hashonly'`);
@@ -106,4 +146,4 @@ async function prodShaped({rich=true}={}){
   }catch(e){await finish(db,e);throw e;}
 }
 
-module.exports={PROD_APPLIED,PROD_MIGRATION_NAMES,SUPABASE_EMULATION,PG_CRON_API,PROD_JOBS,bootRoleSql,prodShaped};
+module.exports={PROD_APPLIED,PROD_MIGRATION_NAMES,PROD_AUX_TABLES,LIFECYCLE_DDL,ensureProdInventory,SUPABASE_EMULATION,PG_CRON_API,PROD_JOBS,bootRoleSql,prodShaped};

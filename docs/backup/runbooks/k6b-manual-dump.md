@@ -11,6 +11,10 @@
 Otomatik yedek uzun süre (ör. 24 saati aşan) alınamıyor ve beklemek kabul edilemez bir veri kaybı riski yaratıyorsa.
 
 ## Koşullar
+0. **Geçiş engeli (açık, 24.11.2026):** K6b kipi Production tablo envanteri denetimini (`scope.json →
+   coverage_inventory`) uygulamıyor ve B7 sayım fonksiyonu kova yaşam döngüsü tablolarını saymıyor. Bu iki iş
+   tamamlanıp test edilmeden bu runbook kullanılmaz ([bootstrap-first-backup.md](bootstrap-first-backup.md) →
+   "B7'ye geçmeden önce ayrı iş").
 1. Yazılı onay: neden, kapsam, süre, kim yapacak.
 2. Kimlik bilgisi: yalnız `nakgo_backup` rolü; parola tek kullanımlık olarak yenilenir ve iş bitince tekrar yenilenir.
    Parola sohbete, dosyaya ya da kabuk geçmişine yazılmaz (ortam değişkeni, `HISTCONTROL=ignorespace`).

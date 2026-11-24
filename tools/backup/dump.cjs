@@ -31,7 +31,7 @@
 const fs=require('node:fs'),path=require('node:path'),{spawn}=require('node:child_process');
 const {SNAPSHOT_SQL}=require('../db-lib.cjs');
 const {sha256}=require('./crypto.cjs');
-const {scopeDDL,exportScope,exportMeta,EXPORT_SETTINGS,directFrom,unclassifiedTables,guardList,guardKey,directGuardCounts,relExists}=require('./scope-export.cjs');
+const {scopeDDL,exportScope,exportMeta,EXPORT_SETTINGS,directFrom,unclassifiedTables,inventoryProblems,guardList,guardKey,directGuardCounts,relExists}=require('./scope-export.cjs');
 
 const isLocalHost=h=>typeof h==='string'&&(h.startsWith('/')||['localhost','127.0.0.1','::1'].includes(h));
 
@@ -266,6 +266,8 @@ async function snapshotDump({conn,scope,outDir,pgBin,allowLocal=false,delayBefor
     // Kapsam denetimi (yalnız katalog): sınıflandırılmamış Auth/Storage/Vault tablosu varsa hiçbir veri okunmaz.
     const cov=await unclassifiedTables(c,scope);
     if(cov.unclassified.length)return {status:'failed',stage:'coverage',reasons:cov.unclassified.map(t=>'sınıflandırılmamış tablo: '+t+' (ops/backup/scope.json)')};
+    // Bootstrap: gerçek tablo kümesi Production'da gözlenen envanterle birebir (eksik ya da fazla tablo → dur).
+    if(direct){const inv=inventoryProblems(scope,cov.present);if(inv.length)return {status:'failed',stage:'coverage',reasons:inv};}
     // Kapsam ve korumalar
     const included=[],missing=[];
     for(const t of scope.tables){
