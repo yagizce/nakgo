@@ -47,6 +47,16 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
           /usr/lib/postgresql/17/bin/pg_dump --version
+      - name: Install PostgreSQL 17 server tree (disposable clusters)
+        # tools/backup/pg-cluster.cjs, NAKGO_PG_SERVER altında bin/, lib/ ve share/ içeren taşınabilir bir kurulum ister
+        # (pg_cron taklidini kopyanın share/ klasörüne yazar); Debian paketinde share/ ayrı yerde olduğu için uygun değil.
+        # Testler bu kurulumla yalnız Unix soketli, geçici kümeler açar; servis veritabanına dokunmaz.
+        run: |
+          npm install --prefix "$RUNNER_TEMP/nakgo-pg-server" --no-save --package-lock=false --ignore-scripts @embedded-postgres/linux-x64@17.11.0-beta.19
+          PKG="$RUNNER_TEMP/nakgo-pg-server/node_modules/@embedded-postgres/linux-x64"
+          node -e 'const fs=require("fs"),p=require("path"),d=process.argv[1];for(const l of JSON.parse(fs.readFileSync(p.join(d,"native/pg-symlinks.json"),"utf8"))){const t=p.join(d,l.target);fs.rmSync(t,{force:true});fs.symlinkSync(p.relative(p.dirname(t),p.join(d,l.source)),t);}' "$PKG"
+          "$PKG/native/bin/postgres" --version | grep -E '^postgres \(PostgreSQL\) 17\.'
+          "$PKG/native/bin/initdb" --version
       - name: PGlite (PostgreSQL 17, in-process)
         env:
           NODE_PATH: ${{ runner.temp }}/nakgo-admin-db/node_modules
@@ -59,6 +69,7 @@ jobs:
           NAKGO_PG_PORT: '5432'
           NAKGO_PG_PASSWORD: ci-only-local
           NAKGO_PG_BIN: /usr/lib/postgresql/17/bin
+          NAKGO_PG_SERVER: ${{ runner.temp }}/nakgo-pg-server/node_modules/@embedded-postgres/linux-x64/native
           NAKGO_REQUIRE_DUMP: '1'
           NAKGO_REQUIRE_AGE: '1'
         run: npm run -s test:db
