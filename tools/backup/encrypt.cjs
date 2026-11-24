@@ -34,17 +34,20 @@ function parseHeader(buf){
 async function ageVersion(ageBin='age'){const r=await run(ageBin,['--version']);return r.code===0?r.out.trim().replace(/^v/,''):null;}
 
 async function packBundle(dir,out){
-  const files=['source.json','bootstrap.sql','A.dump','B.pre.sql','B.post.sql',
-    ...(fs.existsSync(path.join(dir,'B'))?fs.readdirSync(path.join(dir,'B')).filter(f=>f.endsWith('.jsonl')).sort().map(f=>'B/'+f):[])]
+  const files=['source.json','bootstrap.sql','A.dump','B.pre.sql','B.post.sql','X.pre.sql',
+    ...(fs.existsSync(path.join(dir,'B'))?fs.readdirSync(path.join(dir,'B')).filter(f=>f.endsWith('.jsonl')).sort().map(f=>'B/'+f):[]),
+    ...(fs.existsSync(path.join(dir,'meta'))?fs.readdirSync(path.join(dir,'meta')).filter(f=>f.endsWith('.jsonl')).sort().map(f=>'meta/'+f):[])]
     .filter(f=>fs.existsSync(path.join(dir,f)));
   const r=await run('tar',['-cf',out,'-C',dir,...files]);
   if(r.code!==0)throw Error('tar: '+r.err);
   return files;
 }
 
-async function encryptFile({input,output,recipientsFile,pinnedRecipientsSha256,ageBin='age'}){
+async function encryptFile({input,output,recipientsFile,pinnedRecipientsSha256,ageBin='age',requiredRecipients=null}){
   let recips;
   try{recips=recipientsOf(recipientsFile);}catch(e){return {status:'failed',code:'recipients_invalid',reason:e.message};}
+  // Elle yedek (bootstrap): tam olarak A ve B (iki alıcı). B7'de verilmez (davranış aynı).
+  if(requiredRecipients!==null&&recips.length!==requiredRecipients)return {status:'failed',code:'recipients_count',reason:`alıcı sayısı ${requiredRecipients} olmalı`};
   const got=sha256(recips.join('\n'));
   if(!pinnedRecipientsSha256||got!==pinnedRecipientsSha256)return {status:'failed',code:'recipients_mismatch',reason:'alıcı listesi sabitlenmiş değerle uyuşmuyor',recipients_sha256:got};
   const ver=await ageVersion(ageBin);
@@ -54,7 +57,7 @@ async function encryptFile({input,output,recipientsFile,pinnedRecipientsSha256,a
   const ct=fs.readFileSync(output);
   const h=parseHeader(ct);
   if(!h.ok)return {status:'failed',code:'header',reason:h.reason};
-  if(h.stanzas.length!==recips.length||h.stanzas.some(s=>s!=='X25519'))return {status:'failed',code:'header',reason:'başlık bölümleri beklenen alıcılarla uyuşmuyor: '+h.stanzas.join(',')};
+  if(h.stanzas.length!==recips.length||(requiredRecipients!==null&&h.stanzas.length!==requiredRecipients)||h.stanzas.some(s=>s!=='X25519'))return {status:'failed',code:'header',reason:'başlık bölümleri beklenen alıcılarla uyuşmuyor: '+h.stanzas.join(',')};
   return {status:'ok',ciphertext_sha256:sha256(ct),size:ct.length,recipients_count:recips.length,recipients_sha256:got,age_version:ver};
 }
 

@@ -73,8 +73,20 @@ module.exports = function register({ run, test, boot, html, ROOT, fs, path }) {
     for (const a of list) out.push([a === "./" || has(a), "sw.js önbellek: " + a]);
     out.push([!/YükYol/.test(html), "index.html'de eski ad yok"]);
     out.push([/"appId": "com\.nakgo\.app"/.test(read("capacitor.config.json")), "mobil belge Capacitor ayarını içerir"]);
-    const tmp = fs.mkdtempSync(path.join(require("os").tmpdir(), "nakgo-www-")); require("child_process").execFileSync(process.execPath, [path.join(ROOT, "tools/dev.js"), "www"], { env: { ...process.env, NAKGO_WWW: tmp }, stdio: "ignore" });
-    for (const f of ["index.html", "manifest.webmanifest", "icons/icon-512.png"]) out.push([fs.existsSync(path.join(tmp, f)), "mobil hazırlık komutu: " + f]);
+    // Testin kendi geçici klasörü: başarıda ve hatada silinir; silme hatası yutulmaz (asıl hatayla birlikte bildirilir).
+    const tmpRoot = require("os").tmpdir(), tmp = fs.mkdtempSync(path.join(tmpRoot, "nakgo-www-"));
+    let wwwErr = null;
+    try {
+      require("child_process").execFileSync(process.execPath, [path.join(ROOT, "tools/dev.js"), "www"], { env: { ...process.env, NAKGO_WWW: tmp }, stdio: "ignore" });
+      for (const f of ["index.html", "manifest.webmanifest", "icons/icon-512.png"]) out.push([fs.existsSync(path.join(tmp, f)), "mobil hazırlık komutu: " + f]);
+    } catch (e) { wwwErr = e; }
+    try {
+      if (path.dirname(tmp) !== tmpRoot || !path.basename(tmp).startsWith("nakgo-www-")) throw new Error("beklenmeyen geçici klasör: " + tmp);
+      fs.rmSync(tmp, { recursive: true, force: true });
+      if (fs.existsSync(tmp)) throw new Error("geçici klasör silinemedi: " + tmp);
+    } catch (e) { throw wwwErr ? new AggregateError([wwwErr, e], "mobil hazırlık testi ve geçici klasör temizliği başarısız") : e; }
+    if (wwwErr) throw wwwErr;
+    out.push([!fs.existsSync(tmp), "mobil hazırlık geçici klasörü silindi"]);
     const ig = read(".vercelignore"); for (const d of ["tests", "export"]) out.push([new RegExp("^" + d + "$", "m").test(ig), ".vercelignore " + d + " klasörünü dışarıda bırakır"]);
     const pj = JSON.parse(read("package.json")); out.push([!pj.scripts.build && !pj.scripts.vercel, "package.json'da Vercel'in çalıştıracağı 'build' komutu yok"]);
     const {js:jsF,css:cssF} = require("../../tools/project.js");

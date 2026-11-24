@@ -26,6 +26,11 @@ Canlı yedek (`backup.yml`) bu maddeler kapanmadan **etkinleştirilmez**. O zama
 | G13 | **S2b** gerçek yedekten kurtarma ve Auth girişi | Gerçek yedek ve yalıtılmış proje | — | Auth kurtarması "başarılı" sayılmaz | Yalıtılmış geçici proje, gerçek yedek |
 | G14 | Bağlantı: `verify-full` ile Supabase havuzlayıcısı ve kök sertifika | Gerçek sertifika zinciri | Kural denetimi (`validateConn`) | — | Geçici Supabase projesi |
 | G15 | İzleme Worker'ının gerçek R2 ve GitHub API'siyle çalışması | Gerçek servisler | Taklitlerle `a4-monitor` testleri | Yedek kaçarsa uyarı gelmeyebilir | Cloudflare Worker (son aşama) |
+| G16 | İlk yedekte (bootstrap) bağlanan rolün (`postgres`) Supabase'deki gerçek yetkileri: `auth`/`storage`/`vault`/`cron`/`supabase_migrations` okuma, `public`/`private` dizileri, BYPASSRLS ya da RLS'in etkin olmaması | Supabase rol modeli yerelde yok | Taklit: Auth tabloları `supabase_auth_admin`'e ait ve RLS'li, rol süper kullanıcı değil (`b8-bootstrap`) | Bootstrap ön koşulu karşılanmadan çalıştırılmaz; araç eksik yetkide `permissions`/`rls` aşamasında durur | Production'da salt okunur katalog sorgusu (ayrı onay) |
+| G17 | `cron.job` RLS politikası: `postgres` BYPASSRLS değilse yalnız kendi işlerini görür | pg_cron'un Supabase kurulumu | Taklit politika ve `rls` durdurması | İşler eksik okunacaksa döküm durur (sessiz eksik yok) | G16 ile aynı sorgu |
+| G18 | Production'daki `auth`, `storage`, `vault` tablo listesi `scope.json` sınıflarıyla örtüşüyor | Supabase sürümüne bağlı | 24.11.2026 salt okunur katalog sorgusu: 38 tablo (auth 27, storage 10, vault 1); 2'si (`storage.bucket_lifecycle_states`, `storage.lifecycle_abandoned_artifacts`) sınıflandırılmamıştı → `guard_stop_if_rows_pending`. Liste `coverage_inventory` olarak sabitlendi; taklit (`PROD_AUX_TABLES`) aynı 38 tabloyu kurar; `coverage`/`guards` durdurmaları gerçek PG17'de sınandı | Bilinmeyen ya da eksik tablo varsa bootstrap durur; önce `scope.json` + taklit PR'ı. K6b/B7 envanteri denetlemez (geçiş engeli) | Yeni Supabase sürümünde aynı sorgu (ayrı onay) |
+| G19 | Bootstrap'ın Supavisor + `verify-full` ile gerçek bağlantısı ve operatör makinesinde PostgreSQL 17 istemcisi | Gerçek sertifika zinciri ve makine | Kural denetimi (`validateConn`), yerel PG17 | — | İlk yedek (ayrı onay) |
+| G20 | Kurtarma SQL'inin (`restore-meta.cjs`) gerçek Supabase hedefinde çalışması: migration geçmişi, `cron.schedule`, `auth.sessions` tetikleyicisi | Hedefte pg_cron ve Supabase'in Auth tabloları gerekir | SQL geri yüklenmiş kopyada pg_cron API taklidiyle çalıştırıldı: işler (etkinlik dahil), geçmiş ve tetikleyici geri geldi; ikinci çalıştırma aynı sonuç; pg_cron yokken hiçbir şey yazılmadı | Zamanlanmış işler ve giriş günlüğü tetikleyicisi kurtarmada elle kurulur | S2a/S2b (yalıtılmış proje) |
 
 ## Bu çalışmada yerelde eklenenler (simülasyon, gerçek kanıt değil)
 
@@ -41,6 +46,35 @@ Canlı yedek (`backup.yml`) bu maddeler kapanmadan **etkinleştirilmez**. O zama
   seçiminde daha yeni bir manifestte bütünlük sorunu varsa durur.
 - Kurtarma tatbikatı testi: yedek → indir ve doğrula → age ile çöz → yalıtılmış PostgreSQL'e geri yükle → bütün S1
   denetimleri.
+
+## B8'de yerelde eklenenler (simülasyon, gerçek kanıt değil)
+
+- Bootstrap kipi, her bağlantıda salt okunur oturum, kapsam denetimi, yönetim verisi ve dış tetikleyiciler; yerel
+  PostgreSQL 17.11 ve `pg_dump` 17 ile uçtan uca: yedek → (K9 akışı, aşağıda) imzalı manifest → indirme ve doğrulama → çözme → boş
+  veritabanına geri yükleme → bekleyen migration'ların sırayla provası (şema 0 fark, sözleşme, fixture'lar).
+- Taklit Supabase sahiplik modelinde bulunan ve düzeltilen iki hata: (1) şema parmak izi Auth tablolarının sahibinin
+  (`supabase_auth_admin`) örtük yetkilerini içeriyordu; geri yüklenen kopyada sahip değiştiği için S1 her zaman düşerdi.
+  (2) Kapsam dışı Auth tablosundaki tetikleyicimiz (`auth.sessions → nakgo_access_log`) yedekte ve kurtarmada yoktu.
+
+## K9 elle yedek akışında yerelde eklenenler (simülasyon, gerçek kanıt değil)
+
+- `run` → `offline-sign` → `finalize` üç aşaması ve `dr-fetch` elle yedek yolu, yerel PG17 ve test anahtarlarıyla uçtan
+  uca (`tests/backup/b9-offline-e2e.test.cjs`): A ile ve ayrıca B ile L2 (çözme, ağsız atılabilir kümede süper kullanıcı
+  OLMAYAN rolle geri yükleme, R1–R6, O5, T8), K9 imzaları, finalize, zincirin geri okunması; sinyal ve red yolları.
+  Ağ denetimi testte enjeksiyonla geçilir (sanal makinede ağ arayüzü var); gerçek imza makinesinde fiziksel ayrım gerekir.
+- Açık: gerçek anahtar töreni (K9, çapa, kâğıt), gerçek imza makinesinin araç paketi özeti, gerçek Production yedeğinin
+  L2'si (süper kullanıcı olmayan rolün gerçek Production paketini geri yükleyebildiğinin gösterilmesi; süper kullanıcı
+  yolu kaldırıldı) (ayrı onaylar).
+- Production'daki `schema_migrations` değerleri (23.11.2026, salt okunur sorgu; iş akışı değil, bu yüzden kapanmadı):
+  32 sürümün 32'si repodaki dosya sürümleriyle aynı (takma ad gerekmez). Ad alanı varsayıldığı gibi DEĞİL: 17 satır
+  yalın ad, 15 satır `<14 hane>_<ad>.sql`; bunların 8'inde addaki zaman damgası sürümden farklı. Eski eşleştirici bu
+  geçmişi reddederdi (offline-sign `migration_history`'de dururdu). Eşleştirici artık yalnız bu iki biçimi normalize
+  eder (anahtar sürüm; başka dosyayı gösteren damga belirsiz → ret; bozuk biçim → ret). Damga farkı yalnız
+  `ops/backup/migration-aliases.json → timestamp_exceptions` sabit izin listesindeki 8 satırla (sürüm + slug +
+  Production adı birebir) kabul edilir; imzalı kayda (sürüm 2) kabul edilen her istisnanın tam kimliği ve izin
+  listesinin kanonik hash'i yazılır. Yeni fark, değişmiş ya da eksik istisna run ve offline-sign'da (geçmişten), finalize'da
+  (imzalı kimlikler ↔ main'deki liste, birebir küme + hash) reddedilir. Ölçülen 32 satır testte sabit veridir (`tests/backup/prod-fixture.cjs`).
+  Açık: gerçek yedek paketindeki geçmişin aynı sonucu verdiği ilk gerçek çalıştırmada görülür.
 
 ## Kapanış kuralı
 

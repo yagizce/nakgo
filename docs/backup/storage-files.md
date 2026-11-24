@@ -1,7 +1,9 @@
 # Storage dosyalarının yedeği: tasarım (B7-A5)
 
 **Durum: yalnız tasarım.** Kod, anahtar ve kova yoktur. Bugün `storage.objects` boştur ve boş değilse veritabanı yedeği
-durur (`guard_exact_zero`). Uygulama dosya saklamaya başlamadan önce bu tasarım uygulanmalı ve B7-B'deki gibi
+durur (`guard_exact_zero`). Storage'ın dosyaya bağlı yardımcı tablolarında (önekler, analitik/vektör kovaları, kova
+yaşam döngüsü durumu ve silme bekleyen dosya kuyruğu) satır görünürse de yedek durur; `storage` şemasında sınıflandırılmamış yeni bir tablo görülürse kapsam denetimi durdurur.
+Böylece dosya oluşmaya başladığında sessiz veri kaybı olmaz: yedek durur ve alarm üretir. Uygulama dosya saklamaya başlamadan önce bu tasarım uygulanmalı ve B7-B'deki gibi
 doğrulanmalıdır. Uygulama ayrı onay ister.
 
 ## Neden ayrı

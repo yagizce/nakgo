@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "description": "Production schema_migrations sürümü repodaki dosya adından farklıysa (apply_migration kendi zaman damgasını yazar) açık eşleme. Yalnız PR incelemesiyle eklenir; ada göre tahmin yapılmaz. Bugün boş: Production'daki 32 sürümün 32'si repo dosya sürümleriyle aynı (23.11.2026 salt okunur ölçüm). Ad alanındaki biçim farkı (yalın ad ya da <14 hane>_<ad>.sql) takma adla değil eşleştiricinin normalizasyonuyla karşılanır; takma ad yalnız SÜRÜM farkı içindir.",
+  "aliases": [],
+  "timestamp_exceptions_description": "Adındaki zaman damgası sürümden farklı, bilinen ve incelenmiş Production satırları (23.11.2026 salt okunur ölçüm). Sürüm, repodaki slug ve Production adı birlikte birebir eşleşmelidir; listede olmayan yeni fark reddedilir. Yalnız PR incelemesiyle değişir.",
+  "timestamp_exceptions": [
+    {"version": "20261115075953", "slug": "admin_live", "production_name": "20261115010000_admin_live.sql"},
+    {"version": "20261115181517", "slug": "redaction_free_text", "production_name": "20261115180000_redaction_free_text.sql"},
+    {"version": "20261115181526", "slug": "listing_quota", "production_name": "20261115190000_listing_quota.sql"},
+    {"version": "20261115181530", "slug": "trusted_request_ip", "production_name": "20261115200000_trusted_request_ip.sql"},
+    {"version": "20261115181551", "slug": "document_storage_cleanup", "production_name": "20261115210000_document_storage_cleanup.sql"},
+    {"version": "20261115181600", "slug": "listing_contact_date", "production_name": "20261115220000_listing_contact_date.sql"},
+    {"version": "20261115182624", "slug": "unban_hold", "production_name": "20261115190000_unban_hold.sql"},
+    {"version": "20261115184145", "slug": "close_legacy_features", "production_name": "20261115230000_close_legacy_features.sql"}
+  ]
+}

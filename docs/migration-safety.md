@@ -43,6 +43,7 @@ Her migration PR'ında sınıfı yazılır:
 1. Yerel PostgreSQL'de ve PGlite'ta `npm run test:db` geçer.
 2. Şema değiştiyse `node tools/schema-check.cjs --update`. Oluşan fark PR'da satır satır incelenir.
 3. Sözleşme değişikliği yalnız ekleyiciyse `supabase/contract/v0.json` ve `docs/api/contract-v0.md` güncellenir. Değilse v1 planlanır.
-4. Riskli veya yıkıcı migration'da son yedeğin yalıtılmış kopyasında prova yapılır (B7 sonrası); süre ve kilitler rapora yazılır.
+4. Riskli veya yıkıcı migration'da son yedeğin yalıtılmış kopyasında prova yapılır; süre ve kilitler rapora yazılır
+   (araç ve ölçütler: [backup/runbooks/migration-rehearsal.md](backup/runbooks/migration-rehearsal.md)).
 5. Migration başında `set lock_timeout = '5s'` ve uygun bir `statement_timeout` bulunur.
 6. Production'a uygulama her zaman ayrı onayla yapılır.

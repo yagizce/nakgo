@@ -24,6 +24,20 @@ Aşamalar sırayla ve ayrı ayrı raporlanır. Biri bile "ok" değilse yedek **d
 - S1, iki döküm bitene kadar açık kalır (`idle_in_transaction_session_timeout` rolde 20 dk), sonra geri alınır. Açık kaldığı süre `s1_open_ms` olarak manifestoya yazılır.
 - **Kanıt:** Geri yüklenen kopyadaki sayılar S1 ile birebir eşit olmalı. Test, döküm sürerken sürekli satır ekleyen bir yazıcıyla bunu gösterir: canlı sayı büyür, döküm S1'le aynı kalır. `--snapshot` kaldırılınca (kasıtlı bozma) doğrulama düşer.
 
+## Kipler ve salt okunurluk
+
+- **functions** (B7): yedek rolü, Auth/Storage/meta satırları yalnız dışa aktarma fonksiyonlarından.
+- **Elle yedek imzası (bootstrap, K6b):** çevrim içi makine imzalamaz; manifest gövdesi ve izin listeli kayıt çevrim
+  dışı K9 ile, imza makinesinin kendi L2 doğrulamasından sonra imzalanır ([runbooks/offline-signing.md](runbooks/offline-signing.md)).
+- **bootstrap** (ilk yedek, [runbooks/bootstrap-first-backup.md](runbooks/bootstrap-first-backup.md)): yedek rolü ve
+  fonksiyonlar yokken, fonksiyonların sahibi olacak rolle aynı sorgular doğrudan (`scope-export.cjs → DIRECT_SQL`; test,
+  sorguların fonksiyon gövdeleriyle birebir aynı olduğunu ve aynı veritabanında iki kipin aynı satırları verdiğini
+  denetler). Ek ön denetim: okunacak her tablo ve dizi okunabilir, RLS bu rol için etkin değil (`rls` aşaması).
+- **Her bağlantı salt okunur:** başlangıç parametresine (`options`/`PGOPTIONS`) dayanılmaz; havuzlayıcı onu iletmeyebilir.
+  S1 bağlantısında ilk iş `SET default_transaction_read_only = on` ve değerin `on` olduğunun doğrulanmasıdır; S1 ayrıca
+  `READ ONLY` işlemdir; ikisi de "on" değilse `read_only` aşamasında durur. `pg_dump` kendi işlemini
+  `REPEATABLE READ, READ ONLY` açar; ortamdan devralınan `PGOPTIONS` silinir. Sonuç `source.json → read_only`'ye yazılır.
+
 ## Bağlantı kuralları (muaf tutulamaz)
 
 - **Uzak sunucu:**
@@ -48,6 +62,35 @@ Aşamalar sırayla ve ayrı ayrı raporlanır. Biri bile "ok" değilse yedek **d
   aşamasında durur. Bu, PUBLIC `lo_create` yan yolunun tek kalıcı izini de yakalar ([side-channels.md](side-channels.md)).
 - **Oturum/belirteç tabloları:** rol bunları okuyamaz (42501) ve onlar için dışa aktarma fonksiyonu yoktur. Test, şifreli
   paketteki B dosyalarında oturum kimliği ve yenileme belirteci değerlerinin bulunmadığını doğrular.
+
+- **Kapsam denetimi (`coverage`):** `scope.json → coverage_schemas` (`auth`, `storage`, `vault`) içindeki her tablo
+  bir sınıfta olmalı (`tables`, `excluded.transient`, `known_loss`, `guard_stop_if_rows`, `managed`, `meta`). Değilse
+  korumalardan ÖNCE durur; yalnız katalog okunur. Supabase yeni bir tablo eklediğinde sessiz kayıp olmaz.
+- **Envanter denetimi (`coverage`, yalnız bootstrap):** aynı şemalardaki gerçek tablo kümesi
+  `scope.json → coverage_inventory.tables` ile birebir aynı olmalı. Eksik tablo, fazla tablo (sınıflandırılmış olsa bile),
+  listede yinelenen ya da sınıflandırılmamış satır veya listenin yokluğu dökümü veri okunmadan durdurur. Liste,
+  Production'da salt okunur katalog sorgusuyla gözlenen kümedir (24.11.2026: 38 tablo; auth 27, storage 10, vault 1) ve
+  testteki Supabase taklidi (`tests/backup/prod-fixture.cjs → PROD_AUX_TABLES`) ile eşit olduğu testte denetlenir.
+  Güncelleme: [bootstrap-first-backup.md](runbooks/bootstrap-first-backup.md) → "Kapsam envanteri". **B7 (K6b) kipi bu
+  denetimi uygulamaz**; yalnız sınıflandırma denetimini yapar. Bu açık kapanmadan K6b/B7 etkinleştirilmez.
+- **Sayılamayan koruma tablosu:** listede olup veritabanında bulunan bir tablo sayım sonucunda yoksa döküm `guards`
+  aşamasında durur. `auth.instances` (eski GoTrue tablosu, yapılandırma tutabilir) ve Storage'ın dosyaya bağlı yardımcı
+  tabloları (önekler, analitik/vektör kovaları, kova yaşam döngüsü tabloları) `guard_stop_if_rows_pending` listesindedir: bootstrap bunları doğrudan
+  sayar; B7'nin sayım fonksiyonu henüz saymaz, bu yüzden B7 bu tablolar varsa durur (ayrı iş). Yarım kalmış çok parçalı
+  yüklemeler geçici sınıftadır.
+
+## Yönetim verisi (`scope.json → meta`)
+
+- `cron.job` (ad, zaman, komut, veritabanı, kullanıcı, etkinlik) ve `supabase_migrations.schema_migrations` (yalnız
+  sürüm ve ad; SQL metni repodadır) S1 içinde `meta/<ad>.jsonl` olarak alınır; tablo yoksa `present: false`. Yalnız
+  bootstrap kipinde: B7'de dışa aktarma fonksiyonu yoktur, tablo varsa döküm `meta` aşamasında durur (ayrı iş).
+- Düz PostgreSQL doğrulamasında tablo olarak geri yüklenmez: dosya hash'i ve satır sayısı denetlenir (`meta` kontrolü).
+  Repo ile tutarlılık (`restore-meta.cjs`) doğrulamayı düşürmez, **not** olarak kaydedilir; kurtarmada durdurma koşuludur.
+- Kapsam dışı Auth/Storage tablolarındaki kendi tetikleyicilerimiz (ör. `auth.sessions → nakgo_access_log`)
+  `source.json → external_triggers`'a, o tabloların yapısı (veri yok) `X.pre.sql`'e yazılır. Hedefte kurtarma SQL'i
+  tetikleyicileri kurar; prova yerel kopyada aynısını yapar.
+- Kaynak repodan gerideyse (migration geçmişinde bekleyen var) API sözleşmesi S1'de değil provada denetlenir; S1 bunu not
+  olarak yazar.
 
 ## B: Auth/Storage kapsamı (`tools/backup/scope-export.cjs`)
 
@@ -78,7 +121,8 @@ Yalnız yerel ve geçici bir veritabanına (db-lib). Production'a ya da herhangi
   `to_jsonb` çıktısı, dosyadaki satırlarla çoklu küme olarak birebir aynı (tür dönüşümünde kayıp yakalanır; `json` türü
   sütunlar dışa aktarmada zaten `jsonb` biçimine normalleşir ve bu fark görünmez);
 - her yabancı anahtar için yetim satır = 0 (NOT VALID olanlar dahil);
-- rolden bağımsız şema parmak izi = S1;
+- rolden bağımsız şema parmak izi = S1 (nesne sahibinin kendi örtük yetkileri hariç: geri yükleme `--no-owner`'dır ve
+  Supabase'te Auth tablolarının sahibi `supabase_auth_admin`'dir);
 - Auth sürümü = S1;
 - API sözleşmesi v0;
 - isteğe bağlı kancalar (A3).
