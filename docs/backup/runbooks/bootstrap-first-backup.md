@@ -166,10 +166,35 @@ kaldırılmalıdır.
  read -s PGPASSWORD; export PGPASSWORD
 export NAKGO_PG_HOST=localhost NAKGO_PG_PORT=<yerel port> NAKGO_PG_BIN=<PostgreSQL 17 bin>
 export NODE_PATH="$PWD/ops/backup/ci/node_modules"   # npm ci --prefix ops/backup/ci --ignore-scripts ile kuruldu
+# G19 (ayrı onay): döküm almadan önce aynı ortamla bağlantı denetimi. Tablo okumaz, yazmaz; yalnız evet/hayır raporlar.
+node tools/backup/g19-check.cjs        # çıkış 0 değilse durulur; run çalıştırılmaz
 node tools/backup/bootstrap.cjs run --out <boş klasör> --recipients ops/backup/recipients.txt \
   --recipients-sha256 <config.json'daki değer> --approval "<onay kaydı kimliği>"
 unset PGPASSWORD
 ```
+
+**G19 denetimi** (`tools/backup/g19-check.cjs`, test: `tests/backup/b9-g19-check.test.cjs`). `PGUSER`
+`nakgo_bootstrap_reader.<proje-ref>` olmalı; `NAKGO_PG_PASSWORD` yerel geri yükleme sunucusunun parolasıdır.
+Kontroller ve başarısızlıkta yapılacak:
+
+| Kod | Kanıtladığı | Düşerse |
+|---|---|---|
+| `rules` | 5432, `verify-full`, kök sertifika dosyası, `*.pooler.supabase.com`, kullanıcı bootstrap rolü | Ortamı düzelt; bağlantı kurulmadı. |
+| `tls_wrong_ca` | Başka bir kökle (`ops/backup/g19-wrong-ca.pem`, yalnız açık sertifika) bağlantı TLS'de reddedilir | Dur: doğrulama etkisiz. `sslmode` asla gevşetilmez. |
+| `tls_hostname` | Sunucu adı yerine IP ile bağlantı sertifika adı uyuşmazlığıyla reddedilir | Dur: sunucu adı doğrulanmıyor. |
+| `connect` | Doğru kök sertifikayla node-pg bağlanır | Kök sertifika yanlış ya da zincir farklı: dur, sertifikayı panelden yeniden indir; kod değişikliği gerekebilir. |
+| `role` | Rol beklenen; süper kullanıcı değil; yalnız `pg_read_all_data`; BYPASSRLS; yazma ve şemada CREATE yok; rol düzeyinde salt okunur; süre ≤ 14 gün | Dur: rolü kaldırıp betikle yeniden oluştur. |
+| `read_only` | Aracın oturumu salt okunur yapabilmesi | Dur. |
+| `session_mode` | Ayrı işlemler arasında aynı sunucu süreci ve oturum ayarı (işlem modu değil) | Dur: 5432 oturum modu değil; döküm bu yolla alınmaz. |
+| `snapshot` | Dışa aktarılan anlık görüntü ikinci bağlantıda içe alınır | Dur: iki bağlantı aynı oturum havuzuna gitmiyor. |
+| `tools` | `pg_dump`/`pg_restore` sürümü sunucudan eski değil | PostgreSQL 17 istemcisini kur. |
+| `pg_dump` | libpq `verify-full` ile, aynı anlık görüntüden yalnız şema dökümü alınır ve `pg_restore -l` okur (veri yok; dosya silinir) | Dur: hata kaydını incele. |
+| `local_pg` | Yerel geri yükleme sunucusu ayakta, sürümü sunucudan eski değil | Yerel PostgreSQL 17'yi başlat. |
+
+Yerelde kanıtlanan: gerçek TLS'li (yalnız `hostssl` + scram) geçici PostgreSQL 17 kümesinde bütün kontroller geçer;
+yanlış kök, IP ile bağlantı, `verify-full` olmayan ayar, yanlış kullanıcı ve fazla yetkili rol yakalanır; sertifika IP
+adresini de kapsarsa `tls_hostname` düşer. Supavisor taklit edilmez: `session_mode` ve `snapshot` yerelde doğrudan
+bağlantıda geçer; havuzlayıcıdaki davranış ilk gerçek çalıştırmada ölçülür.
 
 Çıktı yalnız aşama durumlarını, nesne anahtarlarını, sözleşme durumunu ve kısa kodu yazar. Başarı: `state:
 "signature_pending"`, çıkış kodu **2** ve "İMZA BEKLİYOR: kısa kod …". Yedek henüz **tamamlanmamıştır**.
