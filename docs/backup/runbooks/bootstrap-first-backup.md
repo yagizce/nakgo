@@ -38,8 +38,11 @@
 2. **Anahtar töreni** ([key-ceremony.md](key-ceremony.md)): en az A, B, K9 ve güven çapası. `ops/backup/recipients.txt`,
    `config.json → recipients_sha256`, `trusted_k9`, `active_k9`, `trusted_anchors`, `active_anchor_sha256` PR ile repoda;
    çapa hash'i kâğıtta. İmza makinesi hazır ([offline-signing.md](offline-signing.md) → Hazırlık).
-3. **Production'da salt okunur yetki doğrulaması** (yalnız evet/hayır döner, kişisel veri yok):
-   - bağlanacak rolün (`postgres`) `rolbypassrls` değeri ve `row_security_active()` sonucu: `auth.users`,
+3. **Bootstrap rolü** ([aşağıda](#bootstrap-rolü)): önerilen tasarım `nakgo_bootstrap_reader`. **Henüz Production'da
+   kullanılması onaylanmadı ve denenmedi**; oluşturma, parola ve Production'daki ilk denemeler ayrı yazılı onay ister.
+   Onaylanır ve aşağıdaki doğrulanmamış noktalar kapatılırsa döküm bu rolle alınır, `postgres` ile alınmaz.
+   **Production'da salt okunur yetki doğrulaması** (yalnız evet/hayır döner, kişisel veri yok):
+   - bağlanacak rolün (`nakgo_bootstrap_reader`) `rolbypassrls` değeri ve `row_security_active()` sonucu: `auth.users`,
      `auth.identities`, `cron.job`, `supabase_migrations.schema_migrations`;
    - `has_table_privilege` / `has_schema_privilege` / `has_sequence_privilege`: kapsam ve meta tabloları ile `public`,
      `private` tablo ve dizileri;
@@ -50,6 +53,110 @@
    `npm ci --prefix ops/backup/ci --ignore-scripts --no-audit --no-fund` ve `NODE_PATH=ops/backup/ci/node_modules`.
    Başka bir node-pg sürümüyle araçlar bağlanmadan durur.
 5. **Bağlantı:** Supavisor oturum modu (5432), `sslmode=verify-full`, Supabase kök sertifikası. 6543 reddedilir.
+
+## Bootstrap rolü
+
+> **Durum: tasarım ve yerel test aşamasında.** Rol Production'da oluşturulmadı; Supabase üzerinde hiçbir adımı
+> denenmedi. Aşağıdaki "Production'da doğrulanmamış" maddeleri kapatılmadan ve ayrı yazılı onay alınmadan kullanılmaz.
+
+Önerilen tasarımda ilk yedek, yalnız bu iş için açılan ve iş bitince kaldırılan `nakgo_bootstrap_reader` rolüyle
+alınır. Betikler: `ops/backup/bootstrap-role.sql` (oluşturma) ve `ops/backup/bootstrap-role-drop.sql` (kaldırma).
+Testler: `tests/backup/b9-bootstrap-role.test.cjs` (gerçek PostgreSQL 17, Production biçiminde kaynak, Supabase
+`postgres`'ini taklit eden süper kullanıcı olmayan rolle; bu rolle alınan döküm geri yüklenip 7 kontrolden geçirilir).
+
+**Neden `nakgo_backup` değil?** O rol Auth/Storage'ı yalnız `private.nakgo_backup_*` dışa aktarma fonksiyonlarıyla
+okur. Fonksiyonlar bekleyen migration'larda; ilk yedek de tam bu migration'lardan önce alınmalı. `nakgo_backup`'ı
+şimdi kurmak bekleyen migration'ın bir kısmını yedeksiz uygulamak olur. Bootstrap aracı da fonksiyonlar varsa çalışmaz.
+
+**Neden `postgres` ya da `supabase_read_only_user` değil?** `postgres` 20 tam şema tablosunun hepsine yazabilir;
+salt okunurluk yalnız araca kalır. `supabase_read_only_user` Supabase'in yönettiği roldür (salt okunur bağlayıcı da
+onu kullanır); parolası verilmez, parola atamak desteklenmeyebilir ya da bağlayıcıyı etkileyebilir.
+
+| Konu | Tasarım | Gerekçe |
+|---|---|---|
+| Öznitelikler | `LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION BYPASSRLS CONNECTION LIMIT 3 VALID UNTIL <en fazla 14 gün>` | Kısa ömürlü; S1 + `pg_dump` + bir yedek oturum. |
+| Üyelik | Yalnız `pg_read_all_data`, `INHERIT TRUE, SET FALSE, ADMIN FALSE` | Auth/Storage'ın yeni tablolarında (oauth, scim, webauthn, Storage yaşam döngüsü/analitik/vektör) `postgres`'in yetki devretme hakkı yok (24.11.2026 ölçümü); "satır var mı" korumaları doğrudan GRANT ile sayılamaz. |
+| Role üye olanlar | Yalnız oluşturucu (`postgres`), yalnız ADMIN (INHERIT ve SET yok) | PostgreSQL 16+ süper kullanıcı olmayan oluşturucuya bu üyeliği kendiliğinden verir; oluşturucu rolün yetkilerini almaz, `SET ROLE` yapamaz, yalnız rolü yönetir. Betik başka bir üye ya da seçenek görürse (ör. `createrole_self_grant`) her şeyi geri alır. Production'da `createrole_self_grant` boş (25.11.2026 ölçümü). |
+| Tablo, dizi, şema | `pg_read_all_data` üzerinden: tüm tablo, görünüm ve dizilerde SELECT, tüm şemalarda USAGE. Doğrudan GRANT yok. | Tek kaynak; rol hiçbir nesnenin sahibi değil, hiçbir nesnede doğrudan yetkisi yok. |
+| Fonksiyon | Ek EXECUTE yok (yalnız PUBLIC'e açık olanlar). Production'da PUBLIC'e açık tek SECURITY DEFINER fonksiyon `public.rls_auto_enable` (olay tetikleyicisi; doğrudan çağrılamaz). | Yazma yan yolu açılmaz. |
+| Yazma | Hiçbir tabloda INSERT/UPDATE/DELETE/TRUNCATE, şemada CREATE, dizide `nextval`, rol oluşturma, `SET ROLE` yok. | Salt okunurluk **yetkiye** dayanır; test, `default_transaction_read_only` kapatılmışken bile 60+ tabloda yazmanın reddedildiğini gösterir. |
+| RLS | `BYPASSRLS` | Tam şemalardaki 20 tablonun tamamında, `auth.users`, `cron.job` ve diğer kapsam tablolarında RLS açık. Olmadan `cron.job` yalnız rolün kendi işlerini gösterir (sessiz eksik) ve `pg_dump` (`row_security=off`) hata verir. Rol düzeyindedir, tablo bazında daraltılamaz; etkisi rolün okuyabildiği tablolarla sınırlıdır. |
+| Ek katman | `default_transaction_read_only=on`, `statement_timeout=15min`, `lock_timeout=30s`, `idle_in_transaction_session_timeout=20min` | Güvenlik sınırı değil (oturum kapatabilir); araç ayrıca oturumu ve işlemi salt okunur açar. |
+| Bilinen yan yollar | Varsayılan salt okunurluk oturumda kapatılırsa: oturuma özel geçici tablo (PUBLIC `TEMP`) ve büyük nesne oluşturma. | Kalıcı veriye dokunmaz; oturum kapanınca geçici tablo silinir. Araç bu ayarı kapatmaz. |
+
+`pg_dump` gereksinimleri: tam şemalardaki tüm tablo ve dizilerde SELECT (`LOCK TABLE … ACCESS SHARE` de SELECT ister),
+şema USAGE, katalog okuma, `SET TRANSACTION SNAPSHOT` (her rol), RLS'li tablolar için BYPASSRLS. Büyük nesne yok
+(Production'da 0).
+
+### Riskler (kabul edilmeden önce okunmalı)
+
+- **Geniş okuma yetkisi.** `pg_read_all_data` + `BYPASSRLS`, rolün bağlanabildiği veritabanlarındaki (Production'da
+  PUBLIC bağlantısı olan `postgres` ve `template1`) **bütün** tabloların **bütün** satırlarını RLS'siz okuyabilmesi
+  demektir; yalnız yedek kapsamı değil: `auth.sessions`, `auth.refresh_tokens`, `auth.mfa_factors` (gizli anahtar
+  sütunu dahil), `storage.objects` meta verisi, `vault.secrets` (şifreli hâli), `realtime` ve `net` şemaları. Denetim
+  sorgu anında yapıldığı için **sonradan açılan tablolar da** kendiliğinden okunur. Yetki düzeyi
+  `supabase_read_only_user` ile aynıdır. Şifresi çözülmüş Vault sırları okunamaz: `vault._crypto_aead_det_decrypt`
+  PUBLIC'e kapalı (25.11.2026 yetki kataloğu; gerçek okuma denemesiyle sınanmadı). Sınırlayanlar: en fazla 14 gün,
+  en fazla 3 bağlantı, parola yalnız sahipte, iş bitince kaldırma.
+- **Süre dolunca açık oturumlar kapanmaz.** `VALID UNTIL` yalnız parolalı girişte denetlenir: süre dolunca yeni giriş
+  reddedilir, açık oturum çalışmaya devam eder (yerel PostgreSQL 17'de ölçüldü). Rolü silmez. Oturumları kapatan ve
+  rolü silen tek adım kaldırma betiğidir; mutlaka çalıştırılmalıdır.
+- **Supavisor ve süre.** Supavisor istemciyi `pgbouncer.get_auth` ile kendisi doğrular; süre dolduğunda nasıl
+  davrandığı doğrulanmadı.
+- **Rol kendi varsayılanlarını değiştirebilir.** `default_transaction_read_only` ve zaman aşımları güvenlik sınırı
+  değildir; rol oturumda ya da kendi rol ayarında kapatabilir. Yazma yetkisinin olmaması bundan etkilenmez.
+- **`postgres` rolü yönetebilir.** Oluşturucu ADMIN üyeliğiyle süreyi uzatabilir, parolayı değiştirebilir ya da rolü
+  başka role verebilir; kaldırma bunu da sonlandırır.
+
+### Oluşturma ve parola (yalnız sahip, ayrı yazılı onayla)
+
+1. Sahip, kendi makinesinden `postgres` ile bağlanır (Supavisor oturum modu, `verify-full`) ve çalıştırır:
+   `psql --single-transaction -v ON_ERROR_STOP=1 -v valid_until='<en fazla 14 gün sonrası>' -f ops/backup/bootstrap-role.sql`.
+   Betik rol varsa, B7 fonksiyonları varsa, tarih geçersizse, sonuç öznitelikleri ya da üyelikleri (rolün üye olduğu
+   ve role üye olan roller) beklenenden farklıysa her şeyi geri alır. Betik `postgres` gibi süper kullanıcı olmayan
+   bir rolle çalıştırılmalıdır; süper kullanıcıyla oluşturucu üyeliği oluşmaz ve betik durur.
+2. Rol parolasız oluşur ve giriş yapamaz. Parola sahibin makinesinde, parola yöneticisiyle (en az 32 rastgele karakter)
+   üretilir ve aynı oturumda `\password nakgo_bootstrap_reader` ile verilir: psql parolayı istemci tarafında SCRAM
+   özetine çevirir; düz parola sunucuya, betiğe, Git'e, CI'a, sohbete ya da kabuk geçmişine gitmez. Parola yalnız
+   parola yöneticisinde tutulur ve yedek sırasında `read -s PGPASSWORD` ile girilir.
+3. Döküm bu rolle alınır: `PGUSER=nakgo_bootstrap_reader.<proje-ref>` (Supavisor biçimi).
+
+### Kaldırma
+
+İlk yedek `finalize` ile tamamlanınca (ya da iş iptal edilince) sahip çalıştırır:
+`psql -X -v ON_ERROR_STOP=1 -f ops/backup/bootstrap-role-drop.sql` (**`--single-transaction` olmadan**). İki adım:
+
+1. `NOLOGIN` kendi işleminde hemen commit edilir. Commit edilmeyen bir değişikliği diğer bağlantılar görmez; bu ayrım,
+   oturumlar sonlandırılırken araya yeni giriş girmesini önler.
+2. Tek işlemde: betik tek işlem içinde çalışıyorsa (`--single-transaction`) durur ve hiçbir şeyi değiştirmez; rol hâlâ
+   LOGIN ise durur; sahiplik, yetki ya da politika bağı varsa durur (oturumlara dokunmadan); üyelikler beklenen iki
+   satırdan farklıysa durur (rol → `pg_read_all_data` yalnız INHERIT; betiği çalıştıran oluşturucu → rol yalnız ADMIN;
+   oturumlara ve üyeliklere dokunmadan, üyelik silinmez ya da değiştirilmez); yalnız oturum kullanıcısı bu rol olan
+   bağlantıları sonlandırır (`pg_signal_backend`); üyeliği geri alır ve rolü siler. Betik, rolü oluşturan rolle
+   (`postgres`) çalıştırılmalıdır; başka bir rolle çalıştırılırsa oluşturucu üyeliği beklenenle eşleşmez ve durur.
+
+Başarısızlıkta: 2. adım durursa rol NOLOGIN kalır (yeni giriş yapılamaz) ve açık oturumlar sonlandırılmamış olur;
+sorun giderilip betik yeniden çalıştırılır. Rol yoksa iki adım da hiçbir şey yapmaz. Bu davranışların hepsi testte
+sınanır (tek işlem, bağ varken, beklenmeyen üyelik varken (iki yönde), `pg_signal_backend` yokken, başarılı
+kaldırma, tekrar çalıştırma).
+
+Etkiler: başka rollerin bağlantıları, uygulama, Supabase servisleri ve salt okunur bağlayıcı etkilenmez (rol hiçbir
+nesnenin sahibi değil; ona yalnız oluşturucu ADMIN olarak üye). Test, başka bir rolün açık oturumunun kaldırmadan
+sonra çalışmaya devam ettiğini gösterir. Supavisor'da bu rolle açık havuz bağlantısı varsa kapanır. Kaldırma
+unutulursa `VALID UNTIL` tarihinden sonra parolayla giriş yapılamaz, ancak açık oturumlar sürer; rol mutlaka
+kaldırılmalıdır.
+
+### Production'da doğrulanmamış (G6/G19; her biri kontrollü test ve ayrı onay ister)
+
+- Supabase'in `supautils` kısıtları altında `postgres`'in bu rolü `BYPASSRLS` ile oluşturabilmesi.
+- `postgres`'in `pg_read_all_data` üyeliğini `WITH INHERIT TRUE, SET FALSE` seçenekleriyle verebilmesi (katalogda
+  ADMIN yetkisi görünüyor; komut çalıştırılmadı).
+- `ALTER ROLE … SET` ayarlarının ve bağlantı sınırının kabul edilmesi; oluşturucu üyeliğinin beklenen biçimde
+  (yalnız ADMIN) oluşması.
+- Kaldırma için `postgres`'in `pg_signal_backend` yetkisinin gerçekten etkin olması (üyelik görünüyor, miras ayarı
+  ölçülmedi). Etkin değilse kaldırma güvenli biçimde durur.
+- Rolün Supavisor'dan `<rol>.<proje-ref>` ile giriş yapabilmesi ve süre dolduğunda Supavisor'un davranışı.
+- Bu rolle Production'da döküm alınabilmesi (yerelde alındı, geri yüklendi ve doğrulandı).
 
 ## Adımlar
 
