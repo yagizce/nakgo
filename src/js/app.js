@@ -29,6 +29,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
 try {
     window.addEventListener("online", netUI);
     window.addEventListener("offline", netUI);
+    window.addEventListener("hashchange", openSharedListing);
     window.addEventListener("error", () => {
         const t = Date.now();
         if (t - (window.__et || 0) > 4000) {
@@ -198,7 +199,7 @@ deep();
 
 try {
     if (ADMIN_HOST) document.body.classList.add("admin-host");
-    else if (!localStorage.getItem("yy-onb"))
+    else if (!sharedListingId() && !localStorage.getItem("yy-onb"))
         openOnb();
 }
 catch (e) { }

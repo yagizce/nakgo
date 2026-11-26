@@ -16,7 +16,7 @@ module.exports=({test,fs,path,ROOT})=>{
   const q=(table)=>{const req={table};calls.v0.push(req);const o={select(){return o;},order(){return o;},limit(){return o;},eq(){return o;},lt(){return o;},insert(v){req.insert=v;return o;},update(v){req.update=v;return o;},
    async maybeSingle(){return {data:table==='profiles'?{id:ME,display_name:'Ayşe'}:{id:1},error:null};},async single(){return {data:{id:1},error:null};},then(res,rej){return Promise.resolve({data:[],error:null}).then(res,rej);}};return o;};
   const sdk={auth:{onAuthStateChange(cb){callback=cb;},async getSession(){return {data:{session:{}},error:null};},async getUser(){return {data:{user:{id:who.id,email:'a@test.invalid',user_metadata:{display_name:'Ayşe'}}},error:null};}},
-   from:q,async rpc(fn,args){calls.v0.push({rpc:fn,args});return {data:fn==='nakgo_listing_contact'?'+905321234567':{},error:null};}};
+   from:q,async rpc(fn,args){calls.v0.push({rpc:fn,args});return {data:fn==='nakgo_listing_contact'?'+905321234567':fn==='nakgo_public_listings'?[{id:9,kind:'truck'}]:{},error:null};}};
   if(schema)sdk.schema=name=>({async rpc(fn,args){calls.v1.push({schema:name,fn,args});return fn==='status_v1'?(typeof status==='function'?status():status):answer(fn,args);}});
   const ctx={URL,AbortSignal,setTimeout,clearTimeout,crypto:globalThis.crypto,Uint8Array,tab:'list',render(){},location:{href:'https://preview.example/',origin:'https://preview.example'},localStorage:{getItem:()=>null},sessionStorage:{getItem:()=>null,removeItem(){}},
    document:{createElement:()=>({remove(){}}),head:{appendChild:s=>queueMicrotask(()=>s.onload())}},
@@ -25,6 +25,19 @@ module.exports=({test,fs,path,ROOT})=>{
   return {ctx,calls,who,auth:()=>ctx.auth,signIn:()=>callback('SIGNED_IN'),signOut:()=>callback('SIGNED_OUT')};
  }
  const fns=calls=>calls.v1.map(c=>c.fn);
+
+ test('Paylaşılan ilan: ilk liste sayfasına bağlı kalmadan tam kimlikle açılır',async()=>{
+  const v1=harness({v1:{profile_v1:{data:{data:{display_name:'Ayşe'}}},listing_v1:args=>args.p_id===9
+   ? {data:{data:item(9)}} : {error:{hint:'nakgo.api',message:'not_found'}}}});
+  const v0=harness({schema:false});
+  await Promise.all([v1.auth().init(),v0.auth().init()]);
+  return [
+   [(await v1.auth().sharedListing(9))?.id===9,'v1 tek ilanı döndürür'],
+   [await v1.auth().sharedListing(10)===null,'v1 görünmeyen ilan açılmaz'],
+   [(await v0.auth().sharedListing(9))?.kind==='truck','v0 tek boş aracı döndürür'],
+   [await v0.auth().sharedListing(10)===null && v0.calls.v0.at(-1).args.p_before===11,'v0 komşu ilanı açmaz']
+  ];
+ });
 
  test('API v1 istemcisi: çağrı adları ve argümanları sözleşmedeki uçlarla aynı',async()=>{
   const out=[],ok=(v,m)=>out.push([!!v,m]);

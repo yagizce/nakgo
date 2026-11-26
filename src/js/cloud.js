@@ -524,6 +524,20 @@ const nakgoAuth = (() => {
         if(!Array.isArray(result.data))throw Error('Invalid listings');
         return result.data;
     }
+    async function sharedListing(id) {
+        if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
+        const owner=state.user?.id??null, started=revision;
+        const row=await withTimeout(via(async()=>{
+            try { return v0Listing((await v1('listing_v1',{p_id:id})).data,owner); }
+            catch(e) { if(e.apiKey==='not_found')return null; throw e; }
+        }, async()=>{
+            const {data,error}=await requireClient().rpc('nakgo_public_listings',{p_before:id+1});
+            if(error)throw error;
+            return data.find(item=>item.id===id)??null;
+        }),15000);
+        if(started!==revision || (state.user?.id??null)!==owner)throw Error('Account changed');
+        return row?.id===id && ['load','truck'].includes(row.kind) ? row : null;
+    }
     async function listListings({own=false,before=null}={}) {
         const account=listingAccount();
         if(before!==null&&(!Number.isSafeInteger(before)||before<1))throw Error('Invalid cursor');
@@ -682,7 +696,7 @@ const nakgoAuth = (() => {
     }
     // Şu an bilinen API sürümü (sorgu sürüyorsa 'v0'): yalnız v1'e özgü form kontrolleri için.
     const currentApi=()=>apiPreference==='auto'&&apiMode==='v1'?'v1':'v0';
-    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,listingPhoto,listingBlocks,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
+    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,sharedListing,listListings,listingContact,listingPhoto,listingBlocks,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -719,6 +733,7 @@ const nakgoMarket = (() => {
         if(next && s.profile && !loaded && !busy) refresh();
         if(nextGuest && s.ready && s.checked && !loaded && !busy) refresh();
         if(next && s.profile){nakgoFavorites.ensure();nakgoAlerts.ensure();}
+        if(typeof openSharedListing==='function')openSharedListing();
     }
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,

@@ -4004,6 +4004,20 @@ const nakgoAuth = (() => {
         if(!Array.isArray(result.data))throw Error('Invalid listings');
         return result.data;
     }
+    async function sharedListing(id) {
+        if(!Number.isSafeInteger(id)||id<1)throw Error('Invalid listing');
+        const owner=state.user?.id??null, started=revision;
+        const row=await withTimeout(via(async()=>{
+            try { return v0Listing((await v1('listing_v1',{p_id:id})).data,owner); }
+            catch(e) { if(e.apiKey==='not_found')return null; throw e; }
+        }, async()=>{
+            const {data,error}=await requireClient().rpc('nakgo_public_listings',{p_before:id+1});
+            if(error)throw error;
+            return data.find(item=>item.id===id)??null;
+        }),15000);
+        if(started!==revision || (state.user?.id??null)!==owner)throw Error('Account changed');
+        return row?.id===id && ['load','truck'].includes(row.kind) ? row : null;
+    }
     async function listListings({own=false,before=null}={}) {
         const account=listingAccount();
         if(before!==null&&(!Number.isSafeInteger(before)||before<1))throw Error('Invalid cursor');
@@ -4162,7 +4176,7 @@ const nakgoAuth = (() => {
     }
     // Şu an bilinen API sürümü (sorgu sürüyorsa 'v0'): yalnız v1'e özgü form kontrolleri için.
     const currentApi=()=>apiPreference==='auto'&&apiMode==='v1'?'v1':'v0';
-    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,listListings,listingContact,listingPhoto,listingBlocks,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
+    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,sharedListing,listListings,listingContact,listingPhoto,listingBlocks,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
@@ -4199,6 +4213,7 @@ const nakgoMarket = (() => {
         if(next && s.profile && !loaded && !busy) refresh();
         if(nextGuest && s.ready && s.checked && !loaded && !busy) refresh();
         if(next && s.profile){nakgoFavorites.ensure();nakgoAlerts.ensure();}
+        if(typeof openSharedListing==='function')openSharedListing();
     }
     function mapped(r) {
         return {id:r.kind==='truck'?'t'+r.id:r.id,remoteId:r.id,_remote:true,uid:r.owner_id,mine:r.owner_id===account,
@@ -5730,10 +5745,41 @@ function deep() {
     }
 }
 
-function shareLoad(l) {
+function sharedListingId() {
+    const id = Number(/^#ilan=([1-9]\d*)$/.exec(location.hash || "")?.[1]);
+    return Number.isSafeInteger(id) ? id : 0;
+}
+let sharedListingRequest = "";
+
+async function openSharedListing() {
+    const id = sharedListingId();
+    if (!id) { sharedListingRequest = ""; return; }
+    if (ADMIN_HOST) return;
+    const s = nakgoAuth.snapshot();
+    if (!s.ready || !s.checked || s.recovery || (s.user && !s.profile) || !nakgoMarket.locked()) return;
+    const account = nakgoMarket.token(), request = `${account}/${id}`;
+    if (sharedListingRequest === request) return;
+    sharedListingRequest = request;
+    const current = () => sharedListingRequest === request && account === nakgoMarket.token() && sharedListingId() === id;
+    try {
+        const row = await nakgoAuth.sharedListing(id);
+        if (!current()) return;
+        if (!row) return toast("Bu ilan artık yayında değil.");
+        const item = nakgoMarket.mapped(row), isTruck = row.kind === "truck";
+        if (!availableListing(item, isTruck)) return toast("Bu ilan artık yayında değil.");
+        if (isTruck) openTruck(item.id, item);
+        else openLoad(item.id, item);
+    } catch (e) {
+        if (current()) toast("İlan yüklenemedi. Bağlantını kontrol edip sayfayı yenile.");
+    }
+}
+
+function shareLoad(l, isTruck = false) {
     track("sh", l.id);
-    if(l._remote)return toast("Gerçek ilan paylaşımı henüz hazır değil.");
-    const url = APPURL + "#l=" + l.id, text = l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton";
+    if (l._remote && !availableListing(l, isTruck)) return toast("Bu ilan artık yayında değil.");
+    const url = APPURL + (l._remote ? "#ilan=" + l.remoteId : "#l=" + l.id);
+    const text = l._remote ? (isTruck ? "NakGo boş araç ilanı" : "NakGo yük ilanı")
+        : l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton";
     const copy = () => {
         if (navigator.clipboard)
             navigator.clipboard.writeText(text + " " + url).then(() => toast("Bağlantı kopyalandı")).catch(() => toast("Kopyalanamadı"));
@@ -7409,9 +7455,9 @@ function loadDetailPhoto(l) {
     }).finally(() => { if (typeof clearTimeout === "function") clearTimeout(timer); });
 }
 
-function openLoad(id) {
+function openLoad(id, shared = null) {
     roadMapDispose(true);
-    const l = findIt("l",id);
+    const l = shared || findIt("l",id);
     if (!l)
         return toast("İlan bulunamadı");
     track("v", id);
@@ -7435,7 +7481,7 @@ function openLoad(id) {
     $("#sheetBody").scrollTop = 0;
     syncDetailViewport();
     $("#sheet").classList.add("open");
-    roadMapBind($("#sheetBody"),()=>openLoad(id));
+    roadMapBind($("#sheetBody"),()=>openLoad(id, shared));
     loadDetailPhoto(l);
     $("#close").onclick = closeSheet;
     $("#sh").onclick = () => shareLoad(l);
@@ -7456,19 +7502,20 @@ function openLoad(id) {
     };
 }
 
-function openTruck(id) {
+function openTruck(id, shared = null) {
     roadMapDispose(true);
-    const t = findIt("t",id);
+    const t = shared || findIt("t",id);
     if (!t) return toast("İlan bulunamadı");
     const unavailable = !availableListing(t,true);
-    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags u-mt14"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div class="u-mt10">${[["Taşıyıcı", esc(t.who || nm(t.uid))], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))], ...(postedAt(t,true) ? [["İlan yayın zamanı", esc(postedAt(t,true))]] : [])].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips u-mt14"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${canBlockListingOwner(t) ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
+    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags u-mt14"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div class="u-mt10">${[["Taşıyıcı", esc(t.who || nm(t.uid))], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))], ...(postedAt(t,true) ? [["İlan yayın zamanı", esc(postedAt(t,true))]] : [])].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips u-mt14"><button class="chip" id="pf">Profili gör</button>${t._remote ? '<button class="chip" id="sh">Paylaş</button>' : ""}<button class="chip" id="rp">Şikayet et</button>${canBlockListingOwner(t) ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
-    roadMapBind($("#sheetBody"),()=>openTruck(id));
+    roadMapBind($("#sheetBody"),()=>openTruck(id, shared));
     $("#close").onclick = closeSheet;
     if ($("#mg")) $("#mg").onclick = () => { if(t._remote)return; if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
     $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
     $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid), listingId: t.remoteId });
+    if (t._remote && $("#sh")) $("#sh").onclick = () => shareLoad(t, true);
     bindPhoneContact(t, true);
     $("#rp").onclick = () => openReport("t", t.id, t.remoteId);
     if ($("#bk2"))
@@ -7562,6 +7609,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
 try {
     window.addEventListener("online", netUI);
     window.addEventListener("offline", netUI);
+    window.addEventListener("hashchange", openSharedListing);
     window.addEventListener("error", () => {
         const t = Date.now();
         if (t - (window.__et || 0) > 4000) {
@@ -7731,7 +7779,7 @@ deep();
 
 try {
     if (ADMIN_HOST) document.body.classList.add("admin-host");
-    else if (!localStorage.getItem("yy-onb"))
+    else if (!sharedListingId() && !localStorage.getItem("yy-onb"))
         openOnb();
 }
 catch (e) { }

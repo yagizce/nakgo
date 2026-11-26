@@ -41,9 +41,9 @@ function loadDetailPhoto(l) {
     }).finally(() => { if (typeof clearTimeout === "function") clearTimeout(timer); });
 }
 
-function openLoad(id) {
+function openLoad(id, shared = null) {
     roadMapDispose(true);
-    const l = findIt("l",id);
+    const l = shared || findIt("l",id);
     if (!l)
         return toast("İlan bulunamadı");
     track("v", id);
@@ -67,7 +67,7 @@ function openLoad(id) {
     $("#sheetBody").scrollTop = 0;
     syncDetailViewport();
     $("#sheet").classList.add("open");
-    roadMapBind($("#sheetBody"),()=>openLoad(id));
+    roadMapBind($("#sheetBody"),()=>openLoad(id, shared));
     loadDetailPhoto(l);
     $("#close").onclick = closeSheet;
     $("#sh").onclick = () => shareLoad(l);
@@ -88,19 +88,20 @@ function openLoad(id) {
     };
 }
 
-function openTruck(id) {
+function openTruck(id, shared = null) {
     roadMapDispose(true);
-    const t = findIt("t",id);
+    const t = shared || findIt("t",id);
     if (!t) return toast("İlan bulunamadı");
     const unavailable = !availableListing(t,true);
-    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags u-mt14"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div class="u-mt10">${[["Taşıyıcı", esc(t.who || nm(t.uid))], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))], ...(postedAt(t,true) ? [["İlan yayın zamanı", esc(postedAt(t,true))]] : [])].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips u-mt14"><button class="chip" id="pf">Profili gör</button><button class="chip" id="rp">Şikayet et</button>${canBlockListingOwner(t) ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
+    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags u-mt14"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div class="u-mt10">${[["Taşıyıcı", esc(t.who || nm(t.uid))], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))], ...(postedAt(t,true) ? [["İlan yayın zamanı", esc(postedAt(t,true))]] : [])].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips u-mt14"><button class="chip" id="pf">Profili gör</button>${t._remote ? '<button class="chip" id="sh">Paylaş</button>' : ""}<button class="chip" id="rp">Şikayet et</button>${canBlockListingOwner(t) ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
-    roadMapBind($("#sheetBody"),()=>openTruck(id));
+    roadMapBind($("#sheetBody"),()=>openTruck(id, shared));
     $("#close").onclick = closeSheet;
     if ($("#mg")) $("#mg").onclick = () => { if(t._remote)return; if(contactAllowed(t,true)) openChat("t" + id, t.who || nm(t.uid),null,()=>contactAllowed(t,true)); };
     $("#call").onclick = () => { if(contactAllowed(t,true,true)) callTo(phoneOf(t)); };
     $("#pf").onclick = () => openProfile({ uid: t.uid, name: t.who || nm(t.uid), listingId: t.remoteId });
+    if (t._remote && $("#sh")) $("#sh").onclick = () => shareLoad(t, true);
     bindPhoneContact(t, true);
     $("#rp").onclick = () => openReport("t", t.id, t.remoteId);
     if ($("#bk2"))
