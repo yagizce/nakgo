@@ -31,7 +31,17 @@ const D=require('./dump.cjs');
 
 const EXPECT_ROLE='nakgo_bootstrap_reader';
 const WRONG_CA=path.join(__dirname,'../../ops/backup/g19-wrong-ca.pem');
-const scrub=s=>String(s&&s.message||s).replace(/postgres(ql)?:\/\/\S+/g,'<bağlantı>').split('\n')[0].slice(0,300);
+const tlsCode=/^(ERR_TLS|UNABLE_TO|SELF_SIGNED|DEPTH_ZERO|CERT_|ERR_SSL)/;
+const tlsMessage=/certificate|self[- ]signed|altnames|Hostname\/IP/i;
+
+function errorDetail(error){
+  const code=error?.code||'';
+  const message=String(error?.message||error);
+  if(tlsCode.test(code)||tlsMessage.test(message))return 'TLS certificate doğrulaması başarısız';
+  if(code==='28P01')return 'Parola doğrulaması başarısız (28P01)';
+  if(code==='ECONNREFUSED'||code==='ETIMEDOUT'||code==='ENOTFOUND')return `Bağlantı başarısız (${code})`;
+  return 'İşlem başarısız; ilgili kontrolün runbook adımını inceleyin';
+}
 
 function connFromEnv(e=process.env){
   return {host:e.PGHOST,port:Number(e.PGPORT||5432),user:e.PGUSER,password:e.PGPASSWORD,database:e.PGDATABASE||'postgres',sslmode:e.PGSSLMODE,sslrootcert:e.PGSSLROOTCERT};
@@ -42,9 +52,8 @@ const roleOfUser=u=>String(u||'').split('.')[0];
 async function tryConnect(Client,cfg){
   const c=new Client(cfg);c.on('error',()=>{});
   try{await c.connect();await c.end().catch(()=>{});return {ok:true};}
-  catch(e){await c.end().catch(()=>{});return {ok:false,code:e.code||'',msg:scrub(e)};}
+  catch(e){await c.end().catch(()=>{});return {ok:false,tlsRejected:tlsCode.test(e.code||'')||tlsMessage.test(e.message),detail:errorDetail(e)};}
 }
-const tlsReject=r=>!r.ok&&(/^(ERR_TLS|UNABLE_TO|SELF_SIGNED|DEPTH_ZERO|CERT_|ERR_SSL)/.test(r.code)||/certificate|self[- ]signed|altnames|Hostname\/IP/i.test(r.msg));
 
 /** İşlem (transaction) havuzlamasına karşı yoklama. A (zaten bağlı, işlem dışında) bir oturum ayarı koyar; iki ek istemci
  * aynı anda işlem açar. Oturum modunda bir sunucu süreci, istemcisi bağlı kaldıkça yalnız ona aittir: başka bir istemci
@@ -69,7 +78,7 @@ async function sessionModeProbe(a,open,{waitMs=1000}={}){
     const p3=(await a.query('select pg_backend_pid() p')).rows[0].p;
     if(p3!==p1)return {ok:false,detail:'işlem modu: aynı istemcinin sunucu süreci değişti'};
     return {ok:true,detail:'yoklama: işlem modu belirtisi yok (kesin kanıt değil; panel teyidi zorunlu)'};
-  }catch(e){return {ok:false,detail:'yoklama: '+scrub(e)};}
+  }catch(e){return {ok:false,detail:'yoklama: '+errorDetail(e)};}
   finally{for(const b of extra){await b.query('rollback').catch(()=>{});await b.end().catch(()=>{});}}
 }
 
@@ -84,18 +93,18 @@ async function g19Check({conn,expectRole=EXPECT_ROLE,pgBin=process.env.NAKGO_PG_
   if(conn&&(!conn.sslrootcert||!fs.existsSync(conn.sslrootcert)))rules.push('kök sertifika dosyası yok');
   if(conn&&roleOfUser(conn.user)!==expectRole)rules.push(`kullanıcı ${expectRole} değil`);
   if(!add('rules',!rules.length,rules.join('; ')||undefined))return done();
-  let cfg;try{cfg=D.clientConfig(conn);D.newClient(Client,cfg);}catch(e){add('rules',false,scrub(e));return done();}
+  let cfg;try{cfg=D.clientConfig(conn);D.newClient(Client,cfg);}catch(e){add('rules',false,errorDetail(e));return done();}
   // 2. Olumsuz TLS: yanlış kök sertifika ve sunucu adı uyuşmazlığı. Parola TLS doğrulandıktan sonra gönderilir.
   const wrong=await tryConnect(Client,{...cfg,ssl:{...cfg.ssl,ca:fs.readFileSync(WRONG_CA,'utf8')}});
-  add('tls_wrong_ca',tlsReject(wrong),wrong.ok?'yanlış kök sertifikayla bağlanıldı':wrong.code||wrong.msg);
+  add('tls_wrong_ca',wrong.tlsRejected,wrong.ok?'yanlış kök sertifikayla bağlanıldı':wrong.detail);
   let ip=null;try{ip=net.isIP(conn.host)?null:(await dns.lookup(conn.host)).address;}catch(e){}
   if(!ip)add('tls_hostname',false,'sunucu adı IP adresine çözülemedi');
-  else{const {servername,...ssl}=cfg.ssl;const r=await tryConnect(Client,{...cfg,host:ip,ssl});add('tls_hostname',tlsReject(r),r.ok?'IP ile bağlanıldı: sunucu adı doğrulanmıyor':r.code||r.msg);}
+  else{const {servername,...ssl}=cfg.ssl;const r=await tryConnect(Client,{...cfg,host:ip,ssl});add('tls_hostname',r.tlsRejected,r.ok?'IP ile bağlanıldı: sunucu adı doğrulanmıyor':r.detail);}
   // 3. Olumlu bağlantı ve rol.
   const a=new Client(cfg);a.on('error',()=>{});
   let b=null,dir=null;
   try{
-    try{await a.connect();}catch(e){add('connect',false,scrub(e));return done();}
+    try{await a.connect();}catch(e){add('connect',false,errorDetail(e));return done();}
     add('connect',true);
     const r=(await a.query(`select current_user::text cu,session_user::text su,r.rolsuper,r.rolbypassrls,r.rolinherit,r.rolcreaterole,r.rolcreatedb,r.rolreplication,
         r.rolvaliduntil,current_setting('default_transaction_read_only') ro0,current_setting('server_version_num')::int/10000 major,
@@ -115,7 +124,7 @@ async function g19Check({conn,expectRole=EXPECT_ROLE,pgBin=process.env.NAKGO_PG_
     if(r.ro0!=='on')roleProblems.push('rol düzeyinde salt okunur varsayılan yok');
     if(!r.rolvaliduntil||new Date(r.rolvaliduntil)<=new Date()||new Date(r.rolvaliduntil)>new Date(Date.now()+14*86400000))roleProblems.push('geçerlilik süresi şimdiden sonra ve en fazla 14 gün olmalı');
     add('role',!roleProblems.length,roleProblems.join('; ')||`${r.cu}, PostgreSQL ${r.major}`);
-    try{add('read_only',(await D.enforceReadOnly(a))==='on');}catch(e){add('read_only',false,scrub(e));}
+    try{add('read_only',(await D.enforceReadOnly(a))==='on');}catch(e){add('read_only',false,errorDetail(e));}
     // 4. Oturum modu: yalnız YOKLAMA (kesin kanıt değil) + sahibin panelden teyidi (zorunlu).
     const probe=await sessionModeProbe(a,async()=>{const x=new Client(cfg);x.on('error',()=>{});await x.connect();return x;});
     checks.push({code:'session_mode',ok:probe.ok,kind:'probe',detail:probe.detail});
@@ -129,18 +138,18 @@ async function g19Check({conn,expectRole=EXPECT_ROLE,pgBin=process.env.NAKGO_PG_
       await b.connect();await b.query('begin isolation level repeatable read read only');
       await b.query(`set transaction snapshot '${snap.replace(/'/g,"''")}'`);await b.query('select 1');await b.query('rollback');
       add('snapshot',true);
-    }catch(e){add('snapshot',false,scrub(e));}
+    }catch(e){add('snapshot',false,errorDetail(e));}
     const tools=[];for(const t of ['pg_dump','pg_restore']){const m=await D.toolMajor(t,pgBin);if(!m||m<r.major)tools.push(`${t} ${m||'yok'} < sunucu ${r.major}`);}
     add('tools',!tools.length,tools.join('; ')||undefined);
     if(!tools.length){
       dir=fs.mkdtempSync(path.join(os.tmpdir(),'nakgo-g19-'));fs.chmodSync(dir,0o700);
       const f=path.join(dir,'schema.dump');
       const d=await D.run(D.binPath('pg_dump',pgBin),['-Fc','--schema-only','-n','public','-n','private','--snapshot='+snap,'--no-sync','-f',f],{env:D.dumpEnv(conn)});
-      if(d.code!==0)add('pg_dump',false,scrub(d.err));
+      if(d.code!==0)add('pg_dump',false,errorDetail(d.err));
       else{
         const l=await D.run(D.binPath('pg_restore',pgBin),['-l',f]);
         const n=l.code===0?l.out.split('\n').filter(x=>/^\d+;/.test(x)).length:0;
-        add('pg_dump',l.code===0&&n>0,l.code===0?`${n} şema öğesi`:scrub(l.err));
+        add('pg_dump',l.code===0&&n>0,l.code===0?`${n} şema öğesi`:errorDetail(l.err));
       }
     }
     await a.query('rollback').catch(()=>{});
@@ -150,10 +159,10 @@ async function g19Check({conn,expectRole=EXPECT_ROLE,pgBin=process.env.NAKGO_PG_
       const l=new Client({host:localPg,port:Number(process.env.NAKGO_PG_PORT||5432),user:process.env.NAKGO_PG_USER||'postgres',password:process.env.NAKGO_PG_PASSWORD,database:'postgres'});
       l.on('error',()=>{});
       try{await l.connect();const m=(await l.query(`select current_setting('server_version_num')::int/10000 m`)).rows[0].m;add('local_pg',m>=r.major,m>=r.major?`PostgreSQL ${m}`:`yerel ${m} < sunucu ${r.major}`);}
-      catch(e){add('local_pg',false,scrub(e));}
+      catch(e){add('local_pg',false,errorDetail(e));}
       finally{await l.end().catch(()=>{});}
     }
-  }catch(e){add('unexpected',false,scrub(e));}
+  }catch(e){add('unexpected',false,errorDetail(e));}
   finally{
     if(b)await b.end().catch(()=>{});
     await a.end().catch(()=>{});
@@ -171,5 +180,5 @@ if(require.main===module){
     const r=await g19Check({conn});
     console.log(JSON.stringify(r,null,1));
     process.exit(r.status==='ok'?0:1);
-  })().catch(e=>{console.error(scrub(e));process.exit(1);});
+  })().catch(e=>{console.error(errorDetail(e));process.exit(1);});
 }
