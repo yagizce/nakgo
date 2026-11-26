@@ -18,10 +18,41 @@ function deep() {
     }
 }
 
-function shareLoad(l) {
+function sharedListingId() {
+    const id = Number(/^#ilan=([1-9]\d*)$/.exec(location.hash || "")?.[1]);
+    return Number.isSafeInteger(id) ? id : 0;
+}
+let sharedListingRequest = "";
+
+async function openSharedListing() {
+    const id = sharedListingId();
+    if (!id) { sharedListingRequest = ""; return; }
+    if (ADMIN_HOST) return;
+    const s = nakgoAuth.snapshot();
+    if (!s.ready || !s.checked || s.recovery || (s.user && !s.profile) || !nakgoMarket.locked()) return;
+    const account = nakgoMarket.token(), request = `${account}/${id}`;
+    if (sharedListingRequest === request) return;
+    sharedListingRequest = request;
+    const current = () => sharedListingRequest === request && account === nakgoMarket.token() && sharedListingId() === id;
+    try {
+        const row = await nakgoAuth.sharedListing(id);
+        if (!current()) return;
+        if (!row) return toast("Bu ilan artık yayında değil.");
+        const item = nakgoMarket.mapped(row), isTruck = row.kind === "truck";
+        if (!availableListing(item, isTruck)) return toast("Bu ilan artık yayında değil.");
+        if (isTruck) openTruck(item.id, item);
+        else openLoad(item.id, item);
+    } catch (e) {
+        if (current()) toast("İlan yüklenemedi. Bağlantını kontrol edip sayfayı yenile.");
+    }
+}
+
+function shareLoad(l, isTruck = false) {
     track("sh", l.id);
-    if(l._remote)return toast("Gerçek ilan paylaşımı henüz hazır değil.");
-    const url = APPURL + "#l=" + l.id, text = l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton";
+    if (l._remote && !availableListing(l, isTruck)) return toast("Bu ilan artık yayında değil.");
+    const url = APPURL + (l._remote ? "#ilan=" + l.remoteId : "#l=" + l.id);
+    const text = l._remote ? (isTruck ? "NakGo boş araç ilanı" : "NakGo yük ilanı")
+        : l.from + " → " + l.to + " · " + l.cargo + " · " + l.ton + " ton";
     const copy = () => {
         if (navigator.clipboard)
             navigator.clipboard.writeText(text + " " + url).then(() => toast("Bağlantı kopyalandı")).catch(() => toast("Kopyalanamadı"));
