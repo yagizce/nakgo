@@ -41,6 +41,15 @@
     "private.is_document_reviewer()": {"roles": ["authenticated"], "why": "eski taşıyıcı belge tablolarının RLS politikaları"}
   },
   "migration_execute": {
+    "20261126000000_listing_owner_blocks.sql": {
+      "why": "Engeller doğrulanmış hesapla yönetilir. RLS yardımcı fonksiyonu yalnız oturum sahibinin engelini denetler.",
+      "functions": {
+        "private.viewer_blocks_listing_owner(p_owner uuid)": {"roles": ["authenticated"]},
+        "nakgo_block_listing_owner(p_listing_id bigint)": {"roles": ["authenticated"]},
+        "nakgo_list_listing_owner_blocks()": {"roles": ["authenticated"]},
+        "nakgo_unblock_listing_owner(p_block_id uuid)": {"roles": ["authenticated"]}
+      }
+    },
     "20261117000000_legal_archive.sql": {
       "why": "#125 yasal arşiv yönetici paneli; fonksiyonlar AAL2 ve legal_access yetkisini içeride denetler. Migration dosyası depoda yoksa yalnız veritabanında varsa doğrulanır; dosya depoya girince zorunlu olur.",
       "functions": {

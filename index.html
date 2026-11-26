@@ -3986,6 +3986,13 @@ const nakgoAuth = (() => {
         if(account.revision!==revision || state.user?.id!==account.id)throw Error('Account changed');
         return result.data;
     }
+    async function listingBlocks(action,id) {
+        const account=listingAccount();
+        const requests={list:['nakgo_list_listing_owner_blocks',{}],
+            add:['nakgo_block_listing_owner',{p_listing_id:id}],remove:['nakgo_unblock_listing_owner',{p_block_id:id}]};
+        const [name,args]=requests[action];
+        return listingResult(await requireClient().rpc(name,args),account);
+    }
     // Signed-out browsing: route and load facts only; contact stays behind an account.
     async function publicListings({before=null}={}) {
         if(before!==null&&(!Number.isSafeInteger(before)||before<1))throw Error('Invalid cursor');
@@ -4169,12 +4176,13 @@ const nakgoAuth = (() => {
     }
     // Şu an bilinen API sürümü (sorgu sürüyorsa 'v0'): yalnız v1'e özgü form kontrolleri için.
     const currentApi=()=>apiPreference==='auto'&&apiMode==='v1'?'v1':'v0';
-    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,sharedListing,listListings,listingContact,listingPhoto,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
+    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,sharedListing,listListings,listingContact,listingPhoto,listingBlocks,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
 const nakgoMarket = (() => {
     let account='', guestMode=false, generation=0, writes=0, demo=null, busy=false, error='', feedBefore=null, ownBefore=null, feedMore=false, ownMore=false;
+    let refreshAfterCurrent=false;
     const active=()=>!!account;
     // Signed-out visitor while accounts are available: real listings, no demo data, no contact.
     const guest=()=>guestMode;
@@ -4191,7 +4199,7 @@ const nakgoMarket = (() => {
         const next=s.marketplace && s.user && !s.recovery ? s.user.id : '';
         const nextGuest=!next && !s.user && s.enabled===true && s.marketplace===true;
         if(next!==account || nextGuest!==guestMode) {
-            generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
+            generation++; busy=false; refreshAfterCurrent=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
             if(!locked() && (next||nextGuest)) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
             const startup=!account&&!guestMode;
             empty(); account=next; guestMode=nextGuest; nakgoFavorites.reset(); nakgoAlerts.reset(); nakgoAdminAccess.reset();
@@ -4240,7 +4248,17 @@ const nakgoMarket = (() => {
             if(!more||ownMore){ownMore=own.length===50;ownBefore=own.at(-1)?.id||null;}
             put([...feed,...own],!more);
         } catch(e) {if(owner===token())error='İlanlar yüklenemedi. Bağlantını kontrol edip yeniden dene.';}
-        finally {if(owner===token()){busy=false;loaded=true;render();}}
+        finally {if(owner===token()){
+            busy=false;
+            if(refreshAfterCurrent){refreshAfterCurrent=false;refresh();}
+            else {loaded=true;render();}
+        }}
+    }
+    function visibilityChanged() {
+        writes++; loads=[]; trucks=[]; loaded=false;
+        nakgoFavorites.reset(); nakgoFavorites.ensure();
+        if(busy){refreshAfterCurrent=true;render();}
+        else refresh();
     }
     function payload(x,truck) {
         const dates=!truck&&'dateText' in x?{date:null,dateEnd:''}:dateFields(x.date);
@@ -4278,7 +4296,7 @@ const nakgoMarket = (() => {
         return '<p class="demo-note" role="status">'+(error?esc(error):'İlanların, fotoğrafların, kayıtlı ilanların, rota alarmların ve mesajların hesabında saklanır.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
     }
-    return {active,guest,locked,requireAccount,token,sync,refresh,create,update,pending,controls,mapped};
+    return {active,guest,locked,requireAccount,token,sync,refresh,visibilityChanged,create,update,pending,controls,mapped};
 })();
 
 // Private favorite membership and pages never enter the device demo store.
@@ -4970,6 +4988,8 @@ function listBind() {
         save();
         render();
     });
+    const remoteBlocks = $("#listing-owner-blocks");
+    if (remoteBlocks) remoteBlocks.onclick = openListingOwnerBlocks;
     if ($("#inst"))
         $("#inst").onclick = async () => {
             if (!deferredInstall)
@@ -5245,13 +5265,68 @@ function blockUser(u) {
     toast("Kullanıcı engellendi");
 }
 
+function canBlockListingOwner(item) {
+    return item._remote ? nakgoMarket.active() && !item.mine && Number.isSafeInteger(item.remoteId)
+        : Boolean(item.uid && item.uid !== me && !item.mine);
+}
+
+async function blockListingOwner(item, button) {
+    if (!item._remote) return blockUser(item.uid);
+    if (button.disabled) return;
+    const account = nakgoMarket.token();
+    button.disabled = true;
+    try {
+        await nakgoAuth.listingBlocks("add", item.remoteId);
+        if (account !== nakgoMarket.token()) return;
+        if ($("#bk2") === button) closeSheet();
+        nakgoMarket.visibilityChanged();
+        toast("Kullanıcı engellendi");
+    } catch (e) {
+        if (account === nakgoMarket.token() && $("#bk2") === button) {
+            toast(e?.code === "54000" ? "Engellenen hesap sınırına ulaştın." : "Kullanıcı engellenemedi. Yeniden dene.");
+        }
+    } finally { button.disabled = false; }
+}
+
+async function openListingOwnerBlocks() {
+    const account = nakgoMarket.token(), body = $("#sheetBody");
+    roadMapDispose(true);
+    body.innerHTML = `<div class="load-detail"><div class="detail-top"><h2>Engellenen hesaplar</h2><button class="chip detail-close" id="close">Kapat</button></div><div class="detail-scroll" id="listing-owner-block-list" aria-live="polite">Yükleniyor…</div></div>`;
+    $("#close").onclick = closeSheet;
+    $("#sheet").classList.add("open");
+    const list = $("#listing-owner-block-list");
+    const current = () => account === nakgoMarket.token() && $("#listing-owner-block-list") === list && $("#sheet").classList.contains("open");
+    try {
+        const rows = await nakgoAuth.listingBlocks("list");
+        if (!current()) return;
+        list.innerHTML = rows.length ? rows.map(row => `<div class="kv"><span>${esc(row.owner_label)}</span><button class="chip" data-block-id="${esc(row.id)}">Engeli kaldır</button></div>`).join("") : "Engellenen hesap yok.";
+        list.querySelectorAll("[data-block-id]").forEach(button => button.onclick = async () => {
+            if (button.disabled) return;
+            button.disabled = true;
+            try {
+                await nakgoAuth.listingBlocks("remove", button.dataset.blockId);
+                if (account !== nakgoMarket.token()) return;
+                nakgoMarket.visibilityChanged();
+                if (current()) openListingOwnerBlocks();
+            } catch (e) {
+                if (current()) toast("Engel kaldırılamadı. Yeniden dene.");
+            } finally { button.disabled = false; }
+        });
+    } catch (e) {
+        if (!current()) return;
+        list.innerHTML = 'Engellenen hesaplar yüklenemedi. <button class="chip" id="listing-owner-block-retry">Yeniden dene</button>';
+        $("#listing-owner-block-retry").onclick = openListingOwnerBlocks;
+    }
+}
+
 const reportsCard = () => {
     if (!admin)
         return "";
     return `<div class="load u-cdef"><b>Şikayetler (${reports.length})</b>${reports.length ? reports.map(x => `<div class="kv u-block"><b class="u-fs14">${esc(x.reason)} · ${x.kind === "l" ? "ilan" : x.kind === "u" ? "kullanıcı" : "boş araç"} ${esc(x.tid)}</b>${x.note ? `<div class="u-fs125-mute-mt4">${esc(x.note)}</div>` : ""}<button class="chip u-mt8" data-rc="${esc(x.k)}">Kapat</button></div>`).join("") : `<p class="u-mt8-fs13-mute">Şikayet yok.</p>`}</div>`;
 };
 
-const blockedCard = () => blocked.length ? `<div class="load u-cdef"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span class="u-ink-b7">${esc(nm(u))}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
+const blockedCard = () => nakgoMarket.active() ? '<button class="chip" id="listing-owner-blocks">Engellenen hesaplar</button>'
+    : blocked.length ? `<div class="load u-cdef"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span class="u-ink-b7">${esc(nm(u))}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
 
 const helpCard = () => `<div class="load u-cdef"><b>Yardım ve destek</b>${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join("")}${SUPPORT_MAIL.endsWith("@example.com") ? '<p class="estimate-note">Destek iletişim adresi henüz tanımlanmadı.</p>' : `<a class="chip u-iblock-mt12-tdn" href="mailto:${SUPPORT_MAIL}">Bize yaz</a>`}</div>`;
 
@@ -7399,7 +7474,7 @@ function openLoad(id, shared = null) {
         <section class="detail-group"><h2>Taşıma bilgileri</h2>${kv([["Araç / kasa", esc(l.veh + " · " + (l.body || "Belirtilmedi"))], ["Tahmini mesafe", km ? "≈ " + km + " km" : "Belirtilmedi"]])}<p class="estimate-note">Taşıma koşullarını yük sahibiyle telefonda veya WhatsApp'ta görüşebilirsin.</p></section>
         <section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(l.from, l.to)}</section>
         <section class="detail-group"><h2>Yük sahibi</h2><div class="owner-summary"><span class="owner-avatar" aria-hidden="true">${esc(String(l.owner || (l.uid ? nm(l.uid) : "Yük sahibi")).charAt(0))}</span><div><b>${esc(l.owner || (l.uid ? nm(l.uid) : "Bireysel"))}</b></div></div><div class="detail-actions"><button class="chip" id="pf">Profili gör</button></div></section>
-        <div class="detail-actions"><button class="chip" id="sh">Paylaş</button><button class="chip" id="rp">Şikayet et</button>${l.uid && l.uid !== me && !l.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
+        <div class="detail-actions"><button class="chip" id="sh">Paylaş</button><button class="chip" id="rp">Şikayet et</button>${canBlockListingOwner(l) ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div>
       </div>
       ${contactDockHTML(unavailable,l.mine)}
     </div>`;
@@ -7419,7 +7494,7 @@ function openLoad(id, shared = null) {
     bindPhoneContact(l, false);
     $("#rp").onclick = () => openReport("l", l.id, l.remoteId);
     if ($("#bk2"))
-        $("#bk2").onclick = () => blockUser(l.uid);
+        $("#bk2").onclick = event => blockListingOwner(l, event.currentTarget);
     if ($("#mg")) $("#mg").onclick = () => {
         if(l._remote)return;
         if (!contactAllowed(l)) return;
@@ -7432,7 +7507,7 @@ function openTruck(id, shared = null) {
     const t = shared || findIt("t",id);
     if (!t) return toast("İlan bulunamadı");
     const unavailable = !availableListing(t,true);
-    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags u-mt14"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div class="u-mt10">${[["Taşıyıcı", esc(t.who || nm(t.uid))], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))], ...(postedAt(t,true) ? [["İlan yayın zamanı", esc(postedAt(t,true))]] : [])].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips u-mt14"><button class="chip" id="pf">Profili gör</button>${t._remote ? '<button class="chip" id="sh">Paylaş</button>' : ""}<button class="chip" id="rp">Şikayet et</button>${t.uid && t.uid !== me && !t.mine ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
+    $("#sheetBody").innerHTML = `<div class="load-detail"><div class="detail-top"><span>Boş araç ilanı</span><button class="chip detail-close" id="close">Kapat ×</button></div><div class="detail-scroll"><section class="detail-summary">${routeTitle(t)}<div class="summary-tags u-mt14"><span class="tag">${esc(t.cap)} ton boş kapasite</span><span class="tag">${esc(dateLabel(t))}</span></div></section>${demoNotice()}<section class="detail-group"><h2>Araç ve taşıyıcı</h2><div class="u-mt10">${[["Taşıyıcı", esc(t.who || nm(t.uid))], ["Araç", esc(t.veh + " · " + t.body)], ["Boş kapasite", esc(t.cap) + " ton"], ["Müsait", esc(dateLabel(t))], ...(postedAt(t,true) ? [["İlan yayın zamanı", esc(postedAt(t,true))]] : [])].map(([a, b]) => `<div class="kv"><span>${a}</span><span>${b}</span></div>`).join("")}</div>${t.note ? `<p class="detail-note">${esc(t.note)}</p>` : ""}</section><section class="detail-group detail-route"><h2>Güzergâh</h2>${routeMapHTML(t.from,t.to)}</section><div class="chips u-mt14"><button class="chip" id="pf">Profili gör</button>${t._remote ? '<button class="chip" id="sh">Paylaş</button>' : ""}<button class="chip" id="rp">Şikayet et</button>${canBlockListingOwner(t) ? '<button class="chip" id="bk2">Engelle</button>' : ""}</div></div>${contactDockHTML(unavailable,t.mine)}</div>`;
     syncDetailViewport();
     $("#sheet").classList.add("open");
     roadMapBind($("#sheetBody"),()=>openTruck(id, shared));
@@ -7444,7 +7519,7 @@ function openTruck(id, shared = null) {
     bindPhoneContact(t, true);
     $("#rp").onclick = () => openReport("t", t.id, t.remoteId);
     if ($("#bk2"))
-        $("#bk2").onclick = () => blockUser(t.uid);
+        $("#bk2").onclick = event => blockListingOwner(t, event.currentTarget);
 }
 
 // Gerçek ilanlarda numara yalnız sunucudaki izinli iletişim fonksiyonundan alınır.

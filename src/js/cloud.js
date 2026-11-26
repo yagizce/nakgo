@@ -506,6 +506,13 @@ const nakgoAuth = (() => {
         if(account.revision!==revision || state.user?.id!==account.id)throw Error('Account changed');
         return result.data;
     }
+    async function listingBlocks(action,id) {
+        const account=listingAccount();
+        const requests={list:['nakgo_list_listing_owner_blocks',{}],
+            add:['nakgo_block_listing_owner',{p_listing_id:id}],remove:['nakgo_unblock_listing_owner',{p_block_id:id}]};
+        const [name,args]=requests[action];
+        return listingResult(await requireClient().rpc(name,args),account);
+    }
     // Signed-out browsing: route and load facts only; contact stays behind an account.
     async function publicListings({before=null}={}) {
         if(before!==null&&(!Number.isSafeInteger(before)||before<1))throw Error('Invalid cursor');
@@ -689,12 +696,13 @@ const nakgoAuth = (() => {
     }
     // Şu an bilinen API sürümü (sorgu sürüyorsa 'v0'): yalnız v1'e özgü form kontrolleri için.
     const currentApi=()=>apiPreference==='auto'&&apiMode==='v1'?'v1':'v0';
-    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,sharedListing,listListings,listingContact,listingPhoto,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
+    return {apiMode:currentApi,adminRole,adminModerate,adminPage,adminLive,deleteMyAccount,changePassword,init,booting:()=>booting,snapshot,message,configOK,signIn,signInGoogle,signUp,recover,password,signOut,saveProfile,saveProfileDetails,publicListings,sharedListing,listListings,listingContact,listingPhoto,listingBlocks,createListing,updateListing,listFavorites,setFavorite,listRouteAlerts,saveRouteAlert,setRouteAlert,removeRouteAlert,routeAlertsSeen,reportListing,adminReports,adminReportSet};
 })();
 
 // Real listings are session-scoped; demo state never receives account records.
 const nakgoMarket = (() => {
     let account='', guestMode=false, generation=0, writes=0, demo=null, busy=false, error='', feedBefore=null, ownBefore=null, feedMore=false, ownMore=false;
+    let refreshAfterCurrent=false;
     const active=()=>!!account;
     // Signed-out visitor while accounts are available: real listings, no demo data, no contact.
     const guest=()=>guestMode;
@@ -711,7 +719,7 @@ const nakgoMarket = (() => {
         const next=s.marketplace && s.user && !s.recovery ? s.user.id : '';
         const nextGuest=!next && !s.user && s.enabled===true && s.marketplace===true;
         if(next!==account || nextGuest!==guestMode) {
-            generation++; busy=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
+            generation++; busy=false; refreshAfterCurrent=false; error=''; feedBefore=ownBefore=null; feedMore=ownMore=false;
             if(!locked() && (next||nextGuest)) demo={data:JSON.parse(JSON.stringify(stateData())),incoming,carriers,names,appr,events,allO,seen};
             const startup=!account&&!guestMode;
             empty(); account=next; guestMode=nextGuest; nakgoFavorites.reset(); nakgoAlerts.reset(); nakgoAdminAccess.reset();
@@ -760,7 +768,17 @@ const nakgoMarket = (() => {
             if(!more||ownMore){ownMore=own.length===50;ownBefore=own.at(-1)?.id||null;}
             put([...feed,...own],!more);
         } catch(e) {if(owner===token())error='İlanlar yüklenemedi. Bağlantını kontrol edip yeniden dene.';}
-        finally {if(owner===token()){busy=false;loaded=true;render();}}
+        finally {if(owner===token()){
+            busy=false;
+            if(refreshAfterCurrent){refreshAfterCurrent=false;refresh();}
+            else {loaded=true;render();}
+        }}
+    }
+    function visibilityChanged() {
+        writes++; loads=[]; trucks=[]; loaded=false;
+        nakgoFavorites.reset(); nakgoFavorites.ensure();
+        if(busy){refreshAfterCurrent=true;render();}
+        else refresh();
     }
     function payload(x,truck) {
         const dates=!truck&&'dateText' in x?{date:null,dateEnd:''}:dateFields(x.date);
@@ -798,7 +816,7 @@ const nakgoMarket = (() => {
         return '<p class="demo-note" role="status">'+(error?esc(error):'İlanların, fotoğrafların, kayıtlı ilanların, rota alarmların ve mesajların hesabında saklanır.')+'</p>'+
             '<div class="chips"><button class="chip" id="market-refresh" '+(busy?'disabled':'')+'>İlanları yenile</button>'+((feedMore||ownMore)?'<button class="chip" id="market-more" '+(busy?'disabled':'')+'>Daha fazla ilan yükle</button>':'')+'</div>';
     }
-    return {active,guest,locked,requireAccount,token,sync,refresh,create,update,pending,controls,mapped};
+    return {active,guest,locked,requireAccount,token,sync,refresh,visibilityChanged,create,update,pending,controls,mapped};
 })();
 
 // Private favorite membership and pages never enter the device demo store.

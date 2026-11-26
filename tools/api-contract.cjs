@@ -72,11 +72,12 @@ async function databaseSide(db){
   for(const [file,spec] of Object.entries(contract.migration_execute||{})){
     const required=presentMigrations?presentMigrations.has(file):fs.existsSync(path.join(root,'supabase/migrations',file));
     for(const [sig,v] of Object.entries(spec.functions)){
-      const name=sig.replace(/\(.*$/,''),args=sig.slice(sig.indexOf('(')+1,-1);
-      const fns=await q(`select pg_get_function_identity_arguments(p.oid) a from pg_proc p where p.pronamespace='public'::regnamespace and p.proname=$1`,[name]);
+      const qualified=sig.replace(/\(.*$/,''),args=sig.slice(sig.indexOf('(')+1,-1);
+      const [schema,name]=qualified.includes('.')?qualified.split('.'):['public',qualified];
+      const fns=await q(`select pg_get_function_identity_arguments(p.oid) a from pg_proc p where p.pronamespace=$1::regnamespace and p.proname=$2`,[schema,name]);
       if(!fns.length){ok(!required,name+': '+file+' depoda var ama fonksiyon veritabanında yok');continue;}
       ok(fns.length===1&&fns[0].a===args,name+': imza sözleşmeyle uyuşmuyor: '+fns.map(f=>f.a).join(' | '));
-      for(const r of v.roles)allowed.add('public.'+name+' '+r);
+      for(const r of v.roles)allowed.add(schema+'.'+name+' '+r);
     }
   }
   const exposed=await q(`select n.nspname||'.'||p.proname||' '||r.rolname k from pg_proc p join pg_namespace n on n.oid=p.pronamespace

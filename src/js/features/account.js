@@ -22,6 +22,8 @@ function listBind() {
         save();
         render();
     });
+    const remoteBlocks = $("#listing-owner-blocks");
+    if (remoteBlocks) remoteBlocks.onclick = openListingOwnerBlocks;
     if ($("#inst"))
         $("#inst").onclick = async () => {
             if (!deferredInstall)
@@ -297,13 +299,68 @@ function blockUser(u) {
     toast("Kullanıcı engellendi");
 }
 
+function canBlockListingOwner(item) {
+    return item._remote ? nakgoMarket.active() && !item.mine && Number.isSafeInteger(item.remoteId)
+        : Boolean(item.uid && item.uid !== me && !item.mine);
+}
+
+async function blockListingOwner(item, button) {
+    if (!item._remote) return blockUser(item.uid);
+    if (button.disabled) return;
+    const account = nakgoMarket.token();
+    button.disabled = true;
+    try {
+        await nakgoAuth.listingBlocks("add", item.remoteId);
+        if (account !== nakgoMarket.token()) return;
+        if ($("#bk2") === button) closeSheet();
+        nakgoMarket.visibilityChanged();
+        toast("Kullanıcı engellendi");
+    } catch (e) {
+        if (account === nakgoMarket.token() && $("#bk2") === button) {
+            toast(e?.code === "54000" ? "Engellenen hesap sınırına ulaştın." : "Kullanıcı engellenemedi. Yeniden dene.");
+        }
+    } finally { button.disabled = false; }
+}
+
+async function openListingOwnerBlocks() {
+    const account = nakgoMarket.token(), body = $("#sheetBody");
+    roadMapDispose(true);
+    body.innerHTML = `<div class="load-detail"><div class="detail-top"><h2>Engellenen hesaplar</h2><button class="chip detail-close" id="close">Kapat</button></div><div class="detail-scroll" id="listing-owner-block-list" aria-live="polite">Yükleniyor…</div></div>`;
+    $("#close").onclick = closeSheet;
+    $("#sheet").classList.add("open");
+    const list = $("#listing-owner-block-list");
+    const current = () => account === nakgoMarket.token() && $("#listing-owner-block-list") === list && $("#sheet").classList.contains("open");
+    try {
+        const rows = await nakgoAuth.listingBlocks("list");
+        if (!current()) return;
+        list.innerHTML = rows.length ? rows.map(row => `<div class="kv"><span>${esc(row.owner_label)}</span><button class="chip" data-block-id="${esc(row.id)}">Engeli kaldır</button></div>`).join("") : "Engellenen hesap yok.";
+        list.querySelectorAll("[data-block-id]").forEach(button => button.onclick = async () => {
+            if (button.disabled) return;
+            button.disabled = true;
+            try {
+                await nakgoAuth.listingBlocks("remove", button.dataset.blockId);
+                if (account !== nakgoMarket.token()) return;
+                nakgoMarket.visibilityChanged();
+                if (current()) openListingOwnerBlocks();
+            } catch (e) {
+                if (current()) toast("Engel kaldırılamadı. Yeniden dene.");
+            } finally { button.disabled = false; }
+        });
+    } catch (e) {
+        if (!current()) return;
+        list.innerHTML = 'Engellenen hesaplar yüklenemedi. <button class="chip" id="listing-owner-block-retry">Yeniden dene</button>';
+        $("#listing-owner-block-retry").onclick = openListingOwnerBlocks;
+    }
+}
+
 const reportsCard = () => {
     if (!admin)
         return "";
     return `<div class="load u-cdef"><b>Şikayetler (${reports.length})</b>${reports.length ? reports.map(x => `<div class="kv u-block"><b class="u-fs14">${esc(x.reason)} · ${x.kind === "l" ? "ilan" : x.kind === "u" ? "kullanıcı" : "boş araç"} ${esc(x.tid)}</b>${x.note ? `<div class="u-fs125-mute-mt4">${esc(x.note)}</div>` : ""}<button class="chip u-mt8" data-rc="${esc(x.k)}">Kapat</button></div>`).join("") : `<p class="u-mt8-fs13-mute">Şikayet yok.</p>`}</div>`;
 };
 
-const blockedCard = () => blocked.length ? `<div class="load u-cdef"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span class="u-ink-b7">${esc(nm(u))}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
+const blockedCard = () => nakgoMarket.active() ? '<button class="chip" id="listing-owner-blocks">Engellenen hesaplar</button>'
+    : blocked.length ? `<div class="load u-cdef"><b>Engellenenler</b>${blocked.map(u => `<div class="kv"><span class="u-ink-b7">${esc(nm(u))}</span><button class="chip" data-ub="${esc(u)}">Kaldır</button></div>`).join("")}</div>` : "";
 
 const helpCard = () => `<div class="load u-cdef"><b>Yardım ve destek</b>${FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join("")}${SUPPORT_MAIL.endsWith("@example.com") ? '<p class="estimate-note">Destek iletişim adresi henüz tanımlanmadı.</p>' : `<a class="chip u-iblock-mt12-tdn" href="mailto:${SUPPORT_MAIL}">Bize yaz</a>`}</div>`;
 

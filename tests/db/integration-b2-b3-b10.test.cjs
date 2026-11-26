@@ -115,21 +115,25 @@ test('Birleşik entegrasyon B2 + B3 + B10',async t=>{
         assert.equal((await db.query(`select has_function_privilege('anon','api.${f}(${sig})','execute') v`)).rows[0].v,false,f);
       }
     });
-    await t.test('SECURITY DEFINER denetimi: bütün api uçları DEFINER + boş search_path; private yardımcıları istemciye kapalı; public DEFINER fonksiyonları PUBLIC\'e kapalı',async()=>{
+    await t.test('SECURITY DEFINER denetimi: api uçları DEFINER ve boş search_path kullanır, istemci yetkileri izin listesiyle sınırlıdır',async()=>{
       const api=(await db.query(`select p.proname,p.prosecdef,p.proconfig from pg_proc p where p.pronamespace='api'::regnamespace`)).rows;
       assert.ok(api.length>=Object.keys(v1.functions).length);
       for(const f of api){assert.equal(f.prosecdef,true,f.proname);assert.ok(f.proconfig.length===1&&/^search_path=("")?$/.test(f.proconfig[0]),f.proname+' '+f.proconfig);}
       const open=(await db.query(`select p.oid::regprocedure::text f,r from pg_proc p cross join (values('anon'),('authenticated')) v(r)
         where p.pronamespace='private'::regnamespace and has_function_privilege(v.r,p.oid,'execute')`)).rows;
-      // Bilinen istisnalar: kapatılmış taşıyıcı belgesi özelliğinin RLS politikalarında kullanılan üç kontrol (eski özellik).
-      const legacy=['private.document_account_verified()','private.document_object_access(text,text)','private.is_document_reviewer()'];
-      assert.deepEqual(open.filter(x=>!legacy.includes(x.f)),[],'private şemasında istemcinin çalıştırabildiği yeni fonksiyon yok: '+JSON.stringify(open));
-      assert.ok(open.every(x=>x.r==='authenticated'),'misafire hiçbiri açık değil');
+      // Korumalı tablolardaki politikalar yalnız bu dört kimlik denetimini çağırır.
+      assert.deepEqual(open.map(({f,r})=>`${f} ${r}`).sort(),[
+        'private.document_account_verified() authenticated',
+        'private.document_object_access(text,text) authenticated',
+        'private.is_document_reviewer() authenticated',
+        'private.viewer_blocks_listing_owner(uuid) authenticated',
+      ]);
       const pub=(await db.query(`select p.oid::regprocedure::text f from pg_proc p where p.pronamespace='public'::regnamespace and p.prosecdef
         and exists(select 1 from aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a where a.grantee=0 and a.privilege_type='EXECUTE')`)).rows;
       assert.deepEqual(pub,[],'PUBLIC\'e açık SECURITY DEFINER yok');
       assert.equal((await db.query(`select has_table_privilege('anon','private.api_requests','select') a,has_table_privilege('authenticated','private.contact_views','select') b,
-        has_table_privilege('authenticated','private.security_events','select') c`)).rows.every(r=>!r.a&&!r.b&&!r.c),true,'özel tablolar kapalı');
+        has_table_privilege('authenticated','private.security_events','select') c,
+        has_table_privilege('authenticated','private.listing_owner_blocks','select') d`)).rows.every(r=>!r.a&&!r.b&&!r.c&&!r.d),true,'özel tablolar kapalı');
     });
     await t.test('hesap silme (v1) sonrası gece temizliği: denetim ve güvenlik olayları kalır, tekrar kaydı yok',async()=>{
       const D=uid(30);await db.query(`insert into auth.users(id,email_confirmed_at) values($1,now())`,[D]);

@@ -13,9 +13,11 @@ module.exports=({test,boot})=>{
      blocked=['00000000-0000-4000-8000-0000000000aa','00000000-0000-4000-8000-0000000000bb'];`);
   ok(r(`return loads[0].uid`)===null&&r(`return loads[0].mine`)===false,'v1 satırı: sahip bilinmiyor, kendi ilanı değil');
   r(`openLoad(1)`);const v1html=r(`return $("#sheetBody").innerHTML`);
-  ok(!v1html.includes('id="bk2"'),'v1: Engelle düğmesi yok');
+  ok(v1html.includes('id="bk2"'),'v1: Engelle düğmesi sahip kimliği olmadan gösterilir');
   ok(v1html.includes('Ayşe Nakliyat')&&v1html.includes('id="pf"')&&v1html.includes('id="rp"'),'v1: sahip adı, Profili gör ve Şikayet et duruyor');
-  ok(r(`return availableListing(loads[0])`)===true,'v1: engellenen hesap filtresi uygulanmaz (sahip bilinmiyor)');
+  await r(`nakgoAuth.listingBlocks=async (...args)=>{globalThis.blockArgs=args;};nakgoMarket.visibilityChanged=()=>{};
+      return $("#bk2").onclick({currentTarget:$("#bk2")});`);
+  ok(r(`return JSON.stringify(globalThis.blockArgs)`) === '["add",1]','v1: engelleme yalnız ilan kimliğini gönderir');
   // v0 satırı (bugünkü durum): sahip kimliği var, Engelle düğmesi ve filtre aynen.
   r(`openLoad(2)`);const v0html=r(`return $("#sheetBody").innerHTML`);
   ok(v0html.includes('id="bk2"'),'v0: Engelle düğmesi sürer');
