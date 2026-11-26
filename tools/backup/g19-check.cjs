@@ -9,7 +9,10 @@
  *   role         bağlanan rol beklenen rol; süper kullanıcı değil; yalnız pg_read_all_data; BYPASSRLS; yazma yetkisi yok;
  *                rol düzeyinde salt okunur; geçerlilik süresi en fazla 14 gün
  *   read_only    aracın oturumu salt okunur yapması
- *   session_mode oturum, işlemler arasında aynı sunucu sürecinde kalır ve oturum ayarı korunur (işlem modu değil)
+ *   session_mode YOKLAMA (kesin kanıt değil): işlem havuzlamasının belirtilerini arar (süreç değişmesi, ayar kaybı,
+ *                başka istemcinin bu istemcinin sunucu sürecini alması); belirti görülürse kesin düşer
+ *   pooler_mode_confirmed  sahibin Supabase panelinde "Session pooler" (5432) bağlantısını elle teyidi
+ *                (NAKGO_G19_POOLER_MODE=session); yoklama geçse de bu olmadan sonuç başarılı sayılmaz
  *   snapshot     bir oturumda dışa aktarılan anlık görüntü ikinci oturumda içe alınır
  *   pg_dump      PostgreSQL 17 pg_dump, libpq verify-full ile ve aynı anlık görüntüden yalnız şema dökümü alır
  *                (tablo verisi alınmaz; dosya geçici klasörde, sonunda silinir) ve pg_restore arşivi okur
@@ -20,6 +23,7 @@
  * Kullanım (sahibin makinesi; ayrı yazılı onayla):
  *   PGHOST=<havuzlayıcı> PGPORT=5432 PGUSER=nakgo_bootstrap_reader.<proje-ref> PGDATABASE=postgres \
  *   PGSSLMODE=verify-full PGSSLROOTCERT=<supabase kök sertifikası> NAKGO_PG_BIN=<pg17 bin> NAKGO_PG_HOST=<yerel pg> \
+ *   NAKGO_G19_POOLER_MODE=session   # yalnız panelde "Session pooler" (5432) görüldükten sonra \
  *   read -s PGPASSWORD && export PGPASSWORD && node tools/backup/g19-check.cjs; unset PGPASSWORD
  * Çıkış kodu: 0 hepsi geçti, 1 en az biri başarısız, 2 kullanım hatası. */
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),dns=require('node:dns').promises,net=require('node:net');
@@ -42,7 +46,35 @@ async function tryConnect(Client,cfg){
 }
 const tlsReject=r=>!r.ok&&(/^(ERR_TLS|UNABLE_TO|SELF_SIGNED|DEPTH_ZERO|CERT_|ERR_SSL)/.test(r.code)||/certificate|self[- ]signed|altnames|Hostname\/IP/i.test(r.msg));
 
-async function g19Check({conn,expectRole=EXPECT_ROLE,pgBin=process.env.NAKGO_PG_BIN,allowLocal=false,Client,localPg=process.env.NAKGO_PG_HOST}={}){
+/** İşlem (transaction) havuzlamasına karşı yoklama. A (zaten bağlı, işlem dışında) bir oturum ayarı koyar; iki ek istemci
+ * aynı anda işlem açar. Oturum modunda bir sunucu süreci, istemcisi bağlı kaldıkça yalnız ona aittir: başka bir istemci
+ * A'nın sürecini alamaz, A'nın ayarını göremez, A'nın süreci değişmez. Bunlardan biri görülürse işlem modu KESİN demektir.
+ * Hiçbiri görülmezse bu yalnız "belirti yok"tur: havuzlayıcı ek istemcilere yeni bağlantı açmış olabilir. Bu yüzden sonuç
+ * kanıt değil yoklamadır; oturum modu ayrıca sahibin panel teyidiyle (pooler_mode_confirmed) zorunlu tutulur.
+ * En fazla 3 eşzamanlı bağlantı kullanır (bootstrap rolünün bağlantı sınırı). */
+async function sessionModeProbe(a,open,{waitMs=1000}={}){
+  const extra=[];
+  try{
+    const p1=(await a.query(`select pg_backend_pid() p,set_config('nakgo.g19_probe','a',false) s`)).rows[0].p;
+    await new Promise(r=>setTimeout(r,waitMs));
+    const s2=(await a.query(`select pg_backend_pid() p,current_setting('nakgo.g19_probe',true) n`)).rows[0];
+    if(s2.p!==p1)return {ok:false,detail:'işlem modu: aynı istemcinin sunucu süreci değişti'};
+    if(s2.n!=='a')return {ok:false,detail:'işlem modu: oturum ayarı korunmadı'};
+    for(let i=0;i<2;i++){const b=await open();extra.push(b);await b.query('begin');}
+    for(const b of extra){
+      const r=(await b.query(`select pg_backend_pid() p,current_setting('nakgo.g19_probe',true) n`)).rows[0];
+      if(r.p===p1)return {ok:false,detail:"işlem modu: başka bir istemci, ilk istemci bağlıyken onun sunucu sürecini aldı"};
+      if(r.n==='a')return {ok:false,detail:"işlem modu: ilk istemcinin oturum ayarı başka istemcide görünüyor"};
+    }
+    const p3=(await a.query('select pg_backend_pid() p')).rows[0].p;
+    if(p3!==p1)return {ok:false,detail:'işlem modu: aynı istemcinin sunucu süreci değişti'};
+    return {ok:true,detail:'yoklama: işlem modu belirtisi yok (kesin kanıt değil; panel teyidi zorunlu)'};
+  }catch(e){return {ok:false,detail:'yoklama: '+scrub(e)};}
+  finally{for(const b of extra){await b.query('rollback').catch(()=>{});await b.end().catch(()=>{});}}
+}
+
+async function g19Check({conn,expectRole=EXPECT_ROLE,pgBin=process.env.NAKGO_PG_BIN,allowLocal=false,Client,localPg=process.env.NAKGO_PG_HOST,
+  poolerMode=process.env.NAKGO_G19_POOLER_MODE}={}){
   Client=Client||require('pg').Client;
   const checks=[];const add=(code,ok,detail)=>{checks.push({code,ok:!!ok,...(detail?{detail}:{})});return !!ok;};
   const done=()=>({status:checks.every(c=>c.ok)?'ok':'failed',checks});
@@ -84,12 +116,11 @@ async function g19Check({conn,expectRole=EXPECT_ROLE,pgBin=process.env.NAKGO_PG_
     if(!r.rolvaliduntil||new Date(r.rolvaliduntil)<=new Date()||new Date(r.rolvaliduntil)>new Date(Date.now()+14*86400000))roleProblems.push('geçerlilik süresi şimdiden sonra ve en fazla 14 gün olmalı');
     add('role',!roleProblems.length,roleProblems.join('; ')||`${r.cu}, PostgreSQL ${r.major}`);
     try{add('read_only',(await D.enforceReadOnly(a))==='on');}catch(e){add('read_only',false,scrub(e));}
-    // 4. Oturum modu: ayrı işlemler arasında aynı süreç ve oturum ayarı korunur.
-    const p1=(await a.query(`select pg_backend_pid() p,set_config('application_name','nakgo-g19',false) s`)).rows[0].p;
-    await new Promise(res=>setTimeout(res,1500));
-    const s2=(await a.query(`select pg_backend_pid() p,current_setting('application_name') n`)).rows[0];
-    const s3=(await a.query(`select pg_backend_pid() p`)).rows[0];
-    add('session_mode',p1===s2.p&&s2.p===s3.p&&s2.n==='nakgo-g19',p1===s2.p&&s2.p===s3.p?(s2.n==='nakgo-g19'?undefined:'oturum ayarı kayboldu'):'sunucu süreci değişti (işlem modu?)');
+    // 4. Oturum modu: yalnız YOKLAMA (kesin kanıt değil) + sahibin panelden teyidi (zorunlu).
+    const probe=await sessionModeProbe(a,async()=>{const x=new Client(cfg);x.on('error',()=>{});await x.connect();return x;});
+    checks.push({code:'session_mode',ok:probe.ok,kind:'probe',detail:probe.detail});
+    add('pooler_mode_confirmed',poolerMode==='session',poolerMode==='session'?'sahip teyidi: oturum havuzlayıcısı (5432)'
+      :'NAKGO_G19_POOLER_MODE=session gerekli: Supabase panelinde bağlantı dizesinin "Session pooler" (5432) olduğu elle doğrulanmalı');
     // 5. Anlık görüntü paylaşımı ve pg_dump (yalnız şema).
     await a.query('begin isolation level repeatable read read only');
     const snap=(await a.query('select pg_export_snapshot() s')).rows[0].s;
@@ -131,7 +162,7 @@ async function g19Check({conn,expectRole=EXPECT_ROLE,pgBin=process.env.NAKGO_PG_
   return done();
 }
 
-module.exports={g19Check,connFromEnv,roleOfUser,EXPECT_ROLE,WRONG_CA};
+module.exports={g19Check,sessionModeProbe,connFromEnv,roleOfUser,EXPECT_ROLE,WRONG_CA};
 
 if(require.main===module){
   (async()=>{

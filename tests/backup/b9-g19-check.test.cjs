@@ -7,7 +7,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),net=require('node:net');
 const {spawnSync,execFileSync}=require('node:child_process');
-const {g19Check,roleOfUser,WRONG_CA}=require('../../tools/backup/g19-check.cjs');
+const {g19Check,sessionModeProbe,roleOfUser,WRONG_CA}=require('../../tools/backup/g19-check.cjs');
 const {startCluster,adminClient}=require('../../tools/backup/pg-cluster.cjs');
 const {binPath,toolMajor}=require('../../tools/backup/dump.cjs');
 
@@ -66,14 +66,16 @@ test('G19 denetimi gerçek TLS (verify-full) ile',async t=>{
     await adm.query(`alter role ${ROLE} password 'test-only-reader'`);
     const conn={host:'localhost',port,user:ROLE,password:'test-only-reader',database:'postgres',sslmode:'verify-full',sslrootcert:path.join(certs,'ca.pem')};
     const local=process.env.NAKGO_PG_HOST;
-    const run=(over={},opts={})=>g19Check({conn:{...conn,...over},pgBin,allowLocal:true,localPg:local,...opts});
+    const run=(over={},opts={})=>g19Check({conn:{...conn,...over},pgBin,allowLocal:true,localPg:local,poolerMode:'session',...opts});
     const byCode=x=>Object.fromEntries(x.checks.map(c=>[c.code,c]));
 
     await t.test('olumlu: bütün kontroller geçer (yanlış kök ve IP ile bağlantı reddedilir, anlık görüntü ve pg_dump verify-full ile)',async()=>{
       const x=await run();
       assert.equal(x.status,'ok',JSON.stringify(x.checks.filter(c=>!c.ok)));
-      assert.deepEqual(x.checks.map(c=>c.code),['rules','tls_wrong_ca','tls_hostname','connect','role','read_only','session_mode','snapshot','tools','pg_dump','local_pg'].filter(c=>c!=='local_pg'||local));
+      assert.deepEqual(x.checks.map(c=>c.code),['rules','tls_wrong_ca','tls_hostname','connect','role','read_only','session_mode','pooler_mode_confirmed','snapshot','tools','pg_dump','local_pg'].filter(c=>c!=='local_pg'||local));
       assert.match(byCode(x).pg_dump.detail,/şema öğesi/);
+      assert.equal(byCode(x).session_mode.kind,'probe','oturum modu yoklamadır, kanıt olarak raporlanmaz');
+      assert.match(byCode(x).session_mode.detail,/kesin kanıt değil/);
       assert.doesNotMatch(JSON.stringify(x),/test-only|localhost|127\.0\.0\.1/,'raporda parola ya da sunucu adı yok');
       const left=fs.readdirSync(os.tmpdir()).filter(f=>f.startsWith('nakgo-g19-'));
       assert.deepEqual(left,[],'geçici şema dökümü silindi');
@@ -98,6 +100,54 @@ test('G19 denetimi gerçek TLS (verify-full) ile',async t=>{
       const x=await run({user:'nakgo_g19_weak',password:'test-only-weak'},{expectRole:'nakgo_g19_weak'});
       const c=byCode(x);assert.equal(x.status,'failed');assert.equal(c.role.ok,false);
       for(const re of [/BYPASSRLS yok/,/üyelikler/,/yazma yetkisi/,/salt okunur varsayılan yok/,/INHERIT/])assert.match(c.role.detail,re);
+    });
+
+    await t.test('oturum modu yoklaması geçse de panel teyidi (NAKGO_G19_POOLER_MODE=session) yoksa sonuç başarısızdır',async()=>{
+      for(const poolerMode of [undefined,'transaction','']){
+        const x=await run({},{poolerMode});const c=byCode(x);
+        assert.equal(c.session_mode.ok,true);assert.equal(c.pooler_mode_confirmed.ok,false);assert.equal(x.status,'failed');
+        assert.match(c.pooler_mode_confirmed.detail,/Session pooler/);
+      }
+    });
+
+    await t.test('gerçek havuzlayıcı (pgbouncer): işlem modu yakalanır, oturum modu yoklamadan geçer; eski yoklama işlem modunda da geçerdi',async t2=>{
+      if(spawnSync('pgbouncer',['--version']).status!==0){t2.skip('pgbouncer yok (CI kurulumunda yok; yerelde çalıştırılır)');return;}
+      const pb=fs.mkdtempSync(path.join(os.tmpdir(),'nakgo-pgb-'));fs.chmodSync(pb,0o755);
+      const asUser=process.getuid&&process.getuid()===0?process.env.NAKGO_PG_RUN_AS:null;
+      const started=[];
+      try{
+        const ports={};
+        for(const mode of ['transaction','session']){
+          ports[mode]=await freePort();
+          fs.writeFileSync(path.join(pb,mode+'.ini'),[`[databases]`,`postgres = host=${cl.host} port=${port} dbname=postgres user=${cl.admin}`,
+            `[pgbouncer]`,`listen_addr = 127.0.0.1`,`listen_port = ${ports[mode]}`,`unix_socket_dir =`,`auth_type = trust`,`auth_file = ${path.join(pb,'users.txt')}`,
+            `pool_mode = ${mode}`,`default_pool_size = 5`,`logfile = ${path.join(pb,mode+'.log')}`,`pidfile = ${path.join(pb,mode+'.pid')}`,''].join('\n'));
+        }
+        fs.writeFileSync(path.join(pb,'users.txt'),`"${cl.admin}" ""\n`);
+        if(asUser)execFileSync('chown',['-R',asUser,pb]);
+        for(const mode of ['transaction','session']){
+          const ini=path.join(pb,mode+'.ini');
+          const r=asUser?spawnSync('su',[asUser,'-s','/bin/sh','-c',`pgbouncer -d ${ini}`],{encoding:'utf8'}):spawnSync('pgbouncer',['-d',ini],{encoding:'utf8'});
+          assert.equal(r.status,0,r.stderr);started.push(path.join(pb,mode+'.pid'));
+        }
+        await new Promise(r=>setTimeout(r,500));
+        const {Client}=require('pg');
+        const open=pport=>async()=>{const c=new Client({host:'127.0.0.1',port:pport,user:cl.admin,database:'postgres'});c.on('error',()=>{});await c.connect();return c;};
+        const oldProbe=async a=>{const p1=(await a.query(`select pg_backend_pid() p,set_config('nakgo.old','x',false) s`)).rows[0].p;
+          const s2=(await a.query(`select pg_backend_pid() p,current_setting('nakgo.old',true) n`)).rows[0];return p1===s2.p&&s2.n==='x';};
+        const res={};
+        for(const mode of ['transaction','session']){
+          const a=await open(ports[mode])();
+          try{res[mode]={old:await oldProbe(a),now:await sessionModeProbe(a,open(ports[mode]),{waitMs:200})};}finally{await a.end().catch(()=>{});}
+        }
+        assert.equal(res.transaction.old,true,'eski yoklama işlem modunda yanlışlıkla geçiyordu');
+        t2.diagnostic('işlem modu: '+res.transaction.now.detail);assert.equal(res.transaction.now.ok,false,JSON.stringify(res.transaction.now));assert.match(res.transaction.now.detail,/işlem modu/);
+        assert.equal(res.session.now.ok,true,JSON.stringify(res.session.now));assert.match(res.session.now.detail,/kesin kanıt değil/);
+      }finally{
+        for(const pf of started){try{process.kill(Number(fs.readFileSync(pf,'utf8')),'SIGTERM');}catch{}}
+        await new Promise(r=>setTimeout(r,300));
+        fs.rmSync(pb,{recursive:true,force:true});
+      }
     });
 
     await t.test('sunucu sertifikası IP adresini de kapsıyorsa sunucu adı kontrolü bunu yakalar',async()=>{
