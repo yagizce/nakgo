@@ -16,22 +16,25 @@ function syncDetailViewport() {
 
 // API v1 listesi fotoğraf taşımaz (yalnız has_photo); fotoğraf ayrıntı açılınca alınır. Yüklenene kadar yer tutucu;
 // boş yanıtta yer tutucu kalkar, hata, ağ kesintisi ya da 15 sn zaman aşımında "Yeniden dene" gösterilir.
-let detailPhotoFor = null;
+let detailPhotoRequest = null;
 const detailPhotoHTML = l => imgOk(l.img) ? `<img class="ph" src="${l.img}" alt="Yük fotoğrafı">`
     : l.hasPhoto && l._remote && nakgoMarket.active() ? '<div class="ph ph-wait" id="detail-photo" role="status">Fotoğraf yükleniyor…</div>' : "";
 function loadDetailPhoto(l) {
-    detailPhotoFor = null;
-    if (imgOk(l.img) || !l.hasPhoto || !l._remote || !nakgoMarket.active() || !$("#detail-photo")) return;
-    const id = l.remoteId, owner = nakgoMarket.token();
-    detailPhotoFor = id;
-    // Başka ilan açıldıysa, oturum değiştiyse ya da yer tutucu yoksa sonuç ekrana yazılmaz.
-    const slot = () => detailPhotoFor === id && owner === nakgoMarket.token() ? $("#detail-photo") : null;
+    detailPhotoRequest = null;
+    const placeholder = $("#detail-photo");
+    if (imgOk(l.img) || !l.hasPhoto || !l._remote || !nakgoMarket.active() || !placeholder) return;
+    const request = { owner: nakgoMarket.token() };
+    detailPhotoRequest = request;
+    // Aynı ilan yeniden açıldığında veya hesap değiştiğinde eski yanıtı kullanma.
+    const slot = () => detailPhotoRequest === request && request.owner === nakgoMarket.token()
+        && $("#detail-photo") === placeholder ? placeholder : null;
     let timer;
     const late = new Promise((_, fail) => { timer = setTimeout(() => fail(Error("timeout")), 15000); });
-    Promise.race([nakgoAuth.listingPhoto(id), late]).then(photo => {
+    Promise.race([nakgoAuth.listingPhoto(l.remoteId), late]).then(photo => {
         const s = slot();
-        if (imgOk(photo)) { l.img = photo; if (s) s.outerHTML = `<img class="ph" src="${photo}" alt="Yük fotoğrafı">`; }
-        else { l.hasPhoto = false; if (s && s.remove) s.remove(); }
+        if (!s) return;
+        if (imgOk(photo)) { l.img = photo; s.outerHTML = `<img class="ph" src="${photo}" alt="Yük fotoğrafı">`; }
+        else { l.hasPhoto = false; if (s.remove) s.remove(); }
     }, () => {
         const s = slot();
         if (!s) return;
