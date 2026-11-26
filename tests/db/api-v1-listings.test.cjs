@@ -78,6 +78,42 @@ function expectedItem(row,{member=false,actor=null,photo=null,detail=false}){
 }
 const norm=x=>JSON.parse(JSON.stringify(x,(k,v)=>k==='amount'?Number(v):v));
 
+test('Hesap engeli v0 ve v1 ilan erişiminde yalnız engelleyen üyeye uygulanır',async()=>{
+  const db=await migratedDb();let primary=null;
+  try{
+    const {A,B}=await seed(db);
+    const row=(await db.query(`select l.id,l.owner_id from private.api_visible_listings v join public.listings l using(id)
+      where l.owner_id<>$1 and l.owner_id<>$2 and l.contact_consent order by l.id desc limit 1`,[A,B])).rows[0];
+    const id=Number(row.id),actor={user:A},other={user:B};
+    const query=(who,sql,args=[id])=>as(db,who,sql,args);
+    const detail='select api.listing_v1($1) r';
+    const read='select id from public.listings where id=$1';
+    const publicRead='select id from public.nakgo_public_listings($1+1) where id=$1';
+    const add='select public.nakgo_block_listing_owner($1) id';
+    const remove='select public.nakgo_unblock_listing_owner($1)';
+    const list='select * from public.nakgo_list_listing_owner_blocks()';
+    assert.equal((await query(actor,detail)).rows[0].r.data.id,id);
+    assert.equal((await query({role:'anon'},add)).error.code,'42501');
+    const block=(await query(actor,add)).rows[0].id;
+    assert.equal((await query(actor,add)).rows[0].id,block);
+    assert.deepEqual(Object.keys((await query(actor,list,[])).rows[0]).sort(),['id','owner_label']);
+    assert.deepEqual((await query(other,list,[])).rows,[]);
+    assert.equal((await query(actor,'select * from private.listing_owner_blocks',[])).error.code,'42501');
+    await query(other,remove,[block]);
+    assert.deepEqual((await query(actor,read)).rows,[]);
+    assert.deepEqual((await query(actor,publicRead)).rows,[]);
+    assert.equal((await query(actor,detail)).error.key,'not_found');
+    const page=(await query(actor,'select api.listings_v1(p_cursor=>$1::text) r',[id+1])).rows[0].r.data;
+    assert.ok(!page.some(item=>item.id===id));
+    assert.equal((await query(actor,'select public.nakgo_listing_contact($1)')).error.code,'42501');
+    assert.equal((await query(actor,'select public.nakgo_set_favorite($1,true)')).error.code,'42501');
+    assert.equal((await query(other,detail)).rows[0].r.data.id,id);
+    assert.equal(Number((await query({role:'anon'},publicRead)).rows[0].id),id);
+    await query(actor,remove,[block]);
+    assert.equal((await query(actor,detail)).rows[0].r.data.id,id);
+  }catch(e){primary=e;throw e;}finally{await finish(db,primary);}
+});
+
 test('API v1 ilan okuma uçları',async t=>{
   const db=await migratedDb();let primary=null;
   try{

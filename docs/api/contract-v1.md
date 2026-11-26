@@ -93,6 +93,8 @@ Migration: `supabase/migrations/20261118050000_b3b1_api_listings.sql`. Testler: 
 
 Görünürlük: misafir ve üye için tek kural, `private.api_visible_listings` (v0 `nakgo_public_listings` kuralı: aktif,
 süresi dolmamış, tarihi geçmemiş, moderasyonla kaldırılmamış, sahibi askıda değil).
+Oturum açmış bir üyenin engellediği hesapların ilanları bu üyeye listede ve ayrıntıda gösterilmez. Bu filtre v0 okumalarında da uygulanır.
+Engelleme işlemi ilan kimliğini kullanır ve ilan yanıtına sahip kimliği eklemez. Telefon erişimi ve favori ekleme de aynı engeli uygular.
 
 İlan alanları (`listing_item` sözleşmede): misafir için kimlik, tür, nereden/nereye (il, ilçe), araç, kasa, tutar, yük,
 kalemler, tarih (gün, bitiş, saat, metin), durum, oluşturma zamanı, `has_photo`. Üyeye ayrıca sahip etiketi, not,
