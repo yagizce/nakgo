@@ -166,10 +166,39 @@ kaldırılmalıdır.
  read -s PGPASSWORD; export PGPASSWORD
 export NAKGO_PG_HOST=localhost NAKGO_PG_PORT=<yerel port> NAKGO_PG_BIN=<PostgreSQL 17 bin>
 export NODE_PATH="$PWD/ops/backup/ci/node_modules"   # npm ci --prefix ops/backup/ci --ignore-scripts ile kuruldu
+# G19 (ayrı onay): döküm almadan önce aynı ortamla bağlantı denetimi. Tablo okumaz, yazmaz; yalnız evet/hayır raporlar.
+export NAKGO_G19_POOLER_MODE=session   # yalnız panelde "Session pooler" (5432) görüldükten sonra
+node tools/backup/g19-check.cjs        # çıkış 0 değilse durulur; run çalıştırılmaz
 node tools/backup/bootstrap.cjs run --out <boş klasör> --recipients ops/backup/recipients.txt \
   --recipients-sha256 <config.json'daki değer> --approval "<onay kaydı kimliği>"
 unset PGPASSWORD
 ```
+
+**G19 denetimi** (`tools/backup/g19-check.cjs`, test: `tests/backup/b9-g19-check.test.cjs`). `PGUSER`
+`nakgo_bootstrap_reader.<proje-ref>` olmalı; `NAKGO_PG_PASSWORD` yerel geri yükleme sunucusunun parolasıdır.
+Kontroller ve başarısızlıkta yapılacak:
+
+| Kod | Kanıtladığı | Düşerse |
+|---|---|---|
+| `rules` | 5432, `verify-full`, kök sertifika dosyası, `*.pooler.supabase.com`, kullanıcı bootstrap rolü | Ortamı düzelt; bağlantı kurulmadı. |
+| `tls_wrong_ca` | Başka bir kökle (`ops/backup/g19-wrong-ca.pem`, yalnız açık sertifika) bağlantı TLS'de reddedilir | Dur: doğrulama etkisiz. `sslmode` asla gevşetilmez. |
+| `tls_hostname` | Sunucu adı yerine IP ile bağlantı sertifika adı uyuşmazlığıyla reddedilir | Dur: sunucu adı doğrulanmıyor. |
+| `connect` | Doğru kök sertifikayla node-pg bağlanır | Kök sertifika yanlış ya da zincir farklı: dur, sertifikayı panelden yeniden indir; kod değişikliği gerekebilir. |
+| `role` | Rol beklenen; süper kullanıcı değil; yalnız `pg_read_all_data`; BYPASSRLS; yazma ve şemada CREATE yok; rol düzeyinde salt okunur; süre ≤ 14 gün | Dur: rolü kaldırıp betikle yeniden oluştur. |
+| `read_only` | Aracın oturumu salt okunur yapabilmesi | Dur. |
+| `session_mode` (**yoklama**) | İşlem havuzlaması belirtisi arar: aynı istemcide süreç değişmesi ya da ayar kaybı; ilk istemci bağlıyken başka istemcinin onun sunucu sürecini alması ya da ayarını görmesi. Belirti varsa işlem modu **kesindir**; belirti yoksa yalnız "belirti yok"tur (havuzlayıcı ek istemcilere yeni bağlantı açmış olabilir) | Dur: 5432 oturum modu değil; döküm bu yolla alınmaz. |
+| `pooler_mode_confirmed` | Sahip, Supabase panelinde (Connect) kullandığı bağlantının **Session pooler** (5432) olduğunu görmüş ve `NAKGO_G19_POOLER_MODE=session` vermiş | Paneli kontrol et; teyit olmadan sonuç başarılı sayılmaz. |
+| `snapshot` | Dışa aktarılan anlık görüntü ikinci bağlantıda içe alınır | Dur: iki bağlantı aynı oturum havuzuna gitmiyor. |
+| `tools` | `pg_dump`/`pg_restore` sürümü sunucudan eski değil | PostgreSQL 17 istemcisini kur. |
+| `pg_dump` | libpq `verify-full` ile, aynı anlık görüntüden yalnız şema dökümü alınır ve `pg_restore -l` okur (veri yok; dosya silinir) | Dur: hata kaydını incele. |
+| `local_pg` | Yerel geri yükleme sunucusu ayakta, sürümü sunucudan eski değil | Yerel PostgreSQL 17'yi başlat. |
+
+Yerelde kanıtlanan: gerçek TLS'li (yalnız `hostssl` + scram) geçici PostgreSQL 17 kümesinde bütün kontroller geçer;
+yanlış kök, IP ile bağlantı, `verify-full` olmayan ayar, yanlış kullanıcı ve fazla yetkili rol yakalanır; sertifika IP
+adresini de kapsarsa `tls_hostname` düşer. Gerçek havuzlayıcıyla (pgbouncer 1.22, yerel; CI'da pgbouncer yok, alt
+test atlanır): işlem modunda `session_mode` düşer, oturum modunda geçer; önceki yoklama (yalnız aynı istemcide aynı
+süreç ve ayar) işlem modunda da yanlışlıkla geçiyordu. Supavisor taklit edilmez: oturum modunun kesin kanıtı yoklama
+değil, panel teyidi + gerçek çalıştırmadaki yoklama ve `snapshot` sonucudur.
 
 Çıktı yalnız aşama durumlarını, nesne anahtarlarını, sözleşme durumunu ve kısa kodu yazar. Başarı: `state:
 "signature_pending"`, çıkış kodu **2** ve "İMZA BEKLİYOR: kısa kod …". Yedek henüz **tamamlanmamıştır**.
